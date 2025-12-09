@@ -89,6 +89,7 @@
                 <div class="form-group">
                     <label for="categorySelect">Catégorie *</label>
                     <select id="categorySelect" required>
+                        <option value="all">📦 Toutes catégories</option>
                         <option value="equipement">⚔️ Équipement</option>
                         <option value="consommable">🧪 Consommable</option>
                         <option value="agricole">🌾 Agricole</option>
@@ -245,11 +246,10 @@
             // FUTURE: Replace with API call to load user's inventory
             loadFromLocalStorage();
 
-            // Populate item selector with available items from database
-            populateItemSelector();
-
             // Render
             renderInventory();
+
+            // Note: Item selector is populated when add panel opens
         }
 
         // =================================================================
@@ -274,19 +274,28 @@
 
         /**
          * Populate the item selector dropdown with items from database
+         * Filters by selected category for clarity
          */
         function populateItemSelector() {
             const allItems = getAllItems();
+            const selectedCategory = categorySelect.value;
 
             // Clear existing options (except the first placeholder)
             itemSelect.innerHTML = '<option value="">-- Sélectionner un objet --</option>';
 
-            // Add all items as options
-            allItems.forEach((item, index) => {
+            // Filter items by category if not "all"
+            const filteredItems = selectedCategory === 'all'
+                ? allItems
+                : allItems.filter(item => item.category === selectedCategory);
+
+            // Add filtered items as options
+            filteredItems.forEach((item, index) => {
+                // Use the original index from allItems for referencing
+                const originalIndex = allItems.indexOf(item);
                 const option = document.createElement('option');
-                option.value = index; // Use index to reference the item
+                option.value = originalIndex; // Use original index to reference the item
                 option.textContent = item.name;
-                option.dataset.category = item.category; // Store category for auto-fill
+                option.dataset.category = item.category;
                 itemSelect.appendChild(option);
             });
         }
@@ -342,10 +351,21 @@
 
         /**
          * Open the add item panel
+         * Pre-selects the current category filter for convenience
          */
         function openAddPanel() {
             addPanel.classList.add('open');
-            resetAddForm();
+
+            // Pre-select current category (or "all" if viewing all)
+            categorySelect.value = currentCategory;
+
+            // Populate items based on pre-selected category
+            populateItemSelector();
+
+            // Reset other form fields
+            itemSelect.value = '';
+            quantityInput.value = 1;
+            itemPreview.style.display = 'none';
         }
 
         /**
@@ -361,13 +381,26 @@
          */
         function resetAddForm() {
             itemSelect.value = '';
-            categorySelect.value = 'equipement';
+            categorySelect.value = 'all';
             quantityInput.value = 1;
+            itemPreview.style.display = 'none';
+            populateItemSelector(); // Refresh item list
+        }
+
+        /**
+         * Handle category change - refresh item dropdown
+         */
+        function handleCategoryChange() {
+            // Refresh item dropdown with filtered items
+            populateItemSelector();
+
+            // Clear item selection since list changed
+            itemSelect.value = '';
             itemPreview.style.display = 'none';
         }
 
         /**
-         * Handle item selection - show preview and auto-fill category
+         * Handle item selection - show preview
          */
         function handleItemSelection() {
             const selectedIndex = itemSelect.value;
@@ -381,9 +414,6 @@
             const selectedItem = allItems[parseInt(selectedIndex)];
 
             if (selectedItem) {
-                // Auto-fill category from item data
-                categorySelect.value = selectedItem.category;
-
                 // Show preview
                 const imageSrc = resolveImage(selectedItem);
                 previewImage.src = imageSrc;
@@ -399,7 +429,6 @@
          */
         function addItemToInventory() {
             const selectedIndex = itemSelect.value;
-            const category = categorySelect.value;
             const quantity = parseInt(quantityInput.value) || 1;
 
             if (!selectedIndex) {
@@ -428,11 +457,11 @@
                 existingItem.quantity += quantity;
                 console.log(`Updated ${existingItem.name}: quantity now ${existingItem.quantity}`);
             } else {
-                // Add new item with all data from source + user selections
+                // Add new item with all data from source (use original category from data)
                 const newItem = {
                     id: nextItemId++,
                     name: sourceItem.name,
-                    category: category, // Use selected category (can override)
+                    category: sourceItem.category, // Use original category from data
                     image: sourceItem.image,
                     description: sourceItem.description,
                     effect: sourceItem.effect,
@@ -472,6 +501,7 @@
         closeAddBtn.addEventListener('click', closeAddPanel);
         cancelAddBtn.addEventListener('click', closeAddPanel);
         confirmAddBtn.addEventListener('click', addItemToInventory);
+        categorySelect.addEventListener('change', handleCategoryChange);
         itemSelect.addEventListener('change', handleItemSelection);
         qtyMinusBtn.addEventListener('click', decreaseQuantity);
         qtyPlusBtn.addEventListener('click', increaseQuantity);
