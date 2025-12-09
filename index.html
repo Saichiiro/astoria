@@ -42,13 +42,12 @@
 
         .search-container {
             flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            position: relative;
+            display: inline-block;
         }
 
         .search-container input {
-            padding: 6px 12px;
+            padding: 6px 28px 6px 12px; /* place pour la croix à droite */
             border-radius: 20px;
             border: 1px solid #d81b60;
             outline: none;
@@ -67,8 +66,13 @@
             color: #d81b60;
             font-size: 1rem;
             cursor: pointer;
-            padding: 0 4px;
+            padding: 0;
             line-height: 1;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none; /* affiché uniquement quand il y a du texte */
         }
 
         .clear-search-btn:hover {
@@ -389,7 +393,7 @@
             <h1 class="title">Liste d'objets</h1>
             <div class="search-container">
                 <input type="text" id="searchInput" placeholder="Rechercher un objet..." onkeyup="filterTable()">
-                <button class="clear-search-btn" type="button" onclick="clearSearch()">×</button>
+                <button id="clearSearchBtn" class="clear-search-btn" type="button" onclick="clearSearch()">×</button>
             </div>
         </div>
 
@@ -588,7 +592,8 @@
 
         // Recherche live sur nom / description / prix / effet
         function filterTable() {
-            const query = document.getElementById("searchInput").value.toLowerCase();
+            const input = document.getElementById("searchInput");
+            const query = input.value.toLowerCase();
 
             const filtered = allItems.filter((item) => {
                 const name = (item.name || item.nom || "").toLowerCase();
@@ -608,12 +613,22 @@
                 );
             });
 
+            // Affiche ou cache la croix en fonction du contenu
+            const clearBtn = document.getElementById("clearSearchBtn");
+            if (clearBtn) {
+                clearBtn.style.display = query ? "inline" : "none";
+            }
+
             loadTable(filtered);
         }
 
         function clearSearch() {
             const input = document.getElementById("searchInput");
             input.value = "";
+            const clearBtn = document.getElementById("clearSearchBtn");
+            if (clearBtn) {
+                clearBtn.style.display = "none";
+            }
             loadTable(allItems);
             input.focus();
         }
