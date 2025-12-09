@@ -1242,6 +1242,21 @@ tbody tr:hover {
     border-color: var(--color-gray-500);
 }
 
+/* Item preview card in add panel */
+.item-preview-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--color-primary-lighter);
+    border: 2px solid var(--color-primary-light);
+    border-radius: var(--radius-md);
+}
+
+.item-preview-card img {
+    flex-shrink: 0;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .inventory-content {

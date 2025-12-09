@@ -15,6 +15,10 @@
             <h1 class="inventory-title">Inventaire</h1>
             <div class="inventory-actions">
                 <span id="itemCount" class="inventory-info">0 objets</span>
+                <button class="add-item-btn" id="openAddPanel" title="Ajouter un objet">
+                    <span class="add-icon">+</span>
+                    <span class="add-label">Ajouter</span>
+                </button>
             </div>
         </div>
 
@@ -63,17 +67,87 @@
         </div>
     </div>
 
+    <!-- Add item panel (slide-in from right) -->
+    <div class="add-panel" id="addPanel">
+        <div class="add-panel-inner">
+            <div class="add-panel-header">
+                <h2>Ajouter un objet</h2>
+                <button class="panel-close-btn" id="closeAddPanel">&times;</button>
+            </div>
+
+            <div class="add-panel-body">
+                <!-- Item selector (from existing database) -->
+                <div class="form-group">
+                    <label for="itemSelect">Objet *</label>
+                    <select id="itemSelect" required>
+                        <option value="">-- Sélectionner un objet --</option>
+                        <!-- Options populated by JS from inventoryData -->
+                    </select>
+                </div>
+
+                <!-- Category selector -->
+                <div class="form-group">
+                    <label for="categorySelect">Catégorie *</label>
+                    <select id="categorySelect" required>
+                        <option value="equipement">⚔️ Équipement</option>
+                        <option value="consommable">🧪 Consommable</option>
+                        <option value="agricole">🌾 Agricole</option>
+                    </select>
+                </div>
+
+                <!-- Quantity selector -->
+                <div class="form-group">
+                    <label for="quantityInput">Quantité *</label>
+                    <div class="quantity-control">
+                        <button type="button" class="qty-btn" id="qtyMinus">−</button>
+                        <input type="number" id="quantityInput" min="1" value="1">
+                        <button type="button" class="qty-btn" id="qtyPlus">+</button>
+                    </div>
+                </div>
+
+                <!-- Item preview (shows selected item details) -->
+                <div id="itemPreview" style="display: none;">
+                    <div class="form-group">
+                        <label>Aperçu</label>
+                        <div class="item-preview-card">
+                            <img id="previewImage" src="" alt="" style="width: 80px; height: 80px; object-fit: contain;">
+                            <div>
+                                <div style="font-weight: 600;" id="previewName"></div>
+                                <div style="font-size: 14px; color: #666;" id="previewDescription"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="add-panel-footer">
+                <button type="button" class="btn-secondary" id="cancelAdd">Annuler</button>
+                <button type="button" class="btn-primary" id="confirmAdd">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load shared data -->
     <script src="data.js"></script>
 
     <!-- Inventory-specific JS -->
     <script>
         /**
-         * DYNAMIC INVENTORY MODULE
-         * - Loads all items from data.js (inventoryData)
-         * - Uses localStorage to track quantities/modifications
-         * - Category filtering & item selection
-         * - All items loaded by default with full data
+         * ========================================================================
+         * INVENTORY MODULE - EMPTY BY DEFAULT WITH ADD PANEL
+         * ========================================================================
+         *
+         * TEMPORARY IMPLEMENTATION FOR TESTING:
+         * - Inventory starts EMPTY on first load
+         * - Items stored in localStorage for persistence (testing only)
+         * - Items are added via "+" panel which selects from existing database
+         * - All item data (name, description, image) comes from data.js
+         *
+         * FUTURE INTEGRATION:
+         * - Replace localStorage with real backend API
+         * - Load inventory from server instead of localStorage
+         * - Connect to global item management system
+         * ========================================================================
          */
 
         // =================================================================
@@ -82,14 +156,14 @@
 
         /**
          * IMAGE CONFIGURATION
-         * Maps item names/keys to actual image paths
-         * Add new mappings here as needed
+         * Maps item names/keys to actual image paths from our existing dataset
          */
         const IMAGE_CONFIG = {
             basePath: 'assets/images/',
             // Map item name (normalized) to filename
             mappings: {
                 'poudrededetracage': 'Poudre_de_Tracage.png',
+                'poudredetracage': 'Poudre_de_Tracage.png',
                 'larmedematera': 'Larme_de_Matera.png',
                 'fruitpapooru': 'Fruit_Papooru.jpg',
                 'fioledevitalite': 'Fiole_de_vitalite.jpg',
@@ -125,7 +199,7 @@
 
         let currentCategory = 'all';
         let selectedItemIndex = null;
-        let inventoryItems = [];
+        let inventoryItems = []; // Starts EMPTY
         let nextItemId = 1; // Auto-increment ID for new items
 
         // =================================================================
@@ -138,90 +212,269 @@
         const itemCountEl = document.getElementById('itemCount');
         const categoryButtons = document.querySelectorAll('.category-btn');
 
+        // Add panel elements
+        const addPanel = document.getElementById('addPanel');
+        const openAddBtn = document.getElementById('openAddPanel');
+        const closeAddBtn = document.getElementById('closeAddPanel');
+        const cancelAddBtn = document.getElementById('cancelAdd');
+        const confirmAddBtn = document.getElementById('confirmAdd');
+        const itemSelect = document.getElementById('itemSelect');
+        const categorySelect = document.getElementById('categorySelect');
+        const quantityInput = document.getElementById('quantityInput');
+        const qtyMinusBtn = document.getElementById('qtyMinus');
+        const qtyPlusBtn = document.getElementById('qtyPlus');
+        const itemPreview = document.getElementById('itemPreview');
+        const previewImage = document.getElementById('previewImage');
+        const previewName = document.getElementById('previewName');
+        const previewDescription = document.getElementById('previewDescription');
+
         // =================================================================
         // INITIALIZATION
         // =================================================================
 
         /**
-         * Initialize inventory from data.js
-         * - Loads all items from inventoryData (shared data)
-         * - Merges with localStorage quantities if available
+         * Initialize inventory - EMPTY BY DEFAULT
+         * - Loads from localStorage ONLY (if present)
+         * - Otherwise displays empty inventory
          * - Renders the UI
          */
         function initInventory() {
-            console.log('Initializing inventory from data.js...');
+            console.log('Initializing inventory...');
 
-            // Load items from shared data.js
-            loadFromDataJS();
+            // TEMPORARY: Load from localStorage for testing
+            // FUTURE: Replace with API call to load user's inventory
+            loadFromLocalStorage();
+
+            // Populate item selector with available items from database
+            populateItemSelector();
 
             // Render
             renderInventory();
         }
 
         // =================================================================
-        // PERSISTENCE - LocalStorage
+        // ITEM DATABASE ACCESS
         // =================================================================
 
         /**
-         * Load inventory from data.js (inventoryData)
-         * - Uses all items from shared data
-         * - Merges with localStorage quantities if they exist
-         * - Each item gets quantity: 1 by default
+         * TEMPORARY FUNCTION: Get all available items from data.js
+         *
+         * This function accesses our existing central item database (inventoryData).
+         * In production, this would query the real backend database.
+         *
+         * @returns {Array} All available items from the game database
          */
-        function loadFromDataJS() {
+        function getAllItems() {
+            if (typeof inventoryData === 'undefined' || !inventoryData) {
+                console.warn('inventoryData not found in data.js');
+                return [];
+            }
+            return inventoryData;
+        }
+
+        /**
+         * Populate the item selector dropdown with items from database
+         */
+        function populateItemSelector() {
+            const allItems = getAllItems();
+
+            // Clear existing options (except the first placeholder)
+            itemSelect.innerHTML = '<option value="">-- Sélectionner un objet --</option>';
+
+            // Add all items as options
+            allItems.forEach((item, index) => {
+                const option = document.createElement('option');
+                option.value = index; // Use index to reference the item
+                option.textContent = item.name;
+                option.dataset.category = item.category; // Store category for auto-fill
+                itemSelect.appendChild(option);
+            });
+        }
+
+        // =================================================================
+        // PERSISTENCE - LocalStorage (TEMPORARY)
+        // =================================================================
+
+        /**
+         * TEMPORARY: Load inventory from localStorage
+         *
+         * For testing purposes only. In production, this will be replaced
+         * with a proper API call to load the user's inventory from the server.
+         *
+         * Storage key: 'astoriaInventory'
+         * Format: JSON array of inventory items with quantities
+         */
+        function loadFromLocalStorage() {
             try {
-                // Check if inventoryData exists (from data.js)
-                if (typeof inventoryData === 'undefined' || !inventoryData) {
-                    console.warn('inventoryData not found in data.js');
-                    inventoryItems = [];
-                    return;
-                }
-
-                // Load stored quantities from localStorage
-                const stored = localStorage.getItem('astoriaInventoryQuantities');
-                let storedQuantities = {};
+                const stored = localStorage.getItem('astoriaInventory');
                 if (stored) {
-                    storedQuantities = JSON.parse(stored);
-                    console.log('Loaded quantity data from storage');
+                    inventoryItems = JSON.parse(stored);
+                    nextItemId = Math.max(...inventoryItems.map(i => i.id), 0) + 1;
+                    console.log(`Loaded ${inventoryItems.length} items from localStorage`);
+                } else {
+                    inventoryItems = [];
+                    console.log('No inventory found in localStorage - starting empty');
                 }
-
-                // Transform inventoryData items with quantities
-                inventoryItems = inventoryData.map((item, index) => {
-                    const itemKey = item.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    return {
-                        ...item,
-                        id: index,
-                        quantity: storedQuantities[itemKey] || 1 // Default quantity: 1
-                    };
-                });
-
-                nextItemId = inventoryItems.length;
-                console.log(`Loaded ${inventoryItems.length} items from data.js`);
-
             } catch (error) {
-                console.error('Error loading from data.js:', error);
+                console.error('Error loading from localStorage:', error);
                 inventoryItems = [];
             }
         }
 
         /**
-         * Save quantities to localStorage
-         * - Only saves quantities, not full item data
-         * - Item data always comes from data.js
+         * TEMPORARY: Save inventory to localStorage
+         *
+         * For testing purposes only. In production, this will be replaced
+         * with API calls to persist changes to the server.
          */
-        function saveQuantitiesToStorage() {
+        function saveToLocalStorage() {
             try {
-                const quantities = {};
-                inventoryItems.forEach(item => {
-                    const itemKey = item.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    quantities[itemKey] = item.quantity;
-                });
-                localStorage.setItem('astoriaInventoryQuantities', JSON.stringify(quantities));
-                console.log('Quantities saved to localStorage');
+                localStorage.setItem('astoriaInventory', JSON.stringify(inventoryItems));
+                console.log('Inventory saved to localStorage');
             } catch (error) {
                 console.error('Error saving to localStorage:', error);
             }
         }
+
+        // =================================================================
+        // ADD ITEM PANEL
+        // =================================================================
+
+        /**
+         * Open the add item panel
+         */
+        function openAddPanel() {
+            addPanel.classList.add('open');
+            resetAddForm();
+        }
+
+        /**
+         * Close the add item panel
+         */
+        function closeAddPanel() {
+            addPanel.classList.remove('open');
+            resetAddForm();
+        }
+
+        /**
+         * Reset the add form to defaults
+         */
+        function resetAddForm() {
+            itemSelect.value = '';
+            categorySelect.value = 'equipement';
+            quantityInput.value = 1;
+            itemPreview.style.display = 'none';
+        }
+
+        /**
+         * Handle item selection - show preview and auto-fill category
+         */
+        function handleItemSelection() {
+            const selectedIndex = itemSelect.value;
+
+            if (!selectedIndex) {
+                itemPreview.style.display = 'none';
+                return;
+            }
+
+            const allItems = getAllItems();
+            const selectedItem = allItems[parseInt(selectedIndex)];
+
+            if (selectedItem) {
+                // Auto-fill category from item data
+                categorySelect.value = selectedItem.category;
+
+                // Show preview
+                const imageSrc = resolveImage(selectedItem);
+                previewImage.src = imageSrc;
+                previewImage.onerror = () => { previewImage.src = PLACEHOLDER_IMAGE; };
+                previewName.textContent = selectedItem.name;
+                previewDescription.textContent = selectedItem.description || 'Aucune description disponible.';
+                itemPreview.style.display = 'block';
+            }
+        }
+
+        /**
+         * Add selected item to inventory
+         */
+        function addItemToInventory() {
+            const selectedIndex = itemSelect.value;
+            const category = categorySelect.value;
+            const quantity = parseInt(quantityInput.value) || 1;
+
+            if (!selectedIndex) {
+                alert('Veuillez sélectionner un objet');
+                return;
+            }
+
+            if (quantity < 1) {
+                alert('La quantité doit être au moins 1');
+                return;
+            }
+
+            const allItems = getAllItems();
+            const sourceItem = allItems[parseInt(selectedIndex)];
+
+            if (!sourceItem) {
+                alert('Objet invalide');
+                return;
+            }
+
+            // Check if item already exists in inventory
+            const existingItem = inventoryItems.find(i => i.name === sourceItem.name);
+
+            if (existingItem) {
+                // Update quantity if already exists
+                existingItem.quantity += quantity;
+                console.log(`Updated ${existingItem.name}: quantity now ${existingItem.quantity}`);
+            } else {
+                // Add new item with all data from source + user selections
+                const newItem = {
+                    id: nextItemId++,
+                    name: sourceItem.name,
+                    category: category, // Use selected category (can override)
+                    image: sourceItem.image,
+                    description: sourceItem.description,
+                    effect: sourceItem.effect,
+                    buyPrice: sourceItem.buyPrice,
+                    sellPrice: sourceItem.sellPrice,
+                    quantity: quantity
+                };
+
+                inventoryItems.push(newItem);
+                console.log(`Added ${newItem.name} x${quantity} to inventory`);
+            }
+
+            // TEMPORARY: Save to localStorage
+            // FUTURE: API call to save to server
+            saveToLocalStorage();
+
+            // Close panel and refresh display
+            closeAddPanel();
+            renderInventory();
+        }
+
+        /**
+         * Quantity control buttons
+         */
+        function decreaseQuantity() {
+            const current = parseInt(quantityInput.value) || 1;
+            quantityInput.value = Math.max(1, current - 1);
+        }
+
+        function increaseQuantity() {
+            const current = parseInt(quantityInput.value) || 1;
+            quantityInput.value = current + 1;
+        }
+
+        // Attach event listeners for add panel
+        openAddBtn.addEventListener('click', openAddPanel);
+        closeAddBtn.addEventListener('click', closeAddPanel);
+        cancelAddBtn.addEventListener('click', closeAddPanel);
+        confirmAddBtn.addEventListener('click', addItemToInventory);
+        itemSelect.addEventListener('change', handleItemSelection);
+        qtyMinusBtn.addEventListener('click', decreaseQuantity);
+        qtyPlusBtn.addEventListener('click', increaseQuantity);
 
         // =================================================================
         // CATEGORY FILTERING
@@ -498,7 +751,6 @@
         /**
          * Expose API for external use
          * - Can be called from index.html or other pages
-         * - Example: InventoryModule.addItemFromExternal(item)
          */
         window.InventoryModule = {
             // Current state
@@ -508,32 +760,42 @@
             renderInventory,
             filterByCategory,
 
-            // Update item quantity
-            updateQuantity: (itemName, newQuantity) => {
-                const item = inventoryItems.find(i => i.name === itemName);
-                if (item) {
-                    item.quantity = Math.max(0, newQuantity);
-                    saveQuantitiesToStorage();
-                    renderInventory();
-                }
-            },
+            // Add item from external page (e.g., index.html)
+            addItemFromExternal: (itemName, quantity = 1) => {
+                const allItems = getAllItems();
+                const sourceItem = allItems.find(i => i.name === itemName);
 
-            // Reset quantities to default (1 for all)
-            resetQuantities: () => {
-                if (confirm('Réinitialiser toutes les quantités à 1 ?')) {
-                    inventoryItems.forEach(item => item.quantity = 1);
-                    saveQuantitiesToStorage();
-                    renderInventory();
-                    console.log('Quantities reset to 1');
+                if (!sourceItem) {
+                    console.error(`Item not found: ${itemName}`);
+                    return false;
                 }
-            },
 
-            // Reload from data.js (discards localStorage)
-            reloadFromData: () => {
-                localStorage.removeItem('astoriaInventoryQuantities');
-                loadFromDataJS();
+                const existingItem = inventoryItems.find(i => i.name === itemName);
+
+                if (existingItem) {
+                    existingItem.quantity += quantity;
+                } else {
+                    inventoryItems.push({
+                        id: nextItemId++,
+                        ...sourceItem,
+                        quantity: quantity
+                    });
+                }
+
+                saveToLocalStorage();
                 renderInventory();
-                console.log('Reloaded from data.js');
+                return true;
+            },
+
+            // Clear entire inventory (for testing)
+            clearAll: () => {
+                if (confirm('Effacer tout l\'inventaire ?')) {
+                    inventoryItems = [];
+                    nextItemId = 1;
+                    saveToLocalStorage();
+                    renderInventory();
+                    console.log('Inventory cleared');
+                }
             }
         };
     </script>
