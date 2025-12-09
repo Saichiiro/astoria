@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compétences - Astoria</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* =====================================================================
+           FEUILLE DE COMPÉTENCES - Mise en page & thème local à cette page
+           ===================================================================== */
+        .skills-page {
+            max-width: var(--wrapper-max-width);
+            margin: 0 auto;
+        }
+
+        .skills-layout {
+            display: flex;
+            background: linear-gradient(to bottom right, #f9fafc, #e8ecf3);
+            border-radius: var(--radius-lg);
+            border: 1px solid #c7ccd6;
+            box-shadow: var(--shadow-xl);
+            overflow: hidden;
+            min-height: 320px;
+        }
+
+        /* Bandeau haut avec titre + retour */
+        .skills-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-8);
+        }
+
+        .skills-title {
+            margin: 0;
+            color: var(--color-primary);
+            font-size: var(--text-3xl);
+            font-weight: var(--font-semibold);
+            letter-spacing: var(--letter-spacing-wide);
+        }
+
+        .skills-back-link {
+            text-decoration: none;
+            color: var(--color-primary);
+            font-size: var(--text-sm-plus);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+
+        .skills-back-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Colonne d'onglets ronds à gauche */
+        .skills-sidebar {
+            width: 140px;
+            padding: var(--space-6);
+            border-right: 1px solid #c7ccd6;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+            align-items: flex-start;
+            background: linear-gradient(to bottom, #edeff4, #dde1eb);
+        }
+
+        .skills-tab-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            background: transparent;
+            border: none;
+            padding: var(--space-1);
+            cursor: pointer;
+            color: var(--color-gray-700);
+            font-size: var(--text-xs);
+            text-align: left;
+        }
+
+        .skills-tab-btn:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 2px;
+        }
+
+        .skills-tab-circle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid #c4ccd8;
+            background: radial-gradient(circle at 30% 20%, #ffffff 0, #e0e4ec 40%, #c8cedc 100%);
+            box-shadow:
+                inset 0 0 4px rgba(255, 255, 255, 0.7),
+                0 2px 4px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--color-gray-600);
+            transition:
+                border-color 0.18s ease,
+                box-shadow 0.18s ease,
+                transform 0.15s ease,
+                background 0.18s ease;
+        }
+
+        .skills-tab-label {
+            flex: 1;
+            line-height: 1.2;
+            opacity: 0.9;
+        }
+
+        .skills-tab-btn:hover .skills-tab-circle {
+            transform: translateY(-1px);
+            box-shadow:
+                inset 0 0 4px rgba(255, 255, 255, 0.8),
+                0 3px 6px rgba(0, 0, 0, 0.35);
+        }
+
+        .skills-tab-btn.skills-active .skills-tab-circle {
+            border-color: var(--color-primary);
+            box-shadow:
+                0 0 0 3px rgba(216, 27, 96, 0.18),
+                0 3px 7px rgba(0, 0, 0, 0.35);
+            background: radial-gradient(circle at 30% 20%, #ffffff 0, #fce4ec 40%, #f8bbd0 100%);
+            color: var(--color-primary);
+        }
+
+        .skills-tab-btn.skills-active .skills-tab-label {
+            color: var(--color-gray-900);
+            font-weight: var(--font-semibold);
+            opacity: 1;
+        }
+
+        /* Panneau de droite */
+        .skills-panel {
+            flex: 1;
+            padding: var(--space-6) var(--space-6) var(--space-8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .skills-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+            padding-bottom: var(--space-3);
+            border-bottom: 1px solid #c7ccd6;
+        }
+
+        .skills-panel-title {
+            margin: 0;
+            font-size: var(--text-lg);
+            letter-spacing: var(--letter-spacing-wide);
+            text-transform: uppercase;
+            color: #364154;
+        }
+
+        .skills-points-box {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(to bottom, #f4f6fa, #dde2ec);
+            border-radius: var(--radius-md);
+            border: 1px solid #c7ccd6;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+            font-size: var(--text-xs);
+            white-space: nowrap;
+        }
+
+        .skills-points-label {
+            font-weight: var(--font-medium);
+            color: var(--color-gray-700);
+        }
+
+        .skills-points-value {
+            min-width: 26px;
+            padding: 3px 6px;
+            text-align: center;
+            border-radius: var(--radius-sm);
+            background: #1c232f;
+            color: #f5f7fa;
+            border: 1px solid #0f131a;
+            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.55);
+            font-variant-numeric: tabular-nums;
+            font-size: var(--text-xs);
+        }
+
+        .skills-points-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #c7ccd6;
+            background: linear-gradient(to bottom, #ffffff, #ccd3e0);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            padding: 0;
+            color: #343a46;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+            transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+        }
+
+        .skills-points-btn:hover {
+            background: linear-gradient(to bottom, #ffffff, #bfc7d6);
+            transform: translateY(-0.5px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.24);
+        }
+
+        .skills-points-btn:active {
+            transform: translateY(0);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .skills-points-btn:focus-visible {
+            outline: 2px solid var(--color-primary);
+            outline-offset: 1px;
+        }
+
+        /* Liste de compétences */
+        .skills-list {
+            list-style: none;
+            margin: 0;
+            margin-top: var(--space-1);
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+        }
+
+        .skills-line {
+            display: flex;
+            align-items: center;
+            background: linear-gradient(to right, #d8dde6, #dee3ee);
+            border-radius: var(--radius-md);
+            border: 1px solid #b5bcc9;
+            padding: 4px 8px;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+            transition:
+                background 0.15s ease,
+                transform 0.12s ease,
+                box-shadow 0.15s ease;
+        }
+
+        .skills-line:hover {
+            background: linear-gradient(to right, #cfd5e0, #e4e8f2);
+            transform: translateX(1px);
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.9),
+                0 2px 4px rgba(0, 0, 0, 0.18);
+        }
+
+        .skills-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            margin-right: var(--space-3);
+            background:
+                linear-gradient(135deg, #fffaf0, #f4d28a),
+                radial-gradient(circle at 30% 20%, #ffffff 0, #f4d28a 40%, #c69b4d 100%);
+            border: 1px solid #b18c46;
+            box-shadow:
+                inset 0 0 2px rgba(255, 255, 255, 0.8),
+                0 1px 1px rgba(0, 0, 0, 0.25);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .skills-name {
+            flex: 1;
+            font-size: var(--text-base-minus);
+            color: #2e3644;
+        }
+
+        .skills-value {
+            margin-left: var(--space-3);
+            padding: 2px 6px;
+            min-width: 32px;
+            text-align: right;
+            font-size: var(--text-xs);
+            border-radius: var(--radius-sm);
+            background: #c6ccd6;
+            border: 1px solid #a4aab7;
+            box-shadow: inset 0 0 2px rgba(255, 255, 255, 0.7);
+            font-variant-numeric: tabular-nums;
+            color: #333944;
+        }
+
+        /* Transitions fade simples */
+        .skills-fade-out {
+            opacity: 0;
+            transform: translateY(2px);
+        }
+
+        .skills-fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .skills-layout {
+                flex-direction: column;
+            }
+
+            .skills-sidebar {
+                width: 100%;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+                align-items: center;
+                border-right: none;
+                border-bottom: 1px solid #c7ccd6;
+            }
+
+            .skills-tab-btn {
+                width: auto;
+                min-width: 74px;
+                justify-content: center;
+            }
+
+            .skills-tab-label {
+                display: none; /* Sur mobile on garde les ronds uniquement */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .skills-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--space-3);
+            }
+
+            .skills-points-box {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="skills-page">
+        <header class="skills-header">
+            <h1 class="skills-title">Feuille de compétences</h1>
+            <a href="index.html" class="skills-back-link">← Retour</a>
+        </header>
+
+        <section class="skills-layout" aria-label="Feuille de compétences">
+            <!-- Colonne de gauche : onglets ronds -->
+            <aside class="skills-sidebar" id="skillsTabs" aria-label="Catégories de compétences">
+                <!-- Boutons générés par JavaScript -->
+            </aside>
+
+            <!-- Panneau de droite -->
+            <main class="skills-panel" aria-live="polite">
+                <div class="skills-panel-header">
+                    <h2 class="skills-panel-title" id="skillsCategoryTitle">Catégorie</h2>
+
+                    <div class="skills-points-box" aria-label="Points à répartir">
+                        <span class="skills-points-label">Points à répartir :</span>
+                        <button type="button" class="skills-points-btn" id="skillsPointsMinus" aria-label="Retirer un point">
+                            −
+                        </button>
+                        <span class="skills-points-value" id="skillsPointsValue">0</span>
+                        <button type="button" class="skills-points-btn" id="skillsPointsPlus" aria-label="Ajouter un point">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <ul class="skills-list" id="skillsList">
+                    <!-- Lignes de compétences injectées par JavaScript -->
+                </ul>
+            </main>
+        </section>
+    </div>
+
+    <script>
+        // =====================================================================
+        // Données : adapte ici les catégories et compétences à ton système
+        // =====================================================================
+        const skillsCategories = [
+            {
+                id: "arts",
+                label: "Arts & Expression",
+                icon: "🎨",
+                skills: [
+                    { name: "Peinture", value: 12, icon: "🖌️" },
+                    { name: "Musique", value: 8, icon: "🎵" },
+                    { name: "Théâtre", value: 6, icon: "🎭" },
+                    { name: "Écriture créative", value: 10, icon: "✍️" },
+                    { name: "Danse", value: 5, icon: "💃" }
+                ]
+            },
+            {
+                id: "connaissances",
+                label: "Connaissances & Langues",
+                icon: "📚",
+                skills: [
+                    { name: "Histoire", value: 9, icon: "📜" },
+                    { name: "Arcane & Théorie", value: 7, icon: "🔮" },
+                    { name: "Linguistique", value: 11, icon: "🗣️" },
+                    { name: "Religion & Mythes", value: 5, icon: "⛪" },
+                    { name: "Investigation", value: 8, icon: "🔍" }
+                ]
+            },
+            {
+                id: "combat",
+                label: "Combat & Défense",
+                icon: "⚔️",
+                skills: [
+                    { name: "Maniement des armes", value: 13, icon: "🗡️" },
+                    { name: "Parade", value: 7, icon: "🛡️" },
+                    { name: "Esquive", value: 10, icon: "💨" },
+                    { name: "Résistance physique", value: 6, icon: "💪" },
+                    { name: "Tactique de groupe", value: 4, icon: "👥" }
+                ]
+            },
+            {
+                id: "pouvoirs",
+                label: "Pouvoirs & Alice | Arme & Meister",
+                icon: "✨",
+                skills: [
+                    { name: "Contrôle d'Alice", value: 15, icon: "🌟" },
+                    { name: "Synchronisation Meister", value: 9, icon: "🔗" },
+                    { name: "Maîtrise d'arme", value: 11, icon: "⚡" },
+                    { name: "Déchaînement contrôlé", value: 5, icon: "💥" },
+                    { name: "Stabilité mentale", value: 7, icon: "🧠" }
+                ]
+            },
+            {
+                id: "social",
+                label: "Compétences Sociales",
+                icon: "💬",
+                skills: [
+                    { name: "Persuasion", value: 10, icon: "🎯" },
+                    { name: "Intimidation", value: 6, icon: "😠" },
+                    { name: "Empathie", value: 9, icon: "❤️" },
+                    { name: "Négociation", value: 7, icon: "🤝" },
+                    { name: "Tromperie", value: 4, icon: "🎭" }
+                ]
+            },
+            {
+                id: "artisanat",
+                label: "Artisanat & Métier",
+                icon: "🔨",
+                skills: [
+                    { name: "Forge & Métallurgie", value: 6, icon: "⚒️" },
+                    { name: "Alchimie", value: 8, icon: "⚗️" },
+                    { name: "Ingénierie", value: 5, icon: "⚙️" },
+                    { name: "Couture & Tissage", value: 7, icon: "🧵" },
+                    { name: "Cuisine", value: 9, icon: "🍳" }
+                ]
+            },
+            {
+                id: "nature",
+                label: "Nature & Survie",
+                icon: "🌲",
+                skills: [
+                    { name: "Orientation", value: 7, icon: "🧭" },
+                    { name: "Pistage", value: 6, icon: "👣" },
+                    { name: "Herboristerie", value: 8, icon: "🌿" },
+                    { name: "Survie en milieu hostile", value: 9, icon: "🏕️" },
+                    { name: "Discrétion", value: 5, icon: "🥷" }
+                ]
+            },
+            {
+                id: "physique",
+                label: "Physique",
+                icon: "💪",
+                skills: [
+                    { name: "Force brute", value: 10, icon: "🏋️" },
+                    { name: "Agilité", value: 11, icon: "🤸" },
+                    { name: "Endurance", value: 9, icon: "🏃" },
+                    { name: "Réflexes", value: 8, icon: "⚡" },
+                    { name: "Athlétisme", value: 7, icon: "🏅" }
+                ]
+            },
+            {
+                id: "reputation",
+                label: "Réputation & Marché",
+                icon: "👑",
+                skills: [
+                    { name: "Renommée", value: 6, icon: "⭐" },
+                    { name: "Contacts", value: 8, icon: "📞" },
+                    { name: "Marchandage", value: 10, icon: "💰" },
+                    { name: "Crédit social", value: 5, icon: "📈" },
+                    { name: "Influence politique", value: 4, icon: "🏛️" }
+                ]
+            }
+        ];
+
+        // État simple
+        const skillsState = {
+            activeCategoryId: skillsCategories[0].id,
+            points: 0
+        };
+
+        const skillsTabsContainer = document.getElementById("skillsTabs");
+        const skillsTitleEl = document.getElementById("skillsCategoryTitle");
+        const skillsListEl = document.getElementById("skillsList");
+        const skillsPointsValueEl = document.getElementById("skillsPointsValue");
+        const skillsPointsPlusEl = document.getElementById("skillsPointsPlus");
+        const skillsPointsMinusEl = document.getElementById("skillsPointsMinus");
+
+        // -----------------------------------------------------------------
+        // Génération des onglets à partir des données
+        // -----------------------------------------------------------------
+        function renderSkillsTabs() {
+            skillsTabsContainer.innerHTML = "";
+
+            skillsCategories.forEach((category) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "skills-tab-btn";
+                btn.dataset.id = category.id;
+                btn.title = category.label;
+                btn.setAttribute("aria-label", category.label);
+
+                btn.innerHTML = `
+                    <span class="skills-tab-circle">${category.icon}</span>
+                    <span class="skills-tab-label">${category.label}</span>
+                `;
+
+                if (category.id === skillsState.activeCategoryId) {
+                    btn.classList.add("skills-active");
+                }
+
+                btn.addEventListener("click", () => setActiveSkillsCategory(category.id));
+
+                skillsTabsContainer.appendChild(btn);
+            });
+        }
+
+        // -----------------------------------------------------------------
+        // Rendu de la catégorie sélectionnée (titre + liste)
+        // -----------------------------------------------------------------
+        function renderSkillsCategory(category) {
+            if (!category) return;
+
+            skillsTitleEl.classList.add("skills-fade-out");
+            skillsListEl.classList.add("skills-fade-out");
+
+            setTimeout(() => {
+                skillsTitleEl.textContent = category.label;
+
+                skillsListEl.innerHTML = "";
+                category.skills.forEach((skill) => {
+                    const li = document.createElement("li");
+                    li.className = "skills-line";
+                    li.innerHTML = `
+                        <div class="skills-icon" aria-hidden="true">${skill.icon || ''}</div>
+                        <div class="skills-name">${skill.name}</div>
+                        <div class="skills-value">${skill.value}</div>
+                    `;
+                    skillsListEl.appendChild(li);
+                });
+
+                skillsTitleEl.classList.remove("skills-fade-out");
+                skillsListEl.classList.remove("skills-fade-out");
+                skillsTitleEl.classList.add("skills-fade-in");
+                skillsListEl.classList.add("skills-fade-in");
+
+                setTimeout(() => {
+                    skillsTitleEl.classList.remove("skills-fade-in");
+                    skillsListEl.classList.remove("skills-fade-in");
+                }, 180);
+            }, 140);
+        }
+
+        // -----------------------------------------------------------------
+        // Changement d'onglet
+        // -----------------------------------------------------------------
+        function setActiveSkillsCategory(categoryId) {
+            if (skillsState.activeCategoryId === categoryId) return;
+
+            skillsState.activeCategoryId = categoryId;
+
+            document.querySelectorAll(".skills-tab-btn").forEach((btn) => {
+                btn.classList.toggle("skills-active", btn.dataset.id === categoryId);
+            });
+
+            const category = skillsCategories.find((c) => c.id === categoryId);
+            renderSkillsCategory(category);
+        }
+
+        // -----------------------------------------------------------------
+        // Gestion des points à répartir
+        // -----------------------------------------------------------------
+        function updateSkillsPointsDisplay() {
+            skillsPointsValueEl.textContent = skillsState.points;
+        }
+
+        skillsPointsPlusEl.addEventListener("click", () => {
+            if (skillsState.points < 99) {
+                skillsState.points += 1;
+                updateSkillsPointsDisplay();
+            }
+        });
+
+        skillsPointsMinusEl.addEventListener("click", () => {
+            if (skillsState.points > 0) {
+                skillsState.points -= 1;
+                updateSkillsPointsDisplay();
+            }
+        });
+
+        // -----------------------------------------------------------------
+        // Initialisation
+        // -----------------------------------------------------------------
+        renderSkillsTabs();
+        renderSkillsCategory(skillsCategories[0]);
+        updateSkillsPointsDisplay();
+    </script>
+</body>
+</html>
+
