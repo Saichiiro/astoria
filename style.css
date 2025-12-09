@@ -203,12 +203,10 @@ td {
 
 .tooltip-box {
     display: none;
-    position: absolute;
-    left: 0;
-    top: 100%;
-    bottom: auto;
-    transform: translateY(4px);
-    z-index: 10;
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    z-index: 99999;
     background: #ffffff;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -221,9 +219,7 @@ td {
 }
 
 .tooltip-box.tooltip--above {
-    top: auto;
-    bottom: 100%;
-    transform: translateY(-4px);
+    /* positioning handled in JS */
 }
 
 .tooltip-title {
@@ -255,6 +251,15 @@ tbody tr:hover .tooltip-box {
 .price-cell {
     font-size: 0.85rem;
     color: #444;
+    white-space: normal;
+}
+
+.commerce-cell {
+    line-height: 1.3;
+}
+
+.commerce-line {
+    display: block;
     white-space: nowrap;
 }
 
@@ -309,7 +314,7 @@ tbody tr:hover .tooltip-box {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    z-index: 20000; /* keep overlay above page content/text */
 }
 
 .modal.open {

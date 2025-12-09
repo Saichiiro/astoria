@@ -37,8 +37,7 @@
                         <th>Illustration</th>
                         <th>Nom</th>
                         <th>Description</th>
-                        <th>Prix d'achat</th>
-                        <th>Prix de vente</th>
+                        <th>Commerce</th>
                         <th>Effet (consommation)</th>
                         <th>Action</th>
                     </tr>
@@ -273,6 +272,8 @@
             const buy = item.buyPrice || "";
             const sell = item.sellPrice || "";
             const priceText = formatPrice(item);
+            const buyLine = buy ? `${buy} (achat)` : "—";
+            const sellLine = sell ? `${sell} (vente)` : "—";
             const effectSummary = summarizeEffect(effect);
             const images = resolveImages(item);
 
@@ -301,8 +302,10 @@
                             </div>
                         </div>
                     </td>
-                    <td class="price-cell">${escapeHtml(buy)}</td>
-                    <td class="price-cell">${escapeHtml(sell)}</td>
+                    <td class="price-cell commerce-cell">
+                        <span class="commerce-line">${escapeHtml(buyLine)}</span>
+                        <span class="commerce-line">${escapeHtml(sellLine)}</span>
+                    </td>
                     <td class="effect-cell">${escapeHtml(effectSummary)}</td>
                     <td class="action-cell">
                         <button
@@ -328,14 +331,21 @@
                 if (!tooltip) return;
 
                 row.addEventListener("mouseenter", () => {
+                    if (!tooltip._originalParent) {
+                        tooltip._originalParent = tooltip.parentElement;
+                    }
+                    if (tooltip.parentElement !== document.body) {
+                        document.body.appendChild(tooltip);
+                    }
                     const originalDisplay = tooltip.style.display;
                     const originalVisibility = tooltip.style.visibility;
 
                     tooltip.style.display = "block";
                     tooltip.style.visibility = "hidden";
 
+                    const anchor = row.querySelector(".desc-container") || row;
+                    const anchorRect = anchor.getBoundingClientRect();
                     const tooltipRect = tooltip.getBoundingClientRect();
-                    const rowRect = row.getBoundingClientRect();
 
                     let limitBottom = window.innerHeight;
                     if (container) {
@@ -343,19 +353,38 @@
                         limitBottom = Math.min(limitBottom, containerRect.bottom);
                     }
 
-                    const spaceBelow = limitBottom - rowRect.bottom;
-                    if (spaceBelow < tooltipRect.height) {
+                    const spaceBelow = limitBottom - anchorRect.bottom;
+                    const useAbove = spaceBelow < tooltipRect.height;
+                    if (useAbove) {
                         tooltip.classList.add("tooltip--above");
                     } else {
                         tooltip.classList.remove("tooltip--above");
                     }
 
-                    tooltip.style.display = originalDisplay;
+                    const top = useAbove
+                        ? anchorRect.top - tooltipRect.height - 6
+                        : anchorRect.bottom + 6;
+                    const left = Math.max(
+                        8,
+                        Math.min(
+                            window.innerWidth - tooltipRect.width - 8,
+                            anchorRect.left
+                        )
+                    );
+
+                    tooltip.style.left = `${left}px`;
+                    tooltip.style.top = `${Math.max(8, top)}px`;
                     tooltip.style.visibility = originalVisibility;
                 });
 
                 row.addEventListener("mouseleave", () => {
                     tooltip.classList.remove("tooltip--above");
+                    tooltip.style.display = "none";
+                    tooltip.style.left = "-9999px";
+                    tooltip.style.top = "-9999px";
+                    if (tooltip._originalParent && tooltip.parentElement !== tooltip._originalParent) {
+                        tooltip._originalParent.appendChild(tooltip);
+                    }
                 });
             });
         }
