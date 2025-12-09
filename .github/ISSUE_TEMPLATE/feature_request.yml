@@ -1,0 +1,49 @@
+name: Feature request
+description: Proposer une amélioration pour le site "Liste d'objets"
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Utilise ce formulaire pour suggérer une amélioration d’ergonomie, de design ou de contenu (nouvelle colonne, nouveau comportement mobile, etc.).  
+        Une demande = une idée, pour rester simple à suivre.
+
+  - type: dropdown
+    attributes:
+      label: Type d’amélioration
+      description: Sur quoi porte principalement cette feature ?
+      options:
+        - UI / responsive
+        - Comportement / interactions
+        - Contenu (textes, effets, structure de données)
+        - Technique / autre
+
+  - type: textarea
+    attributes:
+      label: Résumé de la demande
+      description: En une ou deux phrases, ce que tu souhaites ajouter ou changer.
+      placeholder: |
+        Exemple : Rendre toute la ligne cliquable pour ouvrir le détail de l’objet.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Pourquoi / cas d’usage
+      description: En quoi cette amélioration aide les joueurs ou les rédacteurs du codex.
+      placeholder: |
+        Exemple : sur mobile, il est difficile de cliquer seulement sur l’icône ou "Plus".
+
+  - type: textarea
+    attributes:
+      label: Idée de solution
+      description: Décris rapidement comment tu imagines le comportement ou le design (si tu as une idée).
+      placeholder: |
+        Exemple : ajouter un hover/active sur la ligne, ouvrir le même modal que l’icône.
+
+  - type: textarea
+    attributes:
+      label: Notes / maquettes
+      description: Liens, captures d’écran, croquis, exemples d’autres sites, etc.

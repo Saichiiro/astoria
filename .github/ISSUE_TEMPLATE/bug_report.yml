@@ -1,0 +1,74 @@
+name: Bug report
+description: Signaler un bug sur le site "Liste d'objets"
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci d’utiliser ce formulaire pour tout problème d’affichage ou de comportement sur le site (tableau, recherche, infobulles, modales, intégration GSite, etc.).  
+        Ouvrez **un ticket par bug** et, si possible, joignez une capture d’écran.
+
+  - type: dropdown
+    attributes:
+      label: Type de bug
+      description: Quel type de problème rencontres-tu principalement ?
+      options:
+        - Affichage / responsive
+        - Comportement / interactions (clic, recherche, modale, copie, etc.)
+        - Contenu / données (texte, prix, images…)
+        - Autre / je ne sais pas
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: URL concernée
+      description: Page exacte où le bug apparaît (prod, preview, iframe GSite, etc.).
+      placeholder: https://m1thieu.github.io/astoria-mcp/...
+
+  - type: input
+    attributes:
+      label: Navigateur / appareil
+      description: Navigateur, version, OS et type d’appareil.
+      placeholder: "Chrome 131, Windows 11 / Safari iOS 18, iPhone 13"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Description du bug
+      description: Ce qui se passe actuellement et ce que tu t’attendais à voir à la place.
+      placeholder: |
+        Exemple :
+        - Le texte de l’effet dépasse de la colonne sur mobile.
+        - Je m’attendais à ce qu’il soit tronqué proprement avec "…".
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Étapes pour reproduire
+      description: Étapes simples pour faire apparaître le bug (même si c’est dans une iframe GSite).
+      placeholder: |
+        1. Ouvrir la page ...
+        2. Rechercher "Veille'Nuit"
+        3. Redimensionner la fenêtre à ~400 px de large
+        4. Constater que ...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Objets / sections concernés
+      description: Noms d’objets, colonnes ou parties du site directement touchés par le bug.
+      placeholder: |
+        Exemple :
+        - Objets : Veille'Nuit, Poudre de Traçage
+        - Colonnes : Effet (consommation), Prix de vente
+
+  - type: textarea
+    attributes:
+      label: Captures d’écran / notes supplémentaires
+      description: Screenshots, GIFs, idées de correction, tout ce qui peut aider.
