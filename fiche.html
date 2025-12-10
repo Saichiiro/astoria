@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche de personnage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="fiche-page" aria-labelledby="fichePageTitle">
+        <header class="page-header">
+            <a href="categories.html" class="magic-back-link" title="Retour aux catégories">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="fichePageTitle">Fiche de personnage</h1>
+                    <p class="page-subtitle">Identité, appartenances, magies et histoire du personnage.</p>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar">
+                        <!-- Avatar placeholder, remplacé plus tard par une vraie image -->
+                        <div class="character-avatar-circle">☆</div>
+                    </div>
+                    <div class="character-summary-text">
+                        <span class="character-name">Nom du personnage</span>
+                        <span class="character-tagline">Classe / Rôle / Surnom</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="fiche-container">
+            <!-- Navigation (onglets) -->
+            <nav class="fiche-sidebar" aria-label="Sections de la fiche">
+                <button type="button" class="tab-button active" data-tab="identite">Identité</button>
+                <button type="button" class="tab-button" data-tab="appartenance">Appartenance</button>
+                <button type="button" class="tab-button" data-tab="combat">Combat</button>
+                <button type="button" class="tab-button" data-tab="alice">Alice</button>
+                <button type="button" class="tab-button" data-tab="sorcellerie">Sorcellerie</button>
+                <button type="button" class="tab-button" data-tab="eater">Eater</button>
+                <button type="button" class="tab-button" data-tab="religion">Religion</button>
+                <button type="button" class="tab-button" data-tab="mental">Mental</button>
+                <button type="button" class="tab-button" data-tab="physique">Physique</button>
+                <button type="button" class="tab-button" data-tab="background">Background</button>
+            </nav>
+
+            <!-- Contenu -->
+            <section class="fiche-content" aria-live="polite">
+                <form class="fiche-form">
+                    <!-- Identité -->
+                    <section id="tab-identite" class="tab-panel active" aria-label="Identité">
+                        <h2 class="section-title">Identité</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="identiteNomPrenom">Nom &amp; prénom</label>
+                            <input
+                                id="identiteNomPrenom"
+                                class="field-input"
+                                type="text"
+                                placeholder="Nom complet, titres éventuels et patronymes (la noblesse peut avoir un nom long)."
+                            >
+                        </div>
+
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="identiteAge">Âge</label>
+                                <input id="identiteAge" class="field-input" type="text" placeholder="Ex : 17 ans">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="identiteSexe">Sexe</label>
+                                <input id="identiteSexe" class="field-input" type="text" placeholder="Sexe / genre du personnage">
+                            </div>
+                        </div>
+
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="identiteRace">Race</label>
+                                <input id="identiteRace" class="field-input" type="text" placeholder="Race ou espèce (humaine, hybride, etc.)">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="identiteHierarchieSociale">Hiérarchie sociale</label>
+                                <input id="identiteHierarchieSociale" class="field-input" type="text" placeholder="Noble, roturier, famille influente, etc.">
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="identitePaysOrigine">Pays d’origine</label>
+                            <input id="identitePaysOrigine" class="field-input" type="text" placeholder="Royaume / pays / région d’origine.">
+                        </div>
+                    </section>
+
+                    <!-- Appartenance -->
+                    <section id="tab-appartenance" class="tab-panel" aria-label="Appartenance">
+                        <h2 class="section-title">Appartenance</h2>
+
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="appRole">Rôle</label>
+                                <select id="appRole" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="eleve">Élève</option>
+                                    <option value="adulte">Adulte</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="appNiveauScolaire">Niveau scolaire</label>
+                                <select id="appNiveauScolaire" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="maternelle">Maternelle</option>
+                                    <option value="college">Collège</option>
+                                    <option value="lycee">Lycée</option>
+                                    <option value="universite">Université</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="appAffection">Affection</label>
+                                <select id="appAffection" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="civil">Civil</option>
+                                    <option value="sorcier">Sorcier</option>
+                                    <option value="eater">Eater</option>
+                                    <option value="alice">Alice</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="appHouse">House</label>
+                                <input id="appHouse" class="field-input" type="text" placeholder="Maison, dortoir, faction, etc.">
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="appHierarchie">Hiérarchie</label>
+                            <input
+                                id="appHierarchie"
+                                class="field-input"
+                                type="text"
+                                placeholder="Intendant, préfet, étudiant, membre du staff, etc."
+                            >
+                        </div>
+                    </section>
+
+                    <!-- Combat -->
+                    <section id="tab-combat" class="tab-panel" aria-label="Combat">
+                        <h2 class="section-title">Combat</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="combatStyle">Style de combat</label>
+                            <textarea
+                                id="combatStyle"
+                                class="field-input field-textarea"
+                                rows="5"
+                                placeholder="Décrivez le style de combat global : posture, philosophie, forces et faiblesses."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="combatTechniques">Techniques actuelles</label>
+                            <textarea
+                                id="combatTechniques"
+                                class="field-input field-textarea"
+                                rows="5"
+                                placeholder="Maximum 3 techniques, sans magie (attaques physiques, parades, styles martiaux...)."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="combatArme">Type d’arme</label>
+                            <input
+                                id="combatArme"
+                                class="field-input"
+                                type="text"
+                                placeholder="Type d’arme principale : épée, faux, arme improvisée, etc."
+                            >
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="combatArmeImage">Image de l’arme (URL)</label>
+                            <input
+                                id="combatArmeImage"
+                                class="field-input"
+                                type="url"
+                                placeholder="Lien vers une illustration de l’arme (optionnel)."
+                            >
+                        </div>
+                    </section>
+
+                    <!-- Alice -->
+                    <section id="tab-alice" class="tab-panel" aria-label="Alice">
+                        <h2 class="section-title">Alice</h2>
+
+                        <div class="field-group">
+                            <label class="field-label">
+                                <input id="hasAlice" type="checkbox">
+                                Possède une Alice
+                            </label>
+                        </div>
+
+                        <div id="alice-fields" class="conditional-block" hidden>
+                            <div class="field-group">
+                                <label class="field-label" for="aliceNom">Nom de l’Alice</label>
+                                <input id="aliceNom" class="field-input" type="text" placeholder="Nom ou titre de l’Alice.">
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="aliceType">Type</label>
+                                <input
+                                    id="aliceType"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Type d’Alice : physiologique, mentale, élémentaire, etc."
+                                >
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="aliceForme">Forme</label>
+                                <input
+                                    id="aliceForme"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Forme(s) ou modalités d’expression de l’Alice."
+                                >
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="aliceFiche">Fiche complète (URL)</label>
+                                <input
+                                    id="aliceFiche"
+                                    class="field-input"
+                                    type="url"
+                                    placeholder="Lien vers la fiche détaillée de l’Alice (si séparée)."
+                                >
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Sorcellerie -->
+                    <section id="tab-sorcellerie" class="tab-panel" aria-label="Sorcellerie">
+                        <h2 class="section-title">Sorcellerie</h2>
+
+                        <div class="field-group">
+                            <label class="field-label">
+                                <input id="hasMagic" type="checkbox">
+                                Possède de la magie
+                            </label>
+                        </div>
+
+                        <div id="sorcellerie-fields" class="conditional-block" hidden>
+                            <div class="field-group">
+                                <label class="field-label" for="sorcelleriePrincipale">Magie principale</label>
+                                <input
+                                    id="sorcelleriePrincipale"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Spécialisation principale (ex : feu, soin, gravité...)."
+                                >
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="sorcellerieSecondaire">Magie secondaire</label>
+                                <input
+                                    id="sorcellerieSecondaire"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Magie secondaire éventuelle (optionnelle)."
+                                >
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="sorcellerieCachee">Magie cachée</label>
+                                <input
+                                    id="sorcellerieCachee"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Magie cachée ou en latence (si connue de l’équipe)."
+                                >
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Eater -->
+                    <section id="tab-eater" class="tab-panel" aria-label="Eater">
+                        <h2 class="section-title">Eater</h2>
+
+                        <div class="field-group">
+                            <label class="field-label">
+                                <input id="hasEater" type="checkbox">
+                                Possède une capacité d’âme
+                            </label>
+                        </div>
+
+                        <div id="eater-fields" class="conditional-block" hidden>
+                            <div class="field-group">
+                                <label class="field-label" for="eaterRole">Rôle</label>
+                                <select id="eaterRole" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="meister">Meister</option>
+                                    <option value="weapon">Weapon</option>
+                                </select>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="eaterTypeArme">Type d’arme</label>
+                                <select id="eaterTypeArme" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="classique">Classique</option>
+                                    <option value="multi-formes">Multi-formes</option>
+                                    <option value="jumelees">Jumelées</option>
+                                </select>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="eaterDescriptionArme">Description de l’arme</label>
+                                <textarea
+                                    id="eaterDescriptionArme"
+                                    class="field-input field-textarea"
+                                    rows="4"
+                                    placeholder="Description détaillée de l’arme, de ses formes et particularités."
+                                ></textarea>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="eaterImageArme">Image de l’arme (URL)</label>
+                                <input
+                                    id="eaterImageArme"
+                                    class="field-input"
+                                    type="url"
+                                    placeholder="Lien vers une illustration de l’arme (optionnel)."
+                                >
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="eaterNoyau">Capacité unique [Noyau]</label>
+                                <textarea
+                                    id="eaterNoyau"
+                                    class="field-input field-textarea"
+                                    rows="4"
+                                    placeholder="Capacité centrale liée au noyau de l’âme."
+                                ></textarea>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="field-label" for="eaterFragments">Capacité unique [Fragments]</label>
+                                <textarea
+                                    id="eaterFragments"
+                                    class="field-input field-textarea"
+                                    rows="4"
+                                    placeholder="À remplir seulement si acquis (fragment(s) liés au noyau)."
+                                ></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Religion -->
+                    <section id="tab-religion" class="tab-panel" aria-label="Religion">
+                        <h2 class="section-title">Religion</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="religionCroyance">Croyance</label>
+                            <textarea
+                                id="religionCroyance"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Religion, panthéon ou croyance principale du personnage."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="religionProphetie">Prophétie</label>
+                            <textarea
+                                id="religionProphetie"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Prophétie, présage ou destinée annoncée (le cas échéant)."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="religionBenediction">Bénédiction</label>
+                            <textarea
+                                id="religionBenediction"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Bénédictions divines, protections, dons particuliers."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="religionMalediction">Malédiction</label>
+                            <textarea
+                                id="religionMalediction"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Malédictions, pactes, contreparties, stigmates."
+                            ></textarea>
+                        </div>
+                    </section>
+
+                    <!-- Mental -->
+                    <section id="tab-mental" class="tab-panel" aria-label="Mental">
+                        <h2 class="section-title">Mental</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="mentalCaractere">Caractère</label>
+                            <textarea
+                                id="mentalCaractere"
+                                class="field-input field-textarea"
+                                rows="5"
+                                placeholder="5 lignes minimum : tempérament, réactions, qualités, défauts, évolution possible."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="mentalButsReves">But(s) &amp; rêve(s)</label>
+                            <textarea
+                                id="mentalButsReves"
+                                class="field-input field-textarea"
+                                rows="4"
+                                placeholder="Au moins un but et un rêve obligatoires (objectifs de vie, aspirations profondes)."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="mentalAutre">Autre</label>
+                            <textarea
+                                id="mentalAutre"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Particularités du comportement, phobies, TOC, habitudes, etc."
+                            ></textarea>
+                        </div>
+                    </section>
+
+                    <!-- Physique -->
+                    <section id="tab-physique" class="tab-panel" aria-label="Physique">
+                        <h2 class="section-title">Physique</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="physiqueDescription">Description physique</label>
+                            <textarea
+                                id="physiqueDescription"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="3 lignes minimum : allure, tenues, détails marquants (cicatrices, bijoux, etc.)."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="physiqueSante">Santé</label>
+                            <textarea
+                                id="physiqueSante"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Précisez les éventuels problèmes de santé, limitations ou particularités."
+                            ></textarea>
+                        </div>
+                    </section>
+
+                    <!-- Background -->
+                    <section id="tab-background" class="tab-panel" aria-label="Background">
+                        <h2 class="section-title">Background</h2>
+
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundFamille">Parents / famille</label>
+                            <textarea
+                                id="backgroundFamille"
+                                class="field-input field-textarea"
+                                rows="4"
+                                placeholder="Famille proche, liens importants, éventuels liens nobles ou religieux."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundHistoire">Histoire</label>
+                            <textarea
+                                id="backgroundHistoire"
+                                class="field-input field-textarea"
+                                rows="10"
+                                placeholder="Minimum ~2000 caractères (avec espaces). Racontez le parcours complet du personnage, les événements marquants, sa place dans le monde."
+                            ></textarea>
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundImage1">Image 1 (URL)</label>
+                            <input
+                                id="backgroundImage1"
+                                class="field-input"
+                                type="url"
+                                placeholder="Lien vers une référence visuelle du personnage."
+                            >
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundImage2">Image 2 (URL)</label>
+                            <input
+                                id="backgroundImage2"
+                                class="field-input"
+                                type="url"
+                                placeholder="Deuxième lien d’image (optionnel)."
+                            >
+                        </div>
+
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundImage3">Image 3 (URL)</label>
+                            <input
+                                id="backgroundImage3"
+                                class="field-input"
+                                type="url"
+                                placeholder="Troisième lien d’image (optionnel)."
+                            >
+                        </div>
+                    </section>
+                </form>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+            const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+
+            tabButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const target = button.dataset.tab;
+                    if (!target) return;
+
+                    tabButtons.forEach((btn) => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    tabPanels.forEach((panel) => {
+                        const isActive = panel.id === 'tab-' + target;
+                        panel.classList.toggle('active', isActive);
+                        panel.hidden = !isActive;
+                    });
+                });
+            });
+
+            const conditionalConfigs = [
+                { checkboxId: 'hasAlice', panelId: 'alice-fields' },
+                { checkboxId: 'hasMagic', panelId: 'sorcellerie-fields' },
+                { checkboxId: 'hasEater', panelId: 'eater-fields' }
+            ];
+
+            conditionalConfigs.forEach(({ checkboxId, panelId }) => {
+                const checkbox = document.getElementById(checkboxId);
+                const panel = document.getElementById(panelId);
+                if (!checkbox || !panel) return;
+
+                const updateVisibility = () => {
+                    panel.hidden = !checkbox.checked;
+                };
+
+                checkbox.addEventListener('change', updateVisibility);
+                updateVisibility();
+            });
+        })();
+    </script>
+</body>
+</html>
