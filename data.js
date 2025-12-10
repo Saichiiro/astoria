@@ -188,3 +188,117 @@ const inventoryData = [
     //   }
 ];
 
+
+// -----------------------------------------------------------------------------
+// Compétences (compétences par catégorie)
+// -----------------------------------------------------------------------------
+window.skillsCategories = [
+    {
+        id: "arts",
+        label: "Arts",
+        icon: { src: "assets/images/Bouton_1_Competences.png", alt: "Arts" },
+        skills: [
+            { name: "Peinture", baseValue: 12, icon: "🖌️" },
+            { name: "Musique", baseValue: 8, icon: "🎵" },
+            { name: "Théâtre", baseValue: 6, icon: "🎭" },
+            { name: "Écriture créative", baseValue: 10, icon: "✍️" },
+            { name: "Danse", baseValue: 5, icon: "💃" }
+        ]
+    },
+    {
+        id: "connaissances",
+        label: "Connaissances",
+        icon: { src: "assets/images/Bouton_2_Competences.png", alt: "Connaissances" },
+        skills: [
+            { name: "Histoire", baseValue: 9, icon: "📜" },
+            { name: "Arcane & Théorie", baseValue: 7, icon: "🔮" },
+            { name: "Linguistique", baseValue: 11, icon: "🗣️" },
+            { name: "Religion & Mythes", baseValue: 5, icon: "⛪" },
+            { name: "Investigation", baseValue: 8, icon: "🔍" }
+        ]
+    },
+    {
+        id: "combat",
+        label: "Combat",
+        icon: { src: "assets/images/Bouton_3_Competences.png", alt: "Combat" },
+        skills: [
+            { name: "Maniement des armes", baseValue: 13, icon: "🗡️" },
+            { name: "Parade", baseValue: 7, icon: "🛡️" },
+            { name: "Esquive", baseValue: 10, icon: "💨" },
+            { name: "Résistance physique", baseValue: 6, icon: "💪" },
+            { name: "Tactique de groupe", baseValue: 4, icon: "👥" }
+        ]
+    },
+    {
+        id: "pouvoirs",
+        label: "Pouvoirs",
+        icon: { src: "assets/images/Bouton_4_Competences.png", alt: "Pouvoirs" },
+        skills: [
+            { name: "Contrôle d'Alice", baseValue: 15, icon: "🌟" },
+            { name: "Synchronisation Meister", baseValue: 9, icon: "🔗" },
+            { name: "Maîtrise d'arme", baseValue: 11, icon: "⚡" },
+            { name: "Déchaînement contrôlé", baseValue: 5, icon: "💥" },
+            { name: "Stabilité mentale", baseValue: 7, icon: "🧠" }
+        ]
+    },
+    {
+        id: "social",
+        label: "Social",
+        icon: { src: "assets/images/Bouton_5_Competences.png", alt: "Social" },
+        skills: [
+            { name: "Persuasion", baseValue: 10, icon: "🎯" },
+            { name: "Intimidation", baseValue: 6, icon: "😠" },
+            { name: "Empathie", baseValue: 9, icon: "❤️" },
+            { name: "Négociation", baseValue: 7, icon: "🤝" },
+            { name: "Tromperie", baseValue: 4, icon: "🎭" }
+        ]
+    },
+    {
+        id: "artisanat",
+        label: "Artisanat",
+        icon: { src: "assets/images/Bouton_6_Competences.png", alt: "Artisanat" },
+        skills: [
+            { name: "Forge & Métallurgie", baseValue: 6, icon: "⚒️" },
+            { name: "Alchimie", baseValue: 8, icon: "⚗️" },
+            { name: "Ingénierie", baseValue: 5, icon: "⚙️" },
+            { name: "Couture & Tissage", baseValue: 7, icon: "🧵" },
+            { name: "Cuisine", baseValue: 9, icon: "🍳" }
+        ]
+    },
+    {
+        id: "nature",
+        label: "Nature",
+        icon: { src: "assets/images/Bouton_7_Competences.png", alt: "Nature" },
+        skills: [
+            { name: "Orientation", baseValue: 7, icon: "🧭" },
+            { name: "Pistage", baseValue: 6, icon: "👣" },
+            { name: "Herboristerie", baseValue: 8, icon: "🌿" },
+            { name: "Survie en milieu hostile", baseValue: 9, icon: "🏕️" },
+            { name: "Discrétion", baseValue: 5, icon: "🥷" }
+        ]
+    },
+    {
+        id: "physique",
+        label: "Physique",
+        icon: { src: "assets/images/Bouton_8_Competences.png", alt: "Physique" },
+        skills: [
+            { name: "Force brute", baseValue: 10, icon: "🏋️" },
+            { name: "Agilité", baseValue: 11, icon: "🤸" },
+            { name: "Endurance", baseValue: 9, icon: "🏃" },
+            { name: "Réflexes", baseValue: 8, icon: "⚡" },
+            { name: "Athlétisme", baseValue: 7, icon: "🏅" }
+        ]
+    },
+    {
+        id: "reputation",
+        label: "Réputation",
+        icon: { src: "assets/images/Bouton_9_Competences.png", alt: "Réputation" },
+        skills: [
+            { name: "Renommée", baseValue: 6, icon: "⭐" },
+            { name: "Contacts", baseValue: 8, icon: "📞" },
+            { name: "Marchandage", baseValue: 10, icon: "💰" },
+            { name: "Crédit social", baseValue: 5, icon: "📈" },
+            { name: "Influence politique", baseValue: 4, icon: "🏛️" }
+        ]
+    }
+];

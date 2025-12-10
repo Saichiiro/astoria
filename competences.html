@@ -253,6 +253,12 @@
             transition: opacity 0.18s ease, transform 0.18s ease;
         }
 
+        .skills-placeholder {
+            justify-content: center;
+            font-style: italic;
+            color: var(--color-gray-700);
+        }
+
         .skills-line {
             display: flex;
             align-items: center;
@@ -314,6 +320,37 @@
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
+        .skills-value-group {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin-left: auto;
+        }
+
+        .skill-point-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            border: 1px solid #c7ccd6;
+            background: linear-gradient(to bottom, #ffffff, #ccd3e0);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--text-sm);
+            padding: 0;
+            color: #343a46;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .skill-point-btn:disabled,
+        .skills-points-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: none;
+        }
+
         .skills-line:hover .skills-value {
             background: linear-gradient(135deg, #5a6678, #3d4858);
             transform: scale(1.05);
@@ -328,6 +365,37 @@
         .skills-fade-in {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        .skills-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .skills-confirm-btn {
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--color-primary);
+            background: var(--color-primary-lighter);
+            color: var(--color-primary-dark);
+            cursor: pointer;
+            font-weight: var(--font-medium);
+            transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .skills-confirm-btn:disabled,
+        .skills-confirm-btn.is-locked {
+            background: #e1e4ec;
+            color: var(--color-gray-700);
+            cursor: not-allowed;
+            border-color: #c7ccd6;
+        }
+
+        .skills-validation {
+            font-size: var(--text-sm);
+            color: var(--color-primary-dark);
         }
 
         /* Polish général */
@@ -383,16 +451,17 @@
         }
     </style>
 </head>
+
 <body>
     <div class="skills-page">
         <header class="skills-header">
             <h1 class="skills-title">Feuille de compétences</h1>
-            <a href="index.html" class="skills-back-link">← Retour</a>
+            <a href="categories.html" class="skills-back-link">← Retour</a>
         </header>
 
         <section class="skills-layout" aria-label="Feuille de compétences">
             <!-- Colonne de gauche : onglets ronds -->
-            <aside class="skills-sidebar" id="skillsTabs" aria-label="Catégories de compétences">
+            <aside class="skills-sidebar" id="skillsTabs" aria-label="Catégories de compétences" role="navigation">
                 <!-- Boutons générés par JavaScript -->
             </aside>
 
@@ -401,7 +470,7 @@
                 <div class="skills-panel-header">
                     <h2 class="skills-panel-title" id="skillsCategoryTitle">Catégorie</h2>
 
-                    <div class="skills-points-box" aria-label="Points à répartir">
+                    <div class="skills-points-box" aria-label="Points à répartir" role="status" aria-live="polite">
                         <span class="skills-points-label">Points à répartir :</span>
                         <button type="button" class="skills-points-btn" id="skillsPointsMinus" aria-label="Retirer un point">
                             −
@@ -410,253 +479,25 @@
                         <button type="button" class="skills-points-btn" id="skillsPointsPlus" aria-label="Ajouter un point">
                             +
                         </button>
+                        <button type="button" class="skills-points-btn" id="skillsPointsReset" aria-label="Réinitialiser les points de la catégorie">
+                            ↺
+                        </button>
                     </div>
                 </div>
 
                 <ul class="skills-list" id="skillsList">
                     <!-- Lignes de compétences injectées par JavaScript -->
                 </ul>
+
+                <div class="skills-actions">
+                    <button type="button" class="skills-confirm-btn" id="skillsConfirmBtn">Valider mes points</button>
+                    <div class="skills-validation" id="skillsValidationFeedback" role="status" aria-live="polite"></div>
+                </div>
             </main>
         </section>
     </div>
 
-    <script>
-        // =====================================================================
-        // Données : adapte ici les catégories et compétences à ton système
-        // =====================================================================
-        const skillsCategories = [
-            {
-                id: "arts",
-                label: "Arts",
-                icon: '<img src="assets/images/Bouton_1_Competences.png" alt="Arts">',
-                skills: [
-                    { name: "Peinture", value: 12, icon: "🖌️" },
-                    { name: "Musique", value: 8, icon: "🎵" },
-                    { name: "Théâtre", value: 6, icon: "🎭" },
-                    { name: "Écriture créative", value: 10, icon: "✍️" },
-                    { name: "Danse", value: 5, icon: "💃" }
-                ]
-            },
-            {
-                id: "connaissances",
-                label: "Connaissances",
-                icon: '<img src="assets/images/Bouton_2_Competences.png" alt="Connaissances">',
-                skills: [
-                    { name: "Histoire", value: 9, icon: "📜" },
-                    { name: "Arcane & Théorie", value: 7, icon: "🔮" },
-                    { name: "Linguistique", value: 11, icon: "🗣️" },
-                    { name: "Religion & Mythes", value: 5, icon: "⛪" },
-                    { name: "Investigation", value: 8, icon: "🔍" }
-                ]
-            },
-            {
-                id: "combat",
-                label: "Combat",
-                icon: '<img src="assets/images/Bouton_3_Competences.png" alt="Combat">',
-                skills: [
-                    { name: "Maniement des armes", value: 13, icon: "🗡️" },
-                    { name: "Parade", value: 7, icon: "🛡️" },
-                    { name: "Esquive", value: 10, icon: "💨" },
-                    { name: "Résistance physique", value: 6, icon: "💪" },
-                    { name: "Tactique de groupe", value: 4, icon: "👥" }
-                ]
-            },
-            {
-                id: "pouvoirs",
-                label: "Pouvoirs",
-                icon: '<img src="assets/images/Bouton_4_Competences.png" alt="Pouvoirs">',
-                skills: [
-                    { name: "Contrôle d'Alice", value: 15, icon: "🌟" },
-                    { name: "Synchronisation Meister", value: 9, icon: "🔗" },
-                    { name: "Maîtrise d'arme", value: 11, icon: "⚡" },
-                    { name: "Déchaînement contrôlé", value: 5, icon: "💥" },
-                    { name: "Stabilité mentale", value: 7, icon: "🧠" }
-                ]
-            },
-            {
-                id: "social",
-                label: "Social",
-                icon: '<img src="assets/images/Bouton_5_Competences.png" alt="Social">',
-                skills: [
-                    { name: "Persuasion", value: 10, icon: "🎯" },
-                    { name: "Intimidation", value: 6, icon: "😠" },
-                    { name: "Empathie", value: 9, icon: "❤️" },
-                    { name: "Négociation", value: 7, icon: "🤝" },
-                    { name: "Tromperie", value: 4, icon: "🎭" }
-                ]
-            },
-            {
-                id: "artisanat",
-                label: "Artisanat",
-                icon: '<img src="assets/images/Bouton_6_Competences.png" alt="Artisanat">',
-                skills: [
-                    { name: "Forge & Métallurgie", value: 6, icon: "⚒️" },
-                    { name: "Alchimie", value: 8, icon: "⚗️" },
-                    { name: "Ingénierie", value: 5, icon: "⚙️" },
-                    { name: "Couture & Tissage", value: 7, icon: "🧵" },
-                    { name: "Cuisine", value: 9, icon: "🍳" }
-                ]
-            },
-            {
-                id: "nature",
-                label: "Nature",
-                icon: '<img src="assets/images/Bouton_7_Competences.png" alt="Nature">',
-                skills: [
-                    { name: "Orientation", value: 7, icon: "🧭" },
-                    { name: "Pistage", value: 6, icon: "👣" },
-                    { name: "Herboristerie", value: 8, icon: "🌿" },
-                    { name: "Survie en milieu hostile", value: 9, icon: "🏕️" },
-                    { name: "Discrétion", value: 5, icon: "🥷" }
-                ]
-            },
-            {
-                id: "physique",
-                label: "Physique",
-                icon: '<img src="assets/images/Bouton_8_Competences.png" alt="Physique">',
-                skills: [
-                    { name: "Force brute", value: 10, icon: "🏋️" },
-                    { name: "Agilité", value: 11, icon: "🤸" },
-                    { name: "Endurance", value: 9, icon: "🏃" },
-                    { name: "Réflexes", value: 8, icon: "⚡" },
-                    { name: "Athlétisme", value: 7, icon: "🏅" }
-                ]
-            },
-            {
-                id: "reputation",
-                label: "Réputation",
-                icon: '<img src="assets/images/Bouton_9_Competences.png" alt="Réputation">',
-                skills: [
-                    { name: "Renommée", value: 6, icon: "⭐" },
-                    { name: "Contacts", value: 8, icon: "📞" },
-                    { name: "Marchandage", value: 10, icon: "💰" },
-                    { name: "Crédit social", value: 5, icon: "📈" },
-                    { name: "Influence politique", value: 4, icon: "🏛️" }
-                ]
-            }
-        ];
-
-        // État simple
-        const skillsState = {
-            activeCategoryId: skillsCategories[0].id,
-            points: 0
-        };
-
-        const skillsTabsContainer = document.getElementById("skillsTabs");
-        const skillsTitleEl = document.getElementById("skillsCategoryTitle");
-        const skillsListEl = document.getElementById("skillsList");
-        const skillsPointsValueEl = document.getElementById("skillsPointsValue");
-        const skillsPointsPlusEl = document.getElementById("skillsPointsPlus");
-        const skillsPointsMinusEl = document.getElementById("skillsPointsMinus");
-
-        // -----------------------------------------------------------------
-        // Génération des onglets à partir des données
-        // -----------------------------------------------------------------
-        function renderSkillsTabs() {
-            skillsTabsContainer.innerHTML = "";
-
-            skillsCategories.forEach((category) => {
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = "skills-tab-btn";
-                btn.dataset.id = category.id;
-                btn.title = category.label;
-                btn.setAttribute("aria-label", category.label);
-
-                btn.innerHTML = `
-                    <span class="skills-tab-circle">${category.icon}</span>
-                    <span class="skills-tab-label">${category.label}</span>
-                `;
-
-                if (category.id === skillsState.activeCategoryId) {
-                    btn.classList.add("skills-active");
-                }
-
-                btn.addEventListener("click", () => setActiveSkillsCategory(category.id));
-
-                skillsTabsContainer.appendChild(btn);
-            });
-        }
-
-        // -----------------------------------------------------------------
-        // Rendu de la catégorie sélectionnée (titre + liste)
-        // -----------------------------------------------------------------
-        function renderSkillsCategory(category) {
-            if (!category) return;
-
-            skillsTitleEl.classList.add("skills-fade-out");
-            skillsListEl.classList.add("skills-fade-out");
-
-            setTimeout(() => {
-                skillsTitleEl.textContent = category.label;
-
-                skillsListEl.innerHTML = "";
-                category.skills.forEach((skill) => {
-                    const li = document.createElement("li");
-                    li.className = "skills-line";
-                    li.innerHTML = `
-                        <div class="skills-icon" aria-hidden="true">${skill.icon || ''}</div>
-                        <div class="skills-name">${skill.name}</div>
-                        <div class="skills-value">${skill.value}</div>
-                    `;
-                    skillsListEl.appendChild(li);
-                });
-
-                skillsTitleEl.classList.remove("skills-fade-out");
-                skillsListEl.classList.remove("skills-fade-out");
-                skillsTitleEl.classList.add("skills-fade-in");
-                skillsListEl.classList.add("skills-fade-in");
-
-                setTimeout(() => {
-                    skillsTitleEl.classList.remove("skills-fade-in");
-                    skillsListEl.classList.remove("skills-fade-in");
-                }, 180);
-            }, 140);
-        }
-
-        // -----------------------------------------------------------------
-        // Changement d'onglet
-        // -----------------------------------------------------------------
-        function setActiveSkillsCategory(categoryId) {
-            if (skillsState.activeCategoryId === categoryId) return;
-
-            skillsState.activeCategoryId = categoryId;
-
-            document.querySelectorAll(".skills-tab-btn").forEach((btn) => {
-                btn.classList.toggle("skills-active", btn.dataset.id === categoryId);
-            });
-
-            const category = skillsCategories.find((c) => c.id === categoryId);
-            renderSkillsCategory(category);
-        }
-
-        // -----------------------------------------------------------------
-        // Gestion des points à répartir
-        // -----------------------------------------------------------------
-        function updateSkillsPointsDisplay() {
-            skillsPointsValueEl.textContent = skillsState.points;
-        }
-
-        skillsPointsPlusEl.addEventListener("click", () => {
-            if (skillsState.points < 99) {
-                skillsState.points += 1;
-                updateSkillsPointsDisplay();
-            }
-        });
-
-        skillsPointsMinusEl.addEventListener("click", () => {
-            if (skillsState.points > 0) {
-                skillsState.points -= 1;
-                updateSkillsPointsDisplay();
-            }
-        });
-
-        // -----------------------------------------------------------------
-        // Initialisation
-        // -----------------------------------------------------------------
-        renderSkillsTabs();
-        renderSkillsCategory(skillsCategories[0]);
-        updateSkillsPointsDisplay();
-    </script>
+    <script src="data.js" defer></script>
+    <script src="competences.js" defer></script>
 </body>
 </html>
-
