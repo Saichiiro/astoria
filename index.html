@@ -341,6 +341,10 @@
             const badgeMatches = Array.from(name.matchAll(/\[(.*?)\]/g)).map(match => match[1]);
             const displayName = name.replace(/\s*\[.*?\]/g, "").trim() || name;
 
+            const capeBaseName = "Cape de l'Aube Vermeille";
+            const capeTag = "[Exclu saison]";
+            const isSeasonCape = normalizeName(name) === normalizeName(`${capeBaseName} ${capeTag}`);
+
             const copyText =
                 `${name} - ${description}` +
                 (priceText ? ` (${priceText})` : "") +
@@ -375,8 +379,8 @@
                         <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" loading="lazy" decoding="async" onclick="openItemModal(${index})" onerror="this.src='${placeholderImage}'">
                     </td>
                     <td class="name-cell" data-label="Nom" onclick="openItemModal(${index})">
-                        <span class="name-text">${highlightedName}</span>
-                        ${badgeMatches.length ? `<span class="name-badges">${badgeMatches.map((badge) => `<span class=\"name-badge\">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
+                        ${nameContent}
+                        ${badgesHtml}
                     </td>
                     <td class="desc-cell" data-label="Description">
                         <div class="desc-container">
@@ -715,6 +719,32 @@
             currentCategory = '';
             applyFilters();
             updateFilterChips('');
+        }
+
+        // Override: filter chips without "Réinitialiser filtres" action chip
+        function updateFilterChips(searchQuery = '') {
+            const chipsContainer = document.getElementById('filterChips');
+            if (!chipsContainer) return;
+
+            chipsContainer.innerHTML = '';
+
+            const hasCategory = Boolean(currentCategory);
+
+            if (hasCategory) {
+                const categoryNames = {
+                    equipement: 'Équipements',
+                    consommable: 'Consommables',
+                    agricole: 'Agricole'
+                };
+
+                const chip = document.createElement('div');
+                chip.className = 'filter-chip';
+                chip.innerHTML = `
+                    <span>${categoryNames[currentCategory] || ''}</span>
+                    <button onclick="clearCategoryFilter()" class="chip-remove">×</button>
+                `;
+                chipsContainer.appendChild(chip);
+            }
         }
 
         // Combine recherche + catégorie + tri

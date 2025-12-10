@@ -169,7 +169,7 @@ const inventoryData = [
             "La durée d'effet dépend du nombre de consommateurs. Aventuriers, êtes-vous prêts à devenir des lumières dans la nuit ? " +
             "Prenez garde à ne pas perdre vos alliés ni à les aveugler.",
         buyPrice: "25 Kaels /u",
-        sellPrice: "15 Kaels /u (vente), 5 Kaels /u (revente)",
+        sellPrice: "15 Kaels /u (vente)",
         effect:
             "Effet : Lumière Aveuglante — illumine les consommateurs (maximum 2). " +
             "Durée : 10 tours pour 1 utilisateur, 5 tours pour 2 utilisateurs. " +
@@ -244,7 +244,7 @@ window.skillsCategories = [
     {
         id: "social",
         label: "Social",
-        icon: { src: "assets/images/Bouton_5_Competences.png", alt: "Social" },
+        icon: { src: "assets/images/Bouton_Competences_5.png", alt: "Social" },
         skills: [
             { name: "Persuasion", baseValue: 10, icon: "🎯" },
             { name: "Intimidation", baseValue: 6, icon: "😠" },
@@ -256,7 +256,7 @@ window.skillsCategories = [
     {
         id: "artisanat",
         label: "Artisanat",
-        icon: { src: "assets/images/Bouton_6_Competences.png", alt: "Artisanat" },
+        icon: { src: "assets/images/Bouton_Competences_6.png", alt: "Artisanat" },
         skills: [
             { name: "Forge & Métallurgie", baseValue: 6, icon: "⚒️" },
             { name: "Alchimie", baseValue: 8, icon: "⚗️" },
