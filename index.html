@@ -355,6 +355,20 @@
             const highlightedBuyLine = searchQuery ? highlightText(buyLine, searchQuery) : escapeHtml(buyLine);
             const highlightedSellLine = searchQuery ? highlightText(sellLine, searchQuery) : escapeHtml(sellLine);
 
+            const nameContent = isSeasonCape
+                ? `<span class="name-text name-text--stacked">${
+                      searchQuery ? highlightText(capeBaseName, searchQuery) : escapeHtml(capeBaseName)
+                  }<br><span class="name-tag-line">${
+                      searchQuery ? highlightText(capeTag, searchQuery) : escapeHtml(capeTag)
+                  }</span></span>`
+                : `<span class="name-text">${highlightedName}</span>`;
+
+            const badgesHtml = !isSeasonCape && badgeMatches.length
+                ? `<span class="name-badges">${badgeMatches
+                      .map((badge) => `<span class=\"name-badge\">${escapeHtml(badge)}</span>`)
+                      .join("")}</span>`
+                : "";
+
             const rowHtml = `
                 <tr class="item-row" data-index="${index}">
                     <td class="img-cell" data-label="Illustration">
