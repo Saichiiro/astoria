@@ -341,10 +341,6 @@
             const badgeMatches = Array.from(name.matchAll(/\[(.*?)\]/g)).map(match => match[1]);
             const displayName = name.replace(/\s*\[.*?\]/g, "").trim() || name;
 
-            const capeBaseName = "Cape de l'Aube Vermeille";
-            const capeTag = "[Exclu saison]";
-            const isSeasonCape = normalizeName(name) === normalizeName(`${capeBaseName} ${capeTag}`);
-
             const copyText =
                 `${name} - ${description}` +
                 (priceText ? ` (${priceText})` : "") +
@@ -379,8 +375,8 @@
                         <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" loading="lazy" decoding="async" onclick="openItemModal(${index})" onerror="this.src='${placeholderImage}'">
                     </td>
                     <td class="name-cell" data-label="Nom" onclick="openItemModal(${index})">
-                        ${nameContent}
-                        ${badgesHtml}
+                        <span class="name-text">${highlightedName}</span>
+                        ${badgeMatches.length ? `<span class="name-badges">${badgeMatches.map((badge) => `<span class=\"name-badge\">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
                     </td>
                     <td class="desc-cell" data-label="Description">
                         <div class="desc-container">
