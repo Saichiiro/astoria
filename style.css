@@ -297,6 +297,11 @@ td {
     border: 1px solid var(--color-gray-200);
     display: block;
     cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.img-cell img:hover {
+    transform: scale(1.08);
 }
 
 /* =================================================================
@@ -1240,6 +1245,25 @@ tbody tr:hover {
 .btn-secondary:hover {
     background: var(--color-gray-100);
     border-color: var(--color-gray-500);
+}
+
+.btn-delete {
+    width: 100%;
+    padding: var(--space-3) var(--space-6);
+    border: 2px solid #d32f2f;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--color-white);
+    color: #d32f2f;
+}
+
+.btn-delete:hover {
+    background: #d32f2f;
+    color: var(--color-white);
 }
 
 /* Item preview card in add panel */

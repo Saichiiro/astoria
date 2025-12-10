@@ -56,12 +56,21 @@
             transform: translateY(-4px);
             box-shadow: var(--shadow-xl);
             border-color: var(--color-primary);
-            background: var(--color-primary-lighter);
+            background: linear-gradient(135deg, var(--color-primary-lighter), #fdf0f5);
+        }
+
+        .category-card:active {
+            transform: translateY(-2px) scale(0.98);
         }
 
         .category-icon {
             font-size: 4rem;
             line-height: 1;
+            transition: transform var(--transition-fast);
+        }
+
+        .category-card:hover .category-icon {
+            transform: scale(1.1);
         }
 
         .category-name {

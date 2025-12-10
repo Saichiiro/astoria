@@ -161,22 +161,35 @@
          */
         const IMAGE_CONFIG = {
             basePath: 'assets/images/',
-            // Map item name (normalized) to filename
+            // Map item name (normalized - removes all non-alphanumeric) to correct filename
             mappings: {
-                'poudrededetracage': 'Poudre_de_Tracage.png',
-                'poudredetracage': 'Poudre_de_Tracage.png',
+                // "Poudre de Traçage" -> poudredetraage (ç removed = double a!)
+                'poudredetraage': 'Poudre_de_Tracage.png',
+                // "Larme de Matera" -> larmedematera
                 'larmedematera': 'Larme_de_Matera.png',
+                // "Fruit Papooru" -> fruitpapooru
                 'fruitpapooru': 'Fruit_Papooru.jpg',
-                'fioledevitalite': 'Fiole_de_vitalite.jpg',
-                'parchemindeveil': 'Parchemin_Eveil.jpg',
-                'parcheminascension': 'Parchemin_Ascension.jpg',
+                // "Fiole de vitalité" -> fioledevitalit (é removed!)
+                'fioledevitalit': 'Fiole_de_vitalite.jpg',
+                // "Parchemin d'Éveil" -> parchemindveil (d' and É removed!)
+                'parchemindveil': 'Parchemin_Eveil.jpg',
+                // "Parchemin d'Ascension" -> parchemindascension
+                'parchemindascension': 'Parchemin_Ascension.jpg',
+                // "Clef Manndorf" -> clefmanndorf
                 'clefmanndorf': 'Clef_Manndorf.png',
+                // "Armure de Vexarion" -> armuredevexarion
                 'armuredevexarion': 'Armure_de_Vexarion.png',
+                // "Sceptre de Krythus" -> sceptredekrythus
                 'sceptredekrythus': 'Sceptre_de_Krythus.png',
-                'capedelaubevermeille': 'Cape_de_lAube_Vermeille_off.jpg',
+                // "Cape de l'Aube Vermeille [Exclu saison]" -> capedelaubevermeilleexclusaison
+                'capedelaubevermeilleexclusaison': 'Cape_de_lAube_Vermeille_off.jpg',
+                // "Book Of Aeris" -> bookofaeris
                 'bookofaeris': 'Book_of_Aeris.png',
+                // "The Queen's Poison" -> thequeenspoison
                 'thequeenspoison': 'The_Queens_Poison.png',
-                'clochederesonnance': 'Cloche_de_Resonnance.png',
+                // "Cloche de Résonnance" -> clochedersonnance (é removed!)
+                'clochedersonnance': 'Cloche_de_Resonnance.png',
+                // "Veille-Nuit" -> veillenuit
                 'veillenuit': 'VeilleNuit.png'
             }
         };
@@ -550,36 +563,29 @@
          * - Falls back to placeholder
          */
         function resolveImage(item) {
-            if (!item.image) {
-                return PLACEHOLDER_IMAGE;
-            }
-
-            // If it's already a full URL or data URI, use it
-            if (item.image.startsWith('http') || item.image.startsWith('data:')) {
-                return item.image;
-            }
-
-            // If it's a direct filename with extension
-            if (item.image.includes('.')) {
-                return IMAGE_CONFIG.basePath + item.image;
-            }
-
-            // Try to find in mappings (normalize name)
-            const normalized = item.image
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, '');
-
-            if (IMAGE_CONFIG.mappings[normalized]) {
-                return IMAGE_CONFIG.basePath + IMAGE_CONFIG.mappings[normalized];
-            }
-
-            // Try the item name as fallback
+            // Try item name in mappings FIRST (like index.html does)
+            // This fixes broken paths with spaces in data.js
             const normalizedName = item.name
                 .toLowerCase()
                 .replace(/[^a-z0-9]/g, '');
 
             if (IMAGE_CONFIG.mappings[normalizedName]) {
                 return IMAGE_CONFIG.basePath + IMAGE_CONFIG.mappings[normalizedName];
+            }
+
+            // Fallback: try item.image if it exists and looks valid
+            if (item.image) {
+                // If it's already a full URL or data URI, use it
+                if (item.image.startsWith('http') || item.image.startsWith('data:')) {
+                    return item.image;
+                }
+
+                // If it's a filename without spaces, try it
+                if (item.image.includes('.') && !item.image.includes(' ')) {
+                    return item.image.startsWith('assets/images/')
+                        ? item.image
+                        : IMAGE_CONFIG.basePath + item.image;
+                }
             }
 
             // No match found, use placeholder
@@ -736,6 +742,9 @@
                         <p class="detail-text">×${item.quantity}</p>
                     </div>
                     ` : ''}
+                    <div class="detail-section" style="margin-top: var(--space-6);">
+                        <button class="btn-delete" onclick="deleteItem(${item.id})">Supprimer l'objet</button>
+                    </div>
                 </div>
             `;
         }
@@ -751,6 +760,45 @@
                 </div>
             `;
         }
+
+        // =================================================================
+        // ITEM DELETION
+        // =================================================================
+
+        /**
+         * Delete an item from inventory
+         * - Removes from array
+         * - Saves to localStorage
+         * - Clears selection
+         * - Re-renders grid
+         */
+        function deleteItem(itemId) {
+            const itemIndex = inventoryItems.findIndex(i => i.id === itemId);
+            if (itemIndex === -1) return;
+
+            const itemName = inventoryItems[itemIndex].name;
+
+            // Confirm deletion
+            if (!confirm(`Supprimer "${itemName}" de l'inventaire ?`)) {
+                return;
+            }
+
+            // Remove from array
+            inventoryItems.splice(itemIndex, 1);
+
+            // Save to localStorage
+            saveToLocalStorage();
+
+            // Clear selection
+            selectedItemIndex = null;
+            showDetailPlaceholder();
+
+            // Re-render
+            renderInventory();
+        }
+
+        // Make deleteItem globally accessible for onclick
+        window.deleteItem = deleteItem;
 
         // =================================================================
         // UTILITIES
