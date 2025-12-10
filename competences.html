@@ -71,7 +71,7 @@
 
         /* Colonne d'onglets ronds à gauche */
         .skills-sidebar {
-            width: 140px;
+            width: 154px;
             padding: var(--space-6);
             border-right: 1px solid #c7ccd6;
             display: flex;
@@ -105,8 +105,8 @@
         }
 
         .skills-tab-circle {
-            width: 69px;
-            height: 69px;
+            width: 90px;
+            height: 90px;
             display: block;
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -142,7 +142,7 @@
         }
 
         .skills-tab-btn.skills-active .skills-tab-circle {
-            transform: scale(1.08);
+            transform: scale(1.1);
         }
 
         .skills-tab-btn.skills-active .skills-tab-circle img {
@@ -267,9 +267,10 @@
             margin: 0;
             margin-top: var(--space-1);
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: var(--space-3);
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: var(--space-4);
+            row-gap: var(--space-3);
             transition: opacity 0.18s ease, transform 0.18s ease;
         }
 
@@ -325,7 +326,7 @@
         .skills-value {
             margin-left: var(--space-3);
             padding: 3px 8px;
-            min-width: 36px;
+            min-width: 64px;
             text-align: center;
             font-size: var(--text-sm);
             font-weight: var(--font-semibold);
@@ -455,6 +456,10 @@
 
             .skills-tab-label {
                 display: none; /* Sur mobile on garde les ronds uniquement */
+            }
+
+            .skills-list {
+                grid-template-columns: 1fr;
             }
         }
 

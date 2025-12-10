@@ -14,6 +14,8 @@
         ? window.skillsCategories
         : [];
 
+    const MAX_SKILL_POINTS = 40;
+
     const skillsStorageKey = "skillsPointsByCategory";
     const skillsAllocStorageKey = "skillsAllocationsByCategory";
 
@@ -178,7 +180,10 @@
 
         category.skills.forEach((skill) => {
             const allocation = allocations[skill.name] || 0;
-            const totalValue = (skill.baseValue ?? skill.value ?? 0) + allocation;
+            const base = skill.baseValue ?? skill.value ?? 0;
+            const totalValue = base + allocation;
+            const cappedTotal = Math.min(totalValue, MAX_SKILL_POINTS);
+            const isMaxed = cappedTotal >= MAX_SKILL_POINTS;
             const li = document.createElement("li");
             li.className = "skills-line";
 
@@ -203,14 +208,14 @@
 
             const value = document.createElement("span");
             value.className = "skills-value";
-            value.textContent = totalValue;
+            value.textContent = `${cappedTotal} / ${MAX_SKILL_POINTS}`;
 
             const incBtn = document.createElement("button");
             incBtn.type = "button";
             incBtn.className = "skill-point-btn";
             incBtn.textContent = "+";
             incBtn.setAttribute("aria-label", `Ajouter un point sur ${skill.name}`);
-            incBtn.disabled = getCurrentCategoryPoints() <= 0 || isLocked;
+            incBtn.disabled = isMaxed || getCurrentCategoryPoints() <= 0 || isLocked;
 
             decBtn.addEventListener("click", () => {
                 adjustSkillPoints(category.id, skill, -1, value, decBtn, incBtn);
@@ -234,21 +239,32 @@
         const allocations = getCategoryAllocations(categoryId);
         const currentAlloc = allocations[skill.name] || 0;
         const available = skillsState.pointsByCategory[categoryId] ?? 0;
+        const base = skill.baseValue ?? skill.value ?? 0;
+        const currentTotal = base + currentAlloc;
 
-        if (delta > 0 && available <= 0) return;
+        if (delta > 0 && (available <= 0 || currentTotal >= MAX_SKILL_POINTS)) return;
         if (delta < 0 && currentAlloc <= 0) return;
 
-        const nextAlloc = Math.max(0, currentAlloc + delta);
-        const base = skill.baseValue ?? skill.value ?? 0;
-
-        allocations[skill.name] = nextAlloc;
-        skillsState.pointsByCategory[categoryId] = Math.max(0, available - delta);
+        if (delta > 0) {
+            const increment = Math.min(delta, available, MAX_SKILL_POINTS - currentTotal);
+            if (increment <= 0) return;
+            allocations[skill.name] = currentAlloc + increment;
+            skillsState.pointsByCategory[categoryId] = Math.max(0, available - increment);
+        } else if (delta < 0) {
+            const decrement = Math.min(-delta, currentAlloc);
+            if (decrement <= 0) return;
+            allocations[skill.name] = currentAlloc - decrement;
+            skillsState.pointsByCategory[categoryId] = available + decrement;
+        }
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
 
-        valueEl.textContent = base + nextAlloc;
-        decBtn.disabled = nextAlloc <= 0 || skillsState.locksByCategory[categoryId];
-        incBtn.disabled = (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || skillsState.locksByCategory[categoryId];
+        const nextAlloc = allocations[skill.name] || 0;
+        const newTotal = Math.min(base + nextAlloc, MAX_SKILL_POINTS);
+        valueEl.textContent = `${newTotal} / ${MAX_SKILL_POINTS}`;
+        const isLocked = skillsState.locksByCategory[categoryId];
+        decBtn.disabled = nextAlloc <= 0 || isLocked;
+        incBtn.disabled = newTotal >= MAX_SKILL_POINTS || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
 
         updateSkillsPointsDisplay();
     }
@@ -311,10 +327,18 @@
             const nameEl = line.querySelector(".skills-name");
             const incBtn = line.querySelector(".skill-point-btn:nth-child(3)");
             const decBtn = line.querySelector(".skill-point-btn:nth-child(1)");
+            const valueEl = line.querySelector(".skills-value");
             if (!nameEl || !incBtn || !decBtn) return;
+            const skill = activeCategory.skills.find((item) => item.name === nameEl.textContent);
+            const base = skill?.baseValue ?? skill?.value ?? 0;
             const allocation = allocations[nameEl.textContent] || 0;
+            const total = Math.min(base + allocation, MAX_SKILL_POINTS);
+            if (valueEl) {
+                valueEl.textContent = `${total} / ${MAX_SKILL_POINTS}`;
+            }
+            const atMax = total >= MAX_SKILL_POINTS;
             decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
-            incBtn.disabled = currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
+            incBtn.disabled = atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
         });
     }
 
