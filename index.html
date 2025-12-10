@@ -52,12 +52,12 @@
             <table id="inventoryTable">
                 <thead>
                     <tr>
-                        <th>Illustration</th>
-                        <th class="sortable" onclick="sortTable('name')">Nom <span class="sort-indicator"></span></th>
-                        <th>Description</th>
-                        <th class="sortable" onclick="sortTable('price')">Commerce <span class="sort-indicator"></span></th>
-                        <th>Effet (consommation)</th>
-                        <th>Action</th>
+                        <th scope="col">Illustration</th>
+                        <th scope="col" class="sortable name-column" aria-sort="none" onclick="sortTable('name')">Nom <span class="sort-indicator"></span></th>
+                        <th scope="col">Description</th>
+                        <th scope="col" class="sortable" aria-sort="none" onclick="sortTable('price')">Commerce <span class="sort-indicator"></span></th>
+                        <th scope="col">Effet (consommation)</th>
+                        <th scope="col">Action</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -66,11 +66,19 @@
     </main>
 
     <!-- Modal pour voir un item en grand / détails -->
-    <div id="itemModal" class="modal" onclick="closeItemModal()">
+    <div
+        id="itemModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalName"
+        aria-describedby="modalDescription"
+        onclick="closeItemModal()"
+    >
         <div class="modal-inner" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h2 class="modal-title" id="modalName"></h2>
-                <button class="modal-close" onclick="closeItemModal()">×</button>
+                <button class="modal-close" aria-label="Fermer la fenêtre" onclick="closeItemModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="modal-media">
@@ -108,6 +116,9 @@
         const carouselPrev = document.getElementById("carouselPrev");
         const carouselNext = document.getElementById("carouselNext");
         const carouselDots = document.getElementById("carouselDots");
+        const modalCloseBtn = document.querySelector(".modal-close");
+        const modalInner = document.querySelector(".modal-inner");
+        let lastFocusedElement = null;
 
         /* // IMAGE FIX : placeholder + correspondances de chemins */
         const placeholderImage =
@@ -118,6 +129,14 @@
                     `<text x='50%' y='50%' text-anchor='middle' fill='#d81b60' font-family='Segoe UI, Arial' font-size='16'>Image</text>` +
                     `</svg>`
             );
+
+        if (modalImage) {
+            modalImage.loading = "lazy";
+            modalImage.decoding = "async";
+            modalImage.addEventListener("error", () => {
+                modalImage.src = placeholderImage;
+            });
+        }
 
         function normalizeName(name) {
             return (name || "")
@@ -319,13 +338,18 @@
             const effectSummary = summarizeEffect(effect);
             const images = resolveImages(item);
 
+            const badgeMatches = Array.from(name.matchAll(/\[(.*?)\]/g)).map(match => match[1]);
+            const displayName = name.replace(/\s*\[.*?\]/g, "").trim() || name;
+
             const copyText =
                 `${name} - ${description}` +
                 (priceText ? ` (${priceText})` : "") +
                 (effect ? ` | Effet : ${effect}` : "");
 
             // Apply highlighting if search query exists
-            const highlightedName = searchQuery ? highlightText(name, searchQuery) : escapeHtml(name);
+            const highlightedName = searchQuery
+                ? highlightText(displayName, searchQuery)
+                : escapeHtml(displayName);
             const highlightedDesc = searchQuery ? highlightText(description, searchQuery) : escapeHtml(description);
             const highlightedEffect = searchQuery ? highlightText(effectSummary, searchQuery) : escapeHtml(effectSummary);
             const highlightedBuyLine = searchQuery ? highlightText(buyLine, searchQuery) : escapeHtml(buyLine);
@@ -333,13 +357,14 @@
 
             const rowHtml = `
                 <tr class="item-row" data-index="${index}">
-                    <td class="img-cell">
-                        <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" onclick="openItemModal(${index})">
+                    <td class="img-cell" data-label="Illustration">
+                        <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" loading="lazy" decoding="async" onclick="openItemModal(${index})" onerror="this.src='${placeholderImage}'">
                     </td>
-                    <td class="name-cell" onclick="openItemModal(${index})">
-                        ${highlightedName}
+                    <td class="name-cell" data-label="Nom" onclick="openItemModal(${index})">
+                        <span class="name-text">${highlightedName}</span>
+                        ${badgeMatches.length ? `<span class="name-badges">${badgeMatches.map((badge) => `<span class=\"name-badge\">${escapeHtml(badge)}</span>`).join("")}</span>` : ""}
                     </td>
-                    <td class="desc-cell">
+                    <td class="desc-cell" data-label="Description">
                         <div class="desc-container">
                             <span class="desc-text">${highlightedDesc}</span>
                             <button class="more-link" onclick="openItemModal(${index}); return false;">Plus</button>
@@ -350,12 +375,12 @@
                             </div>
                         </div>
                     </td>
-                    <td class="price-cell commerce-cell">
+                    <td class="price-cell commerce-cell" data-label="Commerce">
                         <span class="commerce-line">${highlightedBuyLine}</span>
                         <span class="commerce-line">${highlightedSellLine}</span>
                     </td>
-                    <td class="effect-cell">${highlightedEffect}</td>
-                    <td class="action-cell">
+                    <td class="effect-cell" data-label="Effet">${highlightedEffect}</td>
+                    <td class="action-cell" data-label="Action">
                         <button
                             class="copy-btn"
                             onclick="copyToClipboard('${escapeForAttribute(copyText)}', this)"
@@ -502,17 +527,38 @@
                 : "";
 
             modal.classList.add("open");
+            lastFocusedElement = document.activeElement;
+
+            const focusTarget = modal.querySelector(".modal-close") || modal;
+            focusTarget.focus({ preventScroll: true });
         }
 
         function closeItemModal() {
             modal.classList.remove("open");
             // Remove row highlight when modal closes
             document.querySelectorAll('.item-row').forEach(row => row.classList.remove('row-selected'));
+
+            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+                lastFocusedElement.focus({ preventScroll: true });
+            }
         }
 
-        // Keyboard shortcuts: ESC to close modal or clear search, Enter to focus search, arrows for carousel
+        // Keyboard shortcuts & focus management: ESC to close modal or clear search, Enter to focus search, arrows for carousel, Tab trap in modal
         document.addEventListener("keydown", (e) => {
             if (modal.classList.contains("open")) {
+                const focusableSelectors = [
+                    'button',
+                    'a[href]',
+                    'input',
+                    'textarea',
+                    'select',
+                    '[tabindex]:not([tabindex="-1"])'
+                ];
+
+                const focusables = modalInner
+                    ? Array.from(modalInner.querySelectorAll(focusableSelectors.join(','))).filter(el => !el.disabled)
+                    : [];
+
                 if (e.key === "Escape") {
                     closeItemModal();
                 } else if (e.key === "ArrowLeft") {
@@ -521,6 +567,17 @@
                 } else if (e.key === "ArrowRight") {
                     e.preventDefault();
                     setCarouselIndex(currentCarouselIndex + 1);
+                } else if (e.key === "Tab" && focusables.length) {
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
                 }
             } else if (e.key === "Escape") {
                 // If search is focused, clear it and blur
@@ -595,13 +652,16 @@
             updateFilterChips();
         }
 
-        function updateFilterChips() {
+        function updateFilterChips(searchQuery = '') {
             const chipsContainer = document.getElementById('filterChips');
             if (!chipsContainer) return;
 
             chipsContainer.innerHTML = '';
 
-            if (currentCategory) {
+            const hasCategory = Boolean(currentCategory);
+            const hasSearch = Boolean(searchQuery);
+
+            if (hasCategory) {
                 const categoryNames = {
                     'equipement': '⚔️ Équipements',
                     'consommable': '🧪 Consommables',
@@ -616,6 +676,15 @@
                 `;
                 chipsContainer.appendChild(chip);
             }
+
+            if (hasSearch || hasCategory) {
+                const clearChip = document.createElement('button');
+                clearChip.type = 'button';
+                clearChip.className = 'filter-chip filter-chip--action';
+                clearChip.onclick = clearAllFilters;
+                clearChip.innerHTML = '<span>Réinitialiser filtres</span>';
+                chipsContainer.appendChild(clearChip);
+            }
         }
 
         function clearCategoryFilter() {
@@ -624,6 +693,14 @@
             document.getElementById('pageTitle').textContent = 'Liste d\'objets';
             applyFilters();
             updateFilterChips();
+        }
+
+        function clearAllFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('searchInput').value = '';
+            currentCategory = '';
+            applyFilters();
+            updateFilterChips('');
         }
 
         // Combine recherche + catégorie + tri
@@ -686,6 +763,8 @@
             if (clearBtn) {
                 clearBtn.style.display = searchQuery ? 'inline' : 'none';
             }
+
+            updateFilterChips(searchQuery);
         }
 
         // Recherche live avec debounce
@@ -693,7 +772,7 @@
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(() => {
                 applyFilters();
-            }, 100);
+            }, 200);
         }
 
         function clearSearch() {
@@ -778,9 +857,15 @@
         }
 
         function updateSortIndicators() {
-            document.querySelectorAll('.sort-indicator').forEach(indicator => {
-                indicator.textContent = '';
-                indicator.classList.remove('active');
+            const sortableHeaders = document.querySelectorAll('th.sortable');
+
+            sortableHeaders.forEach(header => {
+                const indicator = header.querySelector('.sort-indicator');
+                if (indicator) {
+                    indicator.textContent = '';
+                    indicator.classList.remove('active');
+                }
+                header.setAttribute('aria-sort', 'none');
             });
 
             if (currentSortColumn) {
@@ -789,6 +874,7 @@
                     const indicator = header.querySelector('.sort-indicator');
                     indicator.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
                     indicator.classList.add('active');
+                    header.setAttribute('aria-sort', currentSortDirection === 'asc' ? 'ascending' : 'descending');
                 }
             }
         }
@@ -806,6 +892,28 @@
             } else {
                 loadTable(allItems);
             }
+
+            updateFilterChips();
+            populateCategoryCounts();
+        }
+
+        function populateCategoryCounts() {
+            const counts = allItems.reduce((acc, item) => {
+                const key = item.category || 'other';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+
+            const select = document.getElementById('categoryFilter');
+            if (!select) return;
+
+            Array.from(select.options).forEach(option => {
+                const value = option.value;
+                if (!value) return;
+                const count = counts[value] || 0;
+                const label = option.textContent.split(' (')[0];
+                option.textContent = `${label} (${count})`;
+            });
         }
 
         // Chargement initial
