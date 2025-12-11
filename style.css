@@ -432,6 +432,9 @@ td {
     display: block;
     cursor: pointer;
     transition: transform var(--transition-fast);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    will-change: transform;
 }
 
 .img-cell img:hover {
