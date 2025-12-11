@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sélection de personnage - Astoria</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .characters-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-background) 100%);
+            padding: var(--space-6);
+        }
+
+        .characters-header {
+            max-width: 1200px;
+            margin: 0 auto var(--space-6);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .characters-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .logout-button {
+            padding: var(--space-2) var(--space-4);
+            background: white;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-button:hover {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        .characters-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: var(--space-4);
+        }
+
+        .character-card {
+            background: white;
+            border-radius: 12px;
+            padding: var(--space-6);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 3px solid transparent;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .character-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-color: var(--color-primary);
+        }
+
+        .character-card.empty {
+            border: 3px dashed var(--color-gray-300);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+            background: linear-gradient(135deg, #fff 0%, var(--color-gray-100) 100%);
+        }
+
+        .character-card.empty:hover {
+            border-color: var(--color-primary);
+            background: linear-gradient(135deg, #fff 0%, var(--color-primary-lighter) 100%);
+        }
+
+        .character-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--color-primary-lighter);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin: 0 auto var(--space-4);
+        }
+
+        .character-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-gray-900);
+            text-align: center;
+            margin-bottom: var(--space-2);
+        }
+
+        .character-info {
+            color: var(--color-gray-600);
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            color: var(--color-gray-400);
+            margin-bottom: var(--space-2);
+        }
+
+        .empty-text {
+            color: var(--color-gray-500);
+            font-weight: 600;
+        }
+
+        .user-info {
+            background: white;
+            border-radius: 8px;
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+
+        .user-badge {
+            background: var(--color-primary);
+            color: white;
+            padding: var(--space-1) var(--space-3);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--color-gray-700);
+        }
+
+        @media (max-width: 768px) {
+            .characters-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .characters-header {
+                flex-direction: column;
+                gap: var(--space-4);
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="characters-container">
+        <div class="user-info" id="userInfo">
+            <span class="user-badge" id="userRole">Joueur</span>
+            <span class="user-name" id="userName">Chargement...</span>
+        </div>
+
+        <div class="characters-header">
+            <h1 class="characters-title">Sélectionnez votre personnage</h1>
+            <button class="logout-button" id="logoutButton">Déconnexion</button>
+        </div>
+
+        <div class="characters-grid" id="charactersGrid">
+            <!-- Characters will be loaded here -->
+        </div>
+    </div>
+
+    <script type="module">
+        import { logout, getCurrentUser, getUserCharacters, setActiveCharacter } from './auth.js';
+
+        // Check authentication
+        const user = getCurrentUser();
+        if (!user) {
+            window.location.href = 'login.html';
+        }
+
+        // Display user info
+        document.getElementById('userName').textContent = user.username;
+        document.getElementById('userRole').textContent = user.role === 'admin' ? 'Admin' : 'Joueur';
+
+        // Logout handler
+        document.getElementById('logoutButton').addEventListener('click', () => {
+            logout();
+            window.location.href = 'login.html';
+        });
+
+        // Load characters
+        async function loadCharacters() {
+            const grid = document.getElementById('charactersGrid');
+
+            try {
+                const characters = await getUserCharacters(user.id);
+
+                // Render up to 5 character slots
+                for (let i = 0; i < 5; i++) {
+                    const character = characters[i];
+
+                    if (character) {
+                        // Existing character
+                        const card = createCharacterCard(character);
+                        grid.appendChild(card);
+                    } else {
+                        // Empty slot
+                        const emptyCard = createEmptyCard(i);
+                        grid.appendChild(emptyCard);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading characters:', error);
+                grid.innerHTML = '<p style="color: red; text-align: center;">Erreur lors du chargement des personnages</p>';
+            }
+        }
+
+        function createCharacterCard(character) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+
+            const initial = character.name.charAt(0).toUpperCase();
+
+            card.innerHTML = `
+                <div class="character-avatar">${initial}</div>
+                <div class="character-name">${character.name}</div>
+                <div class="character-info">
+                    ${character.race || 'Race inconnue'} • ${character.class || 'Classe inconnue'}
+                </div>
+            `;
+
+            card.addEventListener('click', () => selectCharacter(character));
+
+            return card;
+        }
+
+        function createEmptyCard(slot) {
+            const card = document.createElement('div');
+            card.className = 'character-card empty';
+
+            card.innerHTML = `
+                <div class="empty-icon">+</div>
+                <div class="empty-text">Créer un personnage</div>
+            `;
+
+            card.addEventListener('click', () => createNewCharacter(slot));
+
+            return card;
+        }
+
+        async function selectCharacter(character) {
+            try {
+                await setActiveCharacter(character.id);
+                // Redirect to profile page with character loaded
+                window.location.href = 'profil.html';
+            } catch (error) {
+                console.error('Error selecting character:', error);
+                alert('Erreur lors de la sélection du personnage');
+            }
+        }
+
+        function createNewCharacter(slot) {
+            // TODO: Implement character creation flow
+            // For now, redirect to profile with create mode
+            localStorage.setItem('createCharacterSlot', slot);
+            window.location.href = 'profil.html?create=true';
+        }
+
+        // Load characters on page load
+        loadCharacters();
+    </script>
+</body>
+</html>

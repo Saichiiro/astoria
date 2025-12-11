@@ -5,9 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profil - Astoria</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-controls {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .character-selector {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 2px solid var(--color-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--color-primary);
+            min-width: 200px;
+        }
+
+        .character-selector:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-primary-lighter);
+        }
+
+        .auth-button {
+            padding: 0.5rem 1rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .auth-button:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .auth-button.secondary {
+            background: white;
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
+        }
+
+        .auth-button.secondary:hover {
+            background: var(--color-primary-lighter);
+        }
+
+        .user-badge {
+            background: var(--color-primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .profile-not-logged-in {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .profile-not-logged-in h2 {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+
+        .profile-not-logged-in p {
+            color: var(--color-gray-600);
+            margin-bottom: 2rem;
+        }
+    </style>
 </head>
 <body>
-    <main class="profile-page" aria-labelledby="profileTitle">
+    <!-- Auth Controls (always visible) -->
+    <div class="auth-controls" id="authControls">
+        <!-- Will be populated by JS -->
+    </div>
+
+    <main class="profile-page" aria-labelledby="profileTitle" id="profileContent">
         <header class="profile-header">
             <a href="index.html" class="magic-back-link" title="Retour à l'accueil">← Retour</a>
             <div class="profile-header-main">
@@ -17,15 +101,15 @@
                 </div>
                 <div class="profile-summary-card" aria-label="Résumé du joueur">
                     <div class="profile-avatar-large">
-                        <span class="profile-avatar-placeholder">Avatar</span>
+                        <span class="profile-avatar-placeholder" id="characterInitial">Avatar</span>
                     </div>
                     <div class="profile-summary-infos">
-                        <span class="profile-username">Nom du joueur</span>
-                        <span class="profile-role">Rôle / Classe</span>
+                        <span class="profile-username" id="characterName">Nom du personnage</span>
+                        <span class="profile-role" id="characterRole">Rôle / Classe</span>
                         <div class="profile-summary-stats">
-                            <span class="profile-stat">Style : <strong>0</strong></span>
-                            <span class="profile-stat">Dico : <strong>0</strong></span>
-                            <span class="profile-stat">Popularité : <strong>0</strong></span>
+                            <span class="profile-stat">Style : <strong id="statStyle">0</strong></span>
+                            <span class="profile-stat">Dico : <strong id="statDico">0</strong></span>
+                            <span class="profile-stat">Popularité : <strong id="statPopularity">0</strong></span>
                         </div>
                     </div>
                 </div>
@@ -98,6 +182,178 @@
             </section>
         </section>
     </main>
+
+    <script type="module">
+        import {
+            getCurrentUser,
+            getUserCharacters,
+            getActiveCharacter,
+            setActiveCharacter,
+            logout,
+            isAdmin
+        } from './auth.js';
+
+        const authControls = document.getElementById('authControls');
+        const profileContent = document.getElementById('profileContent');
+
+        let currentUser = null;
+        let currentCharacter = null;
+        let userCharacters = [];
+
+        // Initialize page
+        async function init() {
+            currentUser = getCurrentUser();
+
+            if (!currentUser) {
+                // Not logged in - show login prompt
+                showNotLoggedIn();
+                return;
+            }
+
+            // Logged in - render auth controls
+            renderAuthControls();
+
+            // Load user's characters
+            await loadCharacters();
+
+            // Load active character or prompt to select/create one
+            await loadActiveCharacter();
+        }
+
+        function showNotLoggedIn() {
+            authControls.innerHTML = `
+                <a href="login.html" class="auth-button">Se connecter</a>
+            `;
+
+            profileContent.innerHTML = `
+                <div class="profile-not-logged-in">
+                    <h2>Connexion requise</h2>
+                    <p>Vous devez vous connecter pour accéder à votre profil et gérer vos personnages.</p>
+                    <a href="login.html" class="auth-button">Se connecter</a>
+                </div>
+            `;
+        }
+
+        function renderAuthControls() {
+            const roleBadge = isAdmin() ? 'Admin' : 'Joueur';
+
+            authControls.innerHTML = `
+                <span class="user-badge">${roleBadge}</span>
+                <span style="color: var(--color-gray-700); font-weight: 600;">${currentUser.username}</span>
+                <button class="auth-button secondary" id="logoutBtn">Déconnexion</button>
+            `;
+
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                logout();
+                window.location.reload();
+            });
+        }
+
+        async function loadCharacters() {
+            try {
+                userCharacters = await getUserCharacters(currentUser.id);
+            } catch (error) {
+                console.error('Error loading characters:', error);
+                userCharacters = [];
+            }
+        }
+
+        async function loadActiveCharacter() {
+            currentCharacter = getActiveCharacter();
+
+            // Render character selector
+            renderCharacterSelector();
+
+            if (!currentCharacter) {
+                // No active character - show placeholder
+                showNoCharacterSelected();
+            } else {
+                // Display character data
+                displayCharacter(currentCharacter);
+            }
+        }
+
+        function renderCharacterSelector() {
+            const selectorHTML = document.createElement('select');
+            selectorHTML.className = 'character-selector';
+            selectorHTML.id = 'characterSelector';
+
+            // Add placeholder option
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = 'Sélectionner un personnage...';
+            placeholderOption.disabled = true;
+            placeholderOption.selected = !currentCharacter;
+            selectorHTML.appendChild(placeholderOption);
+
+            // Add existing characters
+            userCharacters.forEach(char => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = char.name;
+                if (currentCharacter && char.id === currentCharacter.id) {
+                    option.selected = true;
+                }
+                selectorHTML.appendChild(option);
+            });
+
+            // Add "Create new character" option if under 5 characters
+            if (userCharacters.length < 5) {
+                const createOption = document.createElement('option');
+                createOption.value = '__create__';
+                createOption.textContent = '+ Créer un personnage';
+                selectorHTML.appendChild(createOption);
+            }
+
+            // Insert at the beginning of auth controls
+            authControls.insertBefore(selectorHTML, authControls.firstChild);
+
+            // Handle character change
+            selectorHTML.addEventListener('change', async (e) => {
+                const value = e.target.value;
+
+                if (value === '__create__') {
+                    // TODO: Open character creation modal
+                    alert('Création de personnage à venir!');
+                    return;
+                }
+
+                // Switch to selected character
+                await setActiveCharacter(value);
+                window.location.reload();
+            });
+        }
+
+        function showNoCharacterSelected() {
+            document.getElementById('characterInitial').textContent = '?';
+            document.getElementById('characterName').textContent = 'Aucun personnage sélectionné';
+            document.getElementById('characterRole').textContent = 'Sélectionnez un personnage ci-dessus';
+        }
+
+        function displayCharacter(character) {
+            // Update header with character info
+            const initial = character.name ? character.name.charAt(0).toUpperCase() : '?';
+            document.getElementById('characterInitial').textContent = initial;
+            document.getElementById('characterName').textContent = character.name || 'Sans nom';
+
+            // Display race and class
+            const race = character.race || 'Race inconnue';
+            const charClass = character.class || 'Classe inconnue';
+            document.getElementById('characterRole').textContent = `${race} • ${charClass}`;
+
+            // Display stats (from profile_data if available)
+            const profileData = character.profile_data || {};
+            document.getElementById('statStyle').textContent = profileData.style || 0;
+            document.getElementById('statDico').textContent = profileData.dico || 0;
+            document.getElementById('statPopularity').textContent = profileData.popularity || 0;
+
+            // TODO: Populate rest of profile sections based on issue #9 requirements
+            // - House, Rank, Alice types, etc.
+        }
+
+        // Initialize on page load
+        init();
+    </script>
 </body>
 </html>
 

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Astoria</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-background) 100%);
+            padding: var(--space-4);
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            padding: var(--space-8);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: var(--space-2);
+            text-align: center;
+        }
+
+        .login-subtitle {
+            color: var(--color-gray-600);
+            text-align: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--color-gray-700);
+            margin-bottom: var(--space-2);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: var(--space-3);
+            border: 2px solid var(--color-gray-300);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .login-button {
+            width: 100%;
+            padding: var(--space-3);
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-button:hover {
+            background: var(--color-primary-dark);
+        }
+
+        .login-button:disabled {
+            background: var(--color-gray-400);
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: var(--space-3);
+            border-radius: 8px;
+            margin-bottom: var(--space-4);
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: var(--space-6);
+            color: var(--color-gray-600);
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1 class="login-title">Astoria</h1>
+            <p class="login-subtitle">Connectez-vous à votre compte</p>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username" class="form-label">Nom d'utilisateur</label>
+                    <input
+                        type="text"
+                        id="username"
+                        class="form-input"
+                        required
+                        autocomplete="username"
+                        placeholder="Entrez votre nom d'utilisateur"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Mot de passe</label>
+                    <input
+                        type="password"
+                        id="password"
+                        class="form-input"
+                        required
+                        autocomplete="current-password"
+                        placeholder="Entrez votre mot de passe"
+                    >
+                </div>
+
+                <button type="submit" class="login-button" id="loginButton">
+                    Se connecter
+                </button>
+            </form>
+
+            <div class="login-footer">
+                Astoria - Système de gestion de personnages
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { login, isAuthenticated } from './auth.js';
+
+        // Redirect if already logged in
+        if (isAuthenticated()) {
+            window.location.href = 'profil.html';
+        }
+
+        const form = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('errorMessage');
+        const loginButton = document.getElementById('loginButton');
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('visible');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('visible');
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            loginButton.disabled = true;
+            loginButton.textContent = 'Connexion...';
+
+            try {
+                const result = await login(username, password);
+
+                if (result.success) {
+                    // Redirect to profile page
+                    window.location.href = 'profil.html';
+                } else {
+                    showError(result.error || 'Nom d\'utilisateur ou mot de passe incorrect');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Erreur de connexion. Veuillez réessayer.');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'Se connecter';
+            }
+        });
+
+        // Enter key submit
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
