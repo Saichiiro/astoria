@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="max-age=604800, public">
     <title>Liste d'objets</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="assets">
 </head>
 <body>
     <main class="wrapper" aria-labelledby="pageTitle">
@@ -131,7 +133,6 @@
             );
 
         if (modalImage) {
-            modalImage.loading = "lazy";
             modalImage.decoding = "async";
             modalImage.addEventListener("error", () => {
                 modalImage.src = placeholderImage;
@@ -376,7 +377,7 @@
             const rowHtml = `
                 <tr class="item-row" data-index="${index}">
                     <td class="img-cell" data-label="Illustration">
-                        <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" loading="lazy" decoding="async" onclick="openItemModal(${index})" onerror="this.src='${placeholderImage}'">
+                        <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" width="86" height="86" decoding="async" onclick="openItemModal(${index})" onerror="this.src='${placeholderImage}'">
                     </td>
                     <td class="name-cell" data-label="Nom" onclick="openItemModal(${index})">
                         ${nameContent}
