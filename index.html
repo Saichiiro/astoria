@@ -11,7 +11,7 @@
         <div class="top-bar">
             <!-- Lien retour aux catégories -->
             <nav aria-label="Navigation principale" class="top-nav">
-                <a href="categories.html" style="text-decoration: none; color: var(--color-primary); font-size: var(--text-lg);" title="Retour aux catégories">←</a>
+                <a href="index.html" style="text-decoration: none; color: var(--color-primary); font-size: var(--text-lg);" title="Retour aux catégories">←</a>
             </nav>
 
             <h1 class="title" id="pageTitle">Liste d'objets</h1>
@@ -99,6 +99,7 @@
     </div>
 
     <!-- Données des objets -->
+    <script src="image-helpers.js"></script>
     <script src="data.js"></script>
 
     <script>
@@ -138,37 +139,15 @@
             });
         }
 
-        function normalizeName(name) {
-            return (name || "")
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/[^a-zA-Z0-9]+/g, "")
-                .toLowerCase();
-        }
-
-        const imageOverrides = {
-            [normalizeName("Poudre de Traçage")]: "assets/images/Poudre_de_Tracage.png",
-            [normalizeName("Fiole de vitalité")]: "assets/images/Fiole_de_vitalite.jpg",
-            [normalizeName("Larme de Matera")]: "assets/images/Larme_de_Matera.png",
-            [normalizeName("Armure de Vexarion")]: "assets/images/Armure_de_Vexarion.png",
-            [normalizeName("Clef Manndorf")]: "assets/images/Clef_Manndorf.png",
-            [normalizeName("Parchemin d'Eveil")]: "assets/images/Parchemin_Eveil.jpg",
-            [normalizeName("Parchemin d'Ascension")]: "assets/images/Parchemin_Ascension.jpg",
-            [normalizeName("Sceptre de Krythus")]: "assets/images/Sceptre_de_Krythus.png",
-            [normalizeName("Cape de l'Aube Vermeille [Exclu saison]")]:
-                "assets/images/Cape_de_lAube_Vermeille_off.jpg",
-        };
-
-        const imageGalleries = {
-            [normalizeName("Cape de l'Aube Vermeille [Exclu saison]")]: [
-                "assets/images/Cape_de_lAube_Vermeille_off.jpg",
-                "assets/images/Cape_de_lAube_Vermeille_on.jpg",
-            ],
-        };
-
-        let currentCarouselImages = [];
-        let currentCarouselIndex = 0;
-        let currentCarouselTitle = "";
+        const normalizeName = window.astoriaImageHelpers && window.astoriaImageHelpers.normalizeName
+            ? window.astoriaImageHelpers.normalizeName
+            : function (name) {
+                return (name || "")
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-zA-Z0-9]+/g, "")
+                    .toLowerCase();
+            };
 
         function escapeHtml(str) {
             return (str || "")
@@ -194,25 +173,22 @@
                 .replace(/"/g, "&quot;");
         }
 
-        // IMAGE FIX : choix du bon visuel + galerie si disponible
+        // IMAGE FIX : choix du bon visuel + galerie si disponible (via helper partagé)
         function resolveImages(item) {
-            const name = item.name || item.nom || "";
-            const rawImage = item.image || item.img || "";
-            const key = normalizeName(name);
-            const override = imageOverrides[key];
-            const gallery = imageGalleries[key];
+            const helpers = window.astoriaImageHelpers || {};
 
-            const primaryCandidate = (gallery && gallery[0]) || override || rawImage;
-            const primary = primaryCandidate || placeholderImage;
+            if (helpers.resolveItemImages) {
+                const resolved = helpers.resolveItemImages(item);
+                if (resolved && resolved.primary && resolved.gallery) {
+                    return resolved;
+                }
+            }
 
-            const galleryList =
-                (gallery && gallery.length ? gallery : []).length > 0
-                    ? gallery
-                    : (primaryCandidate ? [primaryCandidate] : [placeholderImage]);
-
+            // Fallback local (au cas où le helper n'est pas disponible)
+            const rawImage = (item && (item.image || item.img)) || placeholderImage;
             return {
-                primary,
-                gallery: galleryList.map((src) => src || placeholderImage),
+                primary: rawImage || placeholderImage,
+                gallery: [rawImage || placeholderImage]
             };
         }
 
@@ -670,38 +646,8 @@
             updateFilterChips();
         }
 
-        function updateFilterChips(searchQuery = '') {
-            const chipsContainer = document.getElementById('filterChips');
-            if (!chipsContainer) return;
 
-            chipsContainer.innerHTML = '';
 
-            const hasCategory = Boolean(currentCategory);
-            const hasSearch = Boolean(searchQuery);
-
-            if (hasCategory) {
-                const categoryNames = {
-                    'equipement': '⚔️ Équipements',
-                    'consommable': '🧪 Consommables',
-                    'agricole': '🌾 Agricole'
-                };
-
-                const chip = document.createElement('div');
-                chip.className = 'filter-chip';
-                chip.innerHTML = `
-                    <span>${categoryNames[currentCategory]}</span>
-                    <button onclick="clearCategoryFilter()" class="chip-remove">×</button>
-                `;
-                chipsContainer.appendChild(chip);
-            }
-
-            if (hasSearch || hasCategory) {
-                const clearChip = document.createElement('button');
-                clearChip.type = 'button';
-                clearChip.className = 'filter-chip filter-chip--action';
-                clearChip.onclick = clearAllFilters;
-                clearChip.innerHTML = '<span>Réinitialiser filtres</span>';
-                chipsContainer.appendChild(clearChip);
             }
         }
 
@@ -923,7 +869,7 @@
             }
         }
 
-        // Initialisation depuis URL (si vient de categories.html)
+        // Initialisation depuis URL (paramètre ?category présent)
         function initFromUrl() {
             const params = new URLSearchParams(window.location.search);
             const urlCategory = params.get('category');

@@ -129,10 +129,12 @@
     </div>
 
     <!-- Load shared data -->
+    <script src="image-helpers.js"></script>
     <script src="data.js"></script>
 
     <!-- Inventory-specific JS -->
     <script>
+        (function () {
         /**
          * ========================================================================
          * INVENTORY MODULE - EMPTY BY DEFAULT WITH ADD PANEL
@@ -154,58 +156,12 @@
         // =================================================================
         // CONFIGURATION
         // =================================================================
-
         /**
-         * IMAGE CONFIGURATION
-         * Maps item names/keys to actual image paths from our existing dataset
+         * IMAGE CONFIGURATION & PLACEHOLDER
+         * D�l�g�s au helper global image-helpers.js
          */
-        const IMAGE_CONFIG = {
-            basePath: 'assets/images/',
-            // Map item name (normalized - removes all non-alphanumeric) to correct filename
-            mappings: {
-                // "Poudre de Traçage" -> poudredetraage (ç removed = double a!)
-                'poudredetraage': 'Poudre_de_Tracage.png',
-                // "Larme de Matera" -> larmedematera
-                'larmedematera': 'Larme_de_Matera.png',
-                // "Fruit Papooru" -> fruitpapooru
-                'fruitpapooru': 'Fruit_Papooru.jpg',
-                // "Fiole de vitalité" -> fioledevitalit (é removed!)
-                'fioledevitalit': 'Fiole_de_vitalite.jpg',
-                // "Parchemin d'Éveil" -> parchemindveil (d' and É removed!)
-                'parchemindveil': 'Parchemin_Eveil.jpg',
-                // "Parchemin d'Ascension" -> parchemindascension
-                'parchemindascension': 'Parchemin_Ascension.jpg',
-                // "Clef Manndorf" -> clefmanndorf
-                'clefmanndorf': 'Clef_Manndorf.png',
-                // "Armure de Vexarion" -> armuredevexarion
-                'armuredevexarion': 'Armure_de_Vexarion.png',
-                // "Sceptre de Krythus" -> sceptredekrythus
-                'sceptredekrythus': 'Sceptre_de_Krythus.png',
-                // "Cape de l'Aube Vermeille [Exclu saison]" -> capedelaubevermeilleexclusaison
-                'capedelaubevermeilleexclusaison': 'Cape_de_lAube_Vermeille_off.jpg',
-                // "Book Of Aeris" -> bookofaeris
-                'bookofaeris': 'Book_of_Aeris.png',
-                // "The Queen's Poison" -> thequeenspoison
-                'thequeenspoison': 'The_Queens_Poison.png',
-                // "Cloche de Résonnance" -> clochedersonnance (é removed!)
-                'clochedersonnance': 'Cloche_de_Resonnance.png',
-                // "Veille-Nuit" -> veillenuit
-                'veillenuit': 'VeilleNuit.png'
-            }
-        };
-
-        /**
-         * PLACEHOLDER IMAGE (SVG)
-         * Shown when no image or image fails to load
-         */
-        const PLACEHOLDER_IMAGE =
-            "data:image/svg+xml;utf8," +
-            encodeURIComponent(
-                `<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'>` +
-                `<rect width='80' height='80' fill='#f0f0f0'/>` +
-                `<text x='50%' y='50%' text-anchor='middle' dy='0.3em' fill='#d81b60' font-family='Arial' font-size='14'>?</text>` +
-                `</svg>`
-            );
+        const INVENTORY_IMAGE_HELPERS = window.astoriaImageHelpers || {};
+        const PLACEHOLDER_IMAGE = INVENTORY_IMAGE_HELPERS.smallPlaceholder;
 
         // =================================================================
         // STATE
@@ -563,28 +519,19 @@
          * - Falls back to placeholder
          */
         function resolveImage(item) {
-            // Try item name in mappings FIRST (like index.html does)
-            // This fixes broken paths with spaces in data.js
-            const normalizedName = item.name
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, '');
+            const helpers = window.astoriaImageHelpers || {};
 
-            if (IMAGE_CONFIG.mappings[normalizedName]) {
-                return IMAGE_CONFIG.basePath + IMAGE_CONFIG.mappings[normalizedName];
+            if (helpers.resolveItemImages) {
+                const resolved = helpers.resolveItemImages(item);
+                if (resolved && resolved.primary) {
+                    return resolved.primary;
+                }
             }
 
-            // Fallback: try item.image if it exists and looks valid
-            if (item.image) {
-                // If it's already a full URL or data URI, use it
+            // Fallback local (au cas où le helper n'est pas disponible)
+            if (item && item.image) {
                 if (item.image.startsWith('http') || item.image.startsWith('data:')) {
                     return item.image;
-                }
-
-                // If it's a filename without spaces, try it
-                if (item.image.includes('.') && !item.image.includes(' ')) {
-                    return item.image.startsWith('assets/images/')
-                        ? item.image
-                        : IMAGE_CONFIG.basePath + item.image;
                 }
             }
 
@@ -876,6 +823,7 @@
                 }
             }
         };
+        })();
     </script>
 </body>
 </html>

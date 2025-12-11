@@ -10,6 +10,12 @@
     const skillsConfirmEl = document.getElementById("skillsConfirmBtn");
     const skillsFeedbackEl = document.getElementById("skillsValidationFeedback");
 
+    // Abort initialization gracefully if core DOM nodes are missing
+    if (!skillsTabsContainer || !skillsTitleEl || !skillsListEl) {
+        console.warn("Skills module: required DOM elements are missing, initialization skipped.");
+        return;
+    }
+
     const skillsCategories = Array.isArray(window.skillsCategories)
         ? window.skillsCategories
         : [];
