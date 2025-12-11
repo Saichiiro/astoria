@@ -284,6 +284,12 @@ body {
     color: var(--color-primary);
 }
 
+.recent-search-item--clear {
+    border-top: 1px solid var(--color-primary-light);
+    text-align: right;
+    font-style: italic;
+}
+
 .search-container input {
     padding: var(--space-3) var(--space-14) var(--space-3) var(--space-6);
     border-radius: var(--radius-xl);

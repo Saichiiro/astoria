@@ -646,11 +646,6 @@
             updateFilterChips();
         }
 
-
-
-            }
-        }
-
         function clearCategoryFilter() {
             document.getElementById('categoryFilter').value = '';
             currentCategory = '';
@@ -798,6 +793,20 @@
             }
         }
 
+        function clearRecentSearches() {
+            try {
+                localStorage.removeItem('astoriaRecentSearches');
+            } catch (e) {
+                // localStorage might be disabled
+            }
+
+            const dropdown = document.getElementById('recentSearchesDropdown');
+            if (dropdown) {
+                dropdown.innerHTML = '';
+                dropdown.style.display = 'none';
+            }
+        }
+
         function applyRecentSearch(query) {
             document.getElementById('searchInput').value = query;
             applyFilters();
@@ -820,6 +829,16 @@
                 };
                 dropdown.appendChild(item);
             });
+
+            const clearItem = document.createElement('button');
+            clearItem.type = 'button';
+            clearItem.className = 'recent-search-item recent-search-item--clear';
+            clearItem.textContent = 'Clear recent searches';
+            clearItem.onmousedown = (e) => {
+                e.preventDefault();
+                clearRecentSearches();
+            };
+            dropdown.appendChild(clearItem);
 
             dropdown.style.display = 'block';
         }
