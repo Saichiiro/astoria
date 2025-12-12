@@ -26,11 +26,13 @@
 
     const skillsStorageKey = "skillsPointsByCategory";
     const skillsAllocStorageKey = "skillsAllocationsByCategory";
+    const skillsBaseValuesKey = "skillsBaseValuesByCategory";
 
     const skillsState = {
         activeCategoryId: skillsCategories[0]?.id || "",
         pointsByCategory: loadFromStorage(skillsStorageKey),
         allocationsByCategory: loadFromStorage(skillsAllocStorageKey),
+        baseValuesByCategory: loadFromStorage(skillsBaseValuesKey),
         locksByCategory: {},
         isAdmin: document.body.dataset.admin === "true" || !document.body.hasAttribute("data-admin")
     };
@@ -188,7 +190,8 @@
 
         category.skills.forEach((skill) => {
             const allocation = allocations[skill.name] || 0;
-            const base = skill.baseValue ?? skill.value ?? 0;
+            const savedBase = skillsState.baseValuesByCategory[category.id]?.[skill.name];
+            const base = savedBase ?? skill.baseValue ?? skill.value ?? 0;
             const totalValue = base + allocation;
             const cappedTotal = Math.min(totalValue, MAX_SKILL_POINTS);
             const isMaxed = cappedTotal >= MAX_SKILL_POINTS;
@@ -248,7 +251,8 @@
         const allocations = getCategoryAllocations(categoryId);
         const currentAlloc = allocations[skill.name] || 0;
         const available = skillsState.pointsByCategory[categoryId] ?? 0;
-        const base = skill.baseValue ?? skill.value ?? 0;
+        const savedBase = skillsState.baseValuesByCategory[categoryId]?.[skill.name];
+        const base = savedBase ?? skill.baseValue ?? skill.value ?? 0;
         const currentTotal = base + currentAlloc;
 
         if (delta > 0 && (available <= 0 || currentTotal >= MAX_SKILL_POINTS)) return;
@@ -340,7 +344,8 @@
             const valueEl = line.querySelector(".skills-value");
             if (!nameEl || !incBtn || !decBtn) return;
             const skill = activeCategory.skills.find((item) => item.name === nameEl.textContent);
-            const base = skill?.baseValue ?? skill?.value ?? 0;
+            const savedBase = skillsState.baseValuesByCategory[activeCategory.id]?.[nameEl.textContent];
+            const base = savedBase ?? skill?.baseValue ?? skill?.value ?? 0;
             const allocation = allocations[nameEl.textContent] || 0;
             const total = Math.min(base + allocation, MAX_SKILL_POINTS);
             if (valueEl) {
@@ -414,15 +419,25 @@
         const activeCategory = getActiveCategory();
         if (!activeCategory) return;
 
+        // Initialize storage for this category if needed
+        if (!skillsState.baseValuesByCategory[activeCategory.id]) {
+            skillsState.baseValuesByCategory[activeCategory.id] = {};
+        }
+
         // Commit allocations to base values before clearing
         const allocations = getCategoryAllocations(activeCategory.id);
         activeCategory.skills.forEach((skill) => {
             const allocation = allocations[skill.name] || 0;
             if (allocation > 0) {
-                const currentBase = skill.baseValue ?? skill.value ?? 0;
-                skill.baseValue = Math.min(currentBase + allocation, MAX_SKILL_POINTS);
+                const savedBase = skillsState.baseValuesByCategory[activeCategory.id][skill.name];
+                const currentBase = savedBase ?? skill.baseValue ?? skill.value ?? 0;
+                const newBase = Math.min(currentBase + allocation, MAX_SKILL_POINTS);
+                skillsState.baseValuesByCategory[activeCategory.id][skill.name] = newBase;
             }
         });
+
+        // Save base values to localStorage
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
 
         // Clear allocations now that they're committed
         clearAllocations(activeCategory.id);
