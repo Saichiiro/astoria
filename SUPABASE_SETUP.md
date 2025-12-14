@@ -43,7 +43,7 @@
 
 ### Step 4: Configure Your App (3 mins)
 
-1. Open `auth.js` in your code editor
+1. Open `js/auth.js` in your code editor
 2. Find these lines at the top:
 ```javascript
 const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
@@ -145,11 +145,11 @@ Let me know if you want this!
    - `role`: `player`
 
 **Option B: Via Browser Console**
-1. Open your site with `auth.js` loaded
+1. Open your site with `js/auth.js` loaded
 2. Open browser console (F12)
 3. Run:
 ```javascript
-import('./auth.js').then(auth => {
+import('./js/auth.js').then(auth => {
     auth.createAdminUser('newplayer', 'theirpassword');
 });
 ```
@@ -211,7 +211,7 @@ hashPassword('player123');  // Replace with actual password
 ## Troubleshooting
 
 ### "Failed to fetch" error
-- Check your Supabase URL and anon key in `auth.js`
+- Check your Supabase URL and anon key in `js/auth.js`
 - Make sure your Supabase project is active (not paused)
 
 ### "Invalid credentials" error

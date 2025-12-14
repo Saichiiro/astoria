@@ -2,7 +2,7 @@
 
 ## Prérequis
 
-- Un projet Supabase configuré dans `auth.js` (`SUPABASE_URL` + `SUPABASE_ANON_KEY`).
+- Un projet Supabase configuré dans `js/auth.js` (`SUPABASE_URL` + `SUPABASE_ANON_KEY`).
 - Exécuter le schéma `supabase-schema.sql` dans l’éditeur SQL Supabase (il contient les tables HDV + la RPC `buy_listing`).
 
 ## Ouvrir la page
