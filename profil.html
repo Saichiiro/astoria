@@ -83,6 +83,138 @@
             color: var(--color-gray-600);
             margin-bottom: 2rem;
         }
+
+        /* Tag Selector Styles */
+        .tag-selector-container {
+            margin-top: 0.5rem;
+        }
+
+        .tag-add-button {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid var(--color-primary);
+            color: var(--color-primary);
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            margin-bottom: 0.75rem;
+        }
+
+        .tag-add-button:hover {
+            background: var(--color-primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            min-height: 30px;
+            align-items: center;
+        }
+
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--color-primary-lighter);
+            border: 1px solid var(--color-primary-light);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-primary-dark);
+            transition: all 0.2s;
+        }
+
+        .tag-badge:hover {
+            background: var(--color-primary-light);
+        }
+
+        .tag-badge-remove {
+            cursor: pointer;
+            margin-left: 0.25rem;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+
+        .tag-badge-remove:hover {
+            opacity: 1;
+        }
+
+        .tag-dropdown {
+            position: relative;
+            margin-top: 0.5rem;
+            background: white;
+            border: 2px solid var(--color-primary-light);
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .tag-dropdown.open {
+            max-height: 500px;
+            overflow-y: auto;
+            opacity: 1;
+        }
+
+        .tag-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .tag-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .tag-group-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--color-primary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-option {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .tag-option:hover {
+            background: var(--color-primary-lighter);
+        }
+
+        .tag-option input[type="checkbox"] {
+            margin-right: 0.75rem;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--color-primary);
+        }
+
+        .tag-option-label {
+            font-size: 0.9rem;
+            color: var(--color-gray-800);
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -124,6 +256,272 @@
                     <div class="profile-look-card">
                         <span class="profile-look-placeholder">Prévisualisation à venir</span>
                     </div>
+
+                    <!-- Tag Selector System -->
+                    <div class="tag-selector-container">
+                        <button type="button" class="tag-add-button" id="tagAddButton">+</button>
+                        <div class="selected-tags" id="selectedTags"></div>
+
+                        <div class="tag-dropdown" id="tagDropdown">
+                            <!-- Admin Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Admin</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈👑》❱→ Admin">
+                                    <span class="tag-option-label">┃├〈👑》❱→ Admin</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🎮》❱→ Joueur">
+                                    <span class="tag-option-label">┃├〈🎮》❱→ Joueur</span>
+                                </label>
+                            </div>
+
+                            <!-- House Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Houses</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🕷️》❱→ Red Spider House">
+                                    <span class="tag-option-label">┃├〈🕷️》❱→ Red Spider House</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🐻》❱→ Blue Bear House">
+                                    <span class="tag-option-label">┃├〈🐻》❱→ Blue Bear House</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🐐》❱→ Violet Goat House">
+                                    <span class="tag-option-label">┃├〈🐐》❱→ Violet Goat House</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🐢》❱→ Green Turtle House">
+                                    <span class="tag-option-label">┃├〈🐢》❱→ Green Turtle House</span>
+                                </label>
+                            </div>
+
+                            <!-- School Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Schools</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈📖》❱→ Université Onyx">
+                                    <span class="tag-option-label">┃├〈📖》❱→ Université Onyx</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🔥》❱→ Université Diamant">
+                                    <span class="tag-option-label">┃├〈🔥》❱→ Université Diamant</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🩸》❱→ Université Rubis">
+                                    <span class="tag-option-label">┃├〈🩸》❱→ Université Rubis</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈📗》❱→ Lycée Emeraude">
+                                    <span class="tag-option-label">┃├〈📗》❱→ Lycée Emeraude</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈💎》❱→ Collège Saphir">
+                                    <span class="tag-option-label">┃├〈💎》❱→ Collège Saphir</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🎈》❱→ Primaire Améthyste">
+                                    <span class="tag-option-label">┃├〈🎈》❱→ Primaire Améthyste</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🧸》❱→ Maternelle Opale">
+                                    <span class="tag-option-label">┃├〈🧸》❱→ Maternelle Opale</span>
+                                </label>
+                            </div>
+
+                            <!-- Star Rank Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Star Rank</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⭐》❱→ Sans étoile">
+                                    <span class="tag-option-label">┃├〈⭐》❱→ Sans étoile</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⭐》❱→ Simple">
+                                    <span class="tag-option-label">┃├〈⭐》❱→ Simple</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⭐》❱→ Double">
+                                    <span class="tag-option-label">┃├〈⭐》❱→ Double</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⭐》❱→ Triple">
+                                    <span class="tag-option-label">┃├〈⭐》❱→ Triple</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🌟》❱→ Major">
+                                    <span class="tag-option-label">┃├〈🌟》❱→ Major</span>
+                                </label>
+                            </div>
+
+                            <!-- Identity Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Identity</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🧬》❱→ Meister">
+                                    <span class="tag-option-label">┃├〈🧬》❱→ Meister</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈💀》❱→ Weapon">
+                                    <span class="tag-option-label">┃├〈💀》❱→ Weapon</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🔥》❱→ Alice">
+                                    <span class="tag-option-label">┃├〈🔥》❱→ Alice</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🔮》❱→ Sorcière / Sorcier">
+                                    <span class="tag-option-label">┃├〈🔮》❱→ Sorcière / Sorcier</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🤏》❱→ Sans Particularités">
+                                    <span class="tag-option-label">┃├〈🤏》❱→ Sans Particularités</span>
+                                </label>
+                            </div>
+
+                            <!-- Weapon Type Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Weapon Type</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🗡️》❱→ Arme simple">
+                                    <span class="tag-option-label">┃├〈🗡️》❱→ Arme simple</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⚔️》❱→ Arme jumelées">
+                                    <span class="tag-option-label">┃├〈⚔️》❱→ Arme jumelées</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⚒️》❱→ Arme multi-formes">
+                                    <span class="tag-option-label">┃├〈⚒️》❱→ Arme multi-formes</span>
+                                </label>
+                            </div>
+
+                            <!-- Alice Type Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Alice Type</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈✨》❱→ Simple Alice">
+                                    <span class="tag-option-label">┃├〈✨》❱→ Simple Alice</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈💫》❱→ Double Alice">
+                                    <span class="tag-option-label">┃├〈💫》❱→ Double Alice</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⚙️》❱→ Type Physiques">
+                                    <span class="tag-option-label">┃├〈⚙️》❱→ Type Physiques</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🕯️》❱→ Type Psychiques">
+                                    <span class="tag-option-label">┃├〈🕯️》❱→ Type Psychiques</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🧪》❱→ Type Technologiques">
+                                    <span class="tag-option-label">┃├〈🧪》❱→ Type Technologiques</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🥦》❱→ Type Spéciaux">
+                                    <span class="tag-option-label">┃├〈🥦》❱→ Type Spéciaux</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈💣》❱→ Type Dangereux">
+                                    <span class="tag-option-label">┃├〈💣》❱→ Type Dangereux</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🧸》❱→ Forme Enfance">
+                                    <span class="tag-option-label">┃├〈🧸》❱→ Forme Enfance</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🚿》❱→ Forme Diffuse">
+                                    <span class="tag-option-label">┃├〈🚿》❱→ Forme Diffuse</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈📡》❱→ Forme Indéterminée">
+                                    <span class="tag-option-label">┃├〈📡》❱→ Forme Indéterminée</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⚰️》❱→ Forme Limitée">
+                                    <span class="tag-option-label">┃├〈⚰️》❱→ Forme Limitée</span>
+                                </label>
+                            </div>
+
+                            <!-- Kingdom Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Kingdom</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🦇》❱→ Ombresyl">
+                                    <span class="tag-option-label">┃├〈🦇》❱→ Ombresyl</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🌱》❱→ Sancturia">
+                                    <span class="tag-option-label">┃├〈🌱》❱→ Sancturia</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈👑》❱→ Luminara">
+                                    <span class="tag-option-label">┃├〈👑》❱→ Luminara</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🦢》❱→ Celestheon">
+                                    <span class="tag-option-label">┃├〈🦢》❱→ Celestheon</span>
+                                </label>
+                            </div>
+
+                            <!-- Hierarchy Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Hierarchy</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈👑》❱→ Hiérarchie - Lignée régente">
+                                    <span class="tag-option-label">┃├〈👑》❱→ Hiérarchie - Lignée régente</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🔆》❱→ Hiérarchie - Clergé">
+                                    <span class="tag-option-label">┃├〈🔆》❱→ Hiérarchie - Clergé</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🏰》❱→ Hiérarchie - Haute-Noblesse">
+                                    <span class="tag-option-label">┃├〈🏰》❱→ Hiérarchie - Haute-Noblesse</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🛡️》❱→ Hiérarchie - Petite-Noblesse">
+                                    <span class="tag-option-label">┃├〈🛡️》❱→ Hiérarchie - Petite-Noblesse</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⚔️》❱→ Hiérarchie - Force Armée">
+                                    <span class="tag-option-label">┃├〈⚔️》❱→ Hiérarchie - Force Armée</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈💰》❱→ Hiérarchie - Bourgeoisie">
+                                    <span class="tag-option-label">┃├〈💰》❱→ Hiérarchie - Bourgeoisie</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🌾》❱→ Hiérarchie - Paysannerie">
+                                    <span class="tag-option-label">┃├〈🌾》❱→ Hiérarchie - Paysannerie</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🕳️》❱→ Hiérarchie - Bas Peuple">
+                                    <span class="tag-option-label">┃├〈🕳️》❱→ Hiérarchie - Bas Peuple</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈⛓️》❱→ Hiérarchie - Esclaves & Hybrides">
+                                    <span class="tag-option-label">┃├〈⛓️》❱→ Hiérarchie - Esclaves & Hybrides</span>
+                                </label>
+                            </div>
+
+                            <!-- Gender Tags -->
+                            <div class="tag-group">
+                                <div class="tag-group-title">Gender</div>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🟣》❱→ Féminin">
+                                    <span class="tag-option-label">┃├〈🟣》❱→ Féminin</span>
+                                </label>
+                                <label class="tag-option">
+                                    <input type="checkbox" data-tag="┃├〈🔵》❱→ Masculin">
+                                    <span class="tag-option-label">┃├〈🔵》❱→ Masculin</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="profile-panel">
@@ -145,7 +543,7 @@
                     </header>
                     <p class="profile-placeholder-text">
                         Zone de présentation du joueur et de son personnage. On pourra y coller du contenu HTML libre, des blocs de texte,
-                        ou des extraits de la fiche personnage. Pour l’instant, ceci n’est qu’un gabarit de base.
+                        ou des extraits de la fiche personnage. Pour l'instant, ceci n'est qu'un gabarit de base.
                     </p>
                 </section>
 
@@ -154,7 +552,7 @@
                         <h2 class="profile-section-title">Vitrine RP</h2>
                     </header>
                     <p class="profile-placeholder-text">
-                        Cette section pourra accueillir une liste de liens vers des RPs, des clubs, ou des éléments “wishlist”
+                        Cette section pourra accueillir une liste de liens vers des RPs, des clubs, ou des éléments "wishlist"
                         inspirés de SailorFuku. À remplir plus tard selon les besoins.
                     </p>
                 </section>
@@ -172,7 +570,7 @@
                                     <span class="profile-comment-meta">Date à venir</span>
                                 </div>
                                 <p class="profile-comment-text">
-                                    Ici, les autres joueurs pourront laisser un petit mot sur le profil. Cette zone est pour l’instant
+                                    Ici, les autres joueurs pourront laisser un petit mot sur le profil. Cette zone est pour l'instant
                                     une simple maquette sans logique de stockage.
                                 </p>
                             </div>
@@ -183,177 +581,6 @@
         </section>
     </main>
 
-    <script type="module">
-        import {
-            getCurrentUser,
-            getUserCharacters,
-            getActiveCharacter,
-            setActiveCharacter,
-            logout,
-            isAdmin
-        } from './auth.js';
-
-        const authControls = document.getElementById('authControls');
-        const profileContent = document.getElementById('profileContent');
-
-        let currentUser = null;
-        let currentCharacter = null;
-        let userCharacters = [];
-
-        // Initialize page
-        async function init() {
-            currentUser = getCurrentUser();
-
-            if (!currentUser) {
-                // Not logged in - show login prompt
-                showNotLoggedIn();
-                return;
-            }
-
-            // Logged in - render auth controls
-            renderAuthControls();
-
-            // Load user's characters
-            await loadCharacters();
-
-            // Load active character or prompt to select/create one
-            await loadActiveCharacter();
-        }
-
-        function showNotLoggedIn() {
-            authControls.innerHTML = `
-                <a href="login.html" class="auth-button">Se connecter</a>
-            `;
-
-            profileContent.innerHTML = `
-                <div class="profile-not-logged-in">
-                    <h2>Connexion requise</h2>
-                    <p>Vous devez vous connecter pour accéder à votre profil et gérer vos personnages.</p>
-                    <a href="login.html" class="auth-button">Se connecter</a>
-                </div>
-            `;
-        }
-
-        function renderAuthControls() {
-            const roleBadge = isAdmin() ? 'Admin' : 'Joueur';
-
-            authControls.innerHTML = `
-                <span class="user-badge">${roleBadge}</span>
-                <span style="color: var(--color-gray-700); font-weight: 600;">${currentUser.username}</span>
-                <button class="auth-button secondary" id="logoutBtn">Déconnexion</button>
-            `;
-
-            document.getElementById('logoutBtn').addEventListener('click', () => {
-                logout();
-                window.location.reload();
-            });
-        }
-
-        async function loadCharacters() {
-            try {
-                userCharacters = await getUserCharacters(currentUser.id);
-            } catch (error) {
-                console.error('Error loading characters:', error);
-                userCharacters = [];
-            }
-        }
-
-        async function loadActiveCharacter() {
-            currentCharacter = getActiveCharacter();
-
-            // Render character selector
-            renderCharacterSelector();
-
-            if (!currentCharacter) {
-                // No active character - show placeholder
-                showNoCharacterSelected();
-            } else {
-                // Display character data
-                displayCharacter(currentCharacter);
-            }
-        }
-
-        function renderCharacterSelector() {
-            const selectorHTML = document.createElement('select');
-            selectorHTML.className = 'character-selector';
-            selectorHTML.id = 'characterSelector';
-
-            // Add placeholder option
-            const placeholderOption = document.createElement('option');
-            placeholderOption.value = '';
-            placeholderOption.textContent = 'Sélectionner un personnage...';
-            placeholderOption.disabled = true;
-            placeholderOption.selected = !currentCharacter;
-            selectorHTML.appendChild(placeholderOption);
-
-            // Add existing characters
-            userCharacters.forEach(char => {
-                const option = document.createElement('option');
-                option.value = char.id;
-                option.textContent = char.name;
-                if (currentCharacter && char.id === currentCharacter.id) {
-                    option.selected = true;
-                }
-                selectorHTML.appendChild(option);
-            });
-
-            // Add "Create new character" option if under 5 characters
-            if (userCharacters.length < 5) {
-                const createOption = document.createElement('option');
-                createOption.value = '__create__';
-                createOption.textContent = '+ Créer un personnage';
-                selectorHTML.appendChild(createOption);
-            }
-
-            // Insert at the beginning of auth controls
-            authControls.insertBefore(selectorHTML, authControls.firstChild);
-
-            // Handle character change
-            selectorHTML.addEventListener('change', async (e) => {
-                const value = e.target.value;
-
-                if (value === '__create__') {
-                    // TODO: Open character creation modal
-                    alert('Création de personnage à venir!');
-                    return;
-                }
-
-                // Switch to selected character
-                await setActiveCharacter(value);
-                window.location.reload();
-            });
-        }
-
-        function showNoCharacterSelected() {
-            document.getElementById('characterInitial').textContent = '?';
-            document.getElementById('characterName').textContent = 'Aucun personnage sélectionné';
-            document.getElementById('characterRole').textContent = 'Sélectionnez un personnage ci-dessus';
-        }
-
-        function displayCharacter(character) {
-            // Update header with character info
-            const initial = character.name ? character.name.charAt(0).toUpperCase() : '?';
-            document.getElementById('characterInitial').textContent = initial;
-            document.getElementById('characterName').textContent = character.name || 'Sans nom';
-
-            // Display race and class
-            const race = character.race || 'Race inconnue';
-            const charClass = character.class || 'Classe inconnue';
-            document.getElementById('characterRole').textContent = `${race} • ${charClass}`;
-
-            // Display stats (from profile_data if available)
-            const profileData = character.profile_data || {};
-            document.getElementById('statStyle').textContent = profileData.style || 0;
-            document.getElementById('statDico').textContent = profileData.dico || 0;
-            document.getElementById('statPopularity').textContent = profileData.popularity || 0;
-
-            // TODO: Populate rest of profile sections based on issue #9 requirements
-            // - House, Rank, Alice types, etc.
-        }
-
-        // Initialize on page load
-        init();
-    </script>
+    <script type="module" src="profil.js"></script>
 </body>
 </html>
-
