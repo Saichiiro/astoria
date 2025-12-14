@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hôtel de vente - Astoria</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="hdv-page" aria-labelledby="hdvTitle">
+        <header class="page-header">
+            <a href="profil.html" class="magic-back-link" title="Retour au profil">⟵ Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="hdvTitle">Hôtel de vente</h1>
+                    <p class="page-subtitle">Rechercher, vendre et consulter l'historique.</p>
+                </div>
+                <div class="hdv-header-right">
+                    <span class="stats-badge" id="hdvKaelsBadge" hidden>0 kaels</span>
+                    <a class="btn-secondary hdv-login-link" id="hdvLoginLink" href="login.html" hidden>Se connecter</a>
+                </div>
+            </div>
+        </header>
+
+        <nav class="hdv-tabs" role="tablist" aria-label="Onglets Hôtel de vente">
+            <button class="hdv-tab active" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
+                Rechercher
+            </button>
+            <button class="hdv-tab" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
+                Mes offres
+            </button>
+            <button class="hdv-tab" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
+                Historique
+            </button>
+        </nav>
+
+        <section class="hdv-layout" aria-label="Interface Hôtel de vente">
+            <aside class="hdv-sidebar" aria-label="Catégories">
+                <h2 class="hdv-sidebar-title">Catégories</h2>
+                <div class="hdv-category-list" id="hdvCategories"></div>
+            </aside>
+
+            <section class="hdv-content">
+                <div class="hdv-panel active" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
+                    <section class="hdv-filterbar" aria-label="Filtres">
+                        <div class="search-container">
+                            <input id="hdvSearchInput" type="text" placeholder="Rechercher un item..." autocomplete="off">
+                            <button class="clear-search-btn" id="hdvClearSearch" type="button" title="Effacer">×</button>
+                        </div>
+
+                        <div class="hdv-filter-group">
+                            <label class="hdv-filter-label" for="hdvMinLevel">Niv. min</label>
+                            <input class="field-input hdv-filter-input" id="hdvMinLevel" type="number" min="0" placeholder="0">
+                        </div>
+                        <div class="hdv-filter-group">
+                            <label class="hdv-filter-label" for="hdvMaxLevel">Niv. max</label>
+                            <input class="field-input hdv-filter-input" id="hdvMaxLevel" type="number" min="0" placeholder="999">
+                        </div>
+
+                        <select class="category-dropdown" id="hdvRaritySelect" aria-label="Rareté">
+                            <option value="all">Toutes raretés</option>
+                            <option value="Inconnue">Inconnue</option>
+                            <option value="Commun">Commun</option>
+                            <option value="Rare">Rare</option>
+                            <option value="Épique">Épique</option>
+                            <option value="Légendaire">Légendaire</option>
+                        </select>
+
+                        <select class="category-dropdown" id="hdvSortSelect" aria-label="Tri">
+                            <option value="price_asc">Les moins chers</option>
+                            <option value="price_desc">Les plus chers</option>
+                            <option value="level_desc">Niveau</option>
+                            <option value="recent_desc">Récents</option>
+                        </select>
+
+                        <label class="hdv-toggle" title="Nécessite d'être connecté">
+                            <input id="hdvAffordableToggle" type="checkbox" disabled>
+                            Je peux l'acheter
+                        </label>
+                    </section>
+
+                    <div class="filter-chips" id="hdvChips" aria-label="Filtres actifs"></div>
+
+                    <div class="hdv-status" id="hdvSearchStatus" aria-live="polite"></div>
+
+                    <div class="table-container">
+                        <table aria-label="Résultats Hôtel de vente">
+                            <thead>
+                                <tr>
+                                    <th style="width: 44%;">Objet</th>
+                                    <th style="width: 10%;">Niveau</th>
+                                    <th style="width: 12%;">Rareté</th>
+                                    <th style="width: 10%;">Lot</th>
+                                    <th style="width: 16%;">Prix</th>
+                                    <th style="width: 8%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hdvListingsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="hdv-pagination" id="hdvPagination" aria-label="Pagination"></div>
+                </div>
+
+                <div class="hdv-panel" id="hdvTabMine" role="tabpanel" aria-label="Mes offres">
+                    <div class="hdv-status" id="hdvMineStatus" aria-live="polite"></div>
+
+                    <section class="hdv-sell-card" aria-label="Créer une offre">
+                        <h2 class="hdv-section-title">Créer une offre</h2>
+                        <div class="hdv-sell-form">
+                            <div class="hdv-sell-field">
+                                <label class="hdv-filter-label" for="hdvSellItem">Objet</label>
+                                <select class="field-input" id="hdvSellItem"></select>
+                                <div class="hdv-help" id="hdvBasePriceHint"></div>
+                            </div>
+
+                            <div class="hdv-sell-field">
+                                <label class="hdv-filter-label" for="hdvSellQty">Quantité</label>
+                                <input class="field-input" id="hdvSellQty" type="number" min="1" value="1">
+                            </div>
+
+                            <div class="hdv-sell-field">
+                                <label class="hdv-filter-label" for="hdvSellUnitPrice">Prix/unité</label>
+                                <input class="field-input" id="hdvSellUnitPrice" type="number" min="0" value="0">
+                            </div>
+
+                            <div class="hdv-sell-actions">
+                                <button class="btn-primary hdv-action-btn" id="hdvCreateListing" type="button">Mettre en vente</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="hdv-section" aria-label="Mes ventes actives">
+                        <h2 class="hdv-section-title">Mes offres actives</h2>
+                        <div class="table-container">
+                            <table aria-label="Mes offres">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Objet</th>
+                                        <th style="width: 14%;">Lot</th>
+                                        <th style="width: 22%;">Prix</th>
+                                        <th style="width: 14%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hdvMyListingsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="hdv-panel" id="hdvTabHistory" role="tabpanel" aria-label="Historique">
+                    <div class="hdv-status" id="hdvHistoryStatus" aria-live="polite"></div>
+
+                    <section class="hdv-section" aria-label="Transactions">
+                        <h2 class="hdv-section-title">Mes transactions</h2>
+                        <div class="table-container">
+                            <table aria-label="Historique des transactions">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 22%;">Date</th>
+                                        <th style="width: 14%;">Type</th>
+                                        <th style="width: 34%;">Objet</th>
+                                        <th style="width: 10%;">Lot</th>
+                                        <th style="width: 20%;">Prix</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hdvHistoryBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script src="image-helpers.js"></script>
+    <script src="data.js"></script>
+    <script type="module" src="hdv.js"></script>
+</body>
+</html>

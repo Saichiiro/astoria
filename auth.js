@@ -37,6 +37,13 @@ async function initSupabase() {
     return supabase;
 }
 
+/**
+ * Get a ready-to-use Supabase client (shared singleton).
+ */
+export async function getSupabaseClient() {
+    return initSupabase();
+}
+
 // ============================================================================
 // AUTHENTICATION FUNCTIONS
 // ============================================================================

@@ -1,0 +1,813 @@
+import { getCurrentUser } from './auth.js';
+import {
+    buyListing,
+    cancelListing,
+    createListing,
+    getMyHistory,
+    getMyListings,
+    getMyProfile,
+    searchListings
+} from './market.js';
+
+const dom = {
+    kaelsBadge: document.getElementById('hdvKaelsBadge'),
+    loginLink: document.getElementById('hdvLoginLink'),
+    tabs: Array.from(document.querySelectorAll('.hdv-tab')),
+    panels: {
+        search: document.getElementById('hdvTabSearch'),
+        mine: document.getElementById('hdvTabMine'),
+        history: document.getElementById('hdvTabHistory')
+    },
+    categories: document.getElementById('hdvCategories'),
+    search: {
+        input: document.getElementById('hdvSearchInput'),
+        clear: document.getElementById('hdvClearSearch'),
+        minLevel: document.getElementById('hdvMinLevel'),
+        maxLevel: document.getElementById('hdvMaxLevel'),
+        rarity: document.getElementById('hdvRaritySelect'),
+        sort: document.getElementById('hdvSortSelect'),
+        affordable: document.getElementById('hdvAffordableToggle'),
+        chips: document.getElementById('hdvChips'),
+        status: document.getElementById('hdvSearchStatus'),
+        body: document.getElementById('hdvListingsBody'),
+        pagination: document.getElementById('hdvPagination')
+    },
+    mine: {
+        status: document.getElementById('hdvMineStatus'),
+        item: document.getElementById('hdvSellItem'),
+        qty: document.getElementById('hdvSellQty'),
+        unitPrice: document.getElementById('hdvSellUnitPrice'),
+        baseHint: document.getElementById('hdvBasePriceHint'),
+        create: document.getElementById('hdvCreateListing'),
+        body: document.getElementById('hdvMyListingsBody')
+    },
+    history: {
+        status: document.getElementById('hdvHistoryStatus'),
+        body: document.getElementById('hdvHistoryBody')
+    }
+};
+
+const state = {
+    tab: 'search',
+    category: 'all',
+    filters: {
+        q: '',
+        minLevel: '',
+        maxLevel: '',
+        rarity: 'all',
+        affordableOnly: false
+    },
+    sort: 'price_asc',
+    page: 1,
+    pageSize: 20,
+    user: null,
+    profile: null,
+    items: []
+};
+
+function asInt(value) {
+    const numberValue = Number(value);
+    if (!Number.isFinite(numberValue)) return null;
+    return Math.trunc(numberValue);
+}
+
+function formatKaels(value) {
+    const safe = Math.max(0, asInt(value) ?? 0);
+    return safe.toLocaleString('fr-FR');
+}
+
+function formatDate(value) {
+    try {
+        const date = new Date(value);
+        return date.toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return String(value || '');
+    }
+}
+
+function setStatus(el, message, kind = 'info') {
+    if (!el) return;
+    el.textContent = message || '';
+    el.dataset.kind = kind;
+}
+
+function getItemById(itemId) {
+    return state.items.find((item) => item && (item.id || item.name) === itemId) || state.items.find((item) => item && item.name === itemId) || null;
+}
+
+function parseBasePrice(item) {
+    if (!item) return 0;
+    const raw =
+        item.basePrice ??
+        item.unitPrice ??
+        item.price ??
+        item.sellPrice ??
+        item.buyPrice ??
+        '';
+    const match = String(raw).match(/(\d+)/);
+    return match ? Math.max(0, asInt(match[1]) ?? 0) : 0;
+}
+
+function resolveItemImage(item) {
+    const helpers = window.astoriaImageHelpers;
+    if (helpers && typeof helpers.resolveItemImages === 'function') {
+        return helpers.resolveItemImages(item || {}).primary;
+    }
+    return '';
+}
+
+function setActiveTab(tabId) {
+    state.tab = tabId;
+    try {
+        localStorage.setItem('astoria_hdv_active_tab', tabId);
+    } catch {
+        // ignore
+    }
+    for (const tab of dom.tabs) {
+        const isActive = tab.dataset.tab === tabId;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    }
+    for (const [key, panel] of Object.entries(dom.panels)) {
+        const isActive = key === tabId;
+        panel.classList.toggle('active', isActive);
+        panel.hidden = !isActive;
+    }
+}
+
+function buildCategories() {
+    const categories = new Set();
+
+    for (const item of state.items) {
+        if (!item) continue;
+
+        const raw =
+            item.category ??
+            item.type ??
+            item.kind ??
+            item.item_category ??
+            null;
+
+        if (raw) categories.add(String(raw).trim());
+        else if (Array.isArray(item.tags) && item.tags.length) {
+            categories.add(String(item.tags[0]).trim());
+        }
+    }
+
+    return ['all', ...Array.from(categories).filter(Boolean).sort((a, b) => String(a).localeCompare(String(b), 'fr'))];
+}
+
+function categoryLabel(category) {
+    if (category === 'all') return 'Toutes';
+    if (category === 'equipement') return 'Équipement';
+    if (category === 'consommable') return 'Consommable';
+    if (category === 'agricole') return 'Agricole';
+    return String(category)
+        .replace(/[_-]+/g, ' ')
+        .replace(/^\w/, (m) => m.toUpperCase());
+}
+
+function renderCategories() {
+    const categories = buildCategories();
+    dom.categories.innerHTML = '';
+
+    for (const category of categories) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hdv-category-btn' + (state.category === category ? ' active' : '');
+        btn.textContent = categoryLabel(category);
+        btn.addEventListener('click', () => {
+            state.category = category;
+            state.page = 1;
+            try {
+                localStorage.setItem('astoria_hdv_category', category);
+            } catch {
+                // ignore
+            }
+            renderCategories();
+            refreshSearch();
+        });
+        dom.categories.appendChild(btn);
+    }
+}
+
+function renderChips() {
+    const chips = [];
+
+    if (state.category !== 'all') {
+        chips.push({ key: 'category', label: `Catégorie: ${categoryLabel(state.category)}` });
+    }
+    if (state.filters.q) {
+        chips.push({ key: 'q', label: `Recherche: ${state.filters.q}` });
+    }
+    if (String(state.filters.minLevel || '').trim() !== '') {
+        chips.push({ key: 'minLevel', label: `Niv. ≥ ${state.filters.minLevel}` });
+    }
+    if (String(state.filters.maxLevel || '').trim() !== '') {
+        chips.push({ key: 'maxLevel', label: `Niv. ≤ ${state.filters.maxLevel}` });
+    }
+    if (state.filters.rarity !== 'all') {
+        chips.push({ key: 'rarity', label: `Rareté: ${state.filters.rarity}` });
+    }
+    if (state.filters.affordableOnly) {
+        chips.push({ key: 'affordableOnly', label: `Achetable` });
+    }
+    if (state.sort !== 'price_asc') {
+        const labelMap = {
+            price_desc: 'Tri: plus chers',
+            level_desc: 'Tri: niveau',
+            recent_desc: 'Tri: récents'
+        };
+        chips.push({ key: 'sort', label: labelMap[state.sort] || 'Tri' });
+    }
+
+    dom.search.chips.innerHTML = '';
+
+    if (chips.length === 0) return;
+
+    const reset = document.createElement('button');
+    reset.type = 'button';
+    reset.className = 'filter-chip filter-chip--action';
+    reset.textContent = 'Réinitialiser';
+    reset.addEventListener('click', () => {
+        state.category = 'all';
+        state.filters = { q: '', minLevel: '', maxLevel: '', rarity: 'all', affordableOnly: false };
+        state.sort = 'price_asc';
+        state.page = 1;
+        syncFiltersToUI();
+        renderCategories();
+        renderChips();
+        refreshSearch();
+    });
+    dom.search.chips.appendChild(reset);
+
+    for (const chip of chips) {
+        const el = document.createElement('span');
+        el.className = 'filter-chip';
+        el.textContent = chip.label;
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'chip-remove';
+        remove.title = 'Retirer le filtre';
+        remove.textContent = '×';
+        remove.addEventListener('click', () => {
+            if (chip.key === 'category') state.category = 'all';
+            if (chip.key === 'q') state.filters.q = '';
+            if (chip.key === 'minLevel') state.filters.minLevel = '';
+            if (chip.key === 'maxLevel') state.filters.maxLevel = '';
+            if (chip.key === 'rarity') state.filters.rarity = 'all';
+            if (chip.key === 'affordableOnly') state.filters.affordableOnly = false;
+            if (chip.key === 'sort') state.sort = 'price_asc';
+            state.page = 1;
+            syncFiltersToUI();
+            renderCategories();
+            renderChips();
+            refreshSearch();
+        });
+
+        el.appendChild(remove);
+        dom.search.chips.appendChild(el);
+    }
+}
+
+function syncFiltersToUI() {
+    dom.search.input.value = state.filters.q;
+    dom.search.minLevel.value = state.filters.minLevel;
+    dom.search.maxLevel.value = state.filters.maxLevel;
+    dom.search.rarity.value = state.filters.rarity;
+    dom.search.sort.value = state.sort;
+    dom.search.affordable.checked = !!state.filters.affordableOnly;
+    dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
+}
+
+function renderPagination(page, totalPages) {
+    dom.search.pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const makeBtn = (label, targetPage, disabled = false) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hdv-page-btn' + (disabled ? ' disabled' : '');
+        btn.textContent = label;
+        btn.disabled = disabled;
+        btn.addEventListener('click', () => {
+            state.page = targetPage;
+            refreshSearch();
+        });
+        return btn;
+    };
+
+    dom.search.pagination.appendChild(makeBtn('Précédent', Math.max(1, page - 1), page <= 1));
+
+    const windowSize = 2;
+    const start = Math.max(1, page - windowSize);
+    const end = Math.min(totalPages, page + windowSize);
+
+    if (start > 1) dom.search.pagination.appendChild(makeBtn('1', 1, page === 1));
+    if (start > 2) {
+        const dots = document.createElement('span');
+        dots.className = 'hdv-page-dots';
+        dots.textContent = '…';
+        dom.search.pagination.appendChild(dots);
+    }
+    for (let p = start; p <= end; p++) {
+        dom.search.pagination.appendChild(makeBtn(String(p), p, p === page));
+    }
+    if (end < totalPages - 1) {
+        const dots = document.createElement('span');
+        dots.className = 'hdv-page-dots';
+        dots.textContent = '…';
+        dom.search.pagination.appendChild(dots);
+    }
+    if (end < totalPages) dom.search.pagination.appendChild(makeBtn(String(totalPages), totalPages, page === totalPages));
+
+    dom.search.pagination.appendChild(makeBtn('Suivant', Math.min(totalPages, page + 1), page >= totalPages));
+}
+
+function renderListings(listings) {
+    dom.search.body.innerHTML = '';
+
+    if (!listings || listings.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 6;
+        td.className = 'hdv-empty';
+        td.textContent = 'Aucune offre.';
+        tr.appendChild(td);
+        dom.search.body.appendChild(tr);
+        return;
+    }
+
+    for (const listing of listings) {
+        const item = getItemById(listing.item_id) || { name: listing.item_name || listing.item_id, category: listing.item_category };
+        const img = resolveItemImage(item);
+        const total = listing.total_price ?? (listing.quantity * listing.unit_price);
+        const canAfford = state.profile ? state.profile.kamas >= total : false;
+
+        const tr = document.createElement('tr');
+
+        const tdItem = document.createElement('td');
+        tdItem.innerHTML = `
+            <div class="hdv-item-cell">
+                <img class="hdv-item-icon" src="${img}" alt="">
+                <div class="hdv-item-text">
+                    <div class="hdv-item-name">${item.name || 'Item inconnu'}</div>
+                    <div class="hdv-item-meta">${item.category ? categoryLabel(item.category) : ''}</div>
+                </div>
+            </div>
+        `;
+
+        const tdLvl = document.createElement('td');
+        tdLvl.textContent = String(listing.item_level ?? 0);
+
+        const tdRarity = document.createElement('td');
+        tdRarity.textContent = String(listing.item_rarity ?? 'Inconnue');
+
+        const tdLot = document.createElement('td');
+        tdLot.textContent = `x${listing.quantity}`;
+
+        const tdPrice = document.createElement('td');
+        tdPrice.innerHTML = `
+            <div class="hdv-price-cell">
+                <div class="hdv-price-total">${formatKaels(total)}</div>
+                <div class="hdv-price-unit">${formatKaels(listing.unit_price)}/u</div>
+            </div>
+        `;
+        tdPrice.className = 'hdv-td-price';
+
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-primary hdv-action-btn';
+
+        if (!state.user) {
+            btn.textContent = 'Connexion';
+            btn.disabled = true;
+            btn.classList.add('is-disabled');
+        } else if (!canAfford) {
+            btn.textContent = 'Trop cher';
+            btn.disabled = true;
+            btn.classList.add('is-disabled');
+        } else {
+            btn.textContent = 'Acheter';
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const ok = window.confirm(`Acheter "${item.name}" pour ${formatKaels(total)} kaels ?`);
+                if (!ok) return;
+
+                btn.disabled = true;
+                btn.textContent = '...';
+                try {
+                    await buyListing(listing.id);
+                    await refreshProfile();
+                    await refreshSearch();
+                    setStatus(dom.search.status, 'Achat effectué.', 'success');
+                } catch (err) {
+                    console.error(err);
+                    setStatus(dom.search.status, err?.message || 'Erreur lors de l’achat.', 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        tdAction.appendChild(btn);
+
+        tr.appendChild(tdItem);
+        tr.appendChild(tdLvl);
+        tr.appendChild(tdRarity);
+        tr.appendChild(tdLot);
+        tr.appendChild(tdPrice);
+        tr.appendChild(tdAction);
+        dom.search.body.appendChild(tr);
+    }
+}
+
+async function refreshProfile() {
+    state.user = getCurrentUser();
+    if (!state.user) {
+        state.profile = null;
+        dom.kaelsBadge.hidden = true;
+        dom.loginLink.hidden = false;
+        dom.search.affordable.disabled = true;
+        dom.search.affordable.checked = false;
+        state.filters.affordableOnly = false;
+        return;
+    }
+
+        dom.loginLink.hidden = true;
+    try {
+        state.profile = await getMyProfile();
+        dom.kaelsBadge.hidden = false;
+        dom.kaelsBadge.textContent = `${formatKaels(state.profile.kamas)} kaels`;
+        dom.search.affordable.disabled = false;
+    } catch (err) {
+        console.error(err);
+        state.profile = null;
+        dom.kaelsBadge.hidden = true;
+        dom.search.affordable.disabled = true;
+    }
+}
+
+async function refreshSearch() {
+    renderChips();
+    setStatus(dom.search.status, 'Chargement…');
+
+    const filters = {
+        q: state.filters.q,
+        category: state.category,
+        rarity: state.filters.rarity,
+        minLevel: state.filters.minLevel,
+        maxLevel: state.filters.maxLevel,
+        maxTotalPrice: state.filters.affordableOnly && state.profile ? state.profile.kamas : null
+    };
+
+    try {
+        const result = await searchListings(filters, state.sort, state.page, state.pageSize);
+        renderListings(result.listings);
+        renderPagination(result.page, result.totalPages);
+        setStatus(dom.search.status, `${result.totalCount} offres • page ${result.page}/${result.totalPages}`, 'info');
+    } catch (err) {
+        console.error(err);
+        renderListings([]);
+        renderPagination(1, 1);
+        setStatus(dom.search.status, err?.message || 'Erreur lors du chargement des offres.', 'error');
+    }
+}
+
+function populateSellSelect() {
+    dom.mine.item.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- Sélectionner un objet --';
+    dom.mine.item.appendChild(placeholder);
+
+    for (const item of state.items) {
+        const opt = document.createElement('option');
+        opt.value = item.name;
+        opt.textContent = item.name;
+        dom.mine.item.appendChild(opt);
+    }
+}
+
+function syncSellPriceFromSelection() {
+    const item = getItemById(dom.mine.item.value);
+    const basePrice = parseBasePrice(item);
+    dom.mine.unitPrice.value = String(basePrice);
+    dom.mine.baseHint.textContent = item ? `Prix par défaut (flat): ${formatKaels(basePrice)}/u` : '';
+}
+
+function renderMyListings(listings) {
+    dom.mine.body.innerHTML = '';
+
+    if (!listings || listings.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.className = 'hdv-empty';
+        td.textContent = 'Aucune offre active.';
+        tr.appendChild(td);
+        dom.mine.body.appendChild(tr);
+        return;
+    }
+
+    for (const listing of listings) {
+        const item = getItemById(listing.item_id) || { name: listing.item_name || listing.item_id, category: listing.item_category };
+        const img = resolveItemImage(item);
+        const total = listing.total_price ?? (listing.quantity * listing.unit_price);
+
+        const tr = document.createElement('tr');
+
+        const tdItem = document.createElement('td');
+        tdItem.innerHTML = `
+            <div class="hdv-item-cell">
+                <img class="hdv-item-icon" src="${img}" alt="">
+                <div class="hdv-item-text">
+                    <div class="hdv-item-name">${item.name || 'Item inconnu'}</div>
+                    <div class="hdv-item-meta">${item.category ? categoryLabel(item.category) : ''}</div>
+                </div>
+            </div>
+        `;
+
+        const tdLot = document.createElement('td');
+        tdLot.textContent = `x${listing.quantity}`;
+
+        const tdPrice = document.createElement('td');
+        tdPrice.innerHTML = `
+            <div class="hdv-price-cell">
+                <div class="hdv-price-total">${formatKaels(total)}</div>
+                <div class="hdv-price-unit">${formatKaels(listing.unit_price)}/u</div>
+            </div>
+        `;
+        tdPrice.className = 'hdv-td-price';
+
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-danger hdv-action-btn';
+        btn.textContent = 'Retirer';
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const ok = window.confirm(`Retirer l'offre "${item.name}" ?`);
+            if (!ok) return;
+
+            btn.disabled = true;
+            btn.textContent = '...';
+            try {
+                await cancelListing(listing.id);
+                await refreshMine();
+                setStatus(dom.mine.status, 'Offre retirée.', 'success');
+            } catch (err) {
+                console.error(err);
+                setStatus(dom.mine.status, err?.message || 'Erreur lors du retrait.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Retirer';
+            }
+        });
+
+        tdAction.appendChild(btn);
+        tr.appendChild(tdItem);
+        tr.appendChild(tdLot);
+        tr.appendChild(tdPrice);
+        tr.appendChild(tdAction);
+        dom.mine.body.appendChild(tr);
+    }
+}
+
+async function refreshMine() {
+    if (!state.user) {
+        setStatus(dom.mine.status, 'Connectez-vous pour gérer vos offres.', 'info');
+        dom.mine.create.disabled = true;
+        return;
+    }
+
+    dom.mine.create.disabled = false;
+    setStatus(dom.mine.status, 'Chargement…', 'info');
+
+    try {
+        const listings = await getMyListings();
+        renderMyListings(listings);
+        setStatus(dom.mine.status, `${listings.length} offres actives.`, 'info');
+    } catch (err) {
+        console.error(err);
+        renderMyListings([]);
+        setStatus(dom.mine.status, err?.message || 'Erreur lors du chargement.', 'error');
+    }
+}
+
+function renderHistory(transactions) {
+    dom.history.body.innerHTML = '';
+
+    if (!transactions || transactions.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.className = 'hdv-empty';
+        td.textContent = 'Aucune transaction.';
+        tr.appendChild(td);
+        dom.history.body.appendChild(tr);
+        return;
+    }
+
+    for (const tx of transactions) {
+        const itemName = tx.item_name || tx.item_id || 'Item inconnu';
+        const isBuy = state.user && tx.buyer_id === state.user.id;
+        const type = isBuy ? 'Achat' : 'Vente';
+
+        const tr = document.createElement('tr');
+        const tdDate = document.createElement('td');
+        tdDate.textContent = formatDate(tx.created_at);
+
+        const tdType = document.createElement('td');
+        tdType.textContent = type;
+
+        const tdItem = document.createElement('td');
+        tdItem.textContent = itemName;
+
+        const tdLot = document.createElement('td');
+        tdLot.textContent = `x${tx.quantity}`;
+
+        const tdPrice = document.createElement('td');
+        tdPrice.innerHTML = `
+            <div class="hdv-price-cell">
+                <div class="hdv-price-total">${formatKaels(tx.total_price)}</div>
+                <div class="hdv-price-unit">${formatKaels(tx.unit_price)}/u</div>
+            </div>
+        `;
+        tdPrice.className = 'hdv-td-price';
+
+        tr.appendChild(tdDate);
+        tr.appendChild(tdType);
+        tr.appendChild(tdItem);
+        tr.appendChild(tdLot);
+        tr.appendChild(tdPrice);
+        dom.history.body.appendChild(tr);
+    }
+}
+
+async function refreshHistory() {
+    if (!state.user) {
+        setStatus(dom.history.status, 'Connectez-vous pour consulter votre historique.', 'info');
+        renderHistory([]);
+        return;
+    }
+
+    setStatus(dom.history.status, 'Chargement…', 'info');
+    try {
+        const transactions = await getMyHistory();
+        renderHistory(transactions);
+        setStatus(dom.history.status, `${transactions.length} transactions.`, 'info');
+    } catch (err) {
+        console.error(err);
+        renderHistory([]);
+        setStatus(dom.history.status, err?.message || 'Erreur lors du chargement.', 'error');
+    }
+}
+
+function wireEvents() {
+    for (const tab of dom.tabs) {
+        tab.addEventListener('click', async () => {
+            const next = tab.dataset.tab;
+            if (!next) return;
+            setActiveTab(next);
+            if (next === 'search') await refreshSearch();
+            if (next === 'mine') await refreshMine();
+            if (next === 'history') await refreshHistory();
+        });
+    }
+
+    let searchTimer = null;
+    dom.search.input.addEventListener('input', () => {
+        state.filters.q = dom.search.input.value.trim();
+        dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
+        state.page = 1;
+        renderChips();
+
+        window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => refreshSearch(), 250);
+    });
+
+    dom.search.clear.addEventListener('click', () => {
+        dom.search.input.value = '';
+        state.filters.q = '';
+        dom.search.clear.style.display = 'none';
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.search.minLevel.addEventListener('change', () => {
+        state.filters.minLevel = dom.search.minLevel.value;
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.search.maxLevel.addEventListener('change', () => {
+        state.filters.maxLevel = dom.search.maxLevel.value;
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.search.rarity.addEventListener('change', () => {
+        state.filters.rarity = dom.search.rarity.value;
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.search.sort.addEventListener('change', () => {
+        state.sort = dom.search.sort.value;
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.search.affordable.addEventListener('change', () => {
+        state.filters.affordableOnly = dom.search.affordable.checked;
+        state.page = 1;
+        renderChips();
+        refreshSearch();
+    });
+
+    dom.mine.item.addEventListener('change', () => syncSellPriceFromSelection());
+
+    dom.mine.create.addEventListener('click', async () => {
+        if (!state.user) {
+            setStatus(dom.mine.status, 'Connectez-vous pour vendre.', 'error');
+            return;
+        }
+
+        const itemId = dom.mine.item.value;
+        const quantity = asInt(dom.mine.qty.value) ?? 1;
+        const unitPrice = asInt(dom.mine.unitPrice.value) ?? 0;
+
+        if (!itemId) {
+            setStatus(dom.mine.status, 'Sélectionnez un objet.', 'error');
+            return;
+        }
+        if (quantity <= 0) {
+            setStatus(dom.mine.status, 'Quantité invalide.', 'error');
+            return;
+        }
+        if (unitPrice < 0) {
+            setStatus(dom.mine.status, 'Prix invalide.', 'error');
+            return;
+        }
+
+        dom.mine.create.disabled = true;
+        setStatus(dom.mine.status, 'Création de l’offre…', 'info');
+        try {
+            await createListing({ itemId, quantity, unitPrice });
+            setStatus(dom.mine.status, 'Offre créée.', 'success');
+            await refreshSearch();
+            await refreshMine();
+        } catch (err) {
+            console.error(err);
+            setStatus(dom.mine.status, err?.message || 'Erreur lors de la création.', 'error');
+        } finally {
+            dom.mine.create.disabled = false;
+        }
+    });
+}
+
+async function init() {
+    state.items =
+        (typeof inventoryData !== 'undefined' && Array.isArray(inventoryData) ? inventoryData : null) ||
+        (Array.isArray(window.inventoryData) ? window.inventoryData : null) ||
+        [];
+    populateSellSelect();
+
+    renderCategories();
+    wireEvents();
+
+    await refreshProfile();
+    syncFiltersToUI();
+    syncSellPriceFromSelection();
+    renderChips();
+
+    const savedCategory =
+        (typeof localStorage !== 'undefined' && localStorage.getItem('astoria_hdv_category')) || 'all';
+    if (savedCategory && buildCategories().includes(savedCategory)) {
+        state.category = savedCategory;
+        renderCategories();
+    }
+
+    const savedTab =
+        (typeof localStorage !== 'undefined' && localStorage.getItem('astoria_hdv_active_tab')) || 'search';
+    const nextTab = ['search', 'mine', 'history'].includes(savedTab) ? savedTab : 'search';
+    setActiveTab(nextTab);
+
+    if (nextTab === 'mine') {
+        await refreshMine();
+    } else if (nextTab === 'history') {
+        await refreshHistory();
+    } else {
+        await refreshSearch();
+    }
+}
+
+init();
