@@ -134,6 +134,37 @@
             color: var(--color-gray-600);
             font-size: 0.875rem;
         }
+
+        .session-notice {
+            background: #eef6ff;
+            color: #1e3a8a;
+            padding: var(--space-3);
+            border-radius: 10px;
+            margin-bottom: var(--space-4);
+            border: 1px solid rgba(30, 58, 138, 0.2);
+        }
+
+        .session-notice-actions {
+            display: flex;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .session-notice-btn {
+            flex: 1;
+            padding: var(--space-2) var(--space-3);
+            border-radius: 10px;
+            border: 2px solid var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .session-notice-btn.secondary {
+            background: white;
+            color: var(--color-primary);
+        }
     </style>
 </head>
 <body>
@@ -148,6 +179,13 @@
             </div>
 
             <div id="errorMessage" class="error-message" role="alert"></div>
+            <div id="sessionNotice" class="session-notice" hidden>
+                <div id="sessionNoticeText"></div>
+                <div class="session-notice-actions">
+                    <button type="button" class="session-notice-btn" id="sessionContinue">Continuer</button>
+                    <button type="button" class="session-notice-btn secondary" id="sessionLogout">Se dÇ¸connecter</button>
+                </div>
+            </div>
 
             <form id="loginForm">
                 <div class="form-group">
@@ -231,17 +269,34 @@
     </script>
 
     <script type="module">
-        import { login, register, isAuthenticated } from './js/auth.js';
-
-        if (isAuthenticated()) {
-            window.location.href = 'profil.html';
-        }
+        import { login, register, isAuthenticated, logout, getCurrentUser } from './js/auth.js';
 
         const errorMessage = document.getElementById('errorMessage');
+        const sessionNotice = document.getElementById('sessionNotice');
+        const sessionNoticeText = document.getElementById('sessionNoticeText');
+        const sessionContinue = document.getElementById('sessionContinue');
+        const sessionLogout = document.getElementById('sessionLogout');
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
         const loginButton = document.getElementById('loginButton');
         const registerButton = document.getElementById('registerButton');
+
+        if (isAuthenticated() && sessionNotice && sessionNoticeText && sessionContinue && sessionLogout) {
+            const user = getCurrentUser();
+            sessionNoticeText.textContent = user?.username
+                ? `DÇ¸jÇÿ connectÇ¸ en tant que ${user.username}.`
+                : 'DÇ¸jÇÿ connectÇ¸.';
+            sessionNotice.hidden = false;
+
+            sessionContinue.addEventListener('click', () => {
+                window.location.href = 'profil.html';
+            });
+
+            sessionLogout.addEventListener('click', () => {
+                logout();
+                sessionNotice.hidden = true;
+            });
+        }
 
         function showError(message) {
             errorMessage.textContent = message;
