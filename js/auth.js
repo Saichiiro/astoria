@@ -363,6 +363,32 @@ export async function getUserCharacters(userId) {
 }
 
 /**
+ * Get all characters (admin only).
+ */
+export async function getAllCharacters() {
+    if (!isAdmin()) return [];
+
+    try {
+        await initSupabase();
+
+        const { data, error } = await supabase
+            .from('characters')
+            .select('id, name, user_id')
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching all characters:', error);
+            return [];
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error('Error in getAllCharacters:', error);
+        return [];
+    }
+}
+
+/**
  * Create a new character
  */
 export async function createCharacter(userId, characterData) {

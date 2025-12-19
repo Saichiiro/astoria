@@ -1,6 +1,7 @@
 import {
   getCurrentUser,
   getUserCharacters,
+  getAllCharacters,
   getActiveCharacter,
   setActiveCharacter,
   logout,
@@ -58,6 +59,42 @@ async function run() {
   const logoutBtn = el("button", "app-topbar-logout", "Déconnexion");
   logoutBtn.type = "button";
 
+  let adminSelect = null;
+  if (isAdmin()) {
+    adminSelect = el("select", "app-topbar-select app-topbar-select--admin");
+    adminSelect.setAttribute("aria-label", "MJ : sélectionner un personnage");
+    const adminPlaceholder = document.createElement("option");
+    adminPlaceholder.value = "";
+    adminPlaceholder.textContent = "MJ: choisir un personnage...";
+    adminSelect.appendChild(adminPlaceholder);
+
+    try {
+      const allCharacters = await getAllCharacters();
+      allCharacters.forEach((character) => {
+        const option = document.createElement("option");
+        option.value = character.id;
+        const shortId = character.user_id ? String(character.user_id).slice(0, 8) : "????";
+        option.textContent = `${character.name || "Sans nom"} — ${shortId}`;
+        adminSelect.appendChild(option);
+      });
+    } catch {}
+
+    adminSelect.addEventListener("change", async () => {
+      const nextId = adminSelect.value;
+      if (!nextId) return;
+
+      if (typeof window.astoriaBeforeCharacterChange === "function") {
+        try {
+          await window.astoriaBeforeCharacterChange();
+        } catch {}
+      }
+
+      const res = await setActiveCharacter(nextId);
+      if (!res || !res.success) return;
+      window.location.reload();
+    });
+  }
+
   function syncFromActive() {
     const active = getActiveCharacter();
     if (active && active.id) {
@@ -93,7 +130,11 @@ async function run() {
     window.location.href = "login.html";
   });
 
-  mount.append(selector, badge, label, logoutBtn);
+  if (adminSelect) {
+    mount.append(selector, adminSelect, badge, label, logoutBtn);
+  } else {
+    mount.append(selector, badge, label, logoutBtn);
+  }
   document.body.prepend(mount);
 }
 

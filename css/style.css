@@ -1323,6 +1323,10 @@ tbody tr.keyboard-selected {
     box-sizing: border-box;
 }
 
+.app-topbar-select--admin {
+    min-width: min(260px, 35vw);
+}
+
 .app-topbar-select:focus {
     outline: none;
     box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.22);
@@ -1385,6 +1389,10 @@ tbody tr.keyboard-selected {
     }
 
     .app-topbar-label {
+        display: none;
+    }
+
+    .app-topbar-select--admin {
         display: none;
     }
 }

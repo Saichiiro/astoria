@@ -627,11 +627,17 @@
         // Clear allocations now that they're committed
         clearAllocations(activeCategory.id);
 
-        skillsState.locksByCategory[activeCategory.id] = true;
+        const remainingPoints = getCurrentCategoryPoints();
+        const shouldLock = remainingPoints <= 0;
+        skillsState.locksByCategory[activeCategory.id] = shouldLock;
         saveToStorage(skillsLocksKey, skillsState.locksByCategory);
-        updateLockState(true);
+        updateLockState(shouldLock);
         renderSkillsCategory(activeCategory);
-        announce(`Points verrouillés pour ${activeCategory.label}`);
+        if (shouldLock) {
+            announce(`Points verrouillés pour ${activeCategory.label}`);
+        } else {
+            announce(`Points enregistrés. Il reste ${remainingPoints} point(s) à répartir.`);
+        }
     });
 
     function updateLockState(isLocked) {
