@@ -50,7 +50,7 @@
                 <div class="inventory-grid" id="inventoryGrid">
                     <!-- Items will be rendered here by JS -->
                 </div>
-                <div class="empty-inventory" id="emptyState" style="display: none;">
+                <div class="empty-inventory is-hidden" id="emptyState">
                     <div class="empty-state-icon">📦</div>
                     <div class="empty-state-title">Aucun objet</div>
                     <div class="empty-state-message">Votre inventaire est vide dans cette catégorie</div>
@@ -108,14 +108,14 @@
                 </div>
 
                 <!-- Item preview (shows selected item details) -->
-                <div id="itemPreview" style="display: none;">
+                <div id="itemPreview" class="item-preview">
                     <div class="form-group">
                         <label>Aperçu</label>
                         <div class="item-preview-card">
-                            <img id="previewImage" src="" alt="" loading="lazy" decoding="async" style="width: 80px; height: 80px; object-fit: contain;">
+                            <img id="previewImage" class="item-preview-image" src="" alt="" loading="lazy" decoding="async">
                             <div>
-                                <div style="font-weight: 600;" id="previewName"></div>
-                                <div style="font-size: 14px; color: #666;" id="previewDescription"></div>
+                                <div class="item-preview-name" id="previewName"></div>
+                                <div class="item-preview-description" id="previewDescription"></div>
                             </div>
                         </div>
                     </div>

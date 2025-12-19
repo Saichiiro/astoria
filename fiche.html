@@ -49,8 +49,8 @@
                 <form class="fiche-form">
                     <!-- Identité -->
                     <section id="tab-identite" class="tab-panel active" aria-label="Identité">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Identité</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Identité</h2>
                             <button type="button" class="save-tab-button" data-tab="identite">Sauvegarder</button>
                         </div>
 
@@ -94,8 +94,8 @@
 
                     <!-- Appartenance -->
                     <section id="tab-appartenance" class="tab-panel" aria-label="Appartenance">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Appartenance</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Appartenance</h2>
                             <button type="button" class="save-tab-button" data-tab="appartenance">Sauvegarder</button>
                         </div>
 
@@ -169,8 +169,8 @@
 
                     <!-- Combat -->
                     <section id="tab-combat" class="tab-panel" aria-label="Combat">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Combat</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Combat</h2>
                             <button type="button" class="save-tab-button" data-tab="combat">Sauvegarder</button>
                         </div>
 
@@ -217,25 +217,25 @@
 
                     <!-- Alice -->
                     <section id="tab-alice" class="tab-panel" aria-label="Alice">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Alice</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Alice</h2>
                             <button type="button" class="save-tab-button" data-tab="alice">Sauvegarder</button>
                         </div>
 
-                        <div style="display: flex; flex-direction: row; align-items: center; gap: 2rem; margin-bottom: 1rem;">
-                            <label style="margin: 0; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <div class="alice-toggle-row">
+                            <label class="alice-toggle-label">
                                 <input id="hasAlice" type="checkbox">
                                 <span>Possède une Alice</span>
                             </label>
-                            <label style="margin: 0; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <label class="alice-toggle-label">
                                 <input id="hasDoubleAlice" type="checkbox">
                                 <span>Possède un Double Alice</span>
                             </label>
                         </div>
 
-                        <div id="alice-container" style="display: none; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 1rem;">
+                        <div id="alice-container" class="alice-grid">
                             <div id="alice-fields" class="conditional-block">
-                                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Alice principale</h3>
+                                <h3 class="alice-subtitle">Alice principale</h3>
                                 <div class="field-group">
                                     <label class="field-label" for="aliceNom">Nom de l'Alice</label>
                                     <input id="aliceNom" class="field-input" type="text" placeholder="Nom ou titre de l'Alice.">
@@ -272,8 +272,8 @@
                                 </div>
                             </div>
 
-                            <div id="alice2-fields" class="conditional-block" style="display: none;">
-                                <h3 style="margin-bottom: 1rem; font-size: 1.1rem;">Double Alice</h3>
+                            <div id="alice2-fields" class="conditional-block alice-secondary-fields">
+                                <h3 class="alice-subtitle">Double Alice</h3>
                                 <div class="field-group">
                                     <label class="field-label" for="alice2Nom">Nom de l'Alice</label>
                                     <input id="alice2Nom" class="field-input" type="text" placeholder="Nom ou titre de l'Alice.">
@@ -311,19 +311,12 @@
                             </div>
                         </div>
 
-                        <style>
-                            @media (max-width: 768px) {
-                                #alice-container {
-                                    grid-template-columns: 1fr !important;
-                                }
-                            }
-                        </style>
                     </section>
 
                     <!-- Sorcellerie -->
                     <section id="tab-sorcellerie" class="tab-panel" aria-label="Sorcellerie">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Sorcellerie</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Sorcellerie</h2>
                             <button type="button" class="save-tab-button" data-tab="sorcellerie">Sauvegarder</button>
                         </div>
 
@@ -377,7 +370,7 @@
                                 >
                             </div>
 
-                            <div style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                            <div class="magie-sup-actions">
                                 <button type="button" id="addMagieSupplementaire" class="btn-secondary">+ Ajouter une magie supplémentaire</button>
                             </div>
 
@@ -387,8 +380,8 @@
 
                     <!-- Eater -->
                     <section id="tab-eater" class="tab-panel" aria-label="Eater">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Eater</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Eater</h2>
                             <button type="button" class="save-tab-button" data-tab="eater">Sauvegarder</button>
                         </div>
 
@@ -401,8 +394,8 @@
 
                         <div id="eater-fields" class="conditional-block" hidden>
                             <!-- Soul Counter Panel -->
-                            <div style="background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                                <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">Compteur d'âmes</h3>
+                            <div class="eater-counter">
+                                <h3 class="eater-counter-title">Compteur d'âmes</h3>
                                 <div class="field-group field-group--inline">
                                     <div class="field-group">
                                         <label class="field-label" for="eaterAmesConso">Âmes de Consommation</label>
@@ -490,8 +483,8 @@
 
                     <!-- Religion -->
                     <section id="tab-religion" class="tab-panel" aria-label="Religion">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Religion</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Religion</h2>
                             <button type="button" class="save-tab-button" data-tab="religion">Sauvegarder</button>
                         </div>
 
@@ -538,8 +531,8 @@
 
                     <!-- Mental -->
                     <section id="tab-mental" class="tab-panel" aria-label="Mental">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Mental</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Mental</h2>
                             <button type="button" class="save-tab-button" data-tab="mental">Sauvegarder</button>
                         </div>
 
@@ -576,8 +569,8 @@
 
                     <!-- Physique -->
                     <section id="tab-physique" class="tab-panel" aria-label="Physique">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Physique</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Physique</h2>
                             <button type="button" class="save-tab-button" data-tab="physique">Sauvegarder</button>
                         </div>
 
@@ -604,8 +597,8 @@
 
                     <!-- Background -->
                     <section id="tab-background" class="tab-panel" aria-label="Background">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                            <h2 class="section-title" style="margin: 0;">Background</h2>
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Background</h2>
                             <button type="button" class="save-tab-button" data-tab="background">Sauvegarder</button>
                         </div>
 
@@ -736,14 +729,14 @@
                 fieldGroup.className = 'field-group';
                 fieldGroup.innerHTML = `
                     <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
-                    <div style="display: flex; gap: 0.5rem;">
+                    <div class="magie-sup-row">
                         <input
                             id="magieSup${magieSupCount}"
                             class="field-input magie-supplementaire"
                             type="text"
                             placeholder="Magie supplémentaire..."
                         >
-                        <button type="button" class="remove-magie-btn" style="padding: 0.5rem 1rem; cursor: pointer; background: #f44336; color: white; border: none; border-radius: 4px;">×</button>
+                        <button type="button" class="remove-magie-btn">×</button>
                     </div>
                 `;
                 magieContainer.appendChild(fieldGroup);
@@ -856,7 +849,7 @@
                         fieldGroup.className = 'field-group';
                         fieldGroup.innerHTML = `
                             <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div class="magie-sup-row">
                                 <input
                                     id="magieSup${magieSupCount}"
                                     class="field-input magie-supplementaire"
@@ -864,7 +857,7 @@
                                     value="${value}"
                                     placeholder="Magie supplémentaire..."
                                 >
-                                <button type="button" class="remove-magie-btn" style="padding: 0.5rem 1rem; cursor: pointer; background: #f44336; color: white; border: none; border-radius: 4px;">×</button>
+                                <button type="button" class="remove-magie-btn">×</button>
                             </div>
                         `;
                         magieContainer.appendChild(fieldGroup);

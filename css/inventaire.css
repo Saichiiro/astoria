@@ -199,6 +199,10 @@
     color: var(--color-gray-600);
 }
 
+.is-hidden {
+    display: none;
+}
+
 /* Detail panel (right side) */
 .inventory-detail {
     background: var(--color-white);
@@ -351,6 +355,25 @@
 .detail-effect {
     font-style: italic;
     color: var(--color-primary-dark);
+}
+
+.item-preview {
+    display: none;
+}
+
+.item-preview-image {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.item-preview-name {
+    font-weight: var(--font-semibold);
+}
+
+.item-preview-description {
+    font-size: var(--text-sm);
+    color: var(--color-gray-600);
 }
 
 /* Add item button */
