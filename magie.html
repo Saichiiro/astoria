@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -14,12 +14,12 @@
             <div class="magic-header-main">
                 <div class="magic-title-block">
                     <h1 class="magic-title" id="magicPageTitle">Fiche Magie | Spécification</h1>
-                    <p class="magic-subtitle">Meister Arme · Sorcellerie · Alice d'Alice Academy</p>
+                    <p class="magic-subtitle">Meister Arme • Sorcellerie • Alice d'Alice Academy</p>
                 </div>
                 <div class="magic-character-summary" aria-label="Personnage">
                     <div class="magic-character-avatar">
                         <!-- Placeholder avatar; pourra être remplacé par l'avatar du joueur -->
-                        <div class="magic-avatar-circle">☆</div>
+                        <div class="magic-avatar-circle">✶</div>
                     </div>
                     <div class="magic-character-meta">
                         <span class="magic-character-name">Nom du personnage</span>
@@ -30,232 +30,239 @@
         </header>
 
         <section class="magic-layout" aria-label="Fiche magie détaillée">
-            <!-- Navigation latérale -->
-            <aside class="magic-sidebar" aria-label="Sections de la fiche" role="navigation">
-                <button class="magic-nav-btn magic-nav-btn--active" data-target="magic-summary">
-                    Résumé &amp; spécialisation
-                </button>
-                <button class="magic-nav-btn" data-target="magic-parameters">
-                    Paramètres de fonctionnement
-                </button>
-                <button class="magic-nav-btn" data-target="magic-capacities">
-                    Capacités &amp; sorts
-                </button>
-                <button class="magic-nav-btn" data-target="magic-progression">
-                    Progression &amp; limitations
-                </button>
-                <button class="magic-nav-btn magic-nav-btn--admin" data-target="magic-admin">
-                    Zone admin
-                </button>
-            </aside>
+            <div class="magic-sheet">
+                <div class="magic-page-tabs" id="magicPageTabs" role="tablist" aria-label="Pages de fiche magie">
+                    <button type="button" class="magic-page-tab magic-page-tab--add" id="magicAddPageBtn" aria-label="Ajouter une page">+</button>
+                </div>
 
-            <!-- Contenu principal -->
-            <section class="magic-content" aria-live="polite">
-                <!-- 1. Résumé & spécialisation -->
-                <section id="magic-summary" class="magic-section magic-section--active" aria-label="Résumé & spécialisation">
-                    <h2 class="magic-section-title">Résumé &amp; spécialisation</h2>
-                    <div class="magic-cards-grid magic-cards-grid--two">
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Magie principale</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicName">Nom de la magie</label>
-                                <input id="magicName" class="magic-input" type="text" placeholder="Ex : Lame de Résonance Astrale">
+                <!-- Contenu principal -->
+                <section class="magic-content" aria-live="polite">
+                    <div class="magic-top-nav" aria-label="Sections de la fiche" role="navigation">
+                        <button class="magic-nav-btn magic-nav-btn--active" data-target="magic-summary">
+                            Résumé &amp; spécialisation
+                        </button>
+                        <button class="magic-nav-btn" data-target="magic-parameters">
+                            Paramètres de fonctionnement
+                        </button>
+                        <button class="magic-nav-btn" data-target="magic-capacities">
+                            Capacités &amp; sorts
+                        </button>
+                        <button class="magic-nav-btn" data-target="magic-progression">
+                            Progression &amp; limitations
+                        </button>
+                        <button class="magic-nav-btn magic-nav-btn--admin" data-target="magic-admin">
+                            Zone admin
+                        </button>
+                    </div>
+
+                    <div class="magic-content-body">
+                        <!-- 1. Résumé & spécialisation -->
+                        <section id="magic-summary" class="magic-section magic-section--active" aria-label="Résumé & spécialisation">
+                            <h2 class="magic-section-title">Résumé &amp; spécialisation</h2>
+                            <div class="magic-cards-grid magic-cards-grid--two">
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Magie principale</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicName">Nom de la magie</label>
+                                        <input id="magicName" class="magic-input" type="text" placeholder="Ex : Lame de Résonance Astrale">
+                                    </div>
+                                    <div class="magic-form-row magic-form-row--split">
+                                        <div class="magic-form-field">
+                                            <label class="magic-label" for="magicSpecialization">Spécialisation</label>
+                                            <select id="magicSpecialization" class="magic-input">
+                                                <option value="">Sélectionner...</option>
+                                                <option value="meister">Meister Arme</option>
+                                                <option value="sorcellerie">Sorcellerie</option>
+                                                <option value="alice">Alice (Alice Academy)</option>
+                                            </select>
+                                        </div>
+                                        <div class="magic-form-field">
+                                            <label class="magic-label" for="magicSubtypes">Sous-type(s)</label>
+                                            <input id="magicSubtypes" class="magic-input" type="text" placeholder="Ex : élémentaire, mental, soutien...">
+                                        </div>
+                                    </div>
+                                </article>
+
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Résumé narratif &amp; technique</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicSummaryRp">Résumé RP</label>
+                                        <textarea id="magicSummaryRp" class="magic-input magic-input--textarea" rows="3" placeholder="En 2-3 lignes, décrivez comment la magie se manifeste en jeu."></textarea>
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicSummaryTech">Résumé technique</label>
+                                        <textarea id="magicSummaryTech" class="magic-input magic-input--textarea" rows="3" placeholder="Portée globale, nature, style d'utilisation, contraintes générales..."></textarea>
+                                    </div>
+                                </article>
                             </div>
-                            <div class="magic-form-row magic-form-row--split">
-                                <div class="magic-form-field">
-                                    <label class="magic-label" for="magicSpecialization">Spécialisation</label>
-                                    <select id="magicSpecialization" class="magic-input">
-                                        <option value="">Sélectionner...</option>
-                                        <option value="meister">Meister Arme</option>
-                                        <option value="sorcellerie">Sorcellerie</option>
-                                        <option value="alice">Alice (Alice Academy)</option>
+                        </section>
+
+                        <!-- 2. Paramètres de fonctionnement -->
+                        <section id="magic-parameters" class="magic-section" aria-label="Paramètres de fonctionnement de la magie">
+                            <h2 class="magic-section-title">Paramètres de fonctionnement</h2>
+                            <div class="magic-cards-grid magic-cards-grid--three">
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Origine &amp; portée</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicSource">Source de magie</label>
+                                        <input id="magicSource" class="magic-input" type="text" placeholder="Mana, pacte, émotions, artefact...">
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicRange">Portée</label>
+                                        <select id="magicRange" class="magic-input">
+                                            <option value="">Sélectionner...</option>
+                                            <option value="melee">Corps-à-corps</option>
+                                            <option value="short">Courte portée</option>
+                                            <option value="medium">Portée moyenne</option>
+                                            <option value="long">Longue portée</option>
+                                        </select>
+                                    </div>
+                                </article>
+
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Effet &amp; coût</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicEffectType">Type d'effet principal</label>
+                                        <input id="magicEffectType" class="magic-input" type="text" placeholder="Dégâts, soin, contrôle, utilitaire...">
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicGlobalCost">Coût global</label>
+                                        <textarea id="magicGlobalCost" class="magic-input magic-input--textarea" rows="2" placeholder="Fatigue, mana, nombre d'utilisations par scène, etc."></textarea>
+                                    </div>
+                                </article>
+
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Conditions &amp; faiblesses</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicActivation">Conditions d'activation</label>
+                                        <textarea id="magicActivation" class="magic-input magic-input--textarea" rows="2" placeholder="Contact, incantation, geste, émotion, pacte..."></textarea>
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicWeaknesses">Faiblesses générales</label>
+                                        <textarea id="magicWeaknesses" class="magic-input magic-input--textarea" rows="2" placeholder="Contres, limitations, situations de désavantage."></textarea>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+
+                        <!-- 3. Capacités / sorts -->
+                        <section id="magic-capacities" class="magic-section" aria-label="Capacités et sorts">
+                            <div class="magic-section-header">
+                                <div>
+                                    <h2 class="magic-section-title">Capacités &amp; sorts</h2>
+                                    <p class="magic-section-help">
+                                        Listez ici chaque technique : nom, type, rang, effet RP et technique, coût, limites.
+                                    </p>
+                                </div>
+                                <div class="magic-section-actions">
+                                    <select id="magicCapacityFilter" class="magic-input magic-input--sm" aria-label="Filtrer les capacités">
+                                        <option value="">Toutes les catégories</option>
+                                        <option value="offensif">Offensif</option>
+                                        <option value="defensif">Défensif</option>
+                                        <option value="soutien">Soutien</option>
+                                        <option value="utilitaire">Utilitaire</option>
                                     </select>
-                                </div>
-                                <div class="magic-form-field">
-                                    <label class="magic-label" for="magicSubtypes">Sous-type(s)</label>
-                                    <input id="magicSubtypes" class="magic-input" type="text" placeholder="Ex : élémentaire, mental, soutien...">
+                                    <button type="button" class="magic-btn magic-btn-primary" id="magicAddCapacityBtn">
+                                        + Ajouter une capacité
+                                    </button>
                                 </div>
                             </div>
-                        </article>
 
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Résumé narratif &amp; technique</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicSummaryRp">Résumé RP</label>
-                                <textarea id="magicSummaryRp" class="magic-input magic-input--textarea" rows="3" placeholder="En 2–3 lignes, décrivez comment la magie se manifeste en jeu."></textarea>
+                            <ul class="magic-capacity-list" id="magicCapacityList" aria-label="Liste des capacités">
+                                <!-- Capacités exemple : purement placeholders -->
+                            </ul>
+                        </section>
+
+                        <!-- 4. Progression & limitations -->
+                        <section id="magic-progression" class="magic-section" aria-label="Progression & limitations">
+                            <h2 class="magic-section-title">Progression &amp; limitations</h2>
+                            <div class="magic-cards-grid magic-cards-grid--two">
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Cadre global</h3>
+                                    <div class="magic-form-row magic-form-row--split">
+                                        <div class="magic-form-field">
+                                            <label class="magic-label" for="magicMaxSlots">Nombre maximum de capacités</label>
+                                            <input id="magicMaxSlots" class="magic-input" type="number" min="0" max="99" value="8">
+                                        </div>
+                                        <div class="magic-form-field">
+                                            <label class="magic-label" for="magicStartingSlots">Capacités débloquées au départ</label>
+                                            <input id="magicStartingSlots" class="magic-input" type="number" min="0" max="99" value="4">
+                                        </div>
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicUnlockConditions">Conditions de déblocage</label>
+                                        <textarea id="magicUnlockConditions" class="magic-input magic-input--textarea" rows="3" placeholder="Par exemple : progression RP, validation MJ, paliers de niveau, quêtes, etc."></textarea>
+                                    </div>
+                                </article>
+
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Capacités futures</h3>
+                                    <div class="magic-future-slots" aria-label="Emplacements de capacités futures">
+                                        <div class="magic-future-slot magic-future-slot--filled">
+                                            <span class="magic-future-label">Capacité actuelle</span>
+                                            <span class="magic-future-note">Peut évoluer vers une version majeure / signature.</span>
+                                        </div>
+                                        <div class="magic-future-slot magic-future-slot--locked">
+                                            <span class="magic-future-label">Slot verrouillé</span>
+                                            <span class="magic-future-note">À débloquer plus tard (XP, arc narratif...).</span>
+                                        </div>
+                                        <div class="magic-future-slot magic-future-slot--locked">
+                                            <span class="magic-future-label">Slot verrouillé</span>
+                                            <span class="magic-future-note">Réservé aux évolutions de haut niveau.</span>
+                                        </div>
+                                    </div>
+                                </article>
                             </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicSummaryTech">Résumé technique</label>
-                                <textarea id="magicSummaryTech" class="magic-input magic-input--textarea" rows="3" placeholder="Portée globale, nature, style d’utilisation, contraintes générales..."></textarea>
+                        </section>
+
+                        <!-- 5. Zone admin -->
+                        <section id="magic-admin" class="magic-section magic-section--admin" aria-label="Zone d'administration" hidden>
+                            <div class="magic-section-header">
+                                <div>
+                                    <h2 class="magic-section-title">Zone admin</h2>
+                                    <p class="magic-section-help">
+                                        Outils de validation et de suivi des fiches magie. Visible uniquement pour les comptes admin.
+                                    </p>
+                                </div>
                             </div>
-                        </article>
+
+                            <div class="magic-cards-grid magic-cards-grid--two">
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Statut de la fiche</h3>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicSheetStatus">Statut</label>
+                                        <select id="magicSheetStatus" class="magic-input">
+                                            <option value="draft">Brouillon</option>
+                                            <option value="pending">En attente de validation</option>
+                                            <option value="approved">Validée</option>
+                                            <option value="changes">À corriger</option>
+                                        </select>
+                                    </div>
+                                    <div class="magic-admin-status-badges">
+                                        <span class="magic-status-pill magic-status-pill--draft">Brouillon</span>
+                                        <span class="magic-status-pill magic-status-pill--pending">En attente</span>
+                                        <span class="magic-status-pill magic-status-pill--approved">Validée</span>
+                                        <span class="magic-status-pill magic-status-pill--changes">À corriger</span>
+                                    </div>
+                                </article>
+
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Actions admin</h3>
+                                    <div class="magic-admin-actions">
+                                        <button type="button" class="magic-btn magic-btn-outline">Valider</button>
+                                        <button type="button" class="magic-btn magic-btn-outline">Demander des corrections</button>
+                                        <button type="button" class="magic-btn magic-btn-outline">Ajouter une note interne</button>
+                                    </div>
+                                    <div class="magic-form-row">
+                                        <label class="magic-label" for="magicAdminNotes">Note interne</label>
+                                        <textarea id="magicAdminNotes" class="magic-input magic-input--textarea" rows="3" placeholder="Commentaires MJ / staff, remarques d'équilibrage, suivi des modifications."></textarea>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
                     </div>
                 </section>
-
-                <!-- 2. Paramètres de fonctionnement -->
-                <section id="magic-parameters" class="magic-section" aria-label="Paramètres de fonctionnement de la magie">
-                    <h2 class="magic-section-title">Paramètres de fonctionnement</h2>
-                    <div class="magic-cards-grid magic-cards-grid--three">
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Origine &amp; portée</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicSource">Source de magie</label>
-                                <input id="magicSource" class="magic-input" type="text" placeholder="Mana, pacte, émotions, artefact...">
-                            </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicRange">Portée</label>
-                                <select id="magicRange" class="magic-input">
-                                    <option value="">Sélectionner...</option>
-                                    <option value="melee">Corps-à-corps</option>
-                                    <option value="short">Courte portée</option>
-                                    <option value="medium">Portée moyenne</option>
-                                    <option value="long">Longue portée</option>
-                                </select>
-                            </div>
-                        </article>
-
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Effet &amp; coût</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicEffectType">Type d’effet principal</label>
-                                <input id="magicEffectType" class="magic-input" type="text" placeholder="Dégâts, soin, contrôle, utilitaire...">
-                            </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicGlobalCost">Coût global</label>
-                                <textarea id="magicGlobalCost" class="magic-input magic-input--textarea" rows="2" placeholder="Fatigue, mana, nombre d’utilisations par scène, etc."></textarea>
-                            </div>
-                        </article>
-
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Conditions &amp; faiblesses</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicActivation">Conditions d’activation</label>
-                                <textarea id="magicActivation" class="magic-input magic-input--textarea" rows="2" placeholder="Contact, incantation, geste, émotion, pacte..."></textarea>
-                            </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicWeaknesses">Faiblesses générales</label>
-                                <textarea id="magicWeaknesses" class="magic-input magic-input--textarea" rows="2" placeholder="Contres, limitations, situations de désavantage."></textarea>
-                            </div>
-                        </article>
-                    </div>
-                </section>
-
-                <!-- 3. Capacités / sorts -->
-                <section id="magic-capacities" class="magic-section" aria-label="Capacités et sorts">
-                    <div class="magic-section-header">
-                        <div>
-                            <h2 class="magic-section-title">Capacités &amp; sorts</h2>
-                            <p class="magic-section-help">
-                                Listez ici chaque technique : nom, type, rang, effet RP et technique, coût, limites.
-                            </p>
-                        </div>
-                        <div class="magic-section-actions">
-                            <select id="magicCapacityFilter" class="magic-input magic-input--sm" aria-label="Filtrer les capacités">
-                                <option value="">Toutes les catégories</option>
-                                <option value="offensif">Offensif</option>
-                                <option value="defensif">Défensif</option>
-                                <option value="soutien">Soutien</option>
-                                <option value="utilitaire">Utilitaire</option>
-                            </select>
-                            <button type="button" class="magic-btn magic-btn-primary" id="magicAddCapacityBtn">
-                                + Ajouter une capacité
-                            </button>
-                        </div>
-                    </div>
-
-                    <ul class="magic-capacity-list" id="magicCapacityList" aria-label="Liste des capacités">
-                        <!-- Capacités exemple : purement placeholders -->
-                    </ul>
-                </section>
-
-                <!-- 4. Progression & limitations -->
-                <section id="magic-progression" class="magic-section" aria-label="Progression & limitations">
-                    <h2 class="magic-section-title">Progression &amp; limitations</h2>
-                    <div class="magic-cards-grid magic-cards-grid--two">
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Cadre global</h3>
-                            <div class="magic-form-row magic-form-row--split">
-                                <div class="magic-form-field">
-                                    <label class="magic-label" for="magicMaxSlots">Nombre maximum de capacités</label>
-                                    <input id="magicMaxSlots" class="magic-input" type="number" min="0" max="99" value="8">
-                                </div>
-                                <div class="magic-form-field">
-                                    <label class="magic-label" for="magicStartingSlots">Capacités débloquées au départ</label>
-                                    <input id="magicStartingSlots" class="magic-input" type="number" min="0" max="99" value="4">
-                                </div>
-                            </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicUnlockConditions">Conditions de déblocage</label>
-                                <textarea id="magicUnlockConditions" class="magic-input magic-input--textarea" rows="3" placeholder="Par exemple : progression RP, validation MJ, paliers de niveau, quêtes, etc."></textarea>
-                            </div>
-                        </article>
-
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Capacités futures</h3>
-                            <div class="magic-future-slots" aria-label="Emplacements de capacités futures">
-                                <div class="magic-future-slot magic-future-slot--filled">
-                                    <span class="magic-future-label">Capacité actuelle</span>
-                                    <span class="magic-future-note">Peut évoluer vers une version majeure / signature.</span>
-                                </div>
-                                <div class="magic-future-slot magic-future-slot--locked">
-                                    <span class="magic-future-label">Slot verrouillé</span>
-                                    <span class="magic-future-note">À débloquer plus tard (XP, arc narratif...).</span>
-                                </div>
-                                <div class="magic-future-slot magic-future-slot--locked">
-                                    <span class="magic-future-label">Slot verrouillé</span>
-                                    <span class="magic-future-note">Réservé aux évolutions de haut niveau.</span>
-                                </div>
-                            </div>
-                        </article>
-                    </div>
-                </section>
-
-                <!-- 5. Zone admin -->
-                <section id="magic-admin" class="magic-section magic-section--admin" aria-label="Zone d’administration" hidden>
-                    <div class="magic-section-header">
-                        <div>
-                            <h2 class="magic-section-title">Zone admin</h2>
-                            <p class="magic-section-help">
-                                Outils de validation et de suivi des fiches magie. Visible uniquement pour les comptes admin.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="magic-cards-grid magic-cards-grid--two">
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Statut de la fiche</h3>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicSheetStatus">Statut</label>
-                                <select id="magicSheetStatus" class="magic-input">
-                                    <option value="draft">Brouillon</option>
-                                    <option value="pending">En attente de validation</option>
-                                    <option value="approved">Validée</option>
-                                    <option value="changes">À corriger</option>
-                                </select>
-                            </div>
-                            <div class="magic-admin-status-badges">
-                                <span class="magic-status-pill magic-status-pill--draft">Brouillon</span>
-                                <span class="magic-status-pill magic-status-pill--pending">En attente</span>
-                                <span class="magic-status-pill magic-status-pill--approved">Validée</span>
-                                <span class="magic-status-pill magic-status-pill--changes">À corriger</span>
-                            </div>
-                        </article>
-
-                        <article class="magic-card">
-                            <h3 class="magic-card-title">Actions admin</h3>
-                            <div class="magic-admin-actions">
-                                <button type="button" class="magic-btn magic-btn-outline">Valider</button>
-                                <button type="button" class="magic-btn magic-btn-outline">Demander des corrections</button>
-                                <button type="button" class="magic-btn magic-btn-outline">Ajouter une note interne</button>
-                            </div>
-                            <div class="magic-form-row">
-                                <label class="magic-label" for="magicAdminNotes">Note interne</label>
-                                <textarea id="magicAdminNotes" class="magic-input magic-input--textarea" rows="3" placeholder="Commentaires MJ / staff, remarques d’équilibrage, suivi des modifications."></textarea>
-                            </div>
-                        </article>
-                    </div>
-                </section>
-            </section>
+            </div>
         </section>
     </main>
 
