@@ -65,8 +65,6 @@
     await initPersistence();
 
     if (!skillsState.isAdmin) {
-        if (skillsPointsMinusEl) skillsPointsMinusEl.hidden = true;
-        if (skillsPointsPlusEl) skillsPointsPlusEl.hidden = true;
         if (skillsPointsValueEl) skillsPointsValueEl.readOnly = true;
     }
 
@@ -376,7 +374,7 @@
             decBtn.className = "skill-point-btn";
             decBtn.textContent = "-";
             decBtn.setAttribute("aria-label", `Retirer un point sur ${skill.name}`);
-            decBtn.disabled = allocation <= 0 || isLocked;
+            decBtn.disabled = !skillsState.isAdmin || allocation <= 0 || isLocked;
 
             const value = document.createElement("span");
             value.className = "skills-value";
@@ -387,7 +385,7 @@
             incBtn.className = "skill-point-btn";
             incBtn.textContent = "+";
             incBtn.setAttribute("aria-label", `Ajouter un point sur ${skill.name}`);
-            incBtn.disabled = isMaxed || getCurrentCategoryPoints() <= 0 || isLocked;
+            incBtn.disabled = !skillsState.isAdmin || isMaxed || getCurrentCategoryPoints() <= 0 || isLocked;
 
             decBtn.addEventListener("click", () => {
                 adjustSkillPoints(category.id, skill, -1, value, decBtn, incBtn);
@@ -407,7 +405,7 @@
     }
 
     function adjustSkillPoints(categoryId, skill, delta, valueEl, decBtn, incBtn) {
-        if (skillsState.locksByCategory[categoryId]) return;
+        if (!skillsState.isAdmin || skillsState.locksByCategory[categoryId]) return;
 
         const allocations = getCategoryAllocations(categoryId);
         const currentAlloc = allocations[skill.name] || 0;
@@ -517,8 +515,8 @@
                 valueEl.textContent = `${total} / ${MAX_SKILL_POINTS}`;
             }
             const atMax = total >= MAX_SKILL_POINTS;
-            decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
-            incBtn.disabled = atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
+            decBtn.disabled = !skillsState.isAdmin || allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
+            incBtn.disabled = !skillsState.isAdmin || atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
         });
 
         updatePendingHighlights(activeCategory.id);
