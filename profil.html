@@ -6,6 +6,7 @@
     <title>Profil - Astoria</title>
     <link rel="stylesheet" href="css/style.css">
         <link rel="stylesheet" href="css/profil.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 <style>
         .auth-controls {
             position: fixed;
@@ -323,6 +324,29 @@
         </div>
     </div>
 
+    <div class="profile-cropper-backdrop" id="avatarCropperBackdrop" aria-hidden="true">
+        <div class="profile-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="avatarCropperTitle">
+            <div class="profile-cropper-header">
+                <h2 class="profile-cropper-title" id="avatarCropperTitle">Ajuster l'avatar</h2>
+                <button type="button" class="profile-cropper-close" id="avatarCropperClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="profile-cropper-body">
+                <div class="profile-cropper-stage">
+                    <img id="avatarCropperImage" alt="Apercu avatar">
+                </div>
+                <div class="profile-cropper-controls">
+                    <label for="avatarZoomRange">Zoom</label>
+                    <input type="range" id="avatarZoomRange" min="1" max="3" step="0.01" value="1">
+                </div>
+            </div>
+            <div class="profile-cropper-actions">
+                <button type="button" class="profile-modal-button secondary" id="avatarCropperCancel">Annuler</button>
+                <button type="button" class="profile-modal-button" id="avatarCropperConfirm">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
     <script type="module">
         import {
             getCurrentUser,
@@ -346,12 +370,21 @@
         const avatarInput = document.getElementById('avatarUploadInput');
         const avatarImg = document.getElementById('characterAvatarImg');
         const avatarPlaceholder = document.getElementById('characterInitial');
+        const cropperBackdrop = document.getElementById('avatarCropperBackdrop');
+        const cropperImage = document.getElementById('avatarCropperImage');
+        const cropperZoom = document.getElementById('avatarZoomRange');
+        const cropperClose = document.getElementById('avatarCropperClose');
+        const cropperCancel = document.getElementById('avatarCropperCancel');
+        const cropperConfirm = document.getElementById('avatarCropperConfirm');
 
         let currentUser = null;
         let currentCharacter = null;
         let userCharacters = [];
         let userLinkButton = null;
         let panelHost = null;
+        let avatarCropper = null;
+        let avatarPreviewUrl = '';
+        let pendingAvatarFile = null;
 
         const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
@@ -428,6 +461,61 @@
             avatarTrigger.classList.toggle('is-editable', editable);
             avatarTrigger.disabled = !editable;
             avatarInput.disabled = !editable;
+        }
+
+        function destroyAvatarCropper() {
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+            }
+            if (avatarPreviewUrl) {
+                URL.revokeObjectURL(avatarPreviewUrl);
+                avatarPreviewUrl = '';
+            }
+            pendingAvatarFile = null;
+        }
+
+        function closeAvatarCropper(resetInput = true) {
+            if (!cropperBackdrop) return;
+            cropperBackdrop.classList.remove('open');
+            cropperBackdrop.setAttribute('aria-hidden', 'true');
+            destroyAvatarCropper();
+            if (resetInput && avatarInput) {
+                avatarInput.value = '';
+            }
+        }
+
+        function openAvatarCropper(file) {
+            if (!cropperBackdrop || !cropperImage || !window.Cropper) {
+                uploadAvatar(file);
+                return;
+            }
+
+            destroyAvatarCropper();
+            pendingAvatarFile = file;
+            avatarPreviewUrl = URL.createObjectURL(file);
+            cropperImage.src = avatarPreviewUrl;
+            cropperBackdrop.classList.add('open');
+            cropperBackdrop.setAttribute('aria-hidden', 'false');
+
+            avatarCropper = new Cropper(cropperImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                dragMode: 'move',
+                background: false,
+                autoCropArea: 1,
+                responsive: true,
+                checkOrientation: false
+            });
+
+            if (cropperZoom) {
+                cropperZoom.value = '1';
+                cropperZoom.oninput = () => {
+                    if (avatarCropper) {
+                        avatarCropper.zoomTo(Number(cropperZoom.value));
+                    }
+                };
+            }
         }
 
         function updateShortcutsVisibility() {
@@ -808,6 +896,12 @@
                 hideCreateCharacterModal();
             }
         });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && cropperBackdrop && cropperBackdrop.classList.contains('open')) {
+                e.preventDefault();
+                closeAvatarCropper();
+            }
+        });
 
         if (avatarTrigger && avatarInput) {
             avatarTrigger.addEventListener('click', () => {
@@ -823,7 +917,50 @@
             });
             avatarInput.addEventListener('change', () => {
                 const file = avatarInput.files && avatarInput.files[0];
-                if (file) uploadAvatar(file);
+                if (file) openAvatarCropper(file);
+            });
+        }
+
+        if (cropperClose) {
+            cropperClose.addEventListener('click', () => closeAvatarCropper());
+        }
+
+        if (cropperCancel) {
+            cropperCancel.addEventListener('click', () => closeAvatarCropper());
+        }
+
+        if (cropperBackdrop) {
+            cropperBackdrop.addEventListener('click', (event) => {
+                if (event.target === cropperBackdrop) {
+                    closeAvatarCropper();
+                }
+            });
+        }
+
+        if (cropperConfirm) {
+            cropperConfirm.addEventListener('click', async () => {
+                if (!avatarCropper || !pendingAvatarFile) return;
+
+                const canvas = avatarCropper.getCroppedCanvas({
+                    width: 512,
+                    height: 512,
+                    imageSmoothingQuality: 'high'
+                });
+
+                if (!canvas) return;
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        alert('Recadrage impossible.');
+                        return;
+                    }
+                    const baseName = String(pendingAvatarFile.name || 'avatar')
+                        .replace(/\.[^/.]+$/, '')
+                        .slice(0, 120);
+                    const uploadFile = new File([blob], `${baseName}.png`, { type: 'image/png' });
+                    closeAvatarCropper(false);
+                    await uploadAvatar(uploadFile);
+                }, 'image/png');
             });
         }
 
