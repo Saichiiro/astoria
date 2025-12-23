@@ -293,6 +293,26 @@
                         ou des extraits de la fiche personnage. Pour l’instant, ceci n’est qu’un gabarit de base.
                     </p>
                 </section>
+                <section class="profile-section profile-admin-panel" id="adminPanel" hidden>
+                    <header class="profile-section-header">
+                        <h2 class="profile-section-title">Admin</h2>
+                    </header>
+                    <div class="profile-admin-grid">
+                        <div class="profile-admin-card">
+                            <span class="profile-admin-label">Utilisateurs</span>
+                            <strong class="profile-admin-value" id="adminUserCount">-</strong>
+                        </div>
+                        <div class="profile-admin-card">
+                            <span class="profile-admin-label">Personnages</span>
+                            <strong class="profile-admin-value" id="adminCharacterCount">-</strong>
+                        </div>
+                    </div>
+                    <div class="profile-admin-actions">
+                        <label for="adminCharacterSelect">Voir un personnage</label>
+                        <select id="adminCharacterSelect" class="profile-admin-select"></select>
+                        <p class="profile-admin-hint">Lecture seule : l'admin peut consulter, pas d'edition ici.</p>
+                    </div>
+                </section>
             </section>
         </section>
     </main>
@@ -352,6 +372,7 @@
         import {
             getCurrentUser,
             getUserCharacters,
+            getAllCharacters,
             getActiveCharacter,
             setActiveCharacter,
             createCharacter,
@@ -377,6 +398,10 @@
         const cropperClose = document.getElementById('avatarCropperClose');
         const cropperCancel = document.getElementById('avatarCropperCancel');
         const cropperConfirm = document.getElementById('avatarCropperConfirm');
+        const adminPanel = document.getElementById('adminPanel');
+        const adminUserCount = document.getElementById('adminUserCount');
+        const adminCharacterCount = document.getElementById('adminCharacterCount');
+        const adminCharacterSelect = document.getElementById('adminCharacterSelect');
 
         let currentUser = null;
         let currentCharacter = null;
@@ -387,6 +412,7 @@
         let avatarPreviewUrl = '';
         let pendingAvatarFile = null;
         let isCropperZoomSync = false;
+        let adminCharacters = [];
 
         const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
@@ -670,6 +696,26 @@
             }
         }
 
+        async function handleCharacterSelection(characterId) {
+            if (!characterId) return;
+
+            const res = await setActiveCharacter(characterId);
+            if (!res || !res.success) return;
+
+            currentCharacter = getActiveCharacter();
+            if (currentCharacter) {
+                displayCharacter(currentCharacter);
+                initProfileTagSelector({ characterId: currentCharacter.id });
+            } else {
+                showNoCharacterSelected();
+                initProfileTagSelector({ characterId: null });
+            }
+            updateAuthUserLabel();
+            rerenderOpenPanelIfAny();
+            updateShortcutsVisibility();
+            updateAvatarControls();
+        }
+
         async function loadActiveCharacter() {
             currentCharacter = getActiveCharacter();
 
@@ -689,6 +735,7 @@
             }
             updateShortcutsVisibility();
             updateAvatarControls();
+            await renderAdminPanel();
         }
 
         function renderCharacterSelector() {
@@ -711,23 +758,7 @@
                         return;
                     }
 
-                    if (!value) return;
-
-                    const res = await setActiveCharacter(value);
-                    if (!res || !res.success) return;
-
-                    currentCharacter = getActiveCharacter();
-                    if (currentCharacter) {
-                        displayCharacter(currentCharacter);
-                        initProfileTagSelector({ characterId: currentCharacter.id });
-                    } else {
-                        showNoCharacterSelected();
-                        initProfileTagSelector({ characterId: null });
-                    }
-                    updateAuthUserLabel();
-                    rerenderOpenPanelIfAny();
-                    updateShortcutsVisibility();
-                    updateAvatarControls();
+                    await handleCharacterSelection(value);
                 });
             } else {
                 selectorEl.replaceChildren();
@@ -809,7 +840,51 @@
         */
         }
 
-        function showNoCharacterSelected() {
+        
+        async function renderAdminPanel() {
+            if (!adminPanel) return;
+            if (!isAdmin()) {
+                adminPanel.hidden = true;
+                return;
+            }
+
+            adminPanel.hidden = false;
+
+            try {
+                const supabase = await getSupabaseClient();
+                const { count: userCount } = await supabase
+                    .from('users')
+                    .select('id', { count: 'exact', head: true });
+
+                adminCharacters = await getAllCharacters();
+
+                if (adminUserCount) {
+                    adminUserCount.textContent = userCount ?? '-';
+                }
+                if (adminCharacterCount) {
+                    adminCharacterCount.textContent = adminCharacters.length;
+                }
+
+                if (adminCharacterSelect) {
+                    adminCharacterSelect.replaceChildren();
+                    const placeholder = document.createElement('option');
+                    placeholder.value = '';
+                    placeholder.textContent = 'Voir un personnage...';
+                    adminCharacterSelect.appendChild(placeholder);
+
+                    adminCharacters.forEach((char) => {
+                        const option = document.createElement('option');
+                        option.value = char.id;
+                        option.textContent = `${char.name} - ${char.user_id.slice(0, 6)}...`;
+                        adminCharacterSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Admin panel error:', error);
+            }
+        }
+
+function showNoCharacterSelected() {
             document.getElementById('characterInitial').textContent = '?';
             document.getElementById('characterName').textContent = 'Aucun personnage sélectionné';
             document.getElementById('characterRole').textContent = 'Sélectionnez un personnage ci-dessus';
@@ -938,6 +1013,14 @@
             avatarInput.addEventListener('change', () => {
                 const file = avatarInput.files && avatarInput.files[0];
                 if (file) openAvatarCropper(file);
+            });
+        }
+
+        if (adminCharacterSelect) {
+            adminCharacterSelect.addEventListener('change', async (event) => {
+                const value = event.target.value;
+                if (!value) return;
+                await handleCharacterSelection(value);
             });
         }
 
