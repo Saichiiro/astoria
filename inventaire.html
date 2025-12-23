@@ -300,6 +300,7 @@
         let currentScrollItem = null;
         let selectedScrollTypeKey = null;
         let lastScrollItemId = null;
+        let scrollTypeStore = {};
 
         // DOM REFERENCES
         // =================================================================
@@ -460,7 +461,8 @@
                 version: 1,
                 itemCount: items.length,
                 totalQty,
-                items
+                items,
+                scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
             };
         }
 
@@ -493,11 +495,17 @@
 
             if (payload && Array.isArray(payload.items)) {
                 hydrateInventoryFromCompact(payload.items);
+                if (payload.scrollTypes && typeof payload.scrollTypes === 'object') {
+                    scrollTypeStore = payload.scrollTypes;
+                } else {
+                    scrollTypeStore = {};
+                }
                 console.log(`Loaded ${inventoryItems.length} items from character profile_data`);
                 return;
             }
 
             // Fallback for V1: keep local inventory if profile doesn't have data yet
+            scrollTypeStore = {};
             loadFromLocalStorage();
         }
 
@@ -943,53 +951,173 @@
             return counts;
         }
 
-        function getScrollStorageKey(category, item) {
-            const idPart = item?.id ?? item?.name ?? 'unknown';
+        function getScrollItemKey(item) {
+            const sourceIndex = Number(item?.sourceIndex);
+            if (Number.isFinite(sourceIndex)) {
+                return `idx:${sourceIndex}`;
+            }
+            const name = item?.name ? normalizeText(item.name) : '';
+            if (name) {
+                return `name:${name}`;
+            }
+            const id = Number(item?.id);
+            if (Number.isFinite(id)) {
+                return `id:${id}`;
+            }
+            return 'unknown';
+        }
+
+        function getScrollStorageKey(category, item, useLegacy = false) {
+            const idPart = useLegacy ? (item?.id ?? item?.name ?? 'unknown') : getScrollItemKey(item);
             return `${SCROLL_STORAGE_PREFIX}:${category}:${idPart}`;
         }
 
-        function loadScrollCounts(category, item) {
+        function normalizeScrollCounts(rawCounts) {
             const counts = getEmptyScrollCounts();
-            if (!category || !item) {
-                return { counts, hasStored: false };
-            }
+            if (!rawCounts) return counts;
+            Object.keys(counts).forEach((typeKey) => {
+                const value = Number(rawCounts[typeKey]);
+                counts[typeKey] = Number.isFinite(value) && value > 0 ? value : 0;
+            });
+            return counts;
+        }
 
-            const key = getScrollStorageKey(category, item);
-            const raw = localStorage.getItem(key);
+        function buildScrollItemKeyMap() {
+            const map = {};
+            inventoryItems.forEach((item) => {
+                const category = getScrollCategory(item);
+                if (!category) return;
+                if (!map[category]) {
+                    map[category] = new Set();
+                }
+                map[category].add(getScrollItemKey(item));
+            });
+            return map;
+        }
+
+        function normalizeScrollTypeStore(rawStore) {
+            if (!rawStore || typeof rawStore !== 'object') return {};
+            const allowedKeys = buildScrollItemKeyMap();
+            const cleaned = {};
+
+            Object.entries(rawStore).forEach(([category, items]) => {
+                if (!items || typeof items !== 'object') return;
+                if (!allowedKeys[category]) return;
+                const cleanedItems = {};
+
+                Object.entries(items).forEach(([itemKey, entry]) => {
+                    if (!allowedKeys[category].has(itemKey)) return;
+                    const counts = normalizeScrollCounts(entry?.counts);
+                    const hasAny = Object.values(counts).some((value) => value > 0);
+                    if (!hasAny) return;
+                    cleanedItems[itemKey] = {
+                        counts,
+                        updatedAt: entry?.updatedAt || Date.now()
+                    };
+                });
+
+                if (Object.keys(cleanedItems).length) {
+                    cleaned[category] = cleanedItems;
+                }
+            });
+
+            return cleaned;
+        }
+
+        function getScrollStoreEntry(category, item) {
+            if (!scrollTypeStore || typeof scrollTypeStore !== 'object') return null;
+            const itemKey = getScrollItemKey(item);
+            const bucket = scrollTypeStore[category];
+            if (!bucket || typeof bucket !== 'object') return null;
+            return bucket[itemKey] || null;
+        }
+
+        function setScrollStoreEntry(category, item, counts) {
+            if (!scrollTypeStore || typeof scrollTypeStore !== 'object') {
+                scrollTypeStore = {};
+            }
+            const itemKey = getScrollItemKey(item);
+            if (!scrollTypeStore[category]) {
+                scrollTypeStore[category] = {};
+            }
+            scrollTypeStore[category][itemKey] = {
+                counts: normalizeScrollCounts(counts),
+                updatedAt: Date.now()
+            };
+        }
+
+        function loadScrollCountsFromLocalStorage(category, item) {
+            const counts = getEmptyScrollCounts();
+            const key = getScrollStorageKey(category, item, false);
+            const legacyKey = getScrollStorageKey(category, item, true);
+            const raw = localStorage.getItem(key) || (legacyKey !== key ? localStorage.getItem(legacyKey) : null);
+
             if (raw) {
                 try {
                     const parsed = JSON.parse(raw);
                     if (parsed && typeof parsed === 'object' && parsed.counts) {
-                        Object.keys(counts).forEach((typeKey) => {
-                            const value = Number(parsed.counts[typeKey]);
-                            counts[typeKey] = Number.isFinite(value) && value > 0 ? value : 0;
-                        });
-                        return { counts, hasStored: true };
+                        return { counts: normalizeScrollCounts(parsed.counts), hasStored: true };
                     }
                 } catch (error) {
                     console.warn('Scroll counts parse failed:', error);
                 }
             }
 
+            return { counts, hasStored: false };
+        }
+
+        function loadScrollCountsFromProfile(category, item) {
+            const entry = getScrollStoreEntry(category, item);
+            if (entry && entry.counts) {
+                return { counts: normalizeScrollCounts(entry.counts), hasStored: true };
+            }
+            return { counts: getEmptyScrollCounts(), hasStored: false };
+        }
+
+        function loadScrollCounts(category, item) {
+            if (!category || !item) {
+                return { counts: getEmptyScrollCounts(), hasStored: false };
+            }
+
+            if (inventoryStorageMode === 'character' && authApi) {
+                const fromProfile = loadScrollCountsFromProfile(category, item);
+                if (fromProfile.hasStored) return fromProfile;
+
+                const legacy = loadScrollCountsFromLocalStorage(category, item);
+                if (legacy.hasStored) {
+                    setScrollStoreEntry(category, item, legacy.counts);
+                    return legacy;
+                }
+            }
+
+            const local = loadScrollCountsFromLocalStorage(category, item);
+            if (local.hasStored) return local;
+
             const seededTypeKey = getScrollTypeKey(item);
             const seededQty = Math.max(0, Number(item.quantity) || 0);
             if (seededTypeKey && seededQty > 0) {
+                const counts = getEmptyScrollCounts();
                 counts[seededTypeKey] = seededQty;
                 saveScrollCounts(category, item, counts);
                 return { counts, hasStored: true };
             }
 
-            return { counts, hasStored: false };
+            return { counts: getEmptyScrollCounts(), hasStored: false };
         }
 
         function saveScrollCounts(category, item, counts) {
             if (!category || !item) return;
-            const key = getScrollStorageKey(category, item);
             const payload = {
-                counts,
+                counts: normalizeScrollCounts(counts),
                 updatedAt: Date.now()
             };
+            const key = getScrollStorageKey(category, item, false);
             localStorage.setItem(key, JSON.stringify(payload));
+
+            if (inventoryStorageMode === 'character' && authApi) {
+                setScrollStoreEntry(category, item, payload.counts);
+                persistInventory();
+            }
         }
 
         function sumScrollCounts(counts) {
