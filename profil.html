@@ -276,6 +276,11 @@
                             <button type="button" class="profile-shortcut-btn" data-panel="inventaire">Inventaire</button>
                             <a class="profile-shortcut-open" href="inventaire.html" title="Ouvrir la page complète">↗</a>
                         </li>
+
+                        <li class="profile-shortcut-item" id="adminShortcut" hidden>
+                            <button type="button" class="profile-shortcut-btn" data-panel="admin">Admin</button>
+                        </li>
+
                         <li><a href="hdv.html">Hôtel de vente</a></li>
                         <li><a href="index.html">Objets</a></li>
                     </ul>
@@ -292,26 +297,6 @@
                         Zone de présentation du joueur et de son personnage. On pourra y coller du contenu HTML libre, des blocs de texte,
                         ou des extraits de la fiche personnage. Pour l’instant, ceci n’est qu’un gabarit de base.
                     </p>
-                </section>
-                <section class="profile-section profile-admin-panel" id="adminPanel" hidden>
-                    <header class="profile-section-header">
-                        <h2 class="profile-section-title">Admin</h2>
-                    </header>
-                    <div class="profile-admin-grid">
-                        <div class="profile-admin-card">
-                            <span class="profile-admin-label">Utilisateurs</span>
-                            <strong class="profile-admin-value" id="adminUserCount">-</strong>
-                        </div>
-                        <div class="profile-admin-card">
-                            <span class="profile-admin-label">Personnages</span>
-                            <strong class="profile-admin-value" id="adminCharacterCount">-</strong>
-                        </div>
-                    </div>
-                    <div class="profile-admin-actions">
-                        <label for="adminCharacterSelect">Voir un personnage</label>
-                        <select id="adminCharacterSelect" class="profile-admin-select"></select>
-                        <p class="profile-admin-hint">Lecture seule : l'admin peut consulter, pas d'edition ici.</p>
-                    </div>
                 </section>
             </section>
         </section>
@@ -372,7 +357,6 @@
         import {
             getCurrentUser,
             getUserCharacters,
-            getAllCharacters,
             getActiveCharacter,
             setActiveCharacter,
             createCharacter,
@@ -388,6 +372,7 @@
         const authControls = document.getElementById('authControls');
         const profileContent = document.getElementById('profileContent');
         const shortcutsPanel = document.getElementById('profileShortcutsPanel');
+        const adminShortcut = document.getElementById('adminShortcut');
         const avatarTrigger = document.getElementById('avatarUploadTrigger');
         const avatarInput = document.getElementById('avatarUploadInput');
         const avatarImg = document.getElementById('characterAvatarImg');
@@ -398,10 +383,6 @@
         const cropperClose = document.getElementById('avatarCropperClose');
         const cropperCancel = document.getElementById('avatarCropperCancel');
         const cropperConfirm = document.getElementById('avatarCropperConfirm');
-        const adminPanel = document.getElementById('adminPanel');
-        const adminUserCount = document.getElementById('adminUserCount');
-        const adminCharacterCount = document.getElementById('adminCharacterCount');
-        const adminCharacterSelect = document.getElementById('adminCharacterSelect');
 
         let currentUser = null;
         let currentCharacter = null;
@@ -412,7 +393,6 @@
         let avatarPreviewUrl = '';
         let pendingAvatarFile = null;
         let isCropperZoomSync = false;
-        let adminCharacters = [];
 
         const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
@@ -489,6 +469,11 @@
             avatarTrigger.classList.toggle('is-editable', editable);
             avatarTrigger.disabled = !editable;
             avatarInput.disabled = !editable;
+        }
+
+        function updateAdminShortcut() {
+            if (!adminShortcut) return;
+            adminShortcut.hidden = !isAdmin();
         }
 
         function destroyAvatarCropper() {
@@ -568,7 +553,7 @@
             if (!shortcutsPanel) return;
             const ownerId = currentCharacter && currentCharacter.user_id ? currentCharacter.user_id : null;
             const isOwner = !!currentUser && (!ownerId || ownerId === currentUser.id);
-            shortcutsPanel.hidden = !isOwner;
+            shortcutsPanel.hidden = !(isOwner || isAdmin());
         }
 
         function renderPanel(panelId) {
@@ -605,6 +590,10 @@
             window.addEventListener('storage', (event) => {
                 if (event.key !== 'astoria_active_character') return;
                 rerenderOpenPanelIfAny();
+            });
+
+            window.addEventListener('astoria:character-changed', () => {
+                void loadActiveCharacter();
             });
         }
 
@@ -679,6 +668,7 @@
             });
 
             authControls.append(badge, userLinkButton, logoutButton);
+            updateAdminShortcut();
         }
 
         function updateAuthUserLabel() {
@@ -735,7 +725,6 @@
             }
             updateShortcutsVisibility();
             updateAvatarControls();
-            await renderAdminPanel();
         }
 
         function renderCharacterSelector() {
@@ -769,6 +758,19 @@
             placeholderOption.textContent = 'Sélectionner un personnage...';
             placeholderOption.selected = !currentCharacter;
             selectorEl.appendChild(placeholderOption);
+
+            const hasCurrent =
+                !!currentCharacter &&
+                userCharacters.some((char) => char.id === currentCharacter.id);
+
+            if (currentCharacter && !hasCurrent) {
+                const adminOption = document.createElement('option');
+                adminOption.value = currentCharacter.id;
+                adminOption.textContent = `Admin: ${currentCharacter.name}`;
+                adminOption.selected = true;
+                selectorEl.appendChild(adminOption);
+            }
+
 
             userCharacters.forEach((char) => {
                 const option = document.createElement('option');
@@ -840,51 +842,7 @@
         */
         }
 
-        
-        async function renderAdminPanel() {
-            if (!adminPanel) return;
-            if (!isAdmin()) {
-                adminPanel.hidden = true;
-                return;
-            }
-
-            adminPanel.hidden = false;
-
-            try {
-                const supabase = await getSupabaseClient();
-                const { count: userCount } = await supabase
-                    .from('users')
-                    .select('id', { count: 'exact', head: true });
-
-                adminCharacters = await getAllCharacters();
-
-                if (adminUserCount) {
-                    adminUserCount.textContent = userCount ?? '-';
-                }
-                if (adminCharacterCount) {
-                    adminCharacterCount.textContent = adminCharacters.length;
-                }
-
-                if (adminCharacterSelect) {
-                    adminCharacterSelect.replaceChildren();
-                    const placeholder = document.createElement('option');
-                    placeholder.value = '';
-                    placeholder.textContent = 'Voir un personnage...';
-                    adminCharacterSelect.appendChild(placeholder);
-
-                    adminCharacters.forEach((char) => {
-                        const option = document.createElement('option');
-                        option.value = char.id;
-                        option.textContent = `${char.name} - ${char.user_id.slice(0, 6)}...`;
-                        adminCharacterSelect.appendChild(option);
-                    });
-                }
-            } catch (error) {
-                console.error('Admin panel error:', error);
-            }
-        }
-
-function showNoCharacterSelected() {
+        function showNoCharacterSelected() {
             document.getElementById('characterInitial').textContent = '?';
             document.getElementById('characterName').textContent = 'Aucun personnage sélectionné';
             document.getElementById('characterRole').textContent = 'Sélectionnez un personnage ci-dessus';
@@ -1013,14 +971,6 @@ function showNoCharacterSelected() {
             avatarInput.addEventListener('change', () => {
                 const file = avatarInput.files && avatarInput.files[0];
                 if (file) openAvatarCropper(file);
-            });
-        }
-
-        if (adminCharacterSelect) {
-            adminCharacterSelect.addEventListener('change', async (event) => {
-                const value = event.target.value;
-                if (!value) return;
-                await handleCharacterSelection(value);
             });
         }
 

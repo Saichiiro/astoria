@@ -1296,6 +1296,43 @@ tbody tr.keyboard-selected {
     margin: 0;
 }
 
+.panel-admin-kv {
+    margin-top: var(--space-3);
+}
+
+.panel-admin-actions {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.panel-admin-actions label {
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-700);
+}
+
+.panel-select {
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    border: 2px solid rgba(216, 27, 96, 0.25);
+    background: #fff;
+    color: var(--color-gray-800);
+    font-weight: 600;
+}
+
+.panel-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.2);
+}
+
+.panel-admin-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--color-gray-600);
+}
+
 /* =====================================================================
    SHARED: TOPBAR (logged-in character switcher)
    ===================================================================== */
