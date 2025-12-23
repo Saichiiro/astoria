@@ -112,15 +112,14 @@
 }
 
 .codex-admin-section {
-    padding-top: var(--space-2);
-    margin-top: var(--space-2);
-    border-top: 1px solid rgba(216, 27, 96, 0.18);
+    background: rgba(252, 228, 236, 0.35);
+    border: 1px solid rgba(216, 27, 96, 0.16);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
 }
 
-.codex-admin-section:first-of-type {
-    padding-top: 0;
-    margin-top: 0;
-    border-top: none;
+.codex-admin-section + .codex-admin-section {
+    margin-top: var(--space-3);
 }
 
 .codex-admin-section-title {
