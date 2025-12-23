@@ -114,36 +114,51 @@
             </div>
             <div class="codex-admin-error" id="adminItemError" role="alert"></div>
             <form id="adminItemForm">
-                <div class="codex-admin-grid">
-                    <label class="codex-admin-label" for="adminItemName">Nom</label>
-                    <input class="codex-admin-input" id="adminItemName" name="name" required>
-
-                    <label class="codex-admin-label" for="adminItemCategory">Categorie</label>
-                    <input class="codex-admin-input" id="adminItemCategory" name="category" placeholder="ex: consommable">
-
-                    <label class="codex-admin-label" for="adminItemBuy">Prix achat</label>
-                    <input class="codex-admin-input" id="adminItemBuy" name="buy" placeholder="ex: 5 po">
-
-                    <label class="codex-admin-label" for="adminItemSell">Prix vente</label>
-                    <input class="codex-admin-input" id="adminItemSell" name="sell" placeholder="ex: 2 po">
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Infos</div>
+                    <div class="codex-admin-grid">
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemName">Nom</label>
+                            <input class="codex-admin-input" id="adminItemName" name="name" required>
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemCategory">Categorie</label>
+                            <input class="codex-admin-input" id="adminItemCategory" name="category" placeholder="ex: consommable">
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemBuy">Prix achat</label>
+                            <input class="codex-admin-input" id="adminItemBuy" name="buy" placeholder="ex: 5 po">
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemSell">Prix vente</label>
+                            <input class="codex-admin-input" id="adminItemSell" name="sell" placeholder="ex: 2 po">
+                        </div>
+                    </div>
                 </div>
 
-                <label class="codex-admin-label" for="adminItemDescription">Description</label>
-                <textarea class="codex-admin-textarea" id="adminItemDescription" name="description" rows="4"></textarea>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Description</div>
+                    <textarea class="codex-admin-textarea" id="adminItemDescription" name="description" rows="3" placeholder="Description courte..."></textarea>
+                </div>
 
-                <label class="codex-admin-label" for="adminItemEffect">Effet</label>
-                <textarea class="codex-admin-textarea" id="adminItemEffect" name="effect" rows="3"></textarea>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Effet</div>
+                    <textarea class="codex-admin-textarea" id="adminItemEffect" name="effect" rows="2" placeholder="Effet principal..."></textarea>
+                </div>
 
-                <div class="codex-admin-image">
-                    <div class="codex-admin-image-preview" id="adminItemImagePreview">
-                        <span class="codex-admin-image-placeholder">Image</span>
-                        <img id="adminItemImage" alt="Apercu image" hidden>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Image</div>
+                    <div class="codex-admin-image">
+                        <div class="codex-admin-image-preview" id="adminItemImagePreview">
+                            <span class="codex-admin-image-placeholder">Image</span>
+                            <img id="adminItemImage" alt="Apercu image" hidden>
+                        </div>
+                        <div class="codex-admin-image-actions">
+                            <button type="button" class="codex-admin-button secondary" id="adminItemImageBtn">Importer l'image</button>
+                            <span class="codex-admin-image-hint">Recadre en carre pour garder la taille.</span>
+                        </div>
+                        <input type="file" id="adminItemImageInput" accept="image/*" hidden>
                     </div>
-                    <div class="codex-admin-image-actions">
-                        <button type="button" class="codex-admin-button secondary" id="adminItemImageBtn">Importer l'image</button>
-                        <span class="codex-admin-image-hint">Recadre en carre pour garder la taille.</span>
-                    </div>
-                    <input type="file" id="adminItemImageInput" accept="image/*" hidden>
                 </div>
 
                 <div class="codex-admin-actions">
