@@ -289,23 +289,51 @@
 
             <!-- Colonne droite : contenu principal -->
             <section class="profile-main" aria-label="Contenu du profil">
-                <section class="profile-section">
+                <section class="profile-section profile-section--presentation">
                     <header class="profile-section-header">
-                        <h2 class="profile-section-title">Presentation</h2>
-                        <button type="button" class="profile-edit-btn" id="presentationEditBtn" hidden>Modifier</button>
+                        <div class="profile-section-title-wrap">
+                            <h2 class="profile-section-title">Presentation</h2>
+                            <p class="profile-section-subtitle">Carte perso a personnaliser pour chaque joueur.</p>
+                        </div>
+                        <div class="profile-section-actions">
+                            <button type="button" class="profile-edit-btn" id="presentationEditBtn" hidden>Modifier</button>
+                        </div>
                     </header>
-                    <p class="profile-placeholder-text" id="presentationPlaceholder">
-                        Zone de presentation du joueur et de son personnage. On pourra y coller du contenu HTML libre, des blocs de texte,
-                        ou des extraits de la fiche personnage. Pour l'instant, ceci n'est qu'un gabarit de base.
-                    </p>
-                    <div class="profile-presentation-content" id="presentationContent" hidden></div>
-                    <div class="profile-presentation-editor" id="presentationEditor" hidden>
-                        <label class="profile-modal-label" for="presentationInput">Texte (Markdown simple)</label>
-                        <textarea class="profile-modal-input profile-presentation-input" id="presentationInput" rows="2" placeholder="Ecris ici..."></textarea>
-                        <div class="profile-presentation-hint">*italique* / **gras** / [lien](https://exemple.com)</div>
-                        <div class="profile-modal-actions">
-                            <button type="button" class="profile-modal-button secondary" id="presentationCancel">Annuler</button>
-                            <button type="button" class="profile-modal-button" id="presentationSave">Enregistrer</button>
+                    <div class="profile-presentation-shell">
+                        <p class="profile-placeholder-text" id="presentationPlaceholder">
+                            Zone de presentation du joueur et de son personnage. On pourra y coller du contenu HTML libre, des blocs de texte,
+                            ou des extraits de la fiche personnage. Pour l'instant, ceci n'est qu'un gabarit de base.
+                        </p>
+                        <div class="profile-presentation-content" id="presentationContent" hidden></div>
+                        <div class="profile-presentation-editor" id="presentationEditor" hidden>
+                            <div class="profile-presentation-editor-header">
+                                <div class="profile-presentation-tabs" role="tablist" aria-label="Mode d'edition">
+                                    <button type="button" class="profile-presentation-tab is-active" id="presentationViewWrite" data-view="write" role="tab" aria-controls="presentationEditorWrite" aria-selected="true">Write</button>
+                                    <button type="button" class="profile-presentation-tab" id="presentationViewPreview" data-view="preview" role="tab" aria-controls="presentationPreview" aria-selected="false">Preview</button>
+                                </div>
+                                <div class="profile-presentation-toolbar" id="presentationToolbar" role="toolbar" aria-label="Outils de mise en forme">
+                                    <button type="button" class="profile-presentation-tool" data-md="heading" title="Heading">H</button>
+                                    <button type="button" class="profile-presentation-tool" data-md="bold" title="Gras"><strong>B</strong></button>
+                                    <button type="button" class="profile-presentation-tool" data-md="italic" title="Italique"><em>I</em></button>
+                                    <span class="profile-presentation-divider" aria-hidden="true"></span>
+                                    <button type="button" class="profile-presentation-tool" data-md="quote" title="Citation">&gt;</button>
+                                    <button type="button" class="profile-presentation-tool" data-md="code" title="Code">&lt;/&gt;</button>
+                                    <button type="button" class="profile-presentation-tool" data-md="link" title="Lien">&#128279;</button>
+                                    <span class="profile-presentation-divider" aria-hidden="true"></span>
+                                    <button type="button" class="profile-presentation-tool" data-md="ul" title="Liste">-</button>
+                                    <button type="button" class="profile-presentation-tool" data-md="ol" title="Liste numerotee">1.</button>
+                                </div>
+                            </div>
+                            <div class="profile-presentation-field" id="presentationEditorWrite" role="tabpanel" aria-labelledby="presentationViewWrite">
+                                <label class="profile-modal-label" for="presentationInput">Texte (Markdown simple)</label>
+                                <textarea class="profile-modal-input profile-presentation-input" id="presentationInput" rows="6" placeholder="Ecris ici..."></textarea>
+                            </div>
+                            <div class="profile-presentation-preview" id="presentationPreview" role="tabpanel" aria-labelledby="presentationViewPreview" hidden></div>
+                            <div class="profile-presentation-hint" id="presentationHint">*italique* / **gras** / [lien](https://exemple.com)</div>
+                            <div class="profile-modal-actions">
+                                <button type="button" class="profile-modal-button secondary" id="presentationCancel">Annuler</button>
+                                <button type="button" class="profile-modal-button" id="presentationSave">Enregistrer</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -404,6 +432,8 @@
         let avatarPreviewUrl = '';
         let pendingAvatarFile = null;
         let isCropperZoomSync = false;
+        let currentPresentationView = 'write';
+        let presentationSelection = { start: 0, end: 0 };
 
         const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
@@ -420,7 +450,13 @@
         const presentationPlaceholder = document.getElementById('presentationPlaceholder');
         const presentationContent = document.getElementById('presentationContent');
         const presentationEditor = document.getElementById('presentationEditor');
+        const presentationViewWrite = document.getElementById('presentationViewWrite');
+        const presentationViewPreview = document.getElementById('presentationViewPreview');
+        const presentationToolbar = document.getElementById('presentationToolbar');
+        const presentationEditorWrite = document.getElementById('presentationEditorWrite');
         const presentationInput = document.getElementById('presentationInput');
+        const presentationPreview = document.getElementById('presentationPreview');
+        const presentationHint = document.getElementById('presentationHint');
         const presentationSave = document.getElementById('presentationSave');
         const presentationCancel = document.getElementById('presentationCancel');
 
@@ -501,18 +537,154 @@
                 .replace(/>/g, '&gt;');
         }
 
-        function renderPresentationMarkdown(raw) {
-            let html = escapePresentationHtml(raw);
+        function formatPresentationInline(raw) {
+            const codeSnippets = [];
+            let html = raw.replace(/`([^`]+)`/g, (match, code) => {
+                const token = `__CODE_${codeSnippets.length}__`;
+                codeSnippets.push(code);
+                return token;
+            });
+
             html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
             html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
             html = html.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-            html = html.replace(/\n/g, '<br>');
+
+            codeSnippets.forEach((code, index) => {
+                html = html.replace(`__CODE_${index}__`, `<code>${code}</code>`);
+            });
+
+            return html;
+        }
+
+        function renderPresentationMarkdown(raw) {
+            const escaped = escapePresentationHtml(raw);
+            const lines = escaped.split(/\n/);
+            let html = '';
+            let inUl = false;
+            let inOl = false;
+            let inCode = false;
+            let codeBuffer = [];
+
+            const closeLists = () => {
+                if (inUl) {
+                    html += '</ul>';
+                    inUl = false;
+                }
+                if (inOl) {
+                    html += '</ol>';
+                    inOl = false;
+                }
+            };
+
+            lines.forEach((line) => {
+                const trimmed = line.trim();
+
+                if (trimmed.startsWith('```')) {
+                    if (!inCode) {
+                        closeLists();
+                        inCode = true;
+                        codeBuffer = [];
+                    } else {
+                        html += `<pre><code>${codeBuffer.join('\n')}</code></pre>`;
+                        inCode = false;
+                        codeBuffer = [];
+                    }
+                    return;
+                }
+
+                if (inCode) {
+                    codeBuffer.push(line);
+                    return;
+                }
+
+                if (!trimmed) {
+                    closeLists();
+                    html += '<br>';
+                    return;
+                }
+
+                const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                if (headingMatch) {
+                    closeLists();
+                    const level = headingMatch[1].length;
+                    html += `<h${level}>${formatPresentationInline(headingMatch[2])}</h${level}>`;
+                    return;
+                }
+
+                const quoteMatch = line.match(/^>\s?(.*)$/);
+                if (quoteMatch) {
+                    closeLists();
+                    html += `<blockquote>${formatPresentationInline(quoteMatch[1])}</blockquote>`;
+                    return;
+                }
+
+                const olMatch = line.match(/^\d+\.\s+(.+)$/);
+                if (olMatch) {
+                    if (!inOl) {
+                        closeLists();
+                        html += '<ol>';
+                        inOl = true;
+                    }
+                    html += `<li>${formatPresentationInline(olMatch[1])}</li>`;
+                    return;
+                }
+
+                const ulMatch = line.match(/^[-*]\s+(.+)$/);
+                if (ulMatch) {
+                    if (!inUl) {
+                        closeLists();
+                        html += '<ul>';
+                        inUl = true;
+                    }
+                    html += `<li>${formatPresentationInline(ulMatch[1])}</li>`;
+                    return;
+                }
+
+                closeLists();
+                html += `<p>${formatPresentationInline(line)}</p>`;
+            });
+
+            closeLists();
+
+            if (inCode) {
+                html += `<pre><code>${codeBuffer.join('\n')}</code></pre>`;
+            }
+
             return html;
         }
 
         function getPresentationValue() {
             const profileData = currentCharacter?.profile_data || {};
             return String(profileData.presentation_md || '').trim();
+        }
+
+        function renderPresentationPreview(value) {
+            if (!presentationPreview) return;
+            const raw = typeof value === 'string' ? value : (presentationInput?.value || '');
+            if (!raw.trim()) {
+                presentationPreview.innerHTML = '<p class="profile-placeholder-text">Apercu vide.</p>';
+                return;
+            }
+            presentationPreview.innerHTML = renderPresentationMarkdown(raw);
+        }
+
+        function setPresentationView(view) {
+            currentPresentationView = view === 'preview' ? 'preview' : 'write';
+            const isPreview = currentPresentationView === 'preview';
+
+            if (presentationViewWrite) {
+                presentationViewWrite.classList.toggle('is-active', !isPreview);
+                presentationViewWrite.setAttribute('aria-selected', String(!isPreview));
+            }
+            if (presentationViewPreview) {
+                presentationViewPreview.classList.toggle('is-active', isPreview);
+                presentationViewPreview.setAttribute('aria-selected', String(isPreview));
+            }
+            if (presentationEditorWrite) presentationEditorWrite.hidden = isPreview;
+            if (presentationPreview) presentationPreview.hidden = !isPreview;
+            if (presentationHint) presentationHint.hidden = isPreview;
+            if (presentationEditor) presentationEditor.dataset.view = currentPresentationView;
+            if (isPreview) renderPresentationPreview();
         }
 
         function renderPresentation() {
@@ -552,8 +724,10 @@
             if (presentationContent) presentationContent.hidden = true;
             presentationEditor.hidden = false;
             presentationInput.value = getPresentationValue();
+            setPresentationView(currentPresentationView);
             autoGrowPresentation();
             presentationInput.focus();
+            updatePresentationSelection();
         }
 
         function closePresentationEditor() {
@@ -564,11 +738,11 @@
 
         async function savePresentation() {
             if (!currentCharacter || !canEditProfile()) return;
-            const nextValue = (presentationInput?.value || '').trim();
             const profileData = currentCharacter.profile_data || {};
+            const nextMarkdown = (presentationInput?.value || '').trim();
             const nextProfileData = {
                 ...profileData,
-                presentation_md: nextValue
+                presentation_md: nextMarkdown
             };
 
             try {
@@ -587,9 +761,143 @@
         }
 
         function autoGrowPresentation() {
-            if (!presentationInput) return;
+            if (!presentationInput || presentationInput.closest('[hidden]')) return;
             presentationInput.style.height = 'auto';
             presentationInput.style.height = `${presentationInput.scrollHeight}px`;
+        }
+
+        function applyPresentationReplacement(replacement, selectionStart, selectionEnd) {
+            if (!presentationInput) return;
+            const value = presentationInput.value;
+            const start = presentationInput.selectionStart ?? 0;
+            const end = presentationInput.selectionEnd ?? 0;
+            presentationInput.value = value.slice(0, start) + replacement + value.slice(end);
+            const nextStart = typeof selectionStart === 'number' ? selectionStart : start + replacement.length;
+            const nextEnd = typeof selectionEnd === 'number' ? selectionEnd : nextStart;
+            presentationInput.setSelectionRange(nextStart, nextEnd);
+            presentationInput.focus();
+            updatePresentationSelection();
+        }
+
+        function updatePresentationSelection() {
+            if (!presentationInput) return;
+            presentationSelection = {
+                start: presentationInput.selectionStart ?? 0,
+                end: presentationInput.selectionEnd ?? 0
+            };
+        }
+
+        function restorePresentationSelection() {
+            if (!presentationInput) return;
+            const { start, end } = presentationSelection;
+            presentationInput.setSelectionRange(start, end);
+        }
+
+        function wrapPresentationSelection(prefix, suffix, placeholder) {
+            if (!presentationInput) return;
+            const value = presentationInput.value;
+            const start = presentationInput.selectionStart ?? 0;
+            const end = presentationInput.selectionEnd ?? 0;
+            const selected = value.slice(start, end);
+            const content = selected || placeholder;
+            const replacement = `${prefix}${content}${suffix}`;
+            const nextStart = start + prefix.length;
+            const nextEnd = nextStart + content.length;
+            applyPresentationReplacement(replacement, nextStart, nextEnd);
+        }
+
+        function applyPresentationLinePrefix(prefix, ordered = false) {
+            if (!presentationInput) return;
+            const value = presentationInput.value;
+            const start = presentationInput.selectionStart ?? 0;
+            const end = presentationInput.selectionEnd ?? 0;
+            const blockStart = value.lastIndexOf('\n', start - 1) + 1;
+            let blockEnd = value.indexOf('\n', end);
+            if (blockEnd === -1) blockEnd = value.length;
+            const block = value.slice(blockStart, blockEnd);
+            const lines = block.split('\n');
+            const prefixed = lines.map((line, index) => {
+                if (ordered) return `${index + 1}. ${line}`;
+                return `${prefix}${line}`;
+            }).join('\n');
+            presentationInput.value = value.slice(0, blockStart) + prefixed + value.slice(blockEnd);
+            presentationInput.setSelectionRange(blockStart, blockStart + prefixed.length);
+            presentationInput.focus();
+        }
+
+        function applyPresentationHeading() {
+            if (!presentationInput) return;
+            const value = presentationInput.value;
+            const start = presentationInput.selectionStart ?? 0;
+            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+            let lineEnd = value.indexOf('\n', start);
+            if (lineEnd === -1) lineEnd = value.length;
+            const line = value.slice(lineStart, lineEnd);
+            const nextLine = line.startsWith('#') ? line : `## ${line}`;
+            presentationInput.value = value.slice(0, lineStart) + nextLine + value.slice(lineEnd);
+            presentationInput.setSelectionRange(lineStart, lineStart + nextLine.length);
+            presentationInput.focus();
+        }
+
+        function applyPresentationLink() {
+            if (!presentationInput) return;
+            const value = presentationInput.value;
+            const start = presentationInput.selectionStart ?? 0;
+            const end = presentationInput.selectionEnd ?? 0;
+            const selected = value.slice(start, end) || 'texte';
+            const url = 'url';
+            const replacement = `[${selected}](${url})`;
+            const urlStart = start + selected.length + 3;
+            const urlEnd = urlStart + url.length;
+            applyPresentationReplacement(replacement, urlStart, urlEnd);
+        }
+
+        function applyPresentationTool(action) {
+            if (!presentationInput) return;
+            if (currentPresentationView === 'preview') setPresentationView('write');
+            if (document.activeElement !== presentationInput) {
+                restorePresentationSelection();
+            }
+
+            switch (action) {
+                case 'heading':
+                    applyPresentationHeading();
+                    break;
+                case 'bold':
+                    wrapPresentationSelection('**', '**', 'texte');
+                    break;
+                case 'italic':
+                    wrapPresentationSelection('*', '*', 'texte');
+                    break;
+                case 'quote':
+                    applyPresentationLinePrefix('> ');
+                    break;
+                case 'code': {
+                    const selected = presentationInput.value.slice(
+                        presentationInput.selectionStart ?? 0,
+                        presentationInput.selectionEnd ?? 0
+                    );
+                    if (selected.includes('\n')) {
+                        wrapPresentationSelection('```\n', '\n```', 'code');
+                    } else {
+                        wrapPresentationSelection('`', '`', 'code');
+                    }
+                    break;
+                }
+                case 'link':
+                    applyPresentationLink();
+                    break;
+                case 'ul':
+                    applyPresentationLinePrefix('- ');
+                    break;
+                case 'ol':
+                    applyPresentationLinePrefix('', true);
+                    break;
+                default:
+                    break;
+            }
+
+            autoGrowPresentation();
         }
 
         function destroyAvatarCropper() {
@@ -1091,8 +1399,38 @@
             presentationSave.addEventListener('click', savePresentation);
         }
 
+        if (presentationViewWrite) {
+            presentationViewWrite.addEventListener('click', () => setPresentationView('write'));
+        }
+
+        if (presentationViewPreview) {
+            presentationViewPreview.addEventListener('click', () => setPresentationView('preview'));
+        }
+
+        if (presentationToolbar) {
+            presentationToolbar.addEventListener('pointerdown', (event) => {
+                if (event.target.closest('button[data-md]')) {
+                    event.preventDefault();
+                }
+            });
+            presentationToolbar.addEventListener('click', (event) => {
+                const button = event.target.closest('button[data-md]');
+                if (!button) return;
+                applyPresentationTool(button.getAttribute('data-md'));
+            });
+        }
+
         if (presentationInput) {
-            presentationInput.addEventListener('input', autoGrowPresentation);
+            presentationInput.addEventListener('input', () => {
+                updatePresentationSelection();
+                autoGrowPresentation();
+                if (currentPresentationView === 'preview') {
+                    renderPresentationPreview(presentationInput.value);
+                }
+            });
+            presentationInput.addEventListener('keyup', updatePresentationSelection);
+            presentationInput.addEventListener('mouseup', updatePresentationSelection);
+            presentationInput.addEventListener('select', updatePresentationSelection);
         }
 
         if (avatarTrigger && avatarInput) {
