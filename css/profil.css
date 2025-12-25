@@ -854,6 +854,18 @@
     background: rgba(255, 255, 255, 0.75);
 }
 
+.profile-presentation-editor [hidden] {
+    display: none !important;
+}
+
+.profile-presentation-body {
+    border: 1px solid var(--color-primary-light);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.9);
+    padding: var(--space-3);
+    min-height: 160px;
+}
+
 .profile-presentation-input {
     min-height: 120px;
     resize: vertical;
@@ -861,12 +873,15 @@
     font-size: var(--text-base);
 }
 
+.profile-presentation-body .profile-modal-input {
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
 .profile-presentation-preview {
     min-height: 160px;
-    border: 1px solid var(--color-primary-light);
-    border-radius: var(--radius-md);
-    background: rgba(255, 255, 255, 0.9);
-    padding: var(--space-3);
+    padding: 0;
     color: var(--color-gray-800);
 }
 

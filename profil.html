@@ -324,11 +324,13 @@
                                     <button type="button" class="profile-presentation-tool" data-md="ol" title="Liste numerotee">1.</button>
                                 </div>
                             </div>
-                            <div class="profile-presentation-field" id="presentationEditorWrite" role="tabpanel" aria-labelledby="presentationViewWrite">
-                                <label class="profile-modal-label" for="presentationInput">Texte (Markdown simple)</label>
-                                <textarea class="profile-modal-input profile-presentation-input" id="presentationInput" rows="6" placeholder="Ecris ici..."></textarea>
+                            <div class="profile-presentation-body" id="presentationBody">
+                                <div class="profile-presentation-field" id="presentationEditorWrite" role="tabpanel" aria-labelledby="presentationViewWrite">
+                                    <label class="profile-modal-label" for="presentationInput">Texte (Markdown simple)</label>
+                                    <textarea class="profile-modal-input profile-presentation-input" id="presentationInput" rows="6" placeholder="Ecris ici..."></textarea>
+                                </div>
+                                <div class="profile-presentation-preview" id="presentationPreview" role="tabpanel" aria-labelledby="presentationViewPreview" hidden></div>
                             </div>
-                            <div class="profile-presentation-preview" id="presentationPreview" role="tabpanel" aria-labelledby="presentationViewPreview" hidden></div>
                             <div class="profile-presentation-hint" id="presentationHint">*italique* / **gras** / [lien](https://exemple.com)</div>
                             <div class="profile-modal-actions">
                                 <button type="button" class="profile-modal-button secondary" id="presentationCancel">Annuler</button>
