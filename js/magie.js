@@ -81,7 +81,7 @@
 
     async function initSummary() {
         try {
-            summaryModule = await import("./js/ui/character-summary.js");
+            summaryModule = await import("./ui/character-summary.js");
         } catch (error) {
             summaryModule = null;
         }
