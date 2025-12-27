@@ -18,7 +18,7 @@ function ensureTopbarStyles() {
   if (document.getElementById("appShellTopbarStyles")) return;
 
   const probe = document.createElement("div");
-  probe.className = "app-topbar";
+  probe.className = "app-dock";
   probe.style.position = "static";
   document.body.appendChild(probe);
   const computed = window.getComputedStyle(probe);
@@ -31,20 +31,20 @@ function ensureTopbarStyles() {
   const style = document.createElement("style");
   style.id = "appShellTopbarStyles";
   style.textContent = `
-.app-topbar{position:sticky;top:var(--space-4,8px);margin:var(--space-4,8px) auto;display:flex;align-items:center;gap:var(--space-3,6px);padding:var(--space-3,6px);border-radius:var(--radius-lg,8px);background:rgba(255,255,255,.65);border:1px solid rgba(216,27,96,.25);box-shadow:0 10px 26px rgba(0,0,0,.12);backdrop-filter:blur(12px);z-index:999;max-width:min(920px,calc(100vw - (var(--space-6,12px) * 2)))}
-.app-topbar-select{min-width:min(360px,45vw);height:44px;padding:0 var(--space-4,8px);border-radius:var(--radius-lg,8px);border:2px solid rgba(216,27,96,.55);background:rgba(255,255,255,.85);font-family:var(--font-family,system-ui);font-size:var(--text-sm-plus,.82rem);font-weight:600;color:var(--color-primary,#d81b60);box-sizing:border-box}
-.app-topbar-select--admin{min-width:min(260px,35vw)}
-.app-topbar-select:focus{outline:none;box-shadow:0 0 0 3px rgba(216,27,96,.22)}
-.app-topbar-badge{padding:var(--space-2,4px) var(--space-4,8px);border-radius:999px;background:var(--color-primary,#d81b60);color:#fff;font-weight:600;font-size:var(--text-sm,.8rem);letter-spacing:var(--letter-spacing-wide,.08em);white-space:nowrap}
-.app-topbar-label{color:var(--color-gray-800,#444);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
-.app-topbar-souls{display:flex;gap:var(--space-2,4px);align-items:center;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.8);border:1px solid rgba(216,27,96,.2)}
-.app-topbar-soul{display:flex;flex-direction:column;align-items:center;line-height:1}
-.app-topbar-soul-label{font-size:.6rem;color:#666;text-transform:uppercase;letter-spacing:.06em}
-.app-topbar-soul-value{font-weight:700;color:var(--color-primary,#d81b60);font-size:.78rem}
-.app-topbar-logout{padding:var(--space-2,4px) var(--space-4,8px);border-radius:var(--radius-md,6px);border:2px solid rgba(216,27,96,.55);background:rgba(255,255,255,.9);color:var(--color-primary,#d81b60);font-family:var(--font-family,system-ui);font-size:var(--text-sm-plus,.82rem);font-weight:600;cursor:pointer;transition:transform .12s ease,background .12s ease;white-space:nowrap}
-.app-topbar-logout:hover{background:rgba(255,255,255,1);transform:translateY(-1px)}
-.app-topbar-logout:active{transform:translateY(0)}
-@media (max-width:640px){.app-topbar{margin:var(--space-3,6px);max-width:none;justify-content:space-between}.app-topbar-select{min-width:0;flex:1}.app-topbar-label{display:none}.app-topbar-select--admin{display:none}}
+.app-dock{position:fixed;top:var(--space-4,8px);right:var(--space-4,8px);display:flex;align-items:center;gap:var(--space-2,6px);padding:var(--space-2,6px) var(--space-3,8px);border-radius:var(--radius-lg,8px);background:rgba(255,255,255,.75);border:1px solid rgba(216,27,96,.25);box-shadow:0 10px 26px rgba(0,0,0,.12);backdrop-filter:blur(12px);z-index:999;max-width:min(92vw,820px);flex-wrap:wrap}
+.app-dock .character-selector{min-width:min(220px,42vw);height:38px;padding:0 var(--space-3,6px);border-radius:var(--radius-lg,8px);border:2px solid rgba(216,27,96,.55);background:rgba(255,255,255,.85);font-family:var(--font-family,system-ui);font-size:var(--text-sm-plus,.82rem);font-weight:600;color:var(--color-primary,#d81b60);box-sizing:border-box}
+.app-dock .character-selector--admin{min-width:min(200px,34vw)}
+.app-dock .character-selector:focus{outline:none;box-shadow:0 0 0 3px rgba(216,27,96,.22)}
+.app-dock .user-badge{padding:var(--space-2,4px) var(--space-3,8px);border-radius:999px;background:var(--color-primary,#d81b60);color:#fff;font-weight:600;font-size:var(--text-sm,.8rem);letter-spacing:var(--letter-spacing-wide,.08em);white-space:nowrap}
+.app-dock-label{color:var(--color-gray-800,#444);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.app-dock-souls{display:flex;gap:var(--space-2,4px);align-items:center;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.8);border:1px solid rgba(216,27,96,.2)}
+.app-dock-soul{display:flex;flex-direction:column;align-items:center;line-height:1}
+.app-dock-soul-label{font-size:.6rem;color:#666;text-transform:uppercase;letter-spacing:.06em}
+.app-dock-soul-value{font-weight:700;color:var(--color-primary,#d81b60);font-size:.78rem}
+.app-dock .auth-button{padding:var(--space-2,4px) var(--space-3,8px);border-radius:var(--radius-md,6px);border:2px solid rgba(216,27,96,.55);background:rgba(255,255,255,.9);color:var(--color-primary,#d81b60);font-family:var(--font-family,system-ui);font-size:var(--text-sm-plus,.82rem);font-weight:600;cursor:pointer;transition:transform .12s ease,background .12s ease;white-space:nowrap}
+.app-dock .auth-button:hover{background:rgba(255,255,255,1);transform:translateY(-1px)}
+.app-dock .auth-button:active{transform:translateY(0)}
+@media (max-width:720px){.app-dock .character-selector--admin,.app-dock-souls,.app-dock-label{display:none}}
 `;
   document.head.appendChild(style);
 }
@@ -88,10 +88,10 @@ async function run() {
     characters = [];
   }
 
-  const mount = el("div", "app-topbar");
+  const mount = el("div", "app-dock");
   ensureTopbarStyles();
 
-  const selector = el("select", "app-topbar-select");
+  const selector = el("select", "character-selector");
   selector.setAttribute("aria-label", "Sélectionner un personnage");
 
   const placeholder = document.createElement("option");
@@ -106,25 +106,25 @@ async function run() {
     selector.appendChild(option);
   });
 
-  const badge = el("span", "app-topbar-badge", adminMode ? "ADMIN" : "JOUEUR");
-  const label = el("span", "app-topbar-label");
-  const souls = el("div", "app-topbar-souls");
-  const soulConso = el("div", "app-topbar-soul");
-  const soulConsoLabel = el("span", "app-topbar-soul-label", "Ames conso");
-  const soulConsoValue = el("span", "app-topbar-soul-value", "0");
+  const badge = el("span", "user-badge", adminMode ? "ADMIN" : "JOUEUR");
+  const label = el("span", "app-dock-label");
+  const souls = el("div", "app-dock-souls");
+  const soulConso = el("div", "app-dock-soul");
+  const soulConsoLabel = el("span", "app-dock-soul-label", "Ames conso");
+  const soulConsoValue = el("span", "app-dock-soul-value", "0");
   soulConso.append(soulConsoLabel, soulConsoValue);
-  const soulProg = el("div", "app-topbar-soul");
-  const soulProgLabel = el("span", "app-topbar-soul-label", "Ames prog");
-  const soulProgValue = el("span", "app-topbar-soul-value", "0");
+  const soulProg = el("div", "app-dock-soul");
+  const soulProgLabel = el("span", "app-dock-soul-label", "Ames prog");
+  const soulProgValue = el("span", "app-dock-soul-value", "0");
   soulProg.append(soulProgLabel, soulProgValue);
   souls.append(soulConso, soulProg);
 
-  const logoutBtn = el("button", "app-topbar-logout", "Déconnexion");
+  const logoutBtn = el("button", "auth-button secondary", "Déconnexion");
   logoutBtn.type = "button";
 
   let adminSelect = null;
   if (adminMode) {
-    adminSelect = el("select", "app-topbar-select app-topbar-select--admin");
+    adminSelect = el("select", "character-selector character-selector--admin");
     adminSelect.setAttribute("aria-label", "MJ : sélectionner un personnage");
     const adminPlaceholder = document.createElement("option");
     adminPlaceholder.value = "";
@@ -232,7 +232,7 @@ async function run() {
   } else {
     mount.append(selector, badge, label, souls, logoutBtn);
   }
-  document.body.prepend(mount);
+  document.body.append(mount);
 
   setInterval(() => {
     const active = typeof getActiveCharacter === "function" ? getActiveCharacter() : null;
