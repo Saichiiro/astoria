@@ -1,10 +1,19 @@
 ﻿(function () {
-    const STORAGE_KEY = "magicSheetPages";
+    const STORAGE_KEY_BASE = "magicSheetPages";
+    const CHARACTER_STORAGE_KEY = "astoria_active_character";
+    const LEGACY_SUMMARY_KEY = "astoria_character_summary";
     const body = document.body;
     const isAdmin = body.dataset.admin === "true" || !body.hasAttribute("data-admin");
 
     const navButtons = Array.from(document.querySelectorAll(".magic-nav-btn"));
     const sections = Array.from(document.querySelectorAll(".magic-section"));
+    const saveBtn = document.getElementById("magicSaveBtn");
+    const saveStatus = document.getElementById("magicSaveStatus");
+    const pagesOverview = document.getElementById("magicPagesOverview");
+    const summaryNameEl = document.getElementById("magicCharacterName");
+    const summaryTaglineEl = document.getElementById("magicCharacterTagline");
+    const summaryAvatarImg = document.getElementById("magicCharacterAvatar");
+    const summaryAvatarInitial = document.getElementById("magicCharacterInitial");
     const capacityList = document.getElementById("magicCapacityList");
     const capacityFilter = document.getElementById("magicCapacityFilter");
     const addCapacityBtn = document.getElementById("magicAddCapacityBtn");
@@ -28,6 +37,11 @@
     let pages = [];
     let activePageIndex = 0;
     let activeSection = "magic-summary";
+    let currentCharacterKey = "default";
+    let currentCharacter = null;
+    let storageKey = STORAGE_KEY_BASE;
+    let authApi = null;
+    let hasPendingChanges = false;
 
     const defaultCapacities = [
         {
@@ -66,6 +80,114 @@
         }))
     });
 
+    function buildStorageKey(key) {
+        return key === "default" ? STORAGE_KEY_BASE : `${STORAGE_KEY_BASE}-${key}`;
+    }
+
+    function getActiveCharacterFromStorage() {
+        const raw = localStorage.getItem(CHARACTER_STORAGE_KEY);
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+
+    function getLegacySummary() {
+        const raw = localStorage.getItem(LEGACY_SUMMARY_KEY);
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return null;
+        }
+    }
+
+    function resolveCharacterContext() {
+        const character = getActiveCharacterFromStorage();
+        if (character && character.id) {
+            return { key: character.id, character };
+        }
+        const legacy = getLegacySummary();
+        if (legacy && legacy.id) {
+            return { key: legacy.id, character: null };
+        }
+        return { key: "default", character: null };
+    }
+
+    function buildRoleText(character) {
+        if (!character) return "Classe / Role / Surnom";
+        const parts = [];
+        if (character.race) parts.push(character.race);
+        if (character.class) parts.push(character.class);
+        return parts.length ? parts.join(" - ") : "Classe / Role / Surnom";
+    }
+
+    function applySummaryData(summary) {
+        if (!summaryNameEl || !summaryTaglineEl || !summaryAvatarInitial) return;
+        const name = summary?.name || "Personnage";
+        const role = summary?.role || "Classe / Role / Surnom";
+        const avatarUrl = summary?.avatar_url || "";
+        summaryNameEl.textContent = name;
+        summaryTaglineEl.textContent = role;
+        if (summaryAvatarImg) {
+            if (avatarUrl) {
+                summaryAvatarImg.src = avatarUrl;
+                summaryAvatarImg.hidden = false;
+                summaryAvatarInitial.hidden = true;
+            } else {
+                summaryAvatarImg.hidden = true;
+                summaryAvatarImg.removeAttribute("src");
+                summaryAvatarInitial.hidden = false;
+                summaryAvatarInitial.textContent = name ? name.charAt(0).toUpperCase() : "?";
+            }
+        }
+    }
+
+    function updateSummary(context) {
+        if (context.character) {
+            const profileData = context.character.profile_data || {};
+            const storedSummary = profileData.fiche_summary;
+            const summary = storedSummary || {
+                id: context.character.id,
+                name: context.character.name || "Personnage",
+                role: buildRoleText(context.character),
+                avatar_url: profileData.avatar_url || ""
+            };
+            applySummaryData(summary);
+            return;
+        }
+        const legacy = getLegacySummary();
+        if (legacy) {
+            applySummaryData(legacy);
+        }
+    }
+
+    function setCharacterContext() {
+        const context = resolveCharacterContext();
+        currentCharacterKey = context.key || "default";
+        currentCharacter = context.character || null;
+        storageKey = buildStorageKey(currentCharacterKey);
+        updateSummary(context);
+    }
+
+    function updateSaveStatus() {
+        if (!saveStatus) return;
+        saveStatus.textContent = hasPendingChanges ? "Sauvegarde en attente." : "Tout est sauvegarde.";
+        saveStatus.classList.toggle("magic-save-status--dirty", hasPendingChanges);
+    }
+
+    function markDirty() {
+        hasPendingChanges = true;
+        updateSaveStatus();
+    }
+
+    function markSaved() {
+        hasPendingChanges = false;
+        updateSaveStatus();
+    }
+
     function readFormFields() {
         const data = {};
         formFields.forEach((field) => {
@@ -91,17 +213,40 @@
         });
     }
 
-    function saveToStorage() {
-        const payload = {
+    function buildPayload() {
+        return {
             pages,
             activePageIndex,
             activeSection
         };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }
+
+    function saveToStorage() {
+        const payload = buildPayload();
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        return payload;
     }
 
     function loadFromStorage() {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        let stored = localStorage.getItem(storageKey);
+        if (!stored && storageKey !== STORAGE_KEY_BASE) {
+            stored = localStorage.getItem(STORAGE_KEY_BASE);
+            if (stored) {
+                localStorage.setItem(storageKey, stored);
+            }
+        }
+        if (!stored && currentCharacter?.profile_data?.magic_sheet) {
+            try {
+                const profilePayload = currentCharacter.profile_data.magic_sheet;
+                if (profilePayload && Array.isArray(profilePayload.pages)) {
+                    pages = profilePayload.pages;
+                    activePageIndex = Math.min(Math.max(profilePayload.activePageIndex || 0, 0), pages.length - 1);
+                    activeSection = profilePayload.activeSection || activeSection;
+                    localStorage.setItem(storageKey, JSON.stringify(profilePayload));
+                    return true;
+                }
+            } catch {}
+        }
         if (!stored) return false;
         try {
             const parsed = JSON.parse(stored);
@@ -187,6 +332,38 @@
         pageTabs.appendChild(addBtn);
     }
 
+    const specializationLabels = {
+        meister: "Meister Arme",
+        sorcellerie: "Sorcellerie",
+        alice: "Alice"
+    };
+
+    function renderPagesOverview() {
+        if (!pagesOverview) return;
+        pagesOverview.innerHTML = "";
+        if (!pages.length) {
+            pagesOverview.textContent = "Aucune magie disponible.";
+            return;
+        }
+
+        pages.forEach((page, index) => {
+            const fields = page?.fields || {};
+            const name = String(fields.magicName || "").trim() || `Magie ${index + 1}`;
+            const specValue = String(fields.magicSpecialization || "").trim();
+            const specLabel = specializationLabels[specValue] || "Sans specialisation";
+
+            const pill = document.createElement("button");
+            pill.type = "button";
+            pill.className = "magic-page-pill" + (index === activePageIndex ? " magic-page-pill--active" : "");
+            pill.innerHTML = `
+                <span class="magic-page-pill-title">${name}</span>
+                <span class="magic-page-pill-meta">${specLabel}</span>
+            `;
+            pill.addEventListener("click", () => setActivePage(index));
+            pagesOverview.appendChild(pill);
+        });
+    }
+
     function setActivePage(index) {
         if (index < 0 || index >= pages.length) return;
         saveCurrentPage();
@@ -196,12 +373,14 @@
         setCapacityFormOpen(false);
         renderCapacities(capacityFilter ? capacityFilter.value : "");
         renderPageTabs();
+        renderPagesOverview();
         saveToStorage();
     }
 
     function saveCurrentPage() {
         if (!pages[activePageIndex]) return;
         pages[activePageIndex].fields = readFormFields();
+        renderPagesOverview();
     }
 
     function handleAddPage() {
@@ -222,7 +401,9 @@
         applyFormFields(newPage.fields);
         renderCapacities(capacityFilter ? capacityFilter.value : "");
         renderPageTabs();
+        renderPagesOverview();
         saveToStorage();
+        markDirty();
     }
 
     function renderCapacities(filterType) {
@@ -325,6 +506,24 @@
         };
     }
 
+    async function persistToProfile(payload) {
+        if (!authApi?.updateCharacter || !currentCharacter?.id) return;
+        const profileData = currentCharacter.profile_data || {};
+        const nextProfileData = {
+            ...profileData,
+            magic_sheet: payload
+        };
+        try {
+            await authApi.updateCharacter(currentCharacter.id, { profile_data: nextProfileData });
+            const refreshed = authApi.getActiveCharacter?.();
+            if (refreshed && refreshed.id === currentCharacter.id) {
+                currentCharacter = refreshed;
+            }
+        } catch (error) {
+            console.warn("Magic sheet save failed.", error);
+        }
+    }
+
     if (!isAdmin && adminSection) {
         const adminNav = document.querySelector(".magic-nav-btn--admin");
         if (adminNav) {
@@ -346,6 +545,7 @@
         const handler = () => {
             saveCurrentPage();
             saveToStorage();
+            markDirty();
         };
         field.addEventListener("input", handler);
         field.addEventListener("change", handler);
@@ -389,12 +589,37 @@
             renderCapacities(capacityFilter ? capacityFilter.value : "");
             setCapacityFormOpen(false);
             saveToStorage();
+            markDirty();
+        });
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener("click", async () => {
+            saveCurrentPage();
+            const payload = saveToStorage();
+            await persistToProfile(payload);
+            markSaved();
+            saveBtn.textContent = "Sauvegarde OK";
+            setTimeout(() => {
+                saveBtn.textContent = "Sauvegarder";
+            }, 1600);
         });
     }
 
     if (addPageBtn) {
         addPageBtn.addEventListener("click", handleAddPage);
     }
+
+    setCharacterContext();
+    updateSaveStatus();
+
+    (async () => {
+        try {
+            authApi = await import("./js/auth.js");
+        } catch (error) {
+            authApi = null;
+        }
+    })();
 
     const restored = loadFromStorage();
     if (!restored) {
@@ -411,5 +636,7 @@
     setActiveSection(activeSection);
     renderCapacities(capacityFilter ? capacityFilter.value : "");
     renderPageTabs();
+    renderPagesOverview();
     saveToStorage();
+    markSaved();
 })();

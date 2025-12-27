@@ -18,12 +18,12 @@
                 </div>
                 <div class="magic-character-summary" aria-label="Personnage">
                     <div class="magic-character-avatar">
-                        <!-- Placeholder avatar; pourra être remplacé par l'avatar du joueur -->
-                        <div class="magic-avatar-circle">✶</div>
+                        <img class="magic-character-avatar-img" id="magicCharacterAvatar" alt="Avatar" hidden>
+                        <div class="magic-avatar-circle" id="magicCharacterInitial">?</div>
                     </div>
                     <div class="magic-character-meta">
-                        <span class="magic-character-name">Nom du personnage</span>
-                        <span class="magic-character-tagline">Classe / Rôle / Surnom</span>
+                        <span class="magic-character-name" id="magicCharacterName">Nom du personnage</span>
+                        <span class="magic-character-tagline" id="magicCharacterTagline">Classe / Role / Surnom</span>
                     </div>
                 </div>
             </div>
@@ -53,6 +53,11 @@
                         <button class="magic-nav-btn magic-nav-btn--admin" data-target="magic-admin">
                             Zone admin
                         </button>
+                    </div>
+
+                    <div class="magic-save-row">
+                        <span class="magic-save-status" id="magicSaveStatus">Sauvegarde en attente.</span>
+                        <button type="button" class="magic-btn magic-btn-primary" id="magicSaveBtn">Sauvegarder</button>
                     </div>
 
                     <div class="magic-content-body">
@@ -93,6 +98,11 @@
                                         <label class="magic-label" for="magicSummaryTech">Résumé technique</label>
                                         <textarea id="magicSummaryTech" class="magic-input magic-input--textarea" rows="3" placeholder="Portée globale, nature, style d'utilisation, contraintes générales..."></textarea>
                                     </div>
+                                </article>
+                                <article class="magic-card">
+                                    <h3 class="magic-card-title">Magies enregistrees</h3>
+                                    <div class="magic-pages-overview" id="magicPagesOverview"></div>
+                                    <p class="magic-overview-hint">Clique pour ouvrir une page.</p>
                                 </article>
                             </div>
                         </section>
