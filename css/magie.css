@@ -169,11 +169,16 @@
 .magic-save-row {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: var(--space-3);
     padding: var(--space-3) var(--space-5);
     border-bottom: 1px solid #e0e3ec;
     background: rgba(255, 255, 255, 0.8);
+}
+
+.magic-save-row--dirty {
+    border-bottom-color: rgba(216, 27, 96, 0.3);
+    background: rgba(252, 228, 236, 0.6);
 }
 
 .magic-save-status {
@@ -284,6 +289,14 @@
     font-family: var(--font-family);
     text-align: left;
     transition: all var(--transition-fast);
+}
+
+.magic-page-pill:hover,
+.magic-page-pill:focus-visible {
+    border-color: var(--color-primary);
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(216, 27, 96, 0.18);
+    outline: none;
 }
 
 .magic-page-pill--active {

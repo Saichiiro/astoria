@@ -7,6 +7,7 @@
     const sections = Array.from(document.querySelectorAll(".magic-section"));
     const saveBtn = document.getElementById("magicSaveBtn");
     const saveStatus = document.getElementById("magicSaveStatus");
+    const saveRow = document.querySelector(".magic-save-row");
     const pagesOverview = document.getElementById("magicPagesOverview");
     const capacityList = document.getElementById("magicCapacityList");
     const capacityFilter = document.getElementById("magicCapacityFilter");
@@ -95,6 +96,9 @@
         if (!saveStatus) return;
         saveStatus.textContent = hasPendingChanges ? "Sauvegarde en attente." : "Tout est sauvegarde.";
         saveStatus.classList.toggle("magic-save-status--dirty", hasPendingChanges);
+        if (saveRow) {
+            saveRow.classList.toggle("magic-save-row--dirty", hasPendingChanges);
+        }
     }
 
     function markDirty() {
