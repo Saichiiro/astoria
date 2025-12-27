@@ -322,6 +322,7 @@
         import {
             getCurrentUser,
             getUserCharacters,
+            getAllCharacters,
             getActiveCharacter,
             setActiveCharacter,
             createCharacter,
@@ -353,6 +354,13 @@
         let currentCharacter = null;
         let userCharacters = [];
         let userLinkButton = null;
+        let dockPrimaryRow = null;
+        let dockAdminRow = null;
+        let dockMetaRow = null;
+        let adminSelectorEl = null;
+        let dockSouls = null;
+        let soulConsoValue = null;
+        let soulProgValue = null;
         let panelHost = null;
         let avatarCropper = null;
         let avatarPreviewUrl = '';
@@ -1155,13 +1163,16 @@
             setupShortcutPanels();
 
             // Logged in - render auth controls
-            renderAuthControls();
+            await renderAuthControls();
 
             // Load user's characters
             await loadCharacters();
 
             // Load active character or prompt to select/create one
             await loadActiveCharacter();
+            setInterval(() => {
+                renderSoulCounts(getActiveCharacter());
+            }, 1200);
         }
 
         function showNotLoggedIn() {
@@ -1178,11 +1189,16 @@
             `;
         }
 
-        function renderAuthControls() {
-            const roleBadge = isAdmin() ? 'Admin' : 'Joueur';
+        async function renderAuthControls() {
+            const roleBadge = isAdmin() ? 'ADMIN' : 'JOUEUR';
 
-            // New (DOM-based) header controls: easier to keep stable + clickable username
             authControls.replaceChildren();
+
+            dockPrimaryRow = document.createElement('div');
+            dockPrimaryRow.className = 'app-dock-row app-dock-row--primary';
+
+            dockMetaRow = document.createElement('div');
+            dockMetaRow.className = 'app-dock-row app-dock-row--meta';
 
             const badge = document.createElement('span');
             badge.className = 'user-badge';
@@ -1203,17 +1219,135 @@
                 }
             });
 
+            dockSouls = document.createElement('div');
+            dockSouls.className = 'app-dock-souls';
+            const soulConso = document.createElement('div');
+            soulConso.className = 'app-dock-soul';
+            const soulConsoLabel = document.createElement('span');
+            soulConsoLabel.className = 'app-dock-soul-label';
+            soulConsoLabel.textContent = 'Ames conso';
+            soulConsoValue = document.createElement('span');
+            soulConsoValue.className = 'app-dock-soul-value';
+            soulConsoValue.textContent = '0';
+            soulConso.append(soulConsoLabel, soulConsoValue);
+
+            const soulProg = document.createElement('div');
+            soulProg.className = 'app-dock-soul';
+            const soulProgLabel = document.createElement('span');
+            soulProgLabel.className = 'app-dock-soul-label';
+            soulProgLabel.textContent = 'Ames prog';
+            soulProgValue = document.createElement('span');
+            soulProgValue.className = 'app-dock-soul-value';
+            soulProgValue.textContent = '0';
+            soulProg.append(soulProgLabel, soulProgValue);
+            dockSouls.append(soulConso, soulProg);
+
             const logoutButton = document.createElement('button');
             logoutButton.className = 'auth-button secondary';
             logoutButton.id = 'logoutBtn';
-            logoutButton.textContent = 'Déconnexion';
+            logoutButton.textContent = 'Deconnexion';
             logoutButton.addEventListener('click', () => {
                 logout();
                 window.location.reload();
             });
 
-            authControls.append(badge, userLinkButton, logoutButton);
+            dockPrimaryRow.append(badge);
+            dockMetaRow.append(userLinkButton, dockSouls, logoutButton);
+
+            authControls.append(dockPrimaryRow);
+
+            dockAdminRow = null;
+            adminSelectorEl = null;
+            if (isAdmin()) {
+                dockAdminRow = document.createElement('div');
+                dockAdminRow.className = 'app-dock-row app-dock-row--admin';
+                adminSelectorEl = await buildAdminSelector();
+                if (adminSelectorEl) {
+                    dockAdminRow.append(adminSelectorEl);
+                }
+                authControls.append(dockAdminRow);
+            }
+
+            authControls.append(dockMetaRow);
             updateAdminShortcut();
+        }
+
+        async function buildAdminSelector() {
+            if (!isAdmin()) return null;
+
+            const adminSelect = document.createElement('select');
+            adminSelect.className = 'character-selector character-selector--admin';
+            adminSelect.setAttribute('aria-label', 'MJ : selectionner un personnage');
+
+            const adminPlaceholder = document.createElement('option');
+            adminPlaceholder.value = '';
+            adminPlaceholder.textContent = 'MJ: choisir un personnage...';
+            adminSelect.appendChild(adminPlaceholder);
+
+            try {
+                const allCharacters = await getAllCharacters();
+                allCharacters.forEach((character) => {
+                    const option = document.createElement('option');
+                    option.value = character.id;
+                    const shortId = character.user_id ? String(character.user_id).slice(0, 8) : '????';
+                    option.textContent = `${character.name || 'Sans nom'} - ${shortId}`;
+                    adminSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading admin characters:', error);
+            }
+
+            adminSelect.addEventListener('change', async () => {
+                const nextId = adminSelect.value;
+                if (!nextId) return;
+
+                if (typeof window.astoriaBeforeCharacterChange === 'function') {
+                    try {
+                        await window.astoriaBeforeCharacterChange();
+                    } catch {}
+                }
+
+                const res = await setActiveCharacter(nextId);
+                if (!res || !res.success) return;
+                window.location.reload();
+            });
+
+            return adminSelect;
+        }
+
+        function syncAdminSelector() {
+            if (!adminSelectorEl) return;
+            if (currentCharacter && currentCharacter.id) {
+                adminSelectorEl.value = currentCharacter.id;
+            } else {
+                adminSelectorEl.value = '';
+            }
+        }
+
+        function readSoulCounts(active) {
+            if (!active || !active.id) return { conso: 0, prog: 0 };
+            const key = `fiche-${active.id}-eater`;
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return { conso: 0, prog: 0 };
+                const data = JSON.parse(raw);
+                const conso = Number.parseInt(data?.eaterAmesConso ?? 0, 10);
+                const prog = Number.parseInt(data?.eaterAmesProgression ?? 0, 10);
+                return {
+                    conso: Number.isNaN(conso) ? 0 : conso,
+                    prog: Number.isNaN(prog) ? 0 : prog
+                };
+            } catch {
+                return { conso: 0, prog: 0 };
+            }
+        }
+
+        function renderSoulCounts(active) {
+            if (!soulConsoValue || !soulProgValue || !dockSouls) return;
+            const counts = readSoulCounts(active);
+            soulConsoValue.textContent = String(counts.conso);
+            soulProgValue.textContent = String(counts.prog);
+            dockSouls.title = "Compteur d'ames (stub, base sur la fiche)";
         }
 
         function updateAuthUserLabel() {
@@ -1246,6 +1380,8 @@
                 initProfileTagSelector({ characterId: null });
             }
             updateAuthUserLabel();
+            syncAdminSelector();
+            renderSoulCounts(currentCharacter);
             rerenderOpenPanelIfAny();
             updateShortcutsVisibility();
             updateAvatarControls();
@@ -1268,6 +1404,8 @@
                 initProfileTagSelector({ characterId: currentCharacter.id });
                 updateAuthUserLabel();
             }
+            syncAdminSelector();
+            renderSoulCounts(currentCharacter);
             updateShortcutsVisibility();
             updateAvatarControls();
         }
@@ -1281,7 +1419,9 @@
                 selectorEl = document.createElement('select');
                 selectorEl.className = 'character-selector';
                 selectorEl.id = 'characterSelector';
-                authControls.insertBefore(selectorEl, authControls.firstChild);
+                selectorEl.setAttribute('aria-label', 'Selectionner un personnage');
+                const mount = dockPrimaryRow || authControls;
+                mount.insertBefore(selectorEl, mount.firstChild);
 
                 selectorEl.addEventListener('change', async (e) => {
                     const value = e.target.value;
@@ -1300,7 +1440,7 @@
 
             const placeholderOption = document.createElement('option');
             placeholderOption.value = '';
-            placeholderOption.textContent = 'Sélectionner un personnage...';
+            placeholderOption.textContent = 'Selectionner un personnage...';
             placeholderOption.selected = !currentCharacter;
             selectorEl.appendChild(placeholderOption);
 
@@ -1328,7 +1468,7 @@
             if (userCharacters.length < 5) {
                 const createOption = document.createElement('option');
                 createOption.value = '__create__';
-                createOption.textContent = '+ Créer un personnage';
+                createOption.textContent = '+ Creer un personnage';
                 selectorEl.appendChild(createOption);
             }
 
