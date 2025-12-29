@@ -12,7 +12,7 @@ import { getInventoryRows, setInventoryItem } from './api/inventory-service.js';
 import { initCharacterSummary } from './ui/character-summary.js';
 
 const dom = {
-    kaelsBadge: document.getElementById('hdvKaelsBadge'),
+    kaelsBadge: document.getElementById('characterKaelsBadge'),
     tabs: Array.from(document.querySelectorAll('.hdv-tab')),
     panels: {
         search: document.getElementById('hdvTabSearch'),

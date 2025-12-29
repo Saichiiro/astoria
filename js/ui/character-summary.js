@@ -157,9 +157,9 @@ function readSoulCounts(characterId) {
  * Affiche les compteurs d'âmes si les éléments existent
  */
 function updateSoulCounts(characterId) {
-    const consoEl = document.getElementById("hdvSoulConso") || document.getElementById("soulConsoValue");
-    const progEl = document.getElementById("hdvSoulProg") || document.getElementById("soulProgValue");
-    const soulsContainer = document.getElementById("hdvSouls");
+    const consoEl = document.getElementById("soulConsoValue");
+    const progEl = document.getElementById("soulProgValue");
+    const soulsContainer = document.getElementById("characterSouls");
 
     if (consoEl && progEl && characterId) {
         const counts = readSoulCounts(characterId);
