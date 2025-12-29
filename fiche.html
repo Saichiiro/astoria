@@ -198,16 +198,6 @@
                         </div>
 
                         <div class="field-group">
-                            <label class="field-label" for="combatTechniques">Techniques actuelles</label>
-                            <textarea
-                                id="combatTechniques"
-                                class="field-input field-textarea"
-                                rows="5"
-                                placeholder="Maximum 3 techniques, sans magie (attaques physiques, parades, styles martiaux...)."
-                            ></textarea>
-                        </div>
-
-                        <div class="field-group">
                             <label class="field-label" for="combatArme">Type d'arme</label>
                             <input
                                 id="combatArme"
@@ -225,6 +215,31 @@
                                 type="url"
                                 placeholder="Lien vers une illustration de l'arme (optionnel)."
                             >
+                        </div>
+
+                        <!-- Combat Techniques Section -->
+                        <div class="combat-techniques-section">
+                            <div class="combat-techniques-header">
+                                <div>
+                                    <h3 class="combat-techniques-title">Techniques de combat</h3>
+                                    <p class="combat-techniques-help">Ajoutez vos techniques de combat (max 3 techniques non-magiques)</p>
+                                </div>
+                                <div class="combat-techniques-actions">
+                                    <select id="combatTechniqueFilter" class="combat-filter" aria-label="Filtrer les techniques">
+                                        <option value="">Toutes les catégories</option>
+                                        <option value="offensif">Offensif</option>
+                                        <option value="defensif">Défensif</option>
+                                        <option value="mobilite">Mobilité</option>
+                                        <option value="controle">Contrôle</option>
+                                    </select>
+                                    <button type="button" class="combat-btn combat-btn-primary" id="combatAddTechniqueBtn">
+                                        + Ajouter une technique
+                                    </button>
+                                </div>
+                            </div>
+                            <ul class="combat-technique-list" id="combatTechniqueList" aria-label="Liste des techniques">
+                                <!-- Dynamically populated -->
+                            </ul>
                         </div>
                     </section>
 
@@ -884,6 +899,11 @@
                 saveButtons.forEach((btn) => btn.classList.remove('save-button--highlight'));
             }
 
+            // Combat Techniques Variables
+            let combatTechniques = [];
+            let editingTechniqueId = null;
+            let techniqueNextId = 1;
+
             // Tab switching
             tabButtons.forEach((button) => {
                 button.addEventListener('click', () => {
@@ -1049,6 +1069,221 @@
                 });
             });
 
+            // ====================================================================
+            // COMBAT TECHNIQUES FUNCTIONS
+            // ====================================================================
+
+            /**
+             * Render combat techniques list
+             */
+            function renderCombatTechniques(filterType = "") {
+                const list = document.getElementById("combatTechniqueList");
+                if (!list) return;
+
+                const filtered = filterType
+                    ? combatTechniques.filter(t => t.type === filterType)
+                    : combatTechniques;
+
+                if (filtered.length === 0) {
+                    list.innerHTML = '<li class="combat-technique-empty">Aucune technique ajoutée.</li>';
+                    return;
+                }
+
+                list.innerHTML = "";
+
+                filtered.forEach(technique => {
+                    const li = document.createElement("li");
+                    li.className = "combat-technique-item";
+                    li.dataset.type = technique.type;
+                    li.dataset.id = technique.id;
+
+                    const typeLabels = {
+                        offensif: "Offensif",
+                        defensif: "Défensif",
+                        mobilite: "Mobilité",
+                        controle: "Contrôle"
+                    };
+
+                    li.innerHTML = `
+                        <button type="button" class="combat-technique-header" aria-expanded="false">
+                            <div class="combat-technique-main">
+                                <span class="combat-technique-name">${escapeHtml(technique.name)}</span>
+                                <span class="combat-technique-meta">${typeLabels[technique.type] || technique.type}</span>
+                            </div>
+                            <span class="combat-technique-toggle">▾</span>
+                        </button>
+                        <div class="combat-technique-body">
+                            ${technique.rp ? `
+                            <div>
+                                <div class="combat-technique-field-label">Description RP</div>
+                                <div class="combat-technique-field-value combat-technique-field-value--dim">${escapeHtml(technique.rp)}</div>
+                            </div>
+                            ` : ''}
+                            <div>
+                                <div class="combat-technique-field-label">Effet mécanique</div>
+                                <div class="combat-technique-field-value">${escapeHtml(technique.effect)}</div>
+                            </div>
+                            ${technique.limits ? `
+                            <div>
+                                <div class="combat-technique-field-label">Limites / Conditions</div>
+                                <div class="combat-technique-field-value combat-technique-field-value--dim">${escapeHtml(technique.limits)}</div>
+                            </div>
+                            ` : ''}
+                            <div class="combat-technique-actions">
+                                <button type="button" class="combat-btn-edit" data-id="${technique.id}">Modifier</button>
+                                <button type="button" class="combat-btn-delete" data-id="${technique.id}">Supprimer</button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Toggle expand/collapse
+                    const header = li.querySelector(".combat-technique-header");
+                    header.addEventListener("click", () => {
+                        const isOpen = li.classList.toggle("combat-technique-item--open");
+                        header.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                        const toggle = header.querySelector(".combat-technique-toggle");
+                        if (toggle) toggle.textContent = isOpen ? "▴" : "▾";
+                    });
+
+                    list.appendChild(li);
+                });
+
+                // Attach edit/delete handlers
+                attachTechniqueActionHandlers();
+            }
+
+            /**
+             * Open technique modal for add/edit
+             */
+            function openTechniqueModal(techniqueId = null) {
+                const backdrop = document.getElementById("combatTechniqueBackdrop");
+                const form = document.getElementById("combatTechniqueForm");
+                const title = document.getElementById("combatModalTitle");
+
+                editingTechniqueId = techniqueId;
+
+                if (techniqueId) {
+                    // Edit mode
+                    const technique = combatTechniques.find(t => t.id === techniqueId);
+                    if (!technique) return;
+
+                    title.textContent = "Modifier la technique";
+                    form.name.value = technique.name;
+                    form.type.value = technique.type;
+                    form.rp.value = technique.rp || "";
+                    form.effect.value = technique.effect;
+                    form.limits.value = technique.limits || "";
+                } else {
+                    // Add mode
+                    title.textContent = "Ajouter une technique";
+                    form.reset();
+                }
+
+                backdrop.classList.add("open");
+                backdrop.setAttribute("aria-hidden", "false");
+            }
+
+            /**
+             * Close technique modal
+             */
+            function closeTechniqueModal() {
+                const backdrop = document.getElementById("combatTechniqueBackdrop");
+                const form = document.getElementById("combatTechniqueForm");
+
+                backdrop.classList.remove("open");
+                backdrop.setAttribute("aria-hidden", "true");
+                form.reset();
+                editingTechniqueId = null;
+            }
+
+            /**
+             * Save technique (add or update)
+             */
+            function saveTechnique(formData) {
+                const technique = {
+                    id: editingTechniqueId || `tech-${techniqueNextId++}`,
+                    name: formData.name,
+                    type: formData.type,
+                    rp: formData.rp || "",
+                    effect: formData.effect,
+                    limits: formData.limits || ""
+                };
+
+                if (editingTechniqueId) {
+                    // Update existing
+                    const index = combatTechniques.findIndex(t => t.id === editingTechniqueId);
+                    if (index !== -1) {
+                        combatTechniques[index] = technique;
+                    }
+                } else {
+                    // Add new
+                    combatTechniques.push(technique);
+                }
+
+                saveCombatData();
+                renderCombatTechniques();
+                closeTechniqueModal();
+                markTabDirty('combat');
+            }
+
+            /**
+             * Delete technique
+             */
+            function deleteTechnique(techniqueId) {
+                if (!confirm("Supprimer cette technique ?")) return;
+
+                combatTechniques = combatTechniques.filter(t => t.id !== techniqueId);
+                saveCombatData();
+                renderCombatTechniques();
+                markTabDirty('combat');
+            }
+
+            /**
+             * Save combat data (techniques + text fields) to localStorage
+             */
+            function saveCombatData() {
+                const data = {
+                    combatStyle: document.getElementById("combatStyle")?.value || "",
+                    combatArme: document.getElementById("combatArme")?.value || "",
+                    combatArmeImage: document.getElementById("combatArmeImage")?.value || "",
+                    techniques: combatTechniques
+                };
+                localStorage.setItem('fiche-combat', JSON.stringify(data));
+            }
+
+            /**
+             * Attach event listeners to edit/delete buttons
+             */
+            function attachTechniqueActionHandlers() {
+                document.querySelectorAll(".combat-btn-edit").forEach(btn => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        openTechniqueModal(btn.dataset.id);
+                    });
+                });
+
+                document.querySelectorAll(".combat-btn-delete").forEach(btn => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        deleteTechnique(btn.dataset.id);
+                    });
+                });
+            }
+
+            /**
+             * Escape HTML to prevent XSS
+             */
+            function escapeHtml(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ====================================================================
+            // END COMBAT TECHNIQUES FUNCTIONS
+            // ====================================================================
+
             function saveTab(tabName) {
                 const panel = document.getElementById('tab-' + tabName);
                 if (!panel) return;
@@ -1073,7 +1308,16 @@
                     data.backgroundRelations = collectRelations();
                 }
 
+<<<<<<< Updated upstream
                 localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
+=======
+                // Save combat techniques
+                if (tabName === 'combat') {
+                    data.techniques = combatTechniques;
+                }
+
+                localStorage.setItem('fiche-' + tabName, JSON.stringify(data));
+>>>>>>> Stashed changes
                 console.log('Saved tab:', tabName, data);
 
                 if (tabName === 'identite' || tabName === 'appartenance') {
@@ -1108,6 +1352,7 @@
 
                 Object.keys(data).forEach((key) => {
                     if (key === 'magieSupplementaire') return; // Handle separately
+                    if (key === 'techniques') return; // Handle separately
 
                     const input = document.getElementById(key);
                     if (!input) return;
@@ -1148,6 +1393,16 @@
                     });
                 }
 
+                // Restore combat techniques
+                if (tabName === 'combat' && Array.isArray(data.techniques)) {
+                    combatTechniques = data.techniques;
+                    techniqueNextId = Math.max(...combatTechniques.map(t => {
+                        const match = t.id.match(/tech-(\d+)/);
+                        return match ? parseInt(match[1]) : 0;
+                    }), 0) + 1;
+                    renderCombatTechniques();
+                }
+
                 // Trigger visibility updates
                 if (tabName === 'alice') {
                     updateAliceVisibility();
@@ -1161,6 +1416,7 @@
             // Load all tabs on page load
             const allTabs = ['identite', 'appartenance', 'combat', 'alice', 'sorcellerie', 'eater', 'religion', 'mental', 'physique', 'background'];
 
+<<<<<<< Updated upstream
             function loadAllTabs() {
                 allTabs.forEach(loadTab);
                 updateAliceVisibility();
@@ -1186,7 +1442,113 @@
                     loadAllTabs();
                 }
             }, 800);
+=======
+            // Update conditional visibility after loading
+            updateAliceVisibility();
+
+            // ====================================================================
+            // COMBAT TECHNIQUES EVENT LISTENERS
+            // ====================================================================
+
+            // Add technique button
+            const addTechniqueBtn = document.getElementById("combatAddTechniqueBtn");
+            if (addTechniqueBtn) {
+                addTechniqueBtn.addEventListener("click", () => {
+                    openTechniqueModal();
+                });
+            }
+
+            // Modal close buttons
+            const modalCloseBtn = document.getElementById("combatModalClose");
+            if (modalCloseBtn) {
+                modalCloseBtn.addEventListener("click", closeTechniqueModal);
+            }
+
+            const modalCancelBtn = document.getElementById("combatModalCancel");
+            if (modalCancelBtn) {
+                modalCancelBtn.addEventListener("click", closeTechniqueModal);
+            }
+
+            // Modal backdrop click (close on outside click)
+            const modalBackdrop = document.getElementById("combatTechniqueBackdrop");
+            if (modalBackdrop) {
+                modalBackdrop.addEventListener("click", (e) => {
+                    if (e.target.id === "combatTechniqueBackdrop") {
+                        closeTechniqueModal();
+                    }
+                });
+            }
+
+            // Form submission
+            const techniqueForm = document.getElementById("combatTechniqueForm");
+            if (techniqueForm) {
+                techniqueForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        name: e.target.name.value,
+                        type: e.target.type.value,
+                        rp: e.target.rp.value,
+                        effect: e.target.effect.value,
+                        limits: e.target.limits.value
+                    };
+                    saveTechnique(formData);
+                });
+            }
+
+            // Filter change
+            const techniqueFilter = document.getElementById("combatTechniqueFilter");
+            if (techniqueFilter) {
+                techniqueFilter.addEventListener("change", (e) => {
+                    renderCombatTechniques(e.target.value);
+                });
+            }
+
+            // ====================================================================
+            // END COMBAT TECHNIQUES EVENT LISTENERS
+            // ====================================================================
+>>>>>>> Stashed changes
         })();
     </script>
+
+    <!-- Combat Technique Modal -->
+    <div class="combat-modal-backdrop" id="combatTechniqueBackdrop" aria-hidden="true">
+        <div class="combat-modal" role="dialog" aria-modal="true">
+            <div class="combat-modal-header">
+                <h2 class="combat-modal-title" id="combatModalTitle">Ajouter une technique</h2>
+                <button type="button" class="combat-modal-close" id="combatModalClose" aria-label="Fermer">×</button>
+            </div>
+            <form id="combatTechniqueForm">
+                <div class="combat-modal-section">
+                    <div class="combat-modal-section-title">Informations de base</div>
+                    <div class="combat-modal-grid">
+                        <input name="name" id="techniqueName" placeholder="Nom de la technique" required>
+                        <select name="type" id="techniqueType" required>
+                            <option value="">-- Type --</option>
+                            <option value="offensif">Offensif</option>
+                            <option value="defensif">Défensif</option>
+                            <option value="mobilite">Mobilité</option>
+                            <option value="controle">Contrôle</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Description RP</label>
+                    <textarea name="rp" id="techniqueRp" placeholder="Description narrative de la technique..." rows="3"></textarea>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Effet mécanique</label>
+                    <textarea name="effect" id="techniqueEffect" placeholder="Effets mécaniques, dégâts, durée..." rows="3" required></textarea>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Limites / Conditions</label>
+                    <textarea name="limits" id="techniqueLimits" placeholder="Conditions d'utilisation, contraintes..." rows="2"></textarea>
+                </div>
+                <div class="combat-modal-footer">
+                    <button type="button" class="combat-btn-secondary" id="combatModalCancel">Annuler</button>
+                    <button type="submit" class="combat-btn-primary" id="combatModalSubmit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
