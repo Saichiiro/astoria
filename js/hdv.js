@@ -1,4 +1,4 @@
-import { getCurrentUser, getActiveCharacter } from './auth.js';
+import { getCurrentUser, getActiveCharacter, refreshSessionUser } from './auth.js';
 import {
     buyListing,
     cancelListing,
@@ -67,6 +67,31 @@ const state = {
     items: [],
     inventory: []
 };
+
+function resolveCurrentUser() {
+    const direct = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (direct && direct.id) return direct;
+    try {
+        const raw = localStorage.getItem('astoria_session');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.user ? parsed.user : null;
+    } catch {
+        return null;
+    }
+}
+
+function resolveActiveCharacter() {
+    const direct = typeof getActiveCharacter === 'function' ? getActiveCharacter() : null;
+    if (direct && direct.id) return direct;
+    try {
+        const raw = localStorage.getItem('astoria_active_character');
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
 
 function asInt(value) {
     const numberValue = Number(value);
@@ -526,8 +551,8 @@ function renderListings(listings) {
 }
 
 async function refreshProfile() {
-    state.user = getCurrentUser();
-    state.character = getActiveCharacter();
+    state.user = resolveCurrentUser();
+    state.character = resolveActiveCharacter();
 
     if (!state.user) {
         state.profile = null;
@@ -963,6 +988,14 @@ async function init() {
     renderCategories();
     wireEvents();
 
+    if (typeof refreshSessionUser === 'function') {
+        try {
+            await refreshSessionUser();
+        } catch {
+            // ignore
+        }
+    }
+
     await refreshProfile();
     syncFiltersToUI();
     syncSellPriceFromSelection();
@@ -988,5 +1021,11 @@ async function init() {
         await refreshSearch();
     }
 }
+
+window.addEventListener('storage', (event) => {
+    if (event.key === 'astoria_session' || event.key === 'astoria_active_character') {
+        void refreshProfile();
+    }
+});
 
 init();
