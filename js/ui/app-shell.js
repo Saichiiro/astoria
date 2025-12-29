@@ -54,6 +54,8 @@ function ensureTopbarStyles() {
 }
 
 async function run() {
+  // app-dock deprecated: logic moved into character-summary.
+  return;
   // profil.html already renders its own auth controls for now.
   if (document.getElementById("authControls")) return;
 

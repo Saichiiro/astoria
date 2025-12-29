@@ -132,7 +132,7 @@
 </head>
 <body>
     <!-- Auth Controls (always visible) -->
-    <div class="auth-controls app-dock" id="authControls"></div>
+    <div class="auth-controls" id="authControls"></div>
 
     <main class="profile-page" aria-labelledby="profileTitle" id="profileContent">
         <header class="profile-header">
@@ -461,6 +461,7 @@
         let isHtmlSourceMode = false;
         let isQuillAvailable = false;
         let quill = null;
+        const APP_DOCK_DISABLED = true;
 
         const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
@@ -1516,6 +1517,13 @@
         }
 
         async function renderAuthControls() {
+            if (APP_DOCK_DISABLED) {
+                if (authControls) {
+                    authControls.innerHTML = '';
+                    authControls.hidden = true;
+                }
+                return;
+            }
             const roleBadge = isAdmin() ? 'ADMIN' : 'JOUEUR';
 
             authControls.replaceChildren();
@@ -1677,6 +1685,7 @@
         }
 
         function updateAuthUserLabel() {
+            if (APP_DOCK_DISABLED) return;
             if (!userLinkButton) return;
             const label = (currentCharacter && currentCharacter.name) ? currentCharacter.name : currentUser.username;
             userLinkButton.textContent = label;
@@ -1738,6 +1747,7 @@
         }
 
         function renderCharacterSelector() {
+            if (APP_DOCK_DISABLED) return;
             // New selector renderer (updates in place, no full page reload)
             let selectorEl = document.getElementById('characterSelector');
             const isNewSelector = !selectorEl;

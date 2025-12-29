@@ -223,8 +223,20 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
         return;
     }
 
+    const adminMode = typeof auth.isAdmin === "function" && auth.isAdmin();
+    if (adminMode) {
+        document.body.dataset.admin = "true";
+    } else {
+        document.body.dataset.admin = "false";
+    }
+
     try {
-        const characters = await auth.getUserCharacters(user.id);
+        let characters = [];
+        if (adminMode && typeof auth.getAllCharacters === "function") {
+            characters = await auth.getAllCharacters();
+        } else {
+            characters = await auth.getUserCharacters(user.id);
+        }
         if (!characters || characters.length === 0) {
             dropdownEl.hidden = true;
             return;
@@ -258,7 +270,12 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
             const name = document.createElement("div");
             name.className = "character-dropdown-name";
-            name.textContent = char.name || "Sans nom";
+            if (adminMode && char.user_id) {
+                const shortId = String(char.user_id).slice(0, 8);
+                name.textContent = `${char.name || "Sans nom"} • ${shortId}`;
+            } else {
+                name.textContent = char.name || "Sans nom";
+            }
 
             const role = document.createElement("div");
             role.className = "character-dropdown-role";
@@ -329,6 +346,11 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
     const context = resolveCharacterContext({ includeQueryParam });
     const summary = buildSummary(context);
     applySummaryToElements(resolvedElements, summary);
+
+    const auth = await loadAuthModule();
+    if (auth && typeof auth.isAdmin === "function") {
+        document.body.dataset.admin = auth.isAdmin() ? "true" : "false";
+    }
 
     // Update soul counts if character available
     if (context?.character?.id) {
