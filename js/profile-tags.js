@@ -14,6 +14,17 @@ function loadSelected(characterId) {
     }
 }
 
+function loadMetadata(characterId) {
+    try {
+        const key = `${STORAGE_PREFIX}-${characterId}-metadata`;
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : { autoSynced: [] };
+        return parsed;
+    } catch {
+        return { autoSynced: [] };
+    }
+}
+
 function saveSelected(characterId, selectedIds) {
     try {
         localStorage.setItem(getStorageKey(characterId), JSON.stringify(selectedIds));
@@ -386,6 +397,9 @@ export function initProfileTagSelector({ characterId, isAdmin = false } = {}) {
             return;
         }
 
+        const metadata = loadMetadata(characterId);
+        const autoSyncedTags = metadata.autoSynced || [];
+
         for (const id of selectedIds) {
             const badge = document.createElement('span');
             badge.className = 'profile-tags-badge';
@@ -394,20 +408,47 @@ export function initProfileTagSelector({ characterId, isAdmin = false } = {}) {
             labelText.className = 'profile-tags-badge-label';
             labelText.textContent = TAG_LABEL_BY_ID[id] || id;
 
+            const isAutoSynced = autoSyncedTags.includes(id);
+            const canRemove = userIsAdmin || !isAutoSynced;
+
             const remove = document.createElement('button');
             remove.type = 'button';
             remove.className = 'profile-tags-badge-remove';
             remove.textContent = CROSS;
-            remove.title = 'Retirer';
-            remove.addEventListener('click', () => {
-                selectedIds = selectedIds.filter((x) => x !== id);
-                saveSelected(characterId, selectedIds);
-                const checkbox = menu.querySelector(`input[type="checkbox"][value="${CSS.escape(id)}"]`);
-                if (checkbox) checkbox.checked = false;
-                renderSelected();
-            });
+
+            if (canRemove) {
+                remove.title = 'Retirer';
+                remove.addEventListener('click', () => {
+                    selectedIds = selectedIds.filter((x) => x !== id);
+                    saveSelected(characterId, selectedIds);
+
+                    // Si admin retire un tag auto-synchronisé, aussi retirer des métadonnées
+                    if (isAutoSynced && userIsAdmin) {
+                        const updatedMetadata = loadMetadata(characterId);
+                        updatedMetadata.autoSynced = updatedMetadata.autoSynced.filter(t => t !== id);
+                        const metadataKey = `${STORAGE_PREFIX}-${characterId}-metadata`;
+                        localStorage.setItem(metadataKey, JSON.stringify(updatedMetadata));
+                    }
+
+                    const checkbox = menu.querySelector(`input[type="checkbox"][value="${CSS.escape(id)}"]`);
+                    if (checkbox) checkbox.checked = false;
+                    renderSelected();
+                });
+            } else {
+                remove.title = 'Tag auto-synchronisé - seuls les admins peuvent le retirer';
+                remove.disabled = true;
+                remove.style.opacity = '0.4';
+                remove.style.cursor = 'not-allowed';
+            }
 
             badge.append(labelText, remove);
+
+            // Indicateur visuel pour les tags auto-synchronisés
+            if (isAutoSynced) {
+                badge.style.borderColor = 'var(--color-primary)';
+                badge.style.borderWidth = '2px';
+            }
+
             selected.appendChild(badge);
         }
     }

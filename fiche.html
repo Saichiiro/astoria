@@ -152,10 +152,13 @@
                                 <label class="field-label" for="appNiveauScolaire">Niveau scolaire</label>
                                 <select id="appNiveauScolaire" class="field-input">
                                     <option value="">Sélectionner...</option>
-                                    <option value="maternelle">Maternelle</option>
-                                    <option value="college">Collège</option>
-                                    <option value="lycee">Lycée</option>
-                                    <option value="universite">Université</option>
+                                    <option value="universite-onyx">Université Onyx</option>
+                                    <option value="universite-diamant">Université Diamant</option>
+                                    <option value="universite-rubis">Université Rubis</option>
+                                    <option value="lycee-emeraude">Lycée Emeraude</option>
+                                    <option value="college-saphir">Collège Saphir</option>
+                                    <option value="primaire-amethyste">Primaire Améthyste</option>
+                                    <option value="maternelle-opale">Maternelle Opale</option>
                                 </select>
                             </div>
                         </div>
@@ -1118,50 +1121,130 @@
             function syncProfileTags() {
                 if (!currentCharacterKey) return;
 
-                // Récupérer les tags actuels du profil (c'est un tableau d'IDs)
                 const profileTagsKey = `profile-tags-${currentCharacterKey}`;
+                const metadataKey = `profile-tags-${currentCharacterKey}-metadata`;
+
                 let selectedTagIds = JSON.parse(localStorage.getItem(profileTagsKey) || '[]');
+                let metadata = JSON.parse(localStorage.getItem(metadataKey) || '{"autoSynced": []}');
 
                 // S'assurer que c'est un tableau
                 if (!Array.isArray(selectedTagIds)) {
                     selectedTagIds = [];
                 }
+                if (!metadata.autoSynced || !Array.isArray(metadata.autoSynced)) {
+                    metadata.autoSynced = [];
+                }
 
-                // Map des champs de la fiche vers les IDs de tags de profil
+                // Table de mapping complète: 10 champs → tags
                 const fieldToTagMapping = {
-                    // Section Identité
                     'identiteSexe': {
                         'Féminin': 'gender_f',
                         'Masculin': 'gender_m'
                     },
-
-                    // Section Appartenance
+                    'identiteHierarchieSociale': {
+                        'Lignée régente': 'hierarchy_regent',
+                        'Clergé': 'hierarchy_clergy',
+                        'Haute-Noblesse': 'hierarchy_high_nobility',
+                        'Petite-Noblesse': 'hierarchy_low_nobility',
+                        'Force Armée': 'hierarchy_army',
+                        'Bourgeoisie': 'hierarchy_bourgeoisie',
+                        'Paysannerie': 'hierarchy_peasantry',
+                        'Bas Peuple': 'hierarchy_low_people',
+                        'Esclaves & Hybrides': 'hierarchy_slaves'
+                    },
+                    'identitePaysOrigine': {
+                        'Ombresyl': 'kingdom_ombresyl',
+                        'Sancturia': 'kingdom_sancturia',
+                        'Luminara': 'kingdom_luminara',
+                        'Celestheon': 'kingdom_celestheon'
+                    },
                     'appAffection': {
                         'meister': 'identity_meister',
                         'weapon': 'identity_weapon',
                         'alice': 'identity_alice',
                         'sorcier': 'identity_witch',
                         'civil': 'identity_none'
+                    },
+                    'appNiveauScolaire': {
+                        'universite-onyx': 'school_onyx',
+                        'universite-diamant': 'school_diamond',
+                        'universite-rubis': 'school_ruby',
+                        'lycee-emeraude': 'school_emerald',
+                        'college-saphir': 'school_sapphire',
+                        'primaire-amethyste': 'school_amethyst',
+                        'maternelle-opale': 'school_opal'
+                    },
+                    'appRangEtoile': {
+                        'sans-etoile': 'rank_0',
+                        'simple': 'rank_1',
+                        'double': 'rank_2',
+                        'triple': 'rank_3',
+                        'major': 'rank_major'
+                    },
+                    'appHouse': {
+                        'red-spider': 'house_red_spider',
+                        'blue-bear': 'house_blue_bear',
+                        'violet-goat': 'house_violet_goat',
+                        'green-turtle': 'house_green_turtle'
+                    },
+                    'eaterTypeArme': {
+                        'classique': 'weapon_simple',
+                        'multi-formes': 'weapon_multi',
+                        'jumelees': 'weapon_twins'
+                    },
+                    'aliceType': {
+                        'Physiques': 'alice_physical',
+                        'Psychiques': 'alice_psychic',
+                        'Technologiques': 'alice_tech',
+                        'Spéciaux': 'alice_special',
+                        'Dangereux': 'alice_danger'
+                    },
+                    'aliceForme': {
+                        'Enfance': 'alice_child',
+                        'Diffuse': 'alice_diffuse',
+                        'Indéterminée': 'alice_unknown',
+                        'Limitée': 'alice_limited'
                     }
                 };
 
-                // Parcourir tous les champs et activer les tags correspondants
+                // Collecter tous les tags à auto-synchroniser selon les valeurs actuelles du formulaire
+                const newAutoSyncedTags = [];
+
                 Object.keys(fieldToTagMapping).forEach(fieldId => {
                     const element = document.getElementById(fieldId);
                     if (!element) return;
 
                     const value = element.value;
-                    if (!value) return; // Pas de valeur sélectionnée
+                    if (!value) return;
 
                     const tagId = fieldToTagMapping[fieldId][value];
 
-                    if (tagId && !selectedTagIds.includes(tagId)) {
-                        selectedTagIds.push(tagId);
+                    if (tagId) {
+                        newAutoSyncedTags.push(tagId);
+
+                        if (!selectedTagIds.includes(tagId)) {
+                            selectedTagIds.push(tagId);
+                        }
                     }
                 });
 
-                // Sauvegarder les tags mis à jour
+                // Retirer les anciens tags auto-synchronisés qui ne sont plus sélectionnés
+                const oldAutoSyncedTags = metadata.autoSynced || [];
+                const tagsToRemove = oldAutoSyncedTags.filter(tag => !newAutoSyncedTags.includes(tag));
+
+                tagsToRemove.forEach(tagId => {
+                    const index = selectedTagIds.indexOf(tagId);
+                    if (index > -1) {
+                        selectedTagIds.splice(index, 1);
+                    }
+                });
+
+                // Mettre à jour les métadonnées
+                metadata.autoSynced = newAutoSyncedTags;
+
+                // Sauvegarder
                 localStorage.setItem(profileTagsKey, JSON.stringify(selectedTagIds));
+                localStorage.setItem(metadataKey, JSON.stringify(metadata));
             }
 
             function getTabStorageKey(tabName) {
@@ -1241,6 +1324,82 @@
 
             updateConditionalVisibility();
 
+            // Magic options - used for all magic dropdowns
+            const MAGIC_OPTIONS = `
+                <option value="">-- Sélectionner --</option>
+                <option value="🔥 Feu">🔥 Feu</option>
+                <option value="💧 Eau">💧 Eau</option>
+                <option value="🌪️ Vent">🌪️ Vent</option>
+                <option value="🌱 Terre">🌱 Terre</option>
+                <option value="🌿 Nature">🌿 Nature</option>
+                <option value="🪨 Roche">🪨 Roche</option>
+                <option value="⚙️ Métaux">⚙️ Métaux</option>
+                <option value="❄️ Cryo (glace)">❄️ Cryo (glace)</option>
+                <option value="⚡ Foudre">⚡ Foudre</option>
+                <option value="🌕 Lumière">🌕 Lumière</option>
+                <option value="🌑 Ténèbres">🌑 Ténèbres</option>
+                <option value="🌲 Bois">🌲 Bois</option>
+                <option value="🟫 Boue">🟫 Boue</option>
+                <option value="🌋 Lave">🌋 Lave</option>
+                <option value="☣️ Acide">☣️ Acide</option>
+                <option value="💎 Cristal">💎 Cristal</option>
+                <option value="🌀 Gravité">🌀 Gravité</option>
+                <option value="🧪 Osmose">🧪 Osmose</option>
+                <option value="🧠 Télékinésie">🧠 Télékinésie</option>
+                <option value="👁️ Invisibilité">👁️ Invisibilité</option>
+                <option value="🕊️ Vol">🕊️ Vol</option>
+                <option value="❤️‍🩹 Soin">❤️‍🩹 Soin</option>
+                <option value="👂 Amélioration des sens">👂 Amélioration des sens</option>
+                <option value="💭 Rêve">💭 Rêve</option>
+                <option value="👁️‍🗨️ Contrôle mental">👁️‍🗨️ Contrôle mental</option>
+                <option value="⏳ Contrôle du Temps">⏳ Contrôle du Temps</option>
+                <option value="🌀 Portails">🌀 Portails</option>
+                <option value="🪐 Monde de poche">🪐 Monde de poche</option>
+                <option value="🧭 Téléportation">🧭 Téléportation</option>
+                <option value="💥 Mana brut">💥 Mana brut</option>
+                <option value="⚖️ Ordre">⚖️ Ordre</option>
+                <option value="🚫 Antimagie">🚫 Antimagie</option>
+                <option value="🔷 Amélioration runique">🔷 Amélioration runique</option>
+                <option value="☀️ Invocation d'énergie">☀️ Invocation d'énergie</option>
+                <option value="🌊 Amplification élémentaire">🌊 Amplification élémentaire</option>
+                <option value="🔄 Rotation">🔄 Rotation</option>
+                <option value="🧲 Magnétisme">🧲 Magnétisme</option>
+                <option value="🧵 Fil">🧵 Fil</option>
+                <option value="🏜️ Sable">🏜️ Sable</option>
+                <option value="🌑 Ombres solides">🌑 Ombres solides</option>
+                <option value="🪟 Verre">🪟 Verre</option>
+                <option value="⚫ Cendres">⚫ Cendres</option>
+                <option value="🧱 Argile">🧱 Argile</option>
+                <option value="🐺 Invocation animale">🐺 Invocation animale</option>
+                <option value="⚔️ Invocation d'armes">⚔️ Invocation d'armes</option>
+                <option value="🗿 Invocation de golems">🗿 Invocation de golems</option>
+                <option value="🌪️ Esprits élémentaires">🌪️ Esprits élémentaires</option>
+                <option value="👢 Pantins">👢 Pantins</option>
+                <option value="🧸 Fabrication de familiers">🧸 Fabrication de familiers</option>
+                <option value="🦎 Métamorphose animale">🦎 Métamorphose animale</option>
+                <option value="🧬 Mutations">🧬 Mutations</option>
+                <option value="♻️ Régénération avancée">♻️ Régénération avancée</option>
+                <option value="🦠 MicroBiologie">🦠 MicroBiologie</option>
+                <option value="🎵 Son">🎵 Son</option>
+                <option value="🎭 Illusion">🎭 Illusion</option>
+                <option value="🩸 Sang">🩸 Sang</option>
+                <option value="🍀 Chance / Malchance">🍀 Chance / Malchance</option>
+                <option value="🔗 Lien">🔗 Lien</option>
+                <option value="📡 Détection">📡 Détection</option>
+                <option value="🤫 Silence">🤫 Silence</option>
+                <option value="☣️ Corruption">☣️ Corruption</option>
+                <option value="🔯 Cercle démoniaque">🔯 Cercle démoniaque</option>
+                <option value="💀 Dévoreur d'âmes">💀 Dévoreur d'âmes</option>
+                <option value="🧲 Rouille">🧲 Rouille</option>
+                <option value="🔥 Berserker">🔥 Berserker</option>
+                <option value="☠️ Malédictions">☠️ Malédictions</option>
+                <option value="⚖️ Variation de masse">⚖️ Variation de masse</option>
+                <option value="🌦️ Météorologie">🌦️ Météorologie</option>
+                <option value="⚗️ Chimie magique">⚗️ Chimie magique</option>
+                <option value="🌌 Magie astral">🌌 Magie astral</option>
+                <option value="🪢 Élasticité">🪢 Élasticité</option>
+            `;
+
             // Dynamic Magie Supplémentaire
             const addMagieBtn = document.getElementById('addMagieSupplementaire');
             const magieContainer = document.getElementById('magie-supplementaire-container');
@@ -1253,12 +1412,12 @@
                 fieldGroup.innerHTML = `
                     <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
                     <div class="magie-sup-row">
-                        <input
+                        <select
                             id="magieSup${magieSupCount}"
                             class="field-input magie-supplementaire"
-                            type="text"
-                            placeholder="Magie supplémentaire..."
                         >
+                            ${MAGIC_OPTIONS}
+                        </select>
                         <button type="button" class="remove-magie-btn">×</button>
                     </div>
                 `;
@@ -1625,9 +1784,24 @@
 
                 const data = JSON.parse(savedData);
 
+                // Migrate old appNiveauScolaire values to new format
+                if (tabName === 'appartenance' && data.appNiveauScolaire) {
+                    const oldToNewMapping = {
+                        'maternelle': 'maternelle-opale',
+                        'college': 'college-saphir',
+                        'lycee': 'lycee-emeraude',
+                        'universite': 'universite-onyx'
+                    };
+
+                    if (oldToNewMapping[data.appNiveauScolaire]) {
+                        data.appNiveauScolaire = oldToNewMapping[data.appNiveauScolaire];
+                    }
+                }
+
                 Object.keys(data).forEach((key) => {
                     if (key === 'magieSupplementaire') return; // Handle separately
                     if (key === 'techniques') return; // Handle separately
+                    if (key === 'backgroundRelations') return; // Handle separately
 
                     const input = document.getElementById(key);
                     if (!input) return;
@@ -1649,17 +1823,20 @@
                         fieldGroup.innerHTML = `
                             <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
                             <div class="magie-sup-row">
-                                <input
+                                <select
                                     id="magieSup${magieSupCount}"
                                     class="field-input magie-supplementaire"
-                                    type="text"
-                                    value="${value}"
-                                    placeholder="Magie supplémentaire..."
                                 >
+                                    ${MAGIC_OPTIONS}
+                                </select>
                                 <button type="button" class="remove-magie-btn">×</button>
                             </div>
                         `;
                         magieContainer.appendChild(fieldGroup);
+
+                        // Set the saved value
+                        const select = fieldGroup.querySelector('select');
+                        select.value = value;
 
                         fieldGroup.querySelector('.remove-magie-btn').addEventListener('click', () => {
                             fieldGroup.remove();
@@ -1782,7 +1959,18 @@
             // PROFILE TAGS SYNCHRONIZATION EVENT LISTENERS
             // ====================================================================
             // Synchroniser les tags quand les dropdowns de identité ou appartenance changent
-            const tagSyncFields = ['identiteSexe', 'appAffection'];
+            const tagSyncFields = [
+                'identiteSexe',
+                'identiteHierarchieSociale',
+                'identitePaysOrigine',
+                'appAffection',
+                'appNiveauScolaire',
+                'appRangEtoile',
+                'appHouse',
+                'eaterTypeArme',
+                'aliceType',
+                'aliceForme'
+            ];
 
             tagSyncFields.forEach(fieldId => {
                 const element = document.getElementById(fieldId);
