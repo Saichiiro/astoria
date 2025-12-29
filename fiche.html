@@ -1308,16 +1308,12 @@
                     data.backgroundRelations = collectRelations();
                 }
 
-<<<<<<< Updated upstream
-                localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
-=======
                 // Save combat techniques
                 if (tabName === 'combat') {
                     data.techniques = combatTechniques;
                 }
 
-                localStorage.setItem('fiche-' + tabName, JSON.stringify(data));
->>>>>>> Stashed changes
+                localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
                 console.log('Saved tab:', tabName, data);
 
                 if (tabName === 'identite' || tabName === 'appartenance') {
@@ -1416,7 +1412,6 @@
             // Load all tabs on page load
             const allTabs = ['identite', 'appartenance', 'combat', 'alice', 'sorcellerie', 'eater', 'religion', 'mental', 'physique', 'background'];
 
-<<<<<<< Updated upstream
             function loadAllTabs() {
                 allTabs.forEach(loadTab);
                 updateAliceVisibility();
@@ -1442,9 +1437,6 @@
                     loadAllTabs();
                 }
             }, 800);
-=======
-            // Update conditional visibility after loading
-            updateAliceVisibility();
 
             // ====================================================================
             // COMBAT TECHNIQUES EVENT LISTENERS
@@ -1506,7 +1498,6 @@
             // ====================================================================
             // END COMBAT TECHNIQUES EVENT LISTENERS
             // ====================================================================
->>>>>>> Stashed changes
         })();
     </script>
 
