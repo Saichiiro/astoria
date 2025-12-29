@@ -12,9 +12,7 @@ import { getInventoryRows, setInventoryItem } from './api/inventory-service.js';
 import { initCharacterSummary } from './ui/character-summary.js';
 
 const dom = {
-    characterSummary: document.getElementById('hdvCharacterSummary'),
     kaelsBadge: document.getElementById('hdvKaelsBadge'),
-    loginLink: document.getElementById('hdvLoginLink'),
     tabs: Array.from(document.querySelectorAll('.hdv-tab')),
     panels: {
         search: document.getElementById('hdvTabSearch'),
@@ -602,26 +600,19 @@ async function refreshProfile() {
     state.user = resolveCurrentUser();
     state.character = resolveActiveCharacter();
 
+    // Toujours initialiser le character-summary widget (persistance comme fiche/magie)
+    await initCharacterSummary({ enableDropdown: true });
+
     if (!state.user) {
-        // Pas de user → cacher widget, afficher bouton "Se connecter"
         state.profile = null;
         state.character = null;
         state.inventory = [];
-        dom.characterSummary.hidden = true;
-        dom.loginLink.hidden = false;
         dom.search.affordable.disabled = true;
         dom.search.affordable.checked = false;
         state.filters.affordableOnly = false;
         populateSellSelect();
         return;
     }
-
-    // User connecté → afficher widget, cacher bouton "Se connecter"
-    dom.characterSummary.hidden = false;
-    dom.loginLink.hidden = true;
-
-    // Initialiser le character-summary widget (avatar, nom, dropdown, âmes)
-    await initCharacterSummary({ enableDropdown: true });
 
     if (!state.character) {
         state.profile = null;
