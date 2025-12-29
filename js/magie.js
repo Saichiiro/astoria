@@ -86,7 +86,7 @@
         } catch (error) {
             summaryModule = null;
         }
-        const summaryState = summaryModule?.initCharacterSummary({ includeQueryParam: false }) || null;
+        const summaryState = await summaryModule?.initCharacterSummary({ includeQueryParam: false, enableDropdown: true }) || null;
         currentCharacterKey = summaryState?.context?.key || "default";
         currentCharacter = summaryState?.context?.character || null;
         storageKey = buildStorageKey(currentCharacterKey);

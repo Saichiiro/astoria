@@ -17,9 +17,12 @@
                     <p class="page-subtitle">Identité, appartenances, magies et histoire du personnage.</p>
                 </div>
                 <div class="character-summary" aria-label="Résumé du personnage">
-                    <div class="character-avatar">
-                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
-                        <div class="character-avatar-circle" id="characterSummaryInitial"></div>
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial"></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
                     </div>
                     <div class="character-summary-text">
                         <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
@@ -705,7 +708,7 @@
             } catch (error) {
                 summaryModule = null;
             }
-            const summaryState = summaryModule?.initCharacterSummary({ includeQueryParam: true }) || null;
+            const summaryState = await summaryModule?.initCharacterSummary({ includeQueryParam: true, enableDropdown: true }) || null;
             summaryElements = summaryState?.elements || null;
             currentCharacterKey = summaryState?.context?.key || currentCharacterKey;
 
