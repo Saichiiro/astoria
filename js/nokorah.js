@@ -47,6 +47,25 @@ const PRESET_APPEARANCES = [
 
 const MIN_FAREWELL_LENGTH = 80;
 
+const dom = {
+    invokeModal: null,
+    invokeName: null,
+    invokeGrid: null,
+    invokeUpload: null,
+    invokeCancel: null,
+    invokeConfirm: null,
+    farewellModal: null,
+    farewellText: null,
+    farewellCount: null,
+    farewellCancel: null,
+    farewellConfirm: null,
+    appearanceModal: null,
+    appearanceGrid: null,
+    appearanceUpload: null,
+    appearanceCancel: null,
+    appearanceConfirm: null
+};
+
 const state = {
     luckySoulCount: 0,
     active: null,
@@ -58,7 +77,9 @@ const state = {
     storageKeys: null,
     nokorahService: null,
     characterId: null,
-    mode: 'local' // 'local' or 'supabase'
+    mode: 'local', // 'local' or 'supabase'
+    selectedAppearance: PRESET_APPEARANCES[0],
+    uploadDataUrl: ""
 };
 
 function readJson(key, fallback) {
@@ -115,7 +136,6 @@ async function loadState() {
         try {
             const data = await state.nokorahService.getNokorahByCharacterId(state.characterId);
             if (data) {
-                console.log('[NOKORAH] Loaded from Supabase:', data);
                 state.active = {
                     name: data.name,
                     rarity: data.rarity,
@@ -138,7 +158,7 @@ async function loadState() {
                 return;
             }
         } catch (error) {
-            console.warn('[NOKORAH] Failed to load from Supabase, falling back to localStorage:', error);
+            // Fallback to localStorage on error
         }
     }
 
@@ -166,7 +186,7 @@ async function saveState() {
     if (state.mode === 'supabase' && state.nokorahService && state.characterId) {
         try {
             if (state.active) {
-                const result = await state.nokorahService.upsertNokorah(state.characterId, {
+                await state.nokorahService.upsertNokorah(state.characterId, {
                     name: state.active.name,
                     appearanceId: state.active.appearanceId,
                     appearanceSrc: state.active.appearanceSrc,
@@ -178,20 +198,12 @@ async function saveState() {
                     rainbowFrame: state.active.rainbowFrame,
                     effectsAdmin: state.active.effectsAdmin || ''
                 });
-                if (result.success) {
-                    console.log('[NOKORAH] Saved to Supabase successfully');
-                } else {
-                    console.error('[NOKORAH] Failed to save to Supabase:', result.error);
-                }
             } else {
                 // Nokorah was abandoned - delete from Supabase
-                const result = await state.nokorahService.deleteNokorah(state.characterId);
-                if (result.success) {
-                    console.log('[NOKORAH] Deleted from Supabase successfully');
-                }
+                await state.nokorahService.deleteNokorah(state.characterId);
             }
         } catch (error) {
-            console.error('[NOKORAH] Error saving to Supabase:', error);
+            // Silent fail - localStorage is already saved
         }
     }
 }
@@ -265,163 +277,14 @@ function getNextRarity(rarity) {
     return RARITY_ORDER[idx + 1];
 }
 
-function ensureModalShell() {
-    if (document.getElementById("nokorahInvokeModal")) {
-        console.log('[NOKORAH] Modal shell already exists');
-        return;
-    }
-
-    console.log('[NOKORAH] Creating modal shell');
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = `
-        <div class="modal-overlay" id="nokorahInvokeModal" aria-hidden="true">
-            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nokorahInvokeTitle">
-                <h3 id="nokorahInvokeTitle">Invoquer un Nokorah</h3>
-                <label>Nom du Nokorah
-                    <input type="text" id="nokorahNameInput" class="focus-outline" maxlength="24" placeholder="Ex: Pomy" />
-                </label>
-                <p class="helper">L'apparence doit être inspirée de Cookie Run.</p>
-                <div class="appearance-grid" id="nokorahAppearanceGrid"></div>
-                <label>Ou téléverser (optionnel)
-                    <input type="file" id="nokorahUploadInput" accept="image/*" class="focus-outline" />
-                </label>
-                <div class="modal-actions">
-                    <button type="button" class="action-buttons secondary" id="nokorahInvokeCancel">Annuler</button>
-                    <button type="button" class="action-buttons" id="nokorahInvokeConfirm">
-                        Confirmer <span>25 Lucky Soul</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="modal-overlay" id="nokorahFarewellModal" aria-hidden="true">
-            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nokorahFarewellTitle">
-                <h3 id="nokorahFarewellTitle">Scène d'adieux</h3>
-                <p class="helper">Explique pourquoi tu abandonnes ton Nokorah (min ${MIN_FAREWELL_LENGTH} caractères).</p>
-                <textarea id="nokorahFarewellText" class="focus-outline" placeholder="Écris un message sincère..."></textarea>
-                <p class="helper" id="nokorahFarewellCount">0 / ${MIN_FAREWELL_LENGTH}</p>
-                <div class="modal-actions">
-                    <button type="button" class="action-buttons secondary" id="nokorahFarewellCancel">Annuler</button>
-                    <button type="button" class="action-buttons danger" id="nokorahFarewellConfirm" disabled>
-                        Abandonner <span>100 Lucky Soul</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="modal-overlay" id="nokorahAlertModal" aria-hidden="true">
-            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nokorahAlertTitle">
-                <h3 id="nokorahAlertTitle">Information</h3>
-                <p id="nokorahAlertMessage"></p>
-                <div class="modal-actions">
-                    <button type="button" class="action-buttons secondary" id="nokorahAlertClose">Fermer</button>
-                </div>
-            </div>
-        </div>
-        <div class="modal-overlay" id="nokorahAppearanceModal" aria-hidden="true">
-            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nokorahAppearanceTitle">
-                <h3 id="nokorahAppearanceTitle">Changer l'apparence</h3>
-                <p class="helper">L'apparence doit être inspirée de Cookie Run.</p>
-                <div class="appearance-grid" id="nokorahAppearanceEditGrid"></div>
-                <label>Ou téléverser (optionnel)
-                    <input type="file" id="nokorahAppearanceUpload" accept="image/*" class="focus-outline" />
-                </label>
-                <div class="modal-actions">
-                    <button type="button" class="action-buttons secondary" id="nokorahAppearanceCancel">Annuler</button>
-                    <button type="button" class="action-buttons" id="nokorahAppearanceConfirm">Confirmer</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // Extract children from wrapper and append them directly to body
-    while (wrapper.firstChild) {
-        document.body.appendChild(wrapper.firstChild);
-    }
-
-    document.getElementById("nokorahInvokeCancel").addEventListener("click", () => closeModal("nokorahInvokeModal"));
-    document.getElementById("nokorahFarewellCancel").addEventListener("click", () => closeModal("nokorahFarewellModal"));
-    document.getElementById("nokorahAlertClose").addEventListener("click", () => closeModal("nokorahAlertModal"));
-    document.getElementById("nokorahAppearanceCancel").addEventListener("click", () => closeModal("nokorahAppearanceModal"));
+function openModal(node) {
+    if (!node) return;
+    node.classList.add("open");
 }
 
-function openModal(id) {
-    const modal = document.getElementById(id);
-    console.log('[NOKORAH] openModal:', id, 'found:', !!modal);
-    if (!modal) {
-        console.error('[NOKORAH] Modal not found:', id);
-        return;
-    }
-    modal.classList.add("open");
-    modal.setAttribute("aria-hidden", "false");
-
-    // Force styles as fallback on overlay
-    modal.style.display = 'flex';
-    modal.style.position = 'fixed';
-    modal.style.inset = '0';
-    modal.style.zIndex = '2000';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    modal.style.padding = '1.5rem';
-    modal.style.background = 'rgba(32, 18, 18, 0.6)';
-
-    // Force styles on modal content (.modal)
-    const modalContent = modal.querySelector('.modal');
-    if (modalContent) {
-        modalContent.style.background = '#fff';
-        modalContent.style.borderRadius = '18px';
-        modalContent.style.padding = '2rem';
-        modalContent.style.maxWidth = '520px';
-        modalContent.style.width = '100%';
-        modalContent.style.boxShadow = '0 20px 40px rgba(0,0,0,0.3)';
-        modalContent.style.border = '2px solid rgba(255, 186, 148, 0.6)';
-        modalContent.style.position = 'relative';
-        modalContent.style.zIndex = '2001';
-    }
-
-    // Debug: check computed styles
-    const computedStyle = window.getComputedStyle(modal);
-    console.log('[NOKORAH] Modal opened:', id);
-    console.log('[NOKORAH] Display:', computedStyle.display);
-    console.log('[NOKORAH] Z-index:', computedStyle.zIndex);
-    console.log('[NOKORAH] Position:', computedStyle.position);
-    console.log('[NOKORAH] Modal element:', modal);
-}
-
-function closeModal(id) {
-    const modal = document.getElementById(id);
-    if (!modal) return;
-    modal.classList.remove("open");
-    modal.setAttribute("aria-hidden", "true");
-
-    // Reset inline styles on overlay
-    modal.style.display = '';
-    modal.style.position = '';
-    modal.style.inset = '';
-    modal.style.zIndex = '';
-    modal.style.alignItems = '';
-    modal.style.justifyContent = '';
-    modal.style.padding = '';
-    modal.style.background = '';
-
-    // Reset inline styles on modal content
-    const modalContent = modal.querySelector('.modal');
-    if (modalContent) {
-        modalContent.style.background = '';
-        modalContent.style.borderRadius = '';
-        modalContent.style.padding = '';
-        modalContent.style.maxWidth = '';
-        modalContent.style.width = '';
-        modalContent.style.boxShadow = '';
-        modalContent.style.border = '';
-        modalContent.style.position = '';
-        modalContent.style.zIndex = '';
-    }
-}
-
-function showAlert(message) {
-    ensureModalShell();
-    const msg = document.getElementById("nokorahAlertMessage");
-    if (msg) msg.textContent = message;
-    openModal("nokorahAlertModal");
+function closeModal(node) {
+    if (!node) return;
+    node.classList.remove("open");
 }
 
 function buildBonusChips() {
@@ -450,12 +313,8 @@ function renderEmpty(root) {
     `;
 
     const invokeBtn = root.querySelector("[data-action='invoke']");
-    console.log('[NOKORAH] renderEmpty - invokeBtn found:', !!invokeBtn);
     if (invokeBtn) {
-        invokeBtn.addEventListener("click", () => {
-            console.log('[NOKORAH] Invoke button clicked');
-            openInvokeModal();
-        });
+        invokeBtn.addEventListener("click", () => openInvokeModal());
     }
 }
 
@@ -540,7 +399,7 @@ function renderActive(root) {
     if (rarityBtn) rarityBtn.addEventListener("click", handleRarityUpgrade);
     if (statsBtn) statsBtn.addEventListener("click", handleStatsUpgrade);
     if (appearanceBtn) appearanceBtn.addEventListener("click", openAppearanceModal);
-    if (abandonBtn) abandonBtn.addEventListener("click", handleAbandon);
+    if (abandonBtn) abandonBtn.addEventListener("click", openFarewellModal);
     if (rainbowToggle) {
         rainbowToggle.addEventListener("change", async (event) => {
             state.active.rainbowFrame = event.target.checked;
@@ -568,12 +427,12 @@ async function refreshLuckySoul() {
 async function ensureLuckySoul(cost) {
     const current = await state.inventory.getCount();
     if (current < cost) {
-        showAlert(`Lucky Soul insuffisantes (${current}/${cost}).`);
+        alert(`Lucky Soul insuffisantes (${current}/${cost}).`);
         return false;
     }
     const ok = await state.inventory.applyDelta(-cost);
     if (!ok) {
-        showAlert("Impossible de consommer les Lucky Soul pour le moment.");
+        alert("Impossible de consommer les Lucky Soul pour le moment.");
         return false;
     }
     state.luckySoulCount = current - cost;
@@ -581,110 +440,93 @@ async function ensureLuckySoul(cost) {
 }
 
 function openInvokeModal() {
-    console.log('[NOKORAH] openInvokeModal called');
-    ensureModalShell();
-    console.log('[NOKORAH] ensureModalShell done');
-    const nameInput = document.getElementById("nokorahNameInput");
-    const uploadInput = document.getElementById("nokorahUploadInput");
-    const grid = document.getElementById("nokorahAppearanceGrid");
-    console.log('[NOKORAH] Found elements:', { nameInput: !!nameInput, uploadInput: !!uploadInput, grid: !!grid });
-    if (!nameInput || !grid) {
-        console.error('[NOKORAH] Missing required elements, aborting modal open');
-        return;
-    }
+    state.selectedAppearance = PRESET_APPEARANCES[0];
+    state.uploadDataUrl = "";
+    dom.invokeName.value = "";
+    dom.invokeUpload.value = "";
 
-    let selected = PRESET_APPEARANCES[0];
-    let uploadDataUrl = "";
-    nameInput.value = "";
-    uploadInput.value = "";
-
-    grid.innerHTML = PRESET_APPEARANCES.map((appearance) => `
-        <div class="appearance-card ${appearance.id === selected.id ? "is-selected" : ""}" data-appearance="${appearance.id}">
+    dom.invokeGrid.innerHTML = PRESET_APPEARANCES.map((appearance) => `
+        <div class="appearance-option ${appearance.id === state.selectedAppearance.id ? "selected" : ""}" data-id="${appearance.id}">
             <img src="${appearance.src}" alt="${appearance.label}">
             <div>${appearance.label}</div>
         </div>
     `).join("");
 
-    grid.querySelectorAll(".appearance-card").forEach((card) => {
-        card.addEventListener("click", () => {
-            const id = card.getAttribute("data-appearance");
+    dom.invokeGrid.querySelectorAll(".appearance-option").forEach((el) => {
+        el.addEventListener("click", () => {
+            const id = el.getAttribute("data-id");
             const next = PRESET_APPEARANCES.find((item) => item.id === id);
             if (!next) return;
-            selected = next;
-            grid.querySelectorAll(".appearance-card").forEach((el) => el.classList.remove("is-selected"));
-            card.classList.add("is-selected");
+            state.selectedAppearance = next;
+            dom.invokeGrid.querySelectorAll(".appearance-option").forEach((card) => {
+                card.classList.toggle("selected", card === el);
+            });
         });
     });
 
-    uploadInput.onchange = () => {
-        const file = uploadInput.files?.[0];
+    dom.invokeUpload.onchange = () => {
+        const file = dom.invokeUpload.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-            uploadDataUrl = String(reader.result || "");
+            state.uploadDataUrl = String(reader.result || "");
         };
         reader.readAsDataURL(file);
     };
 
-    const confirm = document.getElementById("nokorahInvokeConfirm");
-    confirm.onclick = async () => {
-        const name = nameInput.value.trim() || "Nokorah";
-        const ok = await ensureLuckySoul(25);
-        if (!ok) return;
+    openModal(dom.invokeModal);
+}
 
-        state.active = {
-            name,
-            rarity: "commun",
-            appearanceId: selected.id,
-            appearanceSrc: uploadDataUrl || selected.src,
-            statusLabel: "Combat",
-            isAccessory: false,
-            effectsAdmin: "",
-            rainbowFrame: false
-        };
-        state.rarity = "commun";
-        state.bonuses = [];
-        state.upgradeLevel = 0;
-        await saveState();
-        closeModal("nokorahInvokeModal");
-        renderAll();
+async function confirmInvoke() {
+    const ok = await ensureLuckySoul(25);
+    if (!ok) return;
+
+    const name = dom.invokeName.value.trim() || "Nokorah";
+    state.active = {
+        name,
+        rarity: "commun",
+        appearanceId: state.selectedAppearance.id,
+        appearanceSrc: state.uploadDataUrl || state.selectedAppearance.src,
+        statusLabel: "Combat",
+        isAccessory: false,
+        effectsAdmin: "",
+        rainbowFrame: false
     };
-
-    openModal("nokorahInvokeModal");
+    state.rarity = "commun";
+    state.bonuses = [];
+    state.upgradeLevel = 0;
+    await saveState();
+    closeModal(dom.invokeModal);
+    renderAll();
 }
 
 function openAppearanceModal() {
     if (!state.active) return;
-    ensureModalShell();
-    const grid = document.getElementById("nokorahAppearanceEditGrid");
-    const uploadInput = document.getElementById("nokorahAppearanceUpload");
-    const confirm = document.getElementById("nokorahAppearanceConfirm");
-    if (!grid || !uploadInput || !confirm) return;
-
     let selected = PRESET_APPEARANCES.find((item) => item.id === state.active.appearanceId) || PRESET_APPEARANCES[0];
     let uploadDataUrl = "";
-    uploadInput.value = "";
+    dom.appearanceUpload.value = "";
 
-    grid.innerHTML = PRESET_APPEARANCES.map((appearance) => `
-        <div class="appearance-card ${appearance.id === selected.id ? "is-selected" : ""}" data-appearance="${appearance.id}">
+    dom.appearanceGrid.innerHTML = PRESET_APPEARANCES.map((appearance) => `
+        <div class="appearance-option ${appearance.id === selected.id ? "selected" : ""}" data-id="${appearance.id}">
             <img src="${appearance.src}" alt="${appearance.label}">
             <div>${appearance.label}</div>
         </div>
     `).join("");
 
-    grid.querySelectorAll(".appearance-card").forEach((card) => {
-        card.addEventListener("click", () => {
-            const id = card.getAttribute("data-appearance");
+    dom.appearanceGrid.querySelectorAll(".appearance-option").forEach((el) => {
+        el.addEventListener("click", () => {
+            const id = el.getAttribute("data-id");
             const next = PRESET_APPEARANCES.find((item) => item.id === id);
             if (!next) return;
             selected = next;
-            grid.querySelectorAll(".appearance-card").forEach((el) => el.classList.remove("is-selected"));
-            card.classList.add("is-selected");
+            dom.appearanceGrid.querySelectorAll(".appearance-option").forEach((card) => {
+                card.classList.toggle("selected", card === el);
+            });
         });
     });
 
-    uploadInput.onchange = () => {
-        const file = uploadInput.files?.[0];
+    dom.appearanceUpload.onchange = () => {
+        const file = dom.appearanceUpload.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
@@ -693,15 +535,15 @@ function openAppearanceModal() {
         reader.readAsDataURL(file);
     };
 
-    confirm.onclick = async () => {
+    dom.appearanceConfirm.onclick = async () => {
         state.active.appearanceId = selected.id;
         state.active.appearanceSrc = uploadDataUrl || selected.src;
         await saveState();
-        closeModal("nokorahAppearanceModal");
+        closeModal(dom.appearanceModal);
         renderAll();
     };
 
-    openModal("nokorahAppearanceModal");
+    openModal(dom.appearanceModal);
 }
 
 async function handleRarityUpgrade() {
@@ -718,14 +560,14 @@ async function handleRarityUpgrade() {
 
 async function handleStatsUpgrade() {
     if (!state.skills.length) {
-        showAlert("Aucune compétence disponible pour la roulette.");
+        alert("Aucune compétence disponible pour la roulette.");
         return;
     }
     const nextLevel = state.upgradeLevel + 1;
     const maxTotal = getMaxTotalPoints(state.rarity, nextLevel);
     const currentTotal = getTotalBonusPoints();
     if (currentTotal >= maxTotal) {
-        showAlert("Plafond de points atteint pour ce niveau.");
+        alert("Plafond de points atteint pour ce niveau.");
         return;
     }
 
@@ -781,37 +623,25 @@ function animateRoulette(finalResults) {
     });
 }
 
-function handleAbandon() {
-    ensureModalShell();
-    const textarea = document.getElementById("nokorahFarewellText");
-    const counter = document.getElementById("nokorahFarewellCount");
-    const confirm = document.getElementById("nokorahFarewellConfirm");
+function openFarewellModal() {
+    dom.farewellText.value = "";
+    dom.farewellCount.textContent = `0 / ${MIN_FAREWELL_LENGTH}`;
+    dom.farewellConfirm.disabled = true;
+    openModal(dom.farewellModal);
+}
 
-    textarea.value = "";
-    counter.textContent = `0 / ${MIN_FAREWELL_LENGTH}`;
-    confirm.disabled = true;
-
-    textarea.oninput = () => {
-        const length = textarea.value.trim().length;
-        counter.textContent = `${length} / ${MIN_FAREWELL_LENGTH}`;
-        confirm.disabled = length < MIN_FAREWELL_LENGTH;
-    };
-
-    confirm.onclick = async () => {
-        const length = textarea.value.trim().length;
-        if (length < MIN_FAREWELL_LENGTH) return;
-        const ok = await ensureLuckySoul(100);
-        if (!ok) return;
-        state.active = null;
-        state.rarity = "commun";
-        state.bonuses = [];
-        state.upgradeLevel = 0;
-        await saveState();
-        closeModal("nokorahFarewellModal");
-        renderAll();
-    };
-
-    openModal("nokorahFarewellModal");
+async function confirmFarewell() {
+    const length = dom.farewellText.value.trim().length;
+    if (length < MIN_FAREWELL_LENGTH) return;
+    const ok = await ensureLuckySoul(100);
+    if (!ok) return;
+    state.active = null;
+    state.rarity = "commun";
+    state.bonuses = [];
+    state.upgradeLevel = 0;
+    await saveState();
+    closeModal(dom.farewellModal);
+    renderAll();
 }
 
 async function buildNokorahAdapter() {
@@ -827,14 +657,11 @@ async function buildNokorahAdapter() {
             state.nokorahService = nokorahService;
             state.characterId = character.id;
             state.mode = 'supabase';
-            console.log('[NOKORAH] Using Supabase mode for character:', character.id);
         } else {
             state.mode = 'local';
-            console.log('[NOKORAH] Using localStorage mode');
         }
     } catch (error) {
         state.mode = 'local';
-        console.warn('[NOKORAH] Failed to load auth, using localStorage mode:', error);
     }
 }
 
@@ -952,10 +779,47 @@ async function buildInventoryAdapter() {
     return { mode, getCount, applyDelta };
 }
 
+function bindStaticEvents() {
+    dom.invokeCancel.addEventListener("click", () => closeModal(dom.invokeModal));
+    dom.invokeConfirm.addEventListener("click", () => void confirmInvoke());
+    dom.farewellCancel.addEventListener("click", () => closeModal(dom.farewellModal));
+    dom.farewellConfirm.addEventListener("click", () => void confirmFarewell());
+    dom.appearanceCancel.addEventListener("click", () => closeModal(dom.appearanceModal));
+
+    dom.farewellText.addEventListener("input", () => {
+        const length = dom.farewellText.value.trim().length;
+        dom.farewellCount.textContent = `${length} / ${MIN_FAREWELL_LENGTH}`;
+        dom.farewellConfirm.disabled = length < MIN_FAREWELL_LENGTH;
+    });
+}
+
 async function initNokorah() {
     const roots = document.querySelectorAll("[data-nokorah-root]");
     if (!roots.length) return;
 
+    // Initialize static DOM references
+    dom.invokeModal = document.getElementById("invokeModal");
+    dom.invokeName = document.getElementById("nokorahName");
+    dom.invokeGrid = document.getElementById("appearanceGrid");
+    dom.invokeUpload = document.getElementById("appearanceUpload");
+    dom.invokeCancel = document.getElementById("invokeCancelBtn");
+    dom.invokeConfirm = document.getElementById("invokeConfirmBtn");
+    dom.farewellModal = document.getElementById("farewellModal");
+    dom.farewellText = document.getElementById("farewellText");
+    dom.farewellCount = document.getElementById("farewellCount");
+    dom.farewellCancel = document.getElementById("farewellCancelBtn");
+    dom.farewellConfirm = document.getElementById("farewellConfirmBtn");
+    dom.appearanceModal = document.getElementById("appearanceModal");
+    dom.appearanceGrid = document.getElementById("appearanceEditGrid");
+    dom.appearanceUpload = document.getElementById("appearanceEditUpload");
+    dom.appearanceCancel = document.getElementById("appearanceCancelBtn");
+    dom.appearanceConfirm = document.getElementById("appearanceConfirmBtn");
+
+    if (!dom.invokeModal || !dom.farewellModal || !dom.appearanceModal) {
+        return;
+    }
+
+    bindStaticEvents();
     await buildNokorahAdapter();
     await loadState();
     state.skills = await loadSkills();

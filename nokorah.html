@@ -149,6 +149,49 @@
         </section>
     </main>
 
+    <!-- Modals -->
+    <div class="modal" id="invokeModal">
+        <div class="modal-content">
+            <h3>Invoquer un Nokorah</h3>
+            <input type="text" id="nokorahName" placeholder="Nom du Nokorah" maxlength="24">
+            <p style="font-size: 0.85rem; color: #666; margin: 0.5rem 0;">Choisissez une apparence (style Cookie Run):</p>
+            <div class="appearance-grid" id="appearanceGrid"></div>
+            <label style="font-size: 0.85rem; color: #666;">Ou téléverser (optionnel)</label>
+            <input type="file" id="appearanceUpload" accept="image/*">
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" id="invokeCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-primary" id="invokeConfirmBtn">Confirmer <span>25 LS</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="farewellModal">
+        <div class="modal-content">
+            <h3>Scène d'adieux</h3>
+            <p style="font-size: 0.85rem; color: #666;">Explique pourquoi tu abandonnes ton Nokorah (min 80 caractères):</p>
+            <textarea id="farewellText" placeholder="Écris un message sincère..."></textarea>
+            <p style="font-size: 0.85rem; color: #666;" id="farewellCount">0 / 80</p>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" id="farewellCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-danger" id="farewellConfirmBtn">Abandonner <span>100 LS</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="appearanceModal">
+        <div class="modal-content">
+            <h3>Changer l'apparence</h3>
+            <p style="font-size: 0.85rem; color: #666; margin: 0.5rem 0;">Choisissez une apparence (style Cookie Run):</p>
+            <div class="appearance-grid" id="appearanceEditGrid"></div>
+            <label style="font-size: 0.85rem; color: #666;">Ou téléverser (optionnel)</label>
+            <input type="file" id="appearanceEditUpload" accept="image/*">
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" id="appearanceCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-primary" id="appearanceConfirmBtn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
