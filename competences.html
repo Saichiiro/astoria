@@ -15,6 +15,14 @@
         body:not([data-admin="true"]) #skillsPointsReset {
             display: none;
         }
+
+        :root {
+            /* Largeur du conteneur panel (sans affecter les enfants) */
+            --skills-panel-width: 10%;
+            /* Largeur du contenu à l'intérieur du panel */
+            --skills-content-max-width: 760px;
+        }
+
         .skills-page {
             max-width: var(--wrapper-max-width);
             margin: 0 auto;
@@ -22,12 +30,21 @@
 
         .skills-layout {
             display: flex;
-            background: transparent;
+            background: linear-gradient(to bottom right, #FFFFFF, #FFF5F9);
             border-radius: var(--radius-lg);
-            border: none;
-            box-shadow: none;
+            border: 2px solid #F8BBD0;
+            box-shadow:
+                0 4px 6px rgba(248, 187, 208, 0.15),
+                0 10px 20px rgba(248, 187, 208, 0.2);
             overflow: hidden;
             min-height: 320px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .skills-layout:hover {
+            box-shadow:
+                0 6px 8px rgba(248, 187, 208, 0.2),
+                0 12px 24px rgba(248, 187, 208, 0.25);
         }
 
         /* Bandeau haut avec titre + retour */
@@ -115,16 +132,13 @@
         /* Colonne d'onglets ronds à gauche */
         .skills-sidebar {
             flex: 0 0 clamp(130px, 18vw, 180px);
-            padding: calc(var(--space-5) + var(--space-2)) var(--space-5);
-            border-right: none;
+            padding: calc(var(--space-5) + var(--space-2)) var(--space-2);
+            border-right: 7px dotted #F8BBD0;
             display: flex;
             flex-direction: column;
             gap: 0px;
             align-items: center;
-            /* background-image: url('assets/images/Long_Chatbox_purple.png'); */
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 100% 100%;
+            background: linear-gradient(to bottom, #F3E5F5, #E1BEE7);
         }
 
         .skills-tab-btn {
@@ -151,8 +165,8 @@
         }
 
         .skills-tab-circle {
-            width: 76px;
-            height: 76px;
+            width: 80px;
+            height: 80px;
             display: block;
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -197,19 +211,17 @@
 
         /* Panneau de droite */
         .skills-panel {
-            flex: 1;
-            --skills-panel-safe-x: calc(var(--space-10) + var(--space-6));
+            flex: 1 1 auto;
+            width: var(--skills-panel-width);
+            --skills-panel-safe-x: var(--space-6);
             --skills-panel-safe-y: var(--space-6);
-            --skills-panel-content-width: min(100%, 760px);
-            --skills-panel-content-inset: var(--space-6);
+            --skills-panel-content-width: min(100%, var(--skills-content-max-width));
+            --skills-panel-content-inset: var(--space-2);
             padding: var(--skills-panel-safe-y) var(--skills-panel-safe-x) var(--space-6);
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* background-image: url('assets/images/Long_Chatbox_purple.png'); */
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 100% 100%;
+            background: #FFFFFF;
         }
 
         .skills-panel-header,
@@ -229,11 +241,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: var(--space-2);
-            margin-bottom: var(--space-2);
-            padding: var(--space-1);
-            padding-bottom: var(--space-1);
-            border-bottom: none;
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
+            padding-bottom: var(--space-4);
+            border-bottom: 2px solid #F8BBD0;
         }
 
         .skills-panel-heading {
@@ -245,7 +256,7 @@
         .skills-panel-controls {
             display: inline-flex;
             align-items: center;
-            gap: var(--space-1);
+            gap: var(--space-3);
         }
 
 
@@ -261,11 +272,11 @@
         .skills-points-box {
             display: inline-flex;
             align-items: center;
-            gap: var(--space-1);
-            padding: var(--space-1) var(--space-2);
-            background: linear-gradient(to bottom, #f4f6fa, #dde2ec);
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(to bottom, #FCE4EC, #F8BBD0);
             border-radius: var(--radius-md);
-            border: 1px solid #c7ccd6;
+            border: 1px solid #F48FB1;
             box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
             font-size: var(--text-xs);
             white-space: nowrap;
@@ -273,7 +284,7 @@
 
         .skills-points-label {
             font-weight: var(--font-medium);
-            color: var(--color-gray-700);
+            color: #4A148C;
         }
 
         .skills-points-value {
@@ -288,6 +299,7 @@
             box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.55);
             font-variant-numeric: tabular-nums;
             font-size: var(--text-xs);
+            -moz-appearance: textfield;
             appearance: textfield;
         }
 
@@ -301,23 +313,23 @@
             width: 22px;
             height: 22px;
             border-radius: var(--radius-sm);
-            border: 1px solid #c7ccd6;
-            background: linear-gradient(to bottom, #ffffff, #ccd3e0);
+            border: 1px solid #F48FB1;
+            background: linear-gradient(to bottom, #ffffff, #FCE4EC);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 0.85rem;
             padding: 0;
-            color: #343a46;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+            color: #4A148C;
+            box-shadow: 0 1px 2px rgba(244, 143, 177, 0.2);
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .skills-points-btn:hover {
-            background: linear-gradient(to bottom, #ffffff, #bfc7d6);
+            background: linear-gradient(to bottom, #ffffff, #F8BBD0);
             transform: scale(1.08);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+            box-shadow: 0 2px 6px rgba(244, 143, 177, 0.3);
         }
 
         .skills-points-btn:active {
@@ -335,12 +347,12 @@
         .skills-list {
             list-style: none;
             margin: 0;
-            margin-top: 0;
-            padding: 0 var(--space-1);
+            margin-top: var(--space-1);
+            padding: 0;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            column-gap: var(--space-2);
-            row-gap: var(--space-1);
+            column-gap: var(--space-4);
+            row-gap: var(--space-3);
             transition: opacity 0.18s ease, transform 0.18s ease;
         }
 
@@ -353,44 +365,44 @@
         .skills-line {
             display: flex;
             align-items: center;
-            background: linear-gradient(to right, #ffb8e4, #ff8dd0);
+            background: linear-gradient(to right, #FCE4EC, #F8BBD0);
             border-radius: var(--radius-md);
-            border: 1px solid #d879cb;
-            padding: var(--space-2) var(--space-4);
-            box-shadow: none;
+            border: 1px solid #F48FB1;
+            padding: 6px 10px;
+            box-shadow: 0 1px 2px rgba(244, 143, 177, 0.15);
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: default;
-            color: #2e3644;
+            color: #4A148C;
         }
 
         .skills-line.skills-line-highlight {
-            background: linear-gradient(to right, #ffc5ea, #ff98d6);
-            border-color: #d879cb;
+            background: linear-gradient(120deg, #F3E5F5, #E1BEE7);
+            border-color: #CE93D8;
             box-shadow:
-                inset 0 0 0 1px rgba(216, 199, 255, 0.8),
-                0 2px 6px rgba(129, 114, 178, 0.16);
+                inset 0 0 0 1px rgba(206, 147, 216, 0.6),
+                0 2px 6px rgba(206, 147, 216, 0.3);
         }
 
         .skills-line:hover {
-            background: linear-gradient(to right, #ffaee0, #ff84ca);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+            background: linear-gradient(to right, #F8BBD0, #F48FB1);
+            transform: translateX(2px);
+            box-shadow: 0 2px 6px rgba(244, 143, 177, 0.3);
         }
 
         .skills-line.skills-line-highlight:hover {
-            background: linear-gradient(to right, #ffaee0, #ff84ca);
-            border-color: #d879cb;
+            background: linear-gradient(120deg, #E1BEE7, #CE93D8);
+            border-color: #BA68C8;
             box-shadow:
-                inset 0 0 0 1px rgba(216, 199, 255, 0.8),
-                0 2px 6px rgba(129, 114, 178, 0.16);
-            transform: translateY(-1px);
+                inset 0 0 0 1px rgba(186, 104, 200, 0.6),
+                0 2px 6px rgba(186, 104, 200, 0.3);
+            transform: translateX(0);
         }
 
         .skills-icon {
             width: calc(28px * 1.5);
             height: calc(28px * 1.5);
             border-radius: 6px;
-            margin-right: var(--space-2);
+            margin-right: var(--space-3);
             background:
                 linear-gradient(135deg, #fffaf0, #f4d28a),
                 radial-gradient(circle at 30% 20%, #ffffff 0, #f4d28a 40%, #c69b4d 100%);
@@ -408,7 +420,7 @@
         .skills-name {
             flex: 1;
             font-size: var(--text-base-minus);
-            color: inherit;
+            color: #2e3644;
         }
 
         .skills-value {
@@ -440,16 +452,16 @@
             width: 28px;
             height: 28px;
             border-radius: var(--radius-sm);
-            border: 1px solid #c7ccd6;
-            background: linear-gradient(to bottom, #ffffff, #ccd3e0);
+            border: 1px solid #F48FB1;
+            background: linear-gradient(to bottom, #ffffff, #FCE4EC);
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: var(--text-sm);
             padding: 0;
-            color: #343a46;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+            color: #4A148C;
+            box-shadow: 0 1px 2px rgba(244, 143, 177, 0.2);
             transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
