@@ -31,12 +31,17 @@ const dom = {
     note: document.getElementById('adminItemNote'),
     cancelBtn: document.getElementById('adminItemCancel'),
     saveBtn: document.getElementById('adminItemSave'),
+    deleteBtn: document.getElementById('adminItemDelete'),
     cropperBackdrop: document.getElementById('itemCropperBackdrop'),
     cropperImage: document.getElementById('itemCropperImage'),
     cropperZoom: document.getElementById('itemCropperZoom'),
     cropperClose: document.getElementById('itemCropperClose'),
     cropperCancel: document.getElementById('itemCropperCancel'),
-    cropperConfirm: document.getElementById('itemCropperConfirm')
+    cropperConfirm: document.getElementById('itemCropperConfirm'),
+    deleteBackdrop: document.getElementById('deleteItemBackdrop'),
+    deleteItemName: document.getElementById('deleteItemName'),
+    deleteCancel: document.getElementById('deleteItemCancel'),
+    deleteConfirm: document.getElementById('deleteItemConfirm')
 };
 
 let supabase = null;
@@ -143,6 +148,12 @@ function openAdminModal(item) {
     if (dom.form) dom.form.reset();
     resetImagePreview();
 
+    // Show/hide delete button
+    if (dom.deleteBtn) {
+        const isDbItem = editingItem && editingItem._dbId;
+        dom.deleteBtn.hidden = !isDbItem;
+    }
+
     if (editingItem) {
         dom.nameInput.value = editingItem.name || '';
         dom.categoryInput.value = editingItem.category || '';
@@ -164,6 +175,54 @@ function closeAdminModal() {
     resetImagePreview();
     editingItem = null;
 }
+
+function openDeleteModal() {
+    if (!editingItem || !editingItem._dbId) return;
+    if (dom.deleteItemName) {
+        dom.deleteItemName.textContent = editingItem.name || 'cet objet';
+    }
+    openBackdrop(dom.deleteBackdrop);
+}
+
+function closeDeleteModal() {
+    closeBackdrop(dom.deleteBackdrop);
+}
+
+async function confirmDelete() {
+    if (!editingItem || !editingItem._dbId || !supabase) return;
+
+    try {
+        const { error } = await supabase
+            .from('items')
+            .delete()
+            .eq('id', editingItem._dbId);
+
+        if (error) {
+            console.error('Delete error:', error);
+            setError('Impossible de supprimer l\'objet.');
+            closeDeleteModal();
+            return;
+        }
+
+        // Remove from UI
+        window.astoriaCodex?.removeItemByRef(editingItem);
+
+        // Close modals
+        closeDeleteModal();
+        closeAdminModal();
+    } catch (error) {
+        console.error(error);
+        setError('Erreur lors de la suppression.');
+        closeDeleteModal();
+    }
+}
+
+// Global function for edit button in table rows
+window.openEditModal = function(globalIndex) {
+    const item = window.astoriaCodex?.getItemByIndex(globalIndex);
+    if (!item) return;
+    openAdminModal(item);
+};
 
 function destroyCropper() {
     if (cropper) {
@@ -411,6 +470,9 @@ async function init() {
     dom.closeBtn?.addEventListener('click', closeAdminModal);
     dom.cancelBtn?.addEventListener('click', closeAdminModal);
     dom.form?.addEventListener('submit', saveItem);
+    dom.deleteBtn?.addEventListener('click', openDeleteModal);
+    dom.deleteCancel?.addEventListener('click', closeDeleteModal);
+    dom.deleteConfirm?.addEventListener('click', confirmDelete);
 
     dom.imageBtn?.addEventListener('click', () => dom.imageInput?.click());
     dom.imageInput?.addEventListener('change', (event) => {
@@ -442,10 +504,11 @@ async function init() {
 
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
-        if (dom.backdrop?.classList.contains('open')) {
+        if (dom.deleteBackdrop?.classList.contains('open')) {
+            closeDeleteModal();
+        } else if (dom.backdrop?.classList.contains('open')) {
             closeAdminModal();
-        }
-        if (dom.cropperBackdrop?.classList.contains('open')) {
+        } else if (dom.cropperBackdrop?.classList.contains('open')) {
             closeCropper();
         }
     });

@@ -184,8 +184,11 @@
                 </div>
 
                 <div class="codex-admin-actions">
-                    <button type="button" class="codex-admin-button secondary" id="adminItemCancel">Annuler</button>
-                    <button type="submit" class="codex-admin-button" id="adminItemSave">Enregistrer</button>
+                    <button type="button" class="codex-admin-button danger" id="adminItemDelete" hidden>🗑️ Supprimer</button>
+                    <div style="margin-left: auto; display: flex; gap: var(--space-2);">
+                        <button type="button" class="codex-admin-button secondary" id="adminItemCancel">Annuler</button>
+                        <button type="submit" class="codex-admin-button" id="adminItemSave">Enregistrer</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -214,15 +217,42 @@
         </div>
     </div>
 
+    <!-- Delete confirmation modal -->
+    <div class="codex-delete-backdrop" id="deleteItemBackdrop" aria-hidden="true">
+        <div class="codex-delete-modal" role="dialog" aria-modal="true" aria-labelledby="deleteItemTitle">
+            <div class="codex-delete-header">
+                <h2 class="codex-delete-title" id="deleteItemTitle">Supprimer l'objet</h2>
+            </div>
+            <div class="codex-delete-body">
+                <p>Voulez-vous vraiment supprimer <strong id="deleteItemName"></strong> ?</p>
+                <p style="color: var(--color-error); margin-top: var(--space-3);">Cette action est irréversible.</p>
+            </div>
+            <div class="codex-delete-actions">
+                <button type="button" class="codex-admin-button secondary" id="deleteItemCancel">Annuler</button>
+                <button type="button" class="codex-admin-button danger" id="deleteItemConfirm">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Données des objets -->
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script type="module">
         import { initCharacterSummary } from './js/ui/character-summary.js';
+        import { isAdmin } from './js/auth.js';
         // Initialize character summary with kaels and dropdown
         document.addEventListener('DOMContentLoaded', async () => {
             await initCharacterSummary({ enableDropdown: true, showKaels: true });
+            // Set admin status globally for codex
+            window.astoriaIsAdmin = isAdmin();
+            // Show/hide admin buttons
+            if (window.astoriaIsAdmin) {
+                const adminAddBtn = document.getElementById('adminAddItemBtn');
+                if (adminAddBtn) adminAddBtn.hidden = false;
+                const adminActions = document.getElementById('modalAdminActions');
+                if (adminActions) adminActions.hidden = false;
+            }
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
@@ -526,12 +556,10 @@
                     </td>
                     <td class="effect-cell" data-label="Effet">${highlightedEffect}</td>
                     <td class="action-cell" data-label="Action">
-                        <button
-                            class="copy-btn"
-                            onclick="copyToClipboard('${escapeForAttribute(copyText)}', this)"
-                        >
-                            Copy
-                        </button>
+                        ${window.astoriaIsAdmin
+                            ? `<button class="edit-btn" onclick="openEditModal(${globalIndex})" title="Modifier l'objet">Modifier</button>`
+                            : `<button class="copy-btn" onclick="copyToClipboard('${escapeForAttribute(copyText)}', this)">Copy</button>`
+                        }
                     </td>
                 </tr>
             `;

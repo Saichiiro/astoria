@@ -17,6 +17,21 @@
     transform: translateY(-1px);
 }
 
+.edit-btn {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-primary);
+    background: var(--color-white);
+    color: var(--color-primary);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.edit-btn:hover {
+    background: var(--color-primary-lighter);
+}
+
 .modal-admin-actions {
     margin-left: auto;
     display: flex;
@@ -287,6 +302,65 @@
 .codex-cropper-hint {
     font-size: var(--text-sm);
     color: var(--color-gray-600);
+}
+
+/* Delete modal */
+.codex-delete-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    z-index: var(--z-modal);
+}
+
+.codex-delete-backdrop[aria-hidden="false"] {
+    display: flex;
+}
+
+.codex-delete-modal {
+    width: 100%;
+    max-width: 420px;
+    background: var(--color-white);
+    border-radius: 12px;
+    border: 2px solid var(--color-error);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-2xl);
+}
+
+.codex-delete-header {
+    margin-bottom: var(--space-3);
+}
+
+.codex-delete-title {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--color-error);
+}
+
+.codex-delete-body {
+    margin-bottom: var(--space-4);
+    color: var(--color-gray-700);
+}
+
+.codex-delete-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+}
+
+.codex-admin-button.danger {
+    background: var(--color-error);
+    border-color: var(--color-error);
+    color: var(--color-white);
+}
+
+.codex-admin-button.danger:hover {
+    background: #c11;
+    border-color: #c11;
 }
 
 @media (max-width: 700px) {
