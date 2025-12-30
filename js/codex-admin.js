@@ -495,6 +495,27 @@ async function loadDbItems() {
     console.log('[LOAD] Loaded', data?.length || 0, 'items from DB');
     console.log('[LOAD] Items:', data?.map(item => ({ id: item.id, name: item.name })));
 
+    // Check for duplicate names
+    const nameCounts = new Map();
+    (data || []).forEach(item => {
+        const name = item.name;
+        if (!nameCounts.has(name)) {
+            nameCounts.set(name, []);
+        }
+        nameCounts.get(name).push(item.id);
+    });
+
+    const duplicates = Array.from(nameCounts.entries())
+        .filter(([name, ids]) => ids.length > 1);
+
+    if (duplicates.length > 0) {
+        console.warn('[LOAD] ⚠️ DUPLICATE ITEMS DETECTED:');
+        duplicates.forEach(([name, ids]) => {
+            console.warn(`  - "${name}": ${ids.length} copies with IDs:`, ids);
+        });
+        console.warn('[LOAD] 💡 Delete duplicates manually in Supabase or use DELETE FROM items WHERE id IN (...ids)');
+    }
+
     const mapped = (data || []).map(mapDbItem);
     window.astoriaCodex.addItems(mapped);
 }
