@@ -79,6 +79,28 @@ export async function createCharacter(userId, characterData) {
     }
 }
 
+export async function getCharacterById(characterId) {
+    try {
+        const supabase = await getSupabaseClient();
+
+        const { data, error } = await supabase
+            .from('characters')
+            .select('*')
+            .eq('id', characterId)
+            .single();
+
+        if (error) {
+            console.error('Error fetching character by ID:', error);
+            return null;
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Error in getCharacterById:', error);
+        return null;
+    }
+}
+
 export async function setActiveCharacter(characterId) {
     try {
         const supabase = await getSupabaseClient();

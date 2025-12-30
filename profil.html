@@ -414,6 +414,7 @@
             getUserCharacters,
             getAllCharacters,
             getActiveCharacter,
+            getCharacterById,
             setActiveCharacter,
             createCharacter,
             getSupabaseClient,
@@ -550,6 +551,8 @@
 
         function canEditProfile() {
             if (!currentUser || !currentCharacter) return false;
+            // Admins can always edit
+            if (isAdmin()) return true;
             const ownerId = currentCharacter.user_id || null;
             if (ownerId && ownerId === currentUser.id) return true;
             if (Array.isArray(userCharacters)) {
@@ -1481,6 +1484,61 @@
         async function init() {
             currentUser = getCurrentUser();
 
+            // Check for shared profile URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedCharacterId = urlParams.get('character');
+
+            if (sharedCharacterId) {
+                // Viewing a shared profile - load that character
+                const sharedCharacter = await getCharacterById(sharedCharacterId);
+
+                if (!sharedCharacter) {
+                    // Character not found
+                    profileContent.innerHTML = `
+                        <div class="profile-not-logged-in">
+                            <h2>Personnage introuvable</h2>
+                            <p>Ce personnage n'existe pas ou n'est pas accessible.</p>
+                            <a href="profil.html" class="auth-button">Retour au profil</a>
+                        </div>
+                    `;
+                    return;
+                }
+
+                currentCharacter = sharedCharacter;
+
+                if (!currentUser) {
+                    // Not logged in - render auth controls anyway
+                    await renderAuthControls();
+                }
+
+                setupShortcutPanels();
+
+                if (currentUser) {
+                    // Load user's characters for context
+                    await loadCharacters();
+                }
+
+                // Display the shared character
+                displayCharacter(currentCharacter);
+                initProfileTagSelector({ characterId: currentCharacter.id, isAdmin: isAdmin() });
+                updateAuthUserLabel();
+                syncAdminSelector();
+                renderSoulCounts(currentCharacter);
+                updateShortcutsVisibility();
+                updateAvatarControls();
+                updatePresentationControls();
+
+                // Initialize character summary widget with kaels
+                await initCharacterSummary({ enableDropdown: true, showKaels: true });
+
+                setInterval(() => {
+                    renderSoulCounts(getActiveCharacter());
+                }, 1200);
+
+                return;
+            }
+
+            // Normal flow - not viewing a shared profile
             if (!currentUser) {
                 // Not logged in - show login prompt
                 showNotLoggedIn();

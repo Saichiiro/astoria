@@ -14,6 +14,7 @@ export {
 export {
     getUserCharacters,
     getAllCharacters,
+    getCharacterById,
     createCharacter,
     setActiveCharacter,
     updateCharacter
