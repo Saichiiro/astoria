@@ -327,7 +327,11 @@ function ensureModalShell() {
             </div>
         </div>
     `;
-    document.body.appendChild(wrapper);
+
+    // Extract children from wrapper and append them directly to body
+    while (wrapper.firstChild) {
+        document.body.appendChild(wrapper.firstChild);
+    }
 
     document.getElementById("nokorahInvokeCancel").addEventListener("click", () => closeModal("nokorahInvokeModal"));
     document.getElementById("nokorahFarewellCancel").addEventListener("click", () => closeModal("nokorahFarewellModal"));
