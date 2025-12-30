@@ -53,7 +53,7 @@ export const adminPanel = {
     actions.append(selectLabel, select, hint);
     wrapper.appendChild(actions);
 
-    const placeholder = el("div", "panel-admin-placeholder");
+    const futureSection = el("div", "panel-admin-placeholder");
     const placeholderTitle = el("h4", "panel-admin-placeholder-title", "Future Features");
     const placeholderBody = el(
       "p",
@@ -65,8 +65,8 @@ export const adminPanel = {
       "panel-admin-timestamp",
       `Accessed: ${new Date().toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}`
     );
-    placeholder.append(placeholderTitle, placeholderBody, timestamp);
-    wrapper.appendChild(placeholder);
+    futureSection.append(placeholderTitle, placeholderBody, timestamp);
+    wrapper.appendChild(futureSection);
 
     select.addEventListener("change", async () => {
       const value = select.value;
