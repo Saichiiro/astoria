@@ -77,7 +77,9 @@ const ICON = {
     hole: String.fromCodePoint(0x1f573, 0xfe0f),
     chains: String.fromCodePoint(0x26d3, 0xfe0f),
     purple: String.fromCodePoint(0x1f7e3),
-    blue: String.fromCodePoint(0x1f535)
+    blue: String.fromCodePoint(0x1f535),
+    fleurDeLys: String.fromCodePoint(0x269c, 0xfe0f),
+    landscape: String.fromCodePoint(0x1f3de, 0xfe0f)
 };
 
 const BOX = {
@@ -166,10 +168,12 @@ const TAG_GROUPS = [
     {
         title: 'Kingdom',
         tags: [
+            { id: 'kingdom_evercrest', label: label(ICON.fleurDeLys, 'Evercrest') },
             { id: 'kingdom_ombresyl', label: label(ICON.bat, 'Ombresyl') },
             { id: 'kingdom_sancturia', label: label(ICON.sprout, 'Sancturia') },
             { id: 'kingdom_luminara', label: label(ICON.crown, 'Luminara') },
-            { id: 'kingdom_celestheon', label: label(ICON.swan, 'Celestheon') }
+            { id: 'kingdom_celestheon', label: label(ICON.swan, 'Celestheon') },
+            { id: 'kingdom_avalon', label: label(ICON.landscape, 'Avalon') }
         ]
     },
     {

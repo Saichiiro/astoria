@@ -291,15 +291,13 @@
                             <button type="button" class="save-tab-button" data-tab="alice">Sauvegarder</button>
                         </div>
 
-                        <div class="alice-toggle-row">
-                            <label class="alice-toggle-label">
-                                <input id="hasAlice" type="checkbox">
-                                <span>Possède une Alice</span>
-                            </label>
-                            <label class="alice-toggle-label">
-                                <input id="hasDoubleAlice" type="checkbox">
-                                <span>Possède un Double Alice</span>
-                            </label>
+                        <div class="field-group">
+                            <label class="field-label" for="aliceStatus">Status Alice</label>
+                            <select id="aliceStatus" class="field-input">
+                                <option value="">Aucune</option>
+                                <option value="simple">Simple Alice</option>
+                                <option value="double">Double Alice</option>
+                            </select>
                         </div>
 
                         <div id="alice-container" class="alice-grid">
@@ -353,22 +351,25 @@
 
                                 <div class="field-group">
                                     <label class="field-label" for="alice2Type">Type</label>
-                                    <input
-                                        id="alice2Type"
-                                        class="field-input"
-                                        type="text"
-                                        placeholder="Type d'Alice : physiologique, mentale, élémentaire, etc."
-                                    >
+                                    <select id="alice2Type" class="field-input">
+                                        <option value="">Sélectionner...</option>
+                                        <option value="Physiques">Physiques</option>
+                                        <option value="Psychiques">Psychiques</option>
+                                        <option value="Technologiques">Technologiques</option>
+                                        <option value="Spéciaux">Spéciaux</option>
+                                        <option value="Dangereux">Dangereux</option>
+                                    </select>
                                 </div>
 
                                 <div class="field-group">
                                     <label class="field-label" for="alice2Forme">Forme</label>
-                                    <input
-                                        id="alice2Forme"
-                                        class="field-input"
-                                        type="text"
-                                        placeholder="Forme(s) ou modalités d'expression de l'Alice."
-                                    >
+                                    <select id="alice2Forme" class="field-input">
+                                        <option value="">Sélectionner...</option>
+                                        <option value="Enfance">Enfance</option>
+                                        <option value="Diffuse">Diffuse</option>
+                                        <option value="Indéterminée">Indéterminée</option>
+                                        <option value="Limitée">Limitée</option>
+                                    </select>
                                 </div>
 
                                 <div class="field-group">
@@ -711,7 +712,7 @@
                                 <label class="field-label" for="eaterTypeArme">Type d'arme</label>
                                 <select id="eaterTypeArme" class="field-input">
                                     <option value="">Sélectionner...</option>
-                                    <option value="classique">Classique</option>
+                                    <option value="classique">Simple</option>
                                     <option value="multi-formes">Multi-formes</option>
                                     <option value="jumelees">Jumelées</option>
                                 </select>
@@ -1153,10 +1154,12 @@
                         'Esclaves & Hybrides': 'hierarchy_slaves'
                     },
                     'identitePaysOrigine': {
+                        'Evercrest': 'kingdom_evercrest',
                         'Ombresyl': 'kingdom_ombresyl',
                         'Sancturia': 'kingdom_sancturia',
                         'Luminara': 'kingdom_luminara',
-                        'Celestheon': 'kingdom_celestheon'
+                        'Celestheon': 'kingdom_celestheon',
+                        'Avalon': 'kingdom_avalon'
                     },
                     'appAffection': {
                         'meister': 'identity_meister',
@@ -1200,6 +1203,19 @@
                         'Dangereux': 'alice_danger'
                     },
                     'aliceForme': {
+                        'Enfance': 'alice_child',
+                        'Diffuse': 'alice_diffuse',
+                        'Indéterminée': 'alice_unknown',
+                        'Limitée': 'alice_limited'
+                    },
+                    'alice2Type': {
+                        'Physiques': 'alice_physical',
+                        'Psychiques': 'alice_psychic',
+                        'Technologiques': 'alice_tech',
+                        'Spéciaux': 'alice_special',
+                        'Dangereux': 'alice_danger'
+                    },
+                    'alice2Forme': {
                         'Enfance': 'alice_child',
                         'Diffuse': 'alice_diffuse',
                         'Indéterminée': 'alice_unknown',
@@ -1282,22 +1298,37 @@
                 });
             });
 
-            // Alice checkboxes visibility
-            const hasAliceCheckbox = document.getElementById('hasAlice');
-            const hasDoubleAliceCheckbox = document.getElementById('hasDoubleAlice');
+            // Alice status dropdown visibility
             const aliceContainer = document.getElementById('alice-container');
             const alice2Fields = document.getElementById('alice2-fields');
 
             const updateAliceVisibility = () => {
-                const hasAlice = hasAliceCheckbox.checked;
-                const hasDoubleAlice = hasDoubleAliceCheckbox.checked;
+                const aliceStatusSelect = document.getElementById('aliceStatus');
+                if (!aliceStatusSelect) return;
 
-                aliceContainer.style.display = hasAlice ? 'grid' : 'none';
-                alice2Fields.style.display = hasDoubleAlice ? 'block' : 'none';
+                const status = aliceStatusSelect.value;
+
+                if (!aliceContainer || !alice2Fields) return;
+
+                // Logique de visibilité basée sur le menu déroulant
+                if (status === '') {
+                    // Aucune Alice sélectionnée
+                    aliceContainer.style.display = 'none';
+                } else if (status === 'simple') {
+                    // Simple Alice : afficher uniquement alice-fields en mode block
+                    aliceContainer.style.display = 'block';
+                    alice2Fields.style.display = 'none';
+                } else if (status === 'double') {
+                    // Double Alice : afficher les deux colonnes en mode grid
+                    aliceContainer.style.display = 'grid';
+                    alice2Fields.style.display = 'block';
+                }
             };
 
-            hasAliceCheckbox.addEventListener('change', updateAliceVisibility);
-            hasDoubleAliceCheckbox.addEventListener('change', updateAliceVisibility);
+            const aliceStatusSelect = document.getElementById('aliceStatus');
+            if (aliceStatusSelect) {
+                aliceStatusSelect.addEventListener('change', updateAliceVisibility);
+            }
 
             // Other conditional visibility
             const conditionalConfigs = [
@@ -1798,6 +1829,27 @@
                     }
                 }
 
+                // Migrate old Alice checkbox data to new dropdown format
+                if (tabName === 'alice') {
+                    if (data.hasAlice !== undefined || data.hasDoubleAlice !== undefined) {
+                        const hasAlice = data.hasAlice === true;
+                        const hasDoubleAlice = data.hasDoubleAlice === true;
+
+                        let aliceStatus = '';
+                        if (hasDoubleAlice) {
+                            aliceStatus = 'double';
+                        } else if (hasAlice) {
+                            aliceStatus = 'simple';
+                        }
+
+                        data.aliceStatus = aliceStatus;
+
+                        // Remove old checkbox values
+                        delete data.hasAlice;
+                        delete data.hasDoubleAlice;
+                    }
+                }
+
                 Object.keys(data).forEach((key) => {
                     if (key === 'magieSupplementaire') return; // Handle separately
                     if (key === 'techniques') return; // Handle separately
@@ -1969,7 +2021,9 @@
                 'appHouse',
                 'eaterTypeArme',
                 'aliceType',
-                'aliceForme'
+                'aliceForme',
+                'alice2Type',
+                'alice2Forme'
             ];
 
             tagSyncFields.forEach(fieldId => {
