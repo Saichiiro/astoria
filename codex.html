@@ -247,19 +247,36 @@
         import { isAdmin } from './js/auth.js';
         // Initialize character summary with kaels and dropdown
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('[CODEX DEBUG] DOMContentLoaded - Initial astoriaIsAdmin:', window.astoriaIsAdmin);
             await initCharacterSummary({ enableDropdown: true, showKaels: true });
             // Set admin status globally for codex
-            window.astoriaIsAdmin = isAdmin();
+            const adminStatus = isAdmin();
+            console.log('[CODEX DEBUG] isAdmin() returned:', adminStatus);
+            window.astoriaIsAdmin = adminStatus;
+            console.log('[CODEX DEBUG] Updated window.astoriaIsAdmin to:', window.astoriaIsAdmin);
             // Show/hide admin buttons
             if (window.astoriaIsAdmin) {
+                console.log('[CODEX DEBUG] User is admin, showing admin controls');
                 const adminAddBtn = document.getElementById('adminAddItemBtn');
-                if (adminAddBtn) adminAddBtn.hidden = false;
+                if (adminAddBtn) {
+                    console.log('[CODEX DEBUG] Showing adminAddItemBtn');
+                    adminAddBtn.hidden = false;
+                }
                 const adminActions = document.getElementById('modalAdminActions');
-                if (adminActions) adminActions.hidden = false;
+                if (adminActions) {
+                    console.log('[CODEX DEBUG] Showing modalAdminActions');
+                    adminActions.hidden = false;
+                }
                 // Refresh table to show edit buttons
                 if (window.astoriaCodex && typeof window.astoriaCodex.refresh === 'function') {
+                    console.log('[CODEX DEBUG] Calling astoriaCodex.refresh()');
                     window.astoriaCodex.refresh();
+                    console.log('[CODEX DEBUG] Refresh complete');
+                } else {
+                    console.error('[CODEX DEBUG] astoriaCodex or refresh() not available!', window.astoriaCodex);
                 }
+            } else {
+                console.log('[CODEX DEBUG] User is NOT admin');
             }
         });
     </script>
@@ -564,10 +581,12 @@
                     </td>
                     <td class="effect-cell" data-label="Effet">${highlightedEffect}</td>
                     <td class="action-cell" data-label="Action">
-                        ${window.astoriaIsAdmin
-                            ? `<button class="edit-btn" onclick="openEditModal(${globalIndex})" title="Modifier l'objet">Modifier</button>`
-                            : `<button class="copy-btn" onclick="copyToClipboard('${escapeForAttribute(copyText)}', this)">Copy</button>`
-                        }
+                        ${(() => {
+                            console.log('[CODEX DEBUG] buildRow - astoriaIsAdmin:', window.astoriaIsAdmin, 'for item:', name);
+                            return window.astoriaIsAdmin
+                                ? `<button class="edit-btn" onclick="openEditModal(${globalIndex})" title="Modifier l'objet">Modifier</button>`
+                                : `<button class="copy-btn" onclick="copyToClipboard('${escapeForAttribute(copyText)}', this)">Copy</button>`;
+                        })()}
                     </td>
                 </tr>
             `;
