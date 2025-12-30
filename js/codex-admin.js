@@ -113,24 +113,34 @@ function closeBackdrop(backdrop) {
 }
 
 function resetImagePreview() {
-    if (imagePreviewUrl) {
-        URL.revokeObjectURL(imagePreviewUrl);
-        imagePreviewUrl = '';
-    }
-    imageBlob = null;
+    // IMPORTANT: Clear image src FIRST, then revoke URL
     if (dom.imageTag) {
-        dom.imageTag.hidden = true;
         dom.imageTag.src = '';
+        dom.imageTag.hidden = true;
     }
     if (dom.imagePlaceholder) {
         dom.imagePlaceholder.hidden = false;
     }
+
+    // Now safe to revoke blob URL
+    if (imagePreviewUrl && imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+    }
+    imagePreviewUrl = '';
+    imageBlob = null;
 }
 
 function setImagePreview(url) {
     if (!dom.imageTag || !dom.imagePlaceholder) return;
-    dom.imageTag.hidden = !url;
+
+    // Revoke old blob URL if we're setting a new one
+    if (imagePreviewUrl && imagePreviewUrl !== url && imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+    }
+
+    imagePreviewUrl = url;
     dom.imageTag.src = url || '';
+    dom.imageTag.hidden = !url;
     dom.imagePlaceholder.hidden = !!url;
 }
 
