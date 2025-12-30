@@ -133,15 +133,37 @@ function resetImagePreview() {
 function setImagePreview(url) {
     if (!dom.imageTag || !dom.imagePlaceholder) return;
 
-    // Revoke old blob URL if we're setting a new one
-    if (imagePreviewUrl && imagePreviewUrl !== url && imagePreviewUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreviewUrl);
-    }
+    // Store old URL to revoke AFTER new image loads
+    const oldUrl = imagePreviewUrl;
 
+    // Set new URL immediately
     imagePreviewUrl = url;
-    dom.imageTag.src = url || '';
     dom.imageTag.hidden = !url;
     dom.imagePlaceholder.hidden = !!url;
+
+    if (!url) {
+        dom.imageTag.src = '';
+        // Revoke old blob if clearing preview
+        if (oldUrl && oldUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(oldUrl);
+        }
+        return;
+    }
+
+    // Wait for image to load before revoking old blob
+    dom.imageTag.onload = () => {
+        // Only revoke old blob after new image successfully loaded
+        if (oldUrl && oldUrl !== url && oldUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(oldUrl);
+        }
+    };
+
+    dom.imageTag.onerror = () => {
+        console.error('Failed to load image preview:', url);
+        // Don't revoke if load failed - might need to retry
+    };
+
+    dom.imageTag.src = url;
 }
 
 function openAdminModal(item) {
@@ -324,9 +346,9 @@ async function applyCropper() {
     }
 
     imageBlob = blob;
-    if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
-    imagePreviewUrl = URL.createObjectURL(blob);
-    setImagePreview(imagePreviewUrl);
+    // Don't revoke here - setImagePreview will handle it after image loads
+    const newBlobUrl = URL.createObjectURL(blob);
+    setImagePreview(newBlobUrl);
     closeCropper();
 }
 
@@ -477,15 +499,19 @@ async function saveItem(event) {
 
 async function loadDbItems() {
     if (!supabase || !window.astoriaCodex) return;
+    console.log('[LOAD] Loading items from database...');
     const { data, error } = await supabase
         .from('items')
         .select('id, name, description, effect, category, price_po, price_pa, images, enabled')
         .order('created_at', { ascending: true });
 
     if (error) {
-        console.error('Items load error:', error);
+        console.error('[LOAD] Items load error:', error);
         return;
     }
+
+    console.log('[LOAD] Loaded', data?.length || 0, 'items from DB');
+    console.log('[LOAD] Items:', data?.map(item => ({ id: item.id, name: item.name })));
 
     const mapped = (data || []).map(mapDbItem);
     window.astoriaCodex.addItems(mapped);
