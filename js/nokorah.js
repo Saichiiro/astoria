@@ -353,6 +353,12 @@ function openModal(id) {
     modal.classList.add("open");
     modal.setAttribute("aria-hidden", "false");
 
+    // Force styles as fallback
+    modal.style.display = 'flex';
+    modal.style.position = 'fixed';
+    modal.style.inset = '0';
+    modal.style.zIndex = '2000';
+
     // Debug: check computed styles
     const computedStyle = window.getComputedStyle(modal);
     console.log('[NOKORAH] Modal opened:', id);
@@ -367,6 +373,12 @@ function closeModal(id) {
     if (!modal) return;
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
+
+    // Reset inline styles
+    modal.style.display = '';
+    modal.style.position = '';
+    modal.style.inset = '';
+    modal.style.zIndex = '';
 }
 
 function showAlert(message) {
