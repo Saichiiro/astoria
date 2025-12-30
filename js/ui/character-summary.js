@@ -344,6 +344,38 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
     });
 }
 
+/**
+ * Initialise le bouton de partage de profil
+ */
+function initShareButton(characterId) {
+    const shareBtn = document.getElementById("shareProfileBtn");
+    if (!shareBtn) return;
+
+    if (characterId) {
+        shareBtn.hidden = false;
+        shareBtn.onclick = async () => {
+            const url = `${window.location.origin}${window.location.pathname}?character=${encodeURIComponent(characterId)}`;
+            try {
+                await navigator.clipboard.writeText(url);
+                const originalText = shareBtn.textContent;
+                shareBtn.textContent = "✓";
+                shareBtn.style.opacity = "1";
+                setTimeout(() => {
+                    shareBtn.textContent = originalText;
+                    shareBtn.style.opacity = "0.7";
+                }, 1500);
+            } catch (error) {
+                console.error("Failed to copy URL:", error);
+                alert("Impossible de copier le lien. URL: " + url);
+            }
+        };
+        shareBtn.onmouseenter = () => shareBtn.style.opacity = "1";
+        shareBtn.onmouseleave = () => shareBtn.style.opacity = "0.7";
+    } else {
+        shareBtn.hidden = true;
+    }
+}
+
 export async function initCharacterSummary({ includeQueryParam = false, elements, enableDropdown = true, showKaels = false } = {}) {
     const resolvedElements = elements || getDefaultSummaryElements();
     const context = resolveCharacterContext({ includeQueryParam });
@@ -364,6 +396,9 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
     if (showKaels) {
         await updateKaels();
     }
+
+    // Initialize share button
+    initShareButton(context?.character?.id);
 
     // Setup dropdown if enabled
     if (enableDropdown) {

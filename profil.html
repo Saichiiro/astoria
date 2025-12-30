@@ -152,7 +152,10 @@
                         <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
                     </div>
                     <div class="character-summary-text">
-                        <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                            <button type="button" id="shareProfileBtn" class="share-profile-btn" title="Partager le profil" hidden style="background: none; border: none; cursor: pointer; font-size: 1.2em; opacity: 0.7; transition: opacity 0.2s;">📤</button>
+                        </div>
                         <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
                         <div class="character-summary-meta">
                             <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
