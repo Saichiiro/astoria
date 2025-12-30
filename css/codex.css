@@ -323,9 +323,9 @@
 .codex-delete-modal {
     width: 100%;
     max-width: 420px;
-    background: var(--color-white);
+    background: #fff;
     border-radius: 12px;
-    border: 2px solid var(--color-error);
+    border: 2px solid #dc3545;
     padding: var(--space-4);
     box-shadow: var(--shadow-2xl);
 }
@@ -338,7 +338,7 @@
     margin: 0;
     font-size: var(--text-lg);
     font-weight: var(--font-semibold);
-    color: var(--color-error);
+    color: #dc3545;
 }
 
 .codex-delete-body {
@@ -353,14 +353,14 @@
 }
 
 .codex-admin-button.danger {
-    background: var(--color-error);
-    border-color: var(--color-error);
-    color: var(--color-white);
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
 }
 
 .codex-admin-button.danger:hover {
-    background: #c11;
-    border-color: #c11;
+    background: #c82333;
+    border-color: #bd2130;
 }
 
 @media (max-width: 700px) {

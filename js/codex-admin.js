@@ -200,29 +200,38 @@ function closeDeleteModal() {
 }
 
 async function confirmDelete() {
-    if (!editingItem || !editingItem._dbId || !supabase) return;
+    if (!editingItem || !editingItem._dbId || !supabase) {
+        console.error('[DELETE] Cannot delete:', { editingItem, hasDbId: !!editingItem?._dbId, hasSupabase: !!supabase });
+        return;
+    }
+
+    console.log('[DELETE] Deleting item:', editingItem.name, 'ID:', editingItem._dbId);
 
     try {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('items')
             .delete()
-            .eq('id', editingItem._dbId);
+            .eq('id', editingItem._dbId)
+            .select();
 
         if (error) {
-            console.error('Delete error:', error);
+            console.error('[DELETE] Delete error:', error);
             setError('Impossible de supprimer l\'objet.');
             closeDeleteModal();
             return;
         }
 
+        console.log('[DELETE] Successfully deleted from DB:', data);
+
         // Remove from UI
         window.astoriaCodex?.removeItemByRef(editingItem);
+        console.log('[DELETE] Removed from UI');
 
         // Close modals
         closeDeleteModal();
         closeAdminModal();
     } catch (error) {
-        console.error(error);
+        console.error('[DELETE] Exception:', error);
         setError('Erreur lors de la suppression.');
         closeDeleteModal();
     }
@@ -327,6 +336,24 @@ async function uploadImage(dbId, nameHint) {
         return null;
     }
 
+    // TEMP SOLUTION: Convert blob to data URL instead of uploading to storage
+    // TODO: Create 'items' bucket in Supabase Storage for production use
+    try {
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(imageBlob);
+        });
+        console.log('Image converted to data URL, size:', imageBlob.size);
+        return dataUrl;
+    } catch (error) {
+        console.error('Failed to convert image to data URL:', error);
+        setError('Impossible de traiter l\'image');
+        return null;
+    }
+
+    /* ORIGINAL STORAGE UPLOAD CODE (requires 'items' bucket to exist):
     const safeName = String(nameHint || 'item')
         .toLowerCase()
         .replace(/[^a-z0-9_.-]/g, '_');
@@ -352,6 +379,7 @@ async function uploadImage(dbId, nameHint) {
     const publicUrl = data?.publicUrl || null;
     console.log('Image uploaded successfully:', publicUrl);
     return publicUrl;
+    */
 }
 
 async function saveItem(event) {
