@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -20,7 +20,15 @@
             /* Largeur du conteneur panel (sans affecter les enfants) */
             --skills-panel-width: 10%;
             /* Largeur du contenu à l'intérieur du panel */
-            --skills-content-max-width: 760px;
+            --skills-content-max-width: 600px;
+            --skills-panel-max-width: 760px;
+            --skills-sidebar-width: clamp(130px, 18vw, 180px);
+            --skills-book-cover: #f7c7db;
+            --skills-book-cover-dark: #e9a9c5;
+            --skills-book-page: #fffaf8;
+            --skills-book-edge: #f4d7e3;
+            --skills-book-ink: #5c2a4b;
+            --skills-book-shadow: rgba(120, 38, 70, 0.25);
         }
 
         .skills-page {
@@ -29,22 +37,123 @@
         }
 
         .skills-layout {
+            position: relative;
             display: flex;
-            background: linear-gradient(to bottom right, #FFFFFF, #FFF5F9);
-            border-radius: var(--radius-lg);
-            border: 2px solid #F8BBD0;
+            gap: 0;
+            padding: var(--space-4);
+            background:
+                radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 45%),
+                radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 52%),
+                linear-gradient(135deg, var(--skills-book-cover), var(--skills-book-cover-dark));
+            border-radius: var(--radius-xl);
+            border: 2px solid #eaa4c4;
             box-shadow:
-                0 4px 6px rgba(248, 187, 208, 0.15),
-                0 10px 20px rgba(248, 187, 208, 0.2);
+                0 12px 24px rgba(120, 38, 70, 0.2),
+                0 3px 8px rgba(120, 38, 70, 0.18),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.35);
             overflow: hidden;
             min-height: 320px;
+            max-width: calc(var(--skills-panel-max-width) + var(--skills-sidebar-width) + (var(--space-4) * 2));
+            margin-left: auto;
+            margin-right: auto;
             transition: box-shadow 0.3s ease;
         }
 
         .skills-layout:hover {
             box-shadow:
-                0 6px 8px rgba(248, 187, 208, 0.2),
-                0 12px 24px rgba(248, 187, 208, 0.25);
+                0 16px 28px rgba(120, 38, 70, 0.25),
+                0 5px 12px rgba(120, 38, 70, 0.2);
+        }
+
+        .skills-layout::before {
+            content: "";
+            position: absolute;
+            top: var(--space-4);
+            bottom: var(--space-4);
+            left: calc(var(--space-4) + var(--skills-sidebar-width) - 6px);
+            width: 14px;
+            background: linear-gradient(90deg, rgba(234, 170, 197, 0.95) 0%, rgba(255, 255, 255, 0.85) 45%, rgba(221, 140, 176, 0.95) 100%);
+            border-radius: 12px;
+            box-shadow: inset 0 0 6px rgba(92, 42, 75, 0.18);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .skills-page-hint {
+            position: absolute;
+            bottom: var(--space-4);
+            width: 58px;
+            height: 58px;
+            display: flex;
+            align-items: flex-end;
+            font-size: 16px;
+            font-weight: var(--font-semibold);
+            line-height: 1;
+            color: var(--skills-book-ink);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+            border: none;
+            cursor: pointer;
+            pointer-events: auto;
+            background: transparent;
+            padding: 0;
+            appearance: none;
+            z-index: 2;
+            filter: drop-shadow(0 4px 6px rgba(120, 38, 70, 0.15));
+            opacity: 0.9;
+            transition: transform 0.18s ease, opacity 0.18s ease;
+        }
+
+        .skills-page-hint--left {
+            left: var(--space-4);
+            justify-content: flex-start;
+            padding: 0 0 10px 10px;
+            background: linear-gradient(225deg, transparent 50%, rgba(255, 255, 255, 0.96) 54%, rgba(244, 215, 227, 0.95) 100%);
+            border-bottom-left-radius: 12px;
+            border-left: 1px solid rgba(216, 27, 96, 0.12);
+            border-bottom: 1px solid rgba(216, 27, 96, 0.12);
+            box-shadow: -3px 3px 6px rgba(120, 38, 70, 0.14);
+            transform: rotate(-2deg);
+        }
+
+        .skills-page-hint--right {
+            right: var(--space-4);
+            justify-content: flex-end;
+            padding: 0 10px 10px 0;
+            background: linear-gradient(135deg, transparent 50%, rgba(255, 255, 255, 0.96) 54%, rgba(244, 215, 227, 0.95) 100%);
+            border-bottom-right-radius: 12px;
+            border-right: 1px solid rgba(216, 27, 96, 0.12);
+            border-bottom: 1px solid rgba(216, 27, 96, 0.12);
+            box-shadow: 3px 3px 6px rgba(120, 38, 70, 0.14);
+            transform: rotate(2deg);
+        }
+
+        .skills-page-hint:hover {
+            opacity: 1;
+        }
+
+        .skills-page-hint--left:active {
+            transform: translateY(0) rotate(-2deg) scale(0.98);
+        }
+
+        .skills-page-hint--right:active {
+            transform: translateY(0) rotate(2deg) scale(0.98);
+        }
+
+        .skills-panel:hover .skills-page-hint {
+            opacity: 1;
+        }
+
+        .skills-panel:hover .skills-page-hint--left {
+            transform: translateY(-2px) rotate(-2deg);
+        }
+
+        .skills-panel:hover .skills-page-hint--right {
+            transform: translateY(-2px) rotate(2deg);
+        }
+
+        .skills-page-hint:focus-visible {
+            outline: 2px solid rgba(216, 27, 96, 0.35);
+            outline-offset: 2px;
         }
 
         /* Bandeau haut avec titre + retour */
@@ -65,12 +174,6 @@
             justify-content: space-between;
             gap: var(--space-4);
             flex-wrap: wrap;
-        }
-
-        .skills-hint {
-            margin: 0 var(--space-6) var(--space-3);
-            font-size: var(--text-xs);
-            color: var(--color-gray-600);
         }
 
         .skills-title {
@@ -126,7 +229,7 @@
             background-repeat: no-repeat;
             background-position: center;
             background-size: contain;
-            margin-bottom: var(--space-3);
+            margin-bottom: var(--space-2);
         }
 
         /* Colonne d'onglets ronds à gauche */
@@ -211,17 +314,65 @@
 
         /* Panneau de droite */
         .skills-panel {
-            flex: 1 1 auto;
-            width: var(--skills-panel-width);
-            --skills-panel-safe-x: var(--space-6);
-            --skills-panel-safe-y: var(--space-6);
+            flex: 1 1 var(--skills-panel-max-width);
+            width: 100%;
+            max-width: var(--skills-panel-max-width);
+            --skills-panel-safe-x: var(--space-4);
+            --skills-panel-safe-y: var(--space-3);
             --skills-panel-content-width: min(100%, var(--skills-content-max-width));
             --skills-panel-content-inset: var(--space-2);
-            padding: var(--skills-panel-safe-y) var(--skills-panel-safe-x) var(--space-6);
+            --skills-panel-extra-bottom: 32px;
+            padding: var(--skills-panel-safe-y) var(--skills-panel-safe-x) calc(var(--space-6) + var(--skills-panel-extra-bottom));
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: #FFFFFF;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 246, 250, 0.96) 55%, rgba(255, 239, 246, 0.95) 100%),
+                radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 52%),
+                radial-gradient(circle at 85% 0%, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 48%),
+                linear-gradient(0deg, rgba(216, 27, 96, 0.05) 0%, rgba(255, 255, 255, 0) 45%);
+            border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+            border-left: 1px solid rgba(216, 27, 96, 0.18);
+            border-top: 1px solid rgba(216, 27, 96, 0.12);
+            border-bottom: 1px solid rgba(216, 27, 96, 0.12);
+            box-shadow:
+                inset 12px 0 14px rgba(92, 42, 75, 0.08),
+                inset -10px 0 16px rgba(92, 42, 75, 0.05),
+                0 3px 8px rgba(120, 38, 70, 0.08);
+            position: relative;
+            isolation: isolate;
+        }
+
+        .skills-panel::before {
+            content: "";
+            position: absolute;
+            top: var(--space-4);
+            bottom: var(--space-4);
+            right: 0;
+            width: 14px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(244, 215, 227, 0.85) 70%, rgba(227, 169, 197, 0.95) 100%);
+            border-top-right-radius: var(--radius-lg);
+            border-bottom-right-radius: var(--radius-lg);
+            pointer-events: none;
+            opacity: 0.9;
+            z-index: 0;
+        }
+
+        .skills-panel::after {
+            content: "";
+            position: absolute;
+            inset: var(--space-3);
+            border-radius: calc(var(--radius-lg) - 6px);
+            border: 1px solid rgba(216, 27, 96, 0.08);
+            box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+            opacity: 0.85;
+            z-index: 0;
+        }
+
+        .skills-panel > :not(.skills-page-hint) {
+            position: relative;
+            z-index: 1;
         }
 
         .skills-panel-header,
@@ -242,9 +393,9 @@
             justify-content: space-between;
             align-items: center;
             gap: var(--space-4);
-            margin-bottom: var(--space-5);
-            padding-bottom: var(--space-4);
-            border-bottom: 2px solid #F8BBD0;
+            margin-bottom: var(--space-3);
+            padding-bottom: var(--space-2);
+            border-bottom: 1px solid rgba(244, 215, 227, 0.9);
         }
 
         .skills-panel-heading {
@@ -575,6 +726,25 @@
             .skills-list {
                 grid-template-columns: 1fr;
             }
+
+            .skills-panel {
+                --skills-panel-extra-bottom: 28px;
+            }
+
+            .skills-page-hint {
+                width: 46px;
+                height: 46px;
+                font-size: 14px;
+                bottom: var(--space-3);
+            }
+
+            .skills-page-hint--left {
+                left: var(--space-3);
+            }
+
+            .skills-page-hint--right {
+                right: var(--space-3);
+            }
         }
 
         @media (max-width: 480px) {
@@ -630,8 +800,6 @@
                 </div>
             </div>
         </header>
-        <p class="skills-hint">Verrouillage auto via tags du profil (Weapon / Meister / Alice / Sorcier) : stub.</p>
-
         <div class="skills-separator" aria-hidden="true"></div>
 
         <section class="skills-layout" aria-label="Feuille de compétences">
@@ -642,6 +810,12 @@
 
             <!-- Panneau de droite -->
             <section class="skills-panel" aria-live="polite">
+                <button type="button" class="skills-page-hint skills-page-hint--left" id="skillsPagePrev" aria-label="Page précédente">
+                    &lt;
+                </button>
+                <button type="button" class="skills-page-hint skills-page-hint--right" id="skillsPageNext" aria-label="Page suivante">
+                    &gt;
+                </button>
                 <div class="skills-panel-header">
                     <div class="skills-panel-heading">
                         <h2 class="skills-panel-title" id="skillsCategoryTitle">Catégorie</h2>
@@ -695,4 +869,5 @@
     <script src="js/competences.js" defer></script>
 </body>
 </html>
+
 

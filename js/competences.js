@@ -9,6 +9,8 @@
     const skillsPointsResetEl = document.getElementById("skillsPointsReset");
     const skillsConfirmEl = document.getElementById("skillsConfirmBtn");
     const skillsFeedbackEl = document.getElementById("skillsValidationFeedback");
+    const skillsPagePrevEl = document.getElementById("skillsPagePrev");
+    const skillsPageNextEl = document.getElementById("skillsPageNext");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
 
@@ -78,6 +80,8 @@
     renderSkillsCategory(getActiveCategory());
     updateSkillsPointsDisplay();
     wireTabsKeyboardNavigation();
+    wirePageNavigation();
+    updatePageNavigation();
 
     // -----------------------------------------------------------------
     // Helpers de stockage
@@ -238,6 +242,10 @@
         return skillsCategories.find((category) => category.id === skillsState.activeCategoryId);
     }
 
+    function getActiveCategoryIndex() {
+        return skillsCategories.findIndex((category) => category.id === skillsState.activeCategoryId);
+    }
+
     function getCategoryAllocations(categoryId) {
         if (!skillsState.allocationsByCategory[categoryId]) {
             skillsState.allocationsByCategory[categoryId] = {};
@@ -335,6 +343,7 @@
     function renderSkillsCategory(category) {
         if (!category) {
             renderEmptyMessage("Aucune compétence disponible");
+            updatePageNavigation();
             return;
         }
 
@@ -404,6 +413,7 @@
         updateSkillsPointsDisplay();
         updateLockState(isLocked);
         updatePendingHighlights(category.id);
+        updatePageNavigation();
     }
 
     function adjustSkillPoints(categoryId, skill, delta, valueEl, decBtn, incBtn) {
@@ -452,6 +462,57 @@
         li.className = "skills-line skills-placeholder";
         li.textContent = message;
         skillsListEl.appendChild(li);
+    }
+
+    function wirePageNavigation() {
+        if (skillsPagePrevEl) {
+            skillsPagePrevEl.addEventListener("click", () => {
+                const index = getActiveCategoryIndex();
+                if (index > 0) {
+                    setActiveSkillsCategory(skillsCategories[index - 1].id);
+                }
+            });
+        }
+
+        if (skillsPageNextEl) {
+            skillsPageNextEl.addEventListener("click", () => {
+                const index = getActiveCategoryIndex();
+                if (index > -1 && index < skillsCategories.length - 1) {
+                    setActiveSkillsCategory(skillsCategories[index + 1].id);
+                }
+            });
+        }
+    }
+
+    function updatePageNavigation() {
+        if (!skillsPagePrevEl && !skillsPageNextEl) return;
+        const index = getActiveCategoryIndex();
+        const prevCategory = index > 0 ? skillsCategories[index - 1] : null;
+        const nextCategory = index > -1 && index < skillsCategories.length - 1 ? skillsCategories[index + 1] : null;
+
+        if (skillsPagePrevEl) {
+            const hasPrev = Boolean(prevCategory);
+            skillsPagePrevEl.hidden = !hasPrev;
+            skillsPagePrevEl.disabled = !hasPrev;
+            if (hasPrev) {
+                skillsPagePrevEl.setAttribute("aria-label", `Page précédente : ${prevCategory.label}`);
+                skillsPagePrevEl.title = `Précédent : ${prevCategory.label}`;
+            } else {
+                skillsPagePrevEl.removeAttribute("title");
+            }
+        }
+
+        if (skillsPageNextEl) {
+            const hasNext = Boolean(nextCategory);
+            skillsPageNextEl.hidden = !hasNext;
+            skillsPageNextEl.disabled = !hasNext;
+            if (hasNext) {
+                skillsPageNextEl.setAttribute("aria-label", `Page suivante : ${nextCategory.label}`);
+                skillsPageNextEl.title = `Suivant : ${nextCategory.label}`;
+            } else {
+                skillsPageNextEl.removeAttribute("title");
+            }
+        }
     }
 
     function getNokorahBonuses() {
