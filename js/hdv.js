@@ -1,4 +1,11 @@
-import { getCurrentUser, getActiveCharacter, refreshSessionUser, getUserCharacters, setActiveCharacter } from './auth.js';
+import {
+    getCurrentUser,
+    getActiveCharacter,
+    refreshSessionUser,
+    getUserCharacters,
+    setActiveCharacter,
+    getAllItems
+} from './auth.js';
 import {
     buyListing,
     cancelListing,
@@ -279,6 +286,55 @@ async function applyInventoryDelta(itemId, delta) {
     }
 
     return true;
+}
+
+async function loadItemCatalog() {
+    const base =
+        (typeof inventoryData !== 'undefined' && Array.isArray(inventoryData) ? inventoryData : null) ||
+        (Array.isArray(window.inventoryData) ? window.inventoryData : null) ||
+        [];
+    state.items = Array.isArray(base) ? base.map((item) => ({ ...item })) : [];
+
+    if (typeof getAllItems !== 'function') return;
+    try {
+        const rows = await getAllItems();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        if (!state.items.length) {
+            state.items = rows.map((row) => ({
+                id: row.id,
+                name: row.name,
+                category: row.category,
+                rarity: row.rarity,
+                description: row.description,
+                effect: row.effect,
+                buyPrice: row.price_po,
+                sellPrice: row.price_pa,
+                images: row.images
+            }));
+            return;
+        }
+        const byName = new Map(
+            rows
+                .filter((row) => row && row.name)
+                .map((row) => [String(row.name).toLowerCase(), row])
+        );
+        state.items = state.items.map((item) => {
+            const key = String(item?.name || '').toLowerCase();
+            const match = byName.get(key);
+            if (!match) return item;
+            return {
+                ...item,
+                rarity: item.rarity ?? match.rarity,
+                description: item.description ?? match.description,
+                effect: item.effect ?? match.effect,
+                buyPrice: item.buyPrice ?? match.price_po,
+                sellPrice: item.sellPrice ?? match.price_pa,
+                images: item.images ?? match.images
+            };
+        });
+    } catch (error) {
+        console.warn('[HDV] Item catalog enrichment failed:', error);
+    }
 }
 
 
@@ -1028,10 +1084,7 @@ async function init() {
     console.log('[HDV] Location:', window.location.href);
     console.log('[HDV] Origin:', window.location.origin);
 
-    state.items =
-        (typeof inventoryData !== 'undefined' && Array.isArray(inventoryData) ? inventoryData : null) ||
-        (Array.isArray(window.inventoryData) ? window.inventoryData : null) ||
-        [];
+    await loadItemCatalog();
     populateSellSelect();
 
     renderCategories();

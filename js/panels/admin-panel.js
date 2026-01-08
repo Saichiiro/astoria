@@ -1,5 +1,11 @@
 import { el } from "./panel-utils.js";
-import { getSupabaseClient, getAllCharacters, setActiveCharacter } from "../auth.js";
+import {
+  getSupabaseClient,
+  getAllCharacters,
+  setActiveCharacter,
+  getActiveCharacter,
+  updateCharacter,
+} from "../auth.js";
 
 export const adminPanel = {
   id: "admin",
@@ -19,6 +25,17 @@ export const adminPanel = {
       wrapper.appendChild(el("p", "panel-muted", "Admin access required."));
       return wrapper;
     }
+
+    const adminContext = el("div", "panel-admin-stub");
+    const adminContextTitle = el("h4", "panel-admin-stub-title", "Admin view");
+    const adminContextBody = el("p", "panel-muted", "No active character selected.");
+    const adminContextHint = el(
+      "p",
+      "panel-admin-hint",
+      "You are in admin mode. Actions apply to the selected character."
+    );
+    adminContext.append(adminContextTitle, adminContextBody, adminContextHint);
+    wrapper.appendChild(adminContext);
 
     const status = el("p", "panel-muted", "Loading admin data...");
     wrapper.appendChild(status);
@@ -48,10 +65,34 @@ export const adminPanel = {
     placeholder.textContent = "Select a character...";
     select.appendChild(placeholder);
 
-    const hint = el("p", "panel-admin-hint", "Read-only view. Use profile tools for edits.");
+    const hint = el("p", "panel-admin-hint", "Admin view. Use profile tools for detailed edits.");
 
     actions.append(selectLabel, select, hint);
     wrapper.appendChild(actions);
+
+    const editSection = el("div", "panel-admin-actions");
+    const kaelsLabel = document.createElement("label");
+    kaelsLabel.textContent = "Kaels (admin)";
+    kaelsLabel.setAttribute("for", "adminPanelKaels");
+
+    const kaelsInput = document.createElement("input");
+    kaelsInput.type = "number";
+    kaelsInput.id = "adminPanelKaels";
+    kaelsInput.min = "0";
+    kaelsInput.step = "1";
+    kaelsInput.className = "panel-select";
+    kaelsInput.placeholder = "Kaels";
+    kaelsInput.disabled = true;
+
+    const kaelsSave = document.createElement("button");
+    kaelsSave.type = "button";
+    kaelsSave.className = "auth-button secondary";
+    kaelsSave.textContent = "Mettre a jour";
+    kaelsSave.disabled = true;
+
+    const kaelsStatus = el("p", "panel-admin-hint", "");
+    editSection.append(kaelsLabel, kaelsInput, kaelsSave, kaelsStatus);
+    wrapper.appendChild(editSection);
 
     const futureSection = el("div", "panel-admin-placeholder");
     const placeholderTitle = el("h4", "panel-admin-placeholder-title", "Future Features");
@@ -68,12 +109,61 @@ export const adminPanel = {
     futureSection.append(placeholderTitle, placeholderBody, timestamp);
     wrapper.appendChild(futureSection);
 
+    function updateAdminContext(activeCharacter) {
+      if (!activeCharacter || !activeCharacter.id) {
+        adminContextBody.textContent = "No active character selected.";
+        kaelsInput.value = "";
+        kaelsInput.disabled = true;
+        kaelsSave.disabled = true;
+        return;
+      }
+      const shortId = activeCharacter.user_id
+        ? String(activeCharacter.user_id).slice(0, 8)
+        : "????";
+      adminContextBody.textContent = `Acting as: ${activeCharacter.name || "Sans nom"} (${shortId})`;
+      kaelsInput.value = Number.isFinite(activeCharacter.kaels) ? String(activeCharacter.kaels) : "";
+      kaelsInput.disabled = false;
+      kaelsSave.disabled = false;
+    }
+
     select.addEventListener("change", async () => {
       const value = select.value;
       if (!value) return;
       const res = await setActiveCharacter(value);
       if (res && res.success) {
         window.dispatchEvent(new CustomEvent("astoria:character-changed"));
+      }
+    });
+
+    kaelsSave.addEventListener("click", async () => {
+      const active = typeof getActiveCharacter === "function" ? getActiveCharacter() : null;
+      if (!active || !active.id) {
+        kaelsStatus.textContent = "Selectionnez un personnage d'abord.";
+        return;
+      }
+      const nextKaels = Number.parseInt(kaelsInput.value, 10);
+      if (!Number.isFinite(nextKaels) || nextKaels < 0) {
+        kaelsStatus.textContent = "Valeur de kaels invalide.";
+        return;
+      }
+      try {
+        const result = await updateCharacter(active.id, { kaels: nextKaels });
+        if (!result || !result.success) {
+          kaelsStatus.textContent = "Mise a jour impossible.";
+          return;
+        }
+        kaelsStatus.textContent = "Kaels mis a jour.";
+        window.dispatchEvent(
+          new CustomEvent("astoria:character-updated", { detail: { kaels: nextKaels } })
+        );
+        const badge = document.getElementById("characterKaelsBadge");
+        if (badge) {
+          badge.textContent = `${nextKaels} kaels`;
+          badge.hidden = false;
+        }
+      } catch (error) {
+        console.error("Admin panel kaels update error:", error);
+        kaelsStatus.textContent = "Erreur pendant la mise a jour.";
       }
     });
 
@@ -101,6 +191,18 @@ export const adminPanel = {
         status.textContent = "Unable to load admin data.";
       }
     })();
+
+    const syncAdminState = () => {
+      const active = typeof getActiveCharacter === "function" ? getActiveCharacter() : null;
+      if (active && active.id) {
+        select.value = active.id;
+      }
+      updateAdminContext(active);
+    };
+
+    syncAdminState();
+
+    window.addEventListener("astoria:character-changed", syncAdminState);
 
     return wrapper;
   },

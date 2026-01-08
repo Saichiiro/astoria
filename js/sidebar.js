@@ -54,51 +54,66 @@
           </button>
         </li>
         <li class="menu-item">
-          <a class="menu-link" href="codex.html">
-            <span class="menu-icon" aria-hidden="true">&#128214;</span>
-            <span class="menu-text">Codex</span>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a class="menu-link" href="competences.html">
-            <span class="menu-icon" aria-hidden="true">&#9876;</span>
-            <span class="menu-text">Comp&#233;tences</span>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a class="menu-link" href="hdv.html">
-            <span class="menu-icon" aria-hidden="true">&#127963;</span>
-            <span class="menu-text">H&#244;tel de vente</span>
-          </a>
-        </li>
-        <li class="menu-item">
           <div class="sidebar-row">
-            <button type="button" class="menu-link" data-panel="inventaire">
-              <span class="menu-icon" aria-hidden="true">&#127890;</span>
-              <span class="menu-text">Inventaire</span>
-            </button>
-            <a class="menu-open" href="inventaire.html" title="Ouvrir la page compl&#232;te">&#8599;</a>
+            <a class="menu-link" href="codex.html">
+              <span class="menu-icon" aria-hidden="true">&#128214;</span>
+              <span class="menu-text">Codex</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="codex" aria-label="Ouvrir le panneau Codex">&#8599;</button>
           </div>
         </li>
         <li class="menu-item">
-          <a class="menu-link" href="magie.html">
-            <span class="menu-icon" aria-hidden="true">&#10024;</span>
-            <span class="menu-text">Magie</span>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a class="menu-link" href="nokorah.html">
-            <span class="menu-icon" aria-hidden="true">&#128123;</span>
-            <span class="menu-text">Nokorah</span>
-          </a>
+          <div class="sidebar-row">
+            <a class="menu-link" href="competences.html">
+              <span class="menu-icon" aria-hidden="true">&#9876;</span>
+              <span class="menu-text">Comp&#233;tences</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="competences" aria-label="Ouvrir le panneau Comp&#233;tences">&#8599;</button>
+          </div>
         </li>
         <li class="menu-item">
           <div class="sidebar-row">
-            <button type="button" class="menu-link" data-panel="fiche">
+            <a class="menu-link" href="hdv.html">
+              <span class="menu-icon" aria-hidden="true">&#127963;</span>
+              <span class="menu-text">H&#244;tel de vente</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="hdv" aria-label="Ouvrir le panneau HDV">&#8599;</button>
+          </div>
+        </li>
+        <li class="menu-item">
+          <div class="sidebar-row">
+            <a class="menu-link" href="inventaire.html">
+              <span class="menu-icon" aria-hidden="true">&#127890;</span>
+              <span class="menu-text">Inventaire</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="inventaire" aria-label="Ouvrir le panneau Inventaire">&#8599;</button>
+          </div>
+        </li>
+        <li class="menu-item">
+          <div class="sidebar-row">
+            <a class="menu-link" href="magie.html">
+              <span class="menu-icon" aria-hidden="true">&#10024;</span>
+              <span class="menu-text">Magie</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="magie" aria-label="Ouvrir le panneau Magie">&#8599;</button>
+          </div>
+        </li>
+        <li class="menu-item">
+          <div class="sidebar-row">
+            <a class="menu-link" href="nokorah.html">
+              <span class="menu-icon" aria-hidden="true">&#128123;</span>
+              <span class="menu-text">Nokorah</span>
+            </a>
+            <button type="button" class="menu-open" data-panel="nokorah" aria-label="Ouvrir le panneau Nokorah">&#8599;</button>
+          </div>
+        </li>
+        <li class="menu-item">
+          <div class="sidebar-row">
+            <a class="menu-link" href="fiche.html">
               <span class="menu-icon" aria-hidden="true">&#128100;</span>
               <span class="menu-text">Personnage</span>
-            </button>
-            <a class="menu-open" href="fiche.html" title="Ouvrir la page compl&#232;te">&#8599;</a>
+            </a>
+            <button type="button" class="menu-open" data-panel="fiche" aria-label="Ouvrir le panneau Personnage">&#8599;</button>
           </div>
         </li>
         <li class="menu-item menu-footer">

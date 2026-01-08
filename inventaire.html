@@ -429,6 +429,7 @@
                 return;
             }
             await loadInventory();
+            syncCurrencyItem();
 
             // Render
             renderInventory();
@@ -547,6 +548,7 @@
             const allItems = getAllItems();
             return inventoryItems
                 .map((item) => {
+                    if (item?.isCurrency) return null;
                     const idx = Number.isFinite(Number(item?.sourceIndex))
                         ? Number(item.sourceIndex)
                         : allItems.findIndex((it) => it && it.name === item?.name);
@@ -564,16 +566,39 @@
 
         function serializeInventoryForProfile() {
             const totalQty = inventoryItems.reduce((sum, item) => {
+                if (item?.isCurrency) return sum;
                 const qty = Math.floor(Number(item?.quantity) || 0);
                 return sum + (Number.isFinite(qty) ? qty : 0);
             }, 0);
 
             return {
                 version: 1,
-                itemCount: inventoryItems.length,
+                itemCount: inventoryItems.filter((item) => !item?.isCurrency).length,
                 totalQty,
                 scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
             };
+        }
+
+        function syncCurrencyItem() {
+            if (!authApi || typeof authApi.getActiveCharacter !== 'function') return;
+            const character = authApi.getActiveCharacter();
+            const rawKaels = Number(character?.kaels ?? 0);
+            if (!Number.isFinite(rawKaels)) return;
+            const kaels = Math.max(0, Math.floor(rawKaels));
+            const existing = inventoryItems.find((item) => item?.isCurrency);
+            if (existing) {
+                existing.quantity = kaels;
+                return;
+            }
+            inventoryItems.unshift({
+                id: 0,
+                name: 'Kaels',
+                category: 'consommable',
+                description: "Monnaie officielle d'Astoria.",
+                effect: 'Utilisee pour acheter et vendre.',
+                quantity: kaels,
+                isCurrency: true
+            });
         }
 
 
@@ -1552,6 +1577,37 @@
             // Resolve image
             const imageSrc = resolveImage(item);
 
+            const actionHtml = isCurrency
+                ? ''
+                : `
+                    <div class="detail-actions">
+                        <button class="item-action-use"
+                                onclick="useItem(${item.id})"
+                                title="Utiliser l'objet"
+                                ${item.quantity < 1 ? 'disabled' : ''}
+                                aria-label="Utiliser l'objet">
+                            &#x2728;
+                        </button>
+                        <div class="action-stack">
+                            <button class="item-action-delete"
+                                    onclick="openDeleteModal(${item.id})"
+                                    title="Supprimer l'objet"
+                                    aria-label="Supprimer l'objet">
+                                &#x1F5D1;&#xFE0F;
+                            </button>
+                            <button class="item-action-scroll-toggle"
+                                    type="button"
+                                    id="scrollTypesToggle"
+                                    title="Types de parchemins"
+                                    aria-label="Afficher les types de parchemins"
+                                    aria-expanded="false"
+                                    aria-controls="scrollTypesPanel">
+                                &#x25BE;
+                            </button>
+                        </div>
+                    </div>
+                `;
+
             card.innerHTML = `
                 <div class="item-image">
                     <img src="${escapeHtml(imageSrc)}"
@@ -1608,6 +1664,7 @@
             };
 
             const scrollCategory = getScrollCategory(item);
+            const isCurrency = item?.isCurrency === true;
             if (scrollCategory) {
                 const { counts, hasStored } = loadScrollCounts(scrollCategory, item);
                 if (hasStored) {
@@ -1633,32 +1690,7 @@
                         <h2 class="detail-title">${escapeHtml(item.name)}</h2>
                         <span class="detail-category">${categoryLabels[item.category] || 'Autre'}</span>
                     </div>
-                    <div class="detail-actions">
-                        <button class="item-action-use"
-                                onclick="useItem(${item.id})"
-                                title="Utiliser l'objet"
-                                ${item.quantity < 1 ? 'disabled' : ''}
-                                aria-label="Utiliser l'objet">
-                            &#x2728;
-                        </button>
-                        <div class="action-stack">
-                            <button class="item-action-delete"
-                                    onclick="openDeleteModal(${item.id})"
-                                    title="Supprimer l'objet"
-                                    aria-label="Supprimer l'objet">
-                                &#x1F5D1;&#xFE0F;
-                            </button>
-                            <button class="item-action-scroll-toggle"
-                                    type="button"
-                                    id="scrollTypesToggle"
-                                    title="Types de parchemins"
-                                    aria-label="Afficher les types de parchemins"
-                                    aria-expanded="false"
-                                    aria-controls="scrollTypesPanel">
-                                &#x25BE;
-                            </button>
-                        </div>
-                    </div>
+                    ${actionHtml}
                 </div>
                 <div class="detail-image">
                     <img src="${escapeHtml(imageSrc)}"
@@ -1681,7 +1713,7 @@
                         <span class="detail-label">Commerce</span>
                         <p class="detail-text">${escapeHtml(priceText)}</p>
                     </div>
-                    ${item.quantity > 1 ? `
+                    ${(item.quantity > 1 || isCurrency) ? `
                     <div class="detail-section">
                         <span class="detail-label">Quantité</span>
                         <p class="detail-text">x${item.quantity}</p>
@@ -1755,6 +1787,7 @@
             if (itemIndex === -1) return;
 
             const item = inventoryItems[itemIndex];
+            if (item?.isCurrency) return;
 
             if (item.quantity < 1) {
                 alert('Quantité insuffisante pour utiliser cet objet');
@@ -1794,6 +1827,7 @@
         function openDeleteModal(itemId) {
             const item = inventoryItems.find(i => i.id === itemId);
             if (!item) return;
+            if (item.isCurrency) return;
 
             currentDeleteItemId = itemId;
             currentDeleteItemMaxQty = item.quantity;
@@ -1915,6 +1949,7 @@
             if (itemIndex === -1) return;
 
             const itemName = inventoryItems[itemIndex].name;
+            if (inventoryItems[itemIndex].isCurrency) return;
 
             // Confirm deletion
             if (!confirm(`Supprimer "${itemName}" de l'inventaire ?`)) {
@@ -1963,6 +1998,17 @@
          * Initialize on page load
          */
         window.addEventListener('DOMContentLoaded', initInventory);
+        window.addEventListener('astoria:character-updated', (event) => {
+            const next = Number(event?.detail?.kaels);
+            if (!Number.isFinite(next)) return;
+            const currency = inventoryItems.find((item) => item?.isCurrency);
+            if (!currency) return;
+            currency.quantity = Math.max(0, Math.floor(next));
+            renderInventory();
+            if (selectedItemIndex === currency.id) {
+                showItemDetail(currency);
+            }
+        });
 
         /**
          * Expose API for external use

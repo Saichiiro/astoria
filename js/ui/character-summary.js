@@ -2,6 +2,8 @@ const CHARACTER_STORAGE_KEY = "astoria_active_character";
 const LEGACY_SUMMARY_KEY = "astoria_character_summary";
 
 let authModule = null;
+let listenersBound = false;
+let lastInitState = null;
 
 async function loadAuthModule() {
     if (authModule) return authModule;
@@ -227,14 +229,7 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
     document.body.dataset.admin = adminMode ? "true" : "false";
 
     try {
-        let characters = [];
-        // TODO: Re-enable admin mode to view all characters (issue #18)
-        // Temporarily disabled to show only user's own characters
-        // if (adminMode && typeof auth.getAllCharacters === "function") {
-        //     characters = await auth.getAllCharacters();
-        // } else {
-            characters = await auth.getUserCharacters(user.id);
-        // }
+        const characters = await auth.getUserCharacters(user.id);
         if (!characters || characters.length === 0) {
             dropdownEl.hidden = true;
             return;
@@ -268,13 +263,7 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
             const name = document.createElement("div");
             name.className = "character-dropdown-name";
-            // TODO: Re-enable user_id display for admins (issue #18)
-            // if (adminMode && char.user_id) {
-            //     const shortId = String(char.user_id).slice(0, 8);
-            //     name.textContent = `${char.name || "Sans nom"} - ${shortId}`;
-            // } else {
-                name.textContent = char.name || "Sans nom";
-            // }
+            name.textContent = char.name || "Sans nom";
 
             const role = document.createElement("div");
             role.className = "character-dropdown-role";
@@ -320,22 +309,90 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 function wireDropdownToggle(avatarEl, dropdownEl) {
     if (!avatarEl || !dropdownEl) return;
 
+    let isOpen = false;
+    const originalParent = dropdownEl.parentElement;
+
+    const positionDropdown = () => {
+        if (dropdownEl.hidden) return;
+        const rect = avatarEl.getBoundingClientRect();
+
+        dropdownEl.style.position = "fixed";
+        dropdownEl.style.visibility = "hidden";
+        dropdownEl.style.left = `${rect.left}px`;
+        dropdownEl.style.top = `${rect.bottom + 8}px`;
+
+        const dropdownRect = dropdownEl.getBoundingClientRect();
+        const margin = 8;
+        let left = rect.left;
+        let top = rect.bottom + 8;
+
+        if (left + dropdownRect.width > window.innerWidth - margin) {
+            left = Math.max(margin, window.innerWidth - dropdownRect.width - margin);
+        }
+
+        if (top + dropdownRect.height > window.innerHeight - margin) {
+            const aboveTop = rect.top - dropdownRect.height - 8;
+            if (aboveTop > margin) {
+                top = aboveTop;
+            }
+        }
+
+        dropdownEl.style.left = `${left}px`;
+        dropdownEl.style.top = `${top}px`;
+        dropdownEl.style.visibility = "visible";
+    };
+
+    const openDropdown = () => {
+        if (isOpen) return;
+        isOpen = true;
+        dropdownEl.hidden = false;
+        if (dropdownEl.parentElement !== document.body) {
+            dropdownEl.dataset.originalParent = "character-avatar-wrapper";
+            document.body.appendChild(dropdownEl);
+        }
+        positionDropdown();
+    };
+
+    const closeDropdown = () => {
+        if (!isOpen) return;
+        isOpen = false;
+        dropdownEl.hidden = true;
+        dropdownEl.style.position = "";
+        dropdownEl.style.left = "";
+        dropdownEl.style.top = "";
+        dropdownEl.style.visibility = "";
+        if (originalParent && dropdownEl.parentElement !== originalParent) {
+            originalParent.appendChild(dropdownEl);
+        }
+    };
+
+    const toggleDropdown = () => {
+        if (isOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    };
+
     avatarEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        dropdownEl.hidden = !dropdownEl.hidden;
+        toggleDropdown();
     });
 
     avatarEl.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            dropdownEl.hidden = !dropdownEl.hidden;
+            toggleDropdown();
         }
     });
 
-    // Fermer le dropdown si on clique ailleurs
+    window.addEventListener("scroll", positionDropdown, true);
+    window.addEventListener("resize", positionDropdown);
+
     document.addEventListener("click", (e) => {
-        if (!dropdownEl.hidden && !dropdownEl.contains(e.target) && !avatarEl.contains(e.target)) {
-            dropdownEl.hidden = true;
+        if (!isOpen) return;
+        if (!dropdownEl.contains(e.target) && !avatarEl.contains(e.target)) {
+            closeDropdown();
         }
     });
 }
@@ -405,6 +462,56 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
             wireDropdownToggle(avatarEl, dropdownEl);
             await buildCharacterDropdown(dropdownEl, context?.character?.id);
         }
+    }
+
+    lastInitState = { includeQueryParam, elements: resolvedElements, enableDropdown, showKaels };
+
+    if (!listenersBound) {
+        listenersBound = true;
+        const refreshFromState = async () => {
+            if (!lastInitState) return;
+            const {
+                includeQueryParam: includeQuery,
+                elements: latestElements,
+                enableDropdown: allowDropdown,
+                showKaels: allowKaels
+            } = lastInitState;
+            const nextContext = resolveCharacterContext({ includeQueryParam: includeQuery });
+            const nextSummary = buildSummary(nextContext);
+            applySummaryToElements(latestElements, nextSummary);
+
+            const auth = await loadAuthModule();
+            if (auth && typeof auth.isAdmin === "function") {
+                document.body.dataset.admin = auth.isAdmin() ? "true" : "false";
+            }
+
+            if (nextContext?.character?.id) {
+                updateSoulCounts(nextContext.character.id);
+            }
+            if (allowKaels) {
+                await updateKaels();
+            }
+
+            if (allowDropdown) {
+                const avatarEl = document.getElementById("hdvCharacterAvatar") || document.querySelector(".character-avatar--clickable");
+                const dropdownEl = document.getElementById("hdvCharacterDropdown") || document.querySelector(".character-dropdown");
+                if (avatarEl && dropdownEl) {
+                    await buildCharacterDropdown(dropdownEl, nextContext?.character?.id);
+                }
+            }
+        };
+
+        window.addEventListener("astoria:character-changed", () => {
+            void refreshFromState();
+        });
+        window.addEventListener("astoria:character-updated", () => {
+            void refreshFromState();
+        });
+        window.addEventListener("storage", (event) => {
+            if (!event.key) return;
+            if (![CHARACTER_STORAGE_KEY, LEGACY_SUMMARY_KEY, "astoria_session"].includes(event.key)) return;
+            void refreshFromState();
+        });
     }
 
     return { context, summary, elements: resolvedElements };
