@@ -51,20 +51,23 @@
                 <option value="agricole">&#x1F33E; Agricole</option>
             </select>
 
-            <div class="search-container">
+            <div class="inventory-search" id="codexSearch">
+                <button type="button" class="inventory-search-toggle" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                    <span class="inventory-search-icon">&#x1F50D;</span>
+                </button>
                 <input
-                    type="text"
+                    type="search"
                     id="searchInput"
+                    class="inventory-search-input"
                     placeholder="Rechercher un objet..."
-                >
+                    aria-label="Rechercher un objet">
                 <button
                     id="clearSearchBtn"
-                    class="clear-search-btn"
+                    class="inventory-search-clear"
                     type="button"
-                >
-                    &times;
-                </button>
-                <div class="recent-searches-dropdown" id="recentSearchesDropdown"></div>
+                    aria-label="Effacer la recherche"
+                    hidden>x</button>
+                <div class="recent-searches-dropdown inventory-search-history" id="recentSearchesDropdown"></div>
             </div>
         </div>
 
@@ -234,6 +237,7 @@
     <script src="js/data.js"></script>
     <script src="js/ui/list-helpers.js"></script>
     <script src="js/ui/search-history.js"></script>
+    <script src="js/ui/searchbar.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 

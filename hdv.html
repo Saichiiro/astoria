@@ -60,9 +60,19 @@
             <section class="hdv-content">
                 <div class="hdv-panel active" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
                     <section class="hdv-filterbar" aria-label="Filtres">
-                        <div class="search-container">
-                            <input id="hdvSearchInput" type="text" placeholder="Rechercher un item..." autocomplete="off">
-                            <button class="clear-search-btn" id="hdvClearSearch" type="button" title="Effacer">×</button>
+                        <div class="inventory-search" id="hdvSearch">
+                            <button type="button" class="inventory-search-toggle" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                                <span class="inventory-search-icon">&#x1F50D;</span>
+                            </button>
+                            <input
+                                id="hdvSearchInput"
+                                type="search"
+                                class="inventory-search-input"
+                                placeholder="Rechercher un item..."
+                                autocomplete="off"
+                                aria-label="Rechercher un item">
+                            <button type="button" class="inventory-search-clear" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <div class="recent-searches-dropdown inventory-search-history" id="hdvSearchHistory"></div>
                         </div>
 
                         <div class="hdv-filter-group">
@@ -176,9 +186,10 @@
                                     <tr>
                                         <th style="width: 22%;">Date</th>
                                         <th style="width: 14%;">Type</th>
-                                        <th style="width: 34%;">Objet</th>
+                                        <th style="width: 28%;">Objet</th>
                                         <th style="width: 10%;">Lot</th>
                                         <th style="width: 20%;">Prix</th>
+                                        <th style="width: 16%;">Profil</th>
                                     </tr>
                                 </thead>
                                 <tbody id="hdvHistoryBody"></tbody>
@@ -192,6 +203,8 @@
 
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
+    <script src="js/ui/search-history.js"></script>
+    <script src="js/ui/searchbar.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script type="module" src="js/hdv.js"></script>
     <script src="js/sidebar.js"></script>

@@ -245,6 +245,11 @@
     color: var(--color-gray-700);
 }
 
+.hdv-link {
+    color: var(--color-primary-dark);
+    text-decoration: underline;
+}
+
 .hdv-price-cell {
     display: flex;
     flex-direction: column;

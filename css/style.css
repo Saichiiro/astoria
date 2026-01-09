@@ -254,6 +254,95 @@ textarea {
     border-color: var(--color-primary);
 }
 
+/* Shared search bar (inventaire/codex/hdv) */
+.inventory-search {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+    border-radius: var(--radius-xl);
+    border: 2px solid var(--color-primary-light);
+    background: rgba(255, 255, 255, 0.9);
+    box-sizing: border-box;
+    overflow: hidden;
+    transition: width var(--transition-medium), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.inventory-search.is-open,
+.inventory-search:focus-within {
+    width: min(280px, 92vw);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.12);
+}
+
+.inventory-search-toggle {
+    border: none;
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.inventory-search-toggle:hover {
+    background: var(--color-primary-light);
+    transform: scale(1.03);
+}
+
+.inventory-search-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.inventory-search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: var(--text-base);
+    color: var(--color-gray-900);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast);
+}
+
+.inventory-search.is-open .inventory-search-input,
+.inventory-search:focus-within .inventory-search-input {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.inventory-search-clear {
+    border: none;
+    background: transparent;
+    color: var(--color-primary);
+    font-size: var(--text-lg);
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.inventory-search-clear:hover {
+    background: var(--color-primary-lighter);
+}
+
+.inventory-search-history {
+    z-index: 20;
+}
+
 .chip-remove {
     background: none;
     border: none;

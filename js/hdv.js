@@ -28,8 +28,11 @@ const dom = {
     },
     categories: document.getElementById('hdvCategories'),
     search: {
+        root: document.getElementById('hdvSearch'),
         input: document.getElementById('hdvSearchInput'),
-        clear: document.getElementById('hdvClearSearch'),
+        toggle: document.getElementById('hdvSearchToggle'),
+        clear: document.getElementById('hdvSearchClear'),
+        history: document.getElementById('hdvSearchHistory'),
         minLevel: document.getElementById('hdvMinLevel'),
         maxLevel: document.getElementById('hdvMaxLevel'),
         rarity: document.getElementById('hdvRaritySelect'),
@@ -74,6 +77,13 @@ const state = {
     items: [],
     inventory: []
 };
+
+const searchHistory = window.astoriaSearchHistory
+    ? window.astoriaSearchHistory.createSearchHistory({
+        storageKey: 'astoriaHdvRecentSearches',
+        maxItems: 4
+    })
+    : null;
 
 function resolveCurrentUser() {
     console.log('[HDV] resolveCurrentUser - location:', window.location.href);
@@ -180,6 +190,14 @@ function setStatus(el, message, kind = 'info') {
     if (!el) return;
     el.textContent = message || '';
     el.dataset.kind = kind;
+}
+
+function formatCharacterLink(characterId, label = '') {
+    if (!characterId) return '';
+    const shortId = String(characterId).slice(0, 8);
+    const text = label || shortId;
+    const url = `profil.html?character=${encodeURIComponent(characterId)}`;
+    return `<a class="hdv-link" href="${url}" target="_blank" rel="noopener">${text}</a>`;
 }
 
 function getItemById(itemId) {
@@ -510,7 +528,13 @@ function syncFiltersToUI() {
     dom.search.rarity.value = state.filters.rarity;
     dom.search.sort.value = state.sort;
     dom.search.affordable.checked = !!state.filters.affordableOnly;
-    dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
+    if (dom.search.clear) {
+        if ('hidden' in dom.search.clear) {
+            dom.search.clear.hidden = !state.filters.q;
+        } else {
+            dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
+        }
+    }
 }
 
 function renderPagination(page, totalPages) {
@@ -580,12 +604,18 @@ function renderListings(listings) {
         const tr = document.createElement('tr');
 
         const tdItem = document.createElement('td');
+        const metaLines = [];
+        if (item.category) metaLines.push(`<div class="hdv-item-meta">${categoryLabel(item.category)}</div>`);
+        const sellerLink = formatCharacterLink(listing.seller_character_id, 'Profil');
+        if (sellerLink) {
+            metaLines.push(`<div class="hdv-item-meta">Vendeur: ${sellerLink}</div>`);
+        }
         tdItem.innerHTML = `
             <div class="hdv-item-cell">
                 <img class="hdv-item-icon" src="${img}" alt="">
                 <div class="hdv-item-text">
                     <div class="hdv-item-name">${item.name || 'Item inconnu'}</div>
-                    <div class="hdv-item-meta">${item.category ? categoryLabel(item.category) : ''}</div>
+                    ${metaLines.join('')}
                 </div>
             </div>
         `;
@@ -910,7 +940,7 @@ function renderHistory(transactions) {
     if (!transactions || transactions.length === 0) {
         const tr = document.createElement('tr');
         const td = document.createElement('td');
-        td.colSpan = 5;
+        td.colSpan = 6;
         td.className = 'hdv-empty';
         td.textContent = 'Aucune transaction.';
         tr.appendChild(td);
@@ -945,11 +975,17 @@ function renderHistory(transactions) {
         `;
         tdPrice.className = 'hdv-td-price';
 
+        const tdProfile = document.createElement('td');
+        const profileId = isBuy ? tx.seller_character_id : tx.buyer_character_id;
+        const profileLink = formatCharacterLink(profileId, 'Profil');
+        tdProfile.innerHTML = profileLink || '-';
+
         tr.appendChild(tdDate);
         tr.appendChild(tdType);
         tr.appendChild(tdItem);
         tr.appendChild(tdLot);
         tr.appendChild(tdPrice);
+        tr.appendChild(tdProfile);
         dom.history.body.appendChild(tr);
     }
 }
@@ -991,25 +1027,47 @@ function wireEvents() {
         });
     }
 
-    let searchTimer = null;
-    dom.search.input.addEventListener('input', () => {
-        state.filters.q = dom.search.input.value.trim();
-        dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
-        state.page = 1;
-        renderChips();
+    if (dom.search.root && dom.search.input && window.astoriaSearchBar) {
+        window.astoriaSearchBar.bind({
+            root: dom.search.root,
+            input: dom.search.input,
+            toggle: dom.search.toggle,
+            clearButton: dom.search.clear,
+            dropdown: dom.search.history,
+            history: searchHistory,
+            debounceWait: 250,
+            onSearch: (value) => {
+                state.filters.q = String(value || '').trim();
+                state.page = 1;
+                renderChips();
+                refreshSearch();
+            }
+        });
+    } else {
+        let searchTimer = null;
+        dom.search.input.addEventListener('input', () => {
+            state.filters.q = dom.search.input.value.trim();
+            if (dom.search.clear) {
+                dom.search.clear.style.display = state.filters.q ? 'block' : 'none';
+            }
+            state.page = 1;
+            renderChips();
 
-        window.clearTimeout(searchTimer);
-        searchTimer = window.setTimeout(() => refreshSearch(), 250);
-    });
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(() => refreshSearch(), 250);
+        });
 
-    dom.search.clear.addEventListener('click', () => {
-        dom.search.input.value = '';
-        state.filters.q = '';
-        dom.search.clear.style.display = 'none';
-        state.page = 1;
-        renderChips();
-        refreshSearch();
-    });
+        if (dom.search.clear) {
+            dom.search.clear.addEventListener('click', () => {
+                dom.search.input.value = '';
+                state.filters.q = '';
+                dom.search.clear.style.display = 'none';
+                state.page = 1;
+                renderChips();
+                refreshSearch();
+            });
+        }
+    }
 
     dom.search.minLevel.addEventListener('change', () => {
         state.filters.minLevel = dom.search.minLevel.value;

@@ -23,6 +23,8 @@ const carouselDots = document.getElementById("carouselDots");
 const modalCloseBtn = document.querySelector(".modal-close");
 const modalInner = document.querySelector(".modal-inner");
 let lastFocusedElement = null;
+const searchRoot = document.getElementById("codexSearch");
+const searchToggle = document.getElementById("codexSearchToggle");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const clearSearchBtn = document.getElementById("clearSearchBtn");
@@ -835,7 +837,11 @@ function applyFilters() {
 
     // Afficher/masquer le bouton clear
     if (clearSearchBtn) {
-        clearSearchBtn.style.display = searchQuery ? 'inline' : 'none';
+        if ('hidden' in clearSearchBtn) {
+            clearSearchBtn.hidden = !searchQuery;
+        } else {
+            clearSearchBtn.style.display = searchQuery ? 'inline' : 'none';
+        }
     }
 
     updateFilterChips(searchQuery);
@@ -897,14 +903,32 @@ function bindPageEvents() {
         categoryFilter.addEventListener('change', () => filterByCategory());
     }
 
-    if (searchInput) {
-        searchInput.addEventListener('keyup', () => filterTable());
-        searchInput.addEventListener('focus', () => showRecentSearches());
-        searchInput.addEventListener('blur', () => hideRecentSearches());
-    }
+    if (searchRoot && searchInput && window.astoriaSearchBar) {
+        window.astoriaSearchBar.bind({
+            root: searchRoot,
+            input: searchInput,
+            toggle: searchToggle,
+            clearButton: clearSearchBtn,
+            dropdown: recentSearchesDropdown,
+            history: searchHistory,
+            debounceWait: 200,
+            onSearch: (value) => {
+                if (searchInput) {
+                    searchInput.value = value || '';
+                }
+                applyFilters();
+            }
+        });
+    } else {
+        if (searchInput) {
+            searchInput.addEventListener('keyup', () => filterTable());
+            searchInput.addEventListener('focus', () => showRecentSearches());
+            searchInput.addEventListener('blur', () => hideRecentSearches());
+        }
 
-    if (clearSearchBtn) {
-        clearSearchBtn.addEventListener('click', () => clearSearch());
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', () => clearSearch());
+        }
     }
 
     if (filterChips && filterChips.dataset.chipsBound !== "1") {
