@@ -15,6 +15,7 @@ function requireCharacter() {
 }
 
 function asInt(value) {
+    if (value === null || value === undefined || value === '') return null;
     const numberValue = Number(value);
     if (!Number.isFinite(numberValue)) return null;
     return Math.trunc(numberValue);
