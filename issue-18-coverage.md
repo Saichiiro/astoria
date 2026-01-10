@@ -22,7 +22,7 @@ Focus: admin basics needed to operate the game.
 - [ ] Disable/activate user account.
 
 ### Users overview
-- [ ] User list + search (username).
+- [x] User list + search (username). (`js/panels/admin-panel.js`)
 - [x] Basic counts: users + characters. (`js/panels/admin-panel.js`)
 
 ### Content (MVP)

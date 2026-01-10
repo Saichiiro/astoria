@@ -2283,6 +2283,29 @@ button:hover .shortcut-icon {
     font-weight: var(--font-semibold);
 }
 
+.panel-user-list {
+    display: grid;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+}
+
+.panel-user-row {
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(216, 27, 96, 0.12);
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.panel-user-name {
+    font-weight: var(--font-semibold);
+    color: var(--color-gray-900);
+}
+
+.panel-user-meta {
+    font-size: var(--text-xs);
+    color: var(--color-gray-600);
+}
+
 /* Timestamp */
 .panel-admin-timestamp {
     margin: var(--space-2) 0 0;

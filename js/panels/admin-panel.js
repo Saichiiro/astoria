@@ -94,6 +94,23 @@ export const adminPanel = {
     editSection.append(kaelsLabel, kaelsInput, kaelsSave, kaelsStatus);
     wrapper.appendChild(editSection);
 
+    const userSection = el("div", "panel-admin-actions");
+    const userLabel = document.createElement("label");
+    userLabel.textContent = "Recherche utilisateur";
+    userLabel.setAttribute("for", "adminUserSearch");
+
+    const userInput = document.createElement("input");
+    userInput.type = "search";
+    userInput.id = "adminUserSearch";
+    userInput.className = "panel-select";
+    userInput.placeholder = "Nom d'utilisateur...";
+
+    const userHint = el("p", "panel-admin-hint", "Tapez au moins 2 lettres.");
+    const userList = el("div", "panel-user-list");
+
+    userSection.append(userLabel, userInput, userHint, userList);
+    wrapper.appendChild(userSection);
+
     const futureSection = el("div", "panel-admin-placeholder");
     const placeholderTitle = el("h4", "panel-admin-placeholder-title", "Future Features");
     const placeholderBody = el(
@@ -167,9 +184,65 @@ export const adminPanel = {
       }
     });
 
+    let userSearchTimer = null;
+    let supabaseRef = null;
+
+    async function loadUsers(query = "") {
+      if (!supabaseRef) {
+        supabaseRef = await getSupabaseClient();
+      }
+      const term = String(query || "").trim();
+      if (term.length < 2) {
+        userList.innerHTML = "";
+        userHint.textContent = "Tapez au moins 2 lettres.";
+        return;
+      }
+      userHint.textContent = "Recherche en cours...";
+      const { data, error } = await supabaseRef
+        .from("users")
+        .select("id, username, role, created_at")
+        .ilike("username", `%${term}%`)
+        .order("username", { ascending: true })
+        .limit(8);
+
+      if (error) {
+        console.error("Admin panel user search error:", error);
+        userHint.textContent = "Erreur pendant la recherche.";
+        userList.innerHTML = "";
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        userHint.textContent = "Aucun resultat.";
+        userList.innerHTML = "";
+        return;
+      }
+
+      userHint.textContent = `${data.length} utilisateur(s)`;
+      userList.innerHTML = "";
+      data.forEach((user) => {
+        const row = document.createElement("div");
+        row.className = "panel-user-row";
+        const shortId = user.id ? user.id.slice(0, 8) : "????";
+        row.innerHTML = `
+          <div class="panel-user-name">${user.username || "Sans nom"}</div>
+          <div class="panel-user-meta">${user.role || "player"} · ${shortId}</div>
+        `;
+        userList.appendChild(row);
+      });
+    }
+
+    userInput.addEventListener("input", () => {
+      window.clearTimeout(userSearchTimer);
+      userSearchTimer = window.setTimeout(() => {
+        loadUsers(userInput.value);
+      }, 200);
+    });
+
     (async () => {
       try {
         const supabase = await getSupabaseClient();
+        supabaseRef = supabase;
         const { count: userCount } = await supabase
           .from("users")
           .select("id", { count: "exact", head: true });

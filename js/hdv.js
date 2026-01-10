@@ -200,6 +200,13 @@ function formatCharacterLink(characterId, label = '') {
     return `<a class="hdv-link" href="${url}" target="_blank" rel="noopener">${text}</a>`;
 }
 
+function resolveCharacterName(relation) {
+    if (!relation) return null;
+    if (Array.isArray(relation)) return relation[0]?.name || null;
+    if (typeof relation === 'object') return relation.name || null;
+    return null;
+}
+
 function getItemById(itemId) {
     return state.items.find((item) => item && (item.id || item.name) === itemId) || state.items.find((item) => item && item.name === itemId) || null;
 }
@@ -606,7 +613,7 @@ function renderListings(listings) {
         const tdItem = document.createElement('td');
         const metaLines = [];
         if (item.category) metaLines.push(`<div class="hdv-item-meta">${categoryLabel(item.category)}</div>`);
-        const sellerName = listing.seller_character?.name;
+        const sellerName = resolveCharacterName(listing.seller_character);
         const sellerLink = formatCharacterLink(listing.seller_character_id, sellerName || 'Profil');
         if (sellerLink) {
             metaLines.push(`<div class="hdv-item-meta">Vendeur: ${sellerLink}</div>`);
@@ -978,7 +985,9 @@ function renderHistory(transactions) {
 
         const tdProfile = document.createElement('td');
         const profileId = isBuy ? tx.seller_character_id : tx.buyer_character_id;
-        const profileName = isBuy ? tx.seller_character?.name : tx.buyer_character?.name;
+        const profileName = isBuy
+            ? resolveCharacterName(tx.seller_character)
+            : resolveCharacterName(tx.buyer_character);
         const profileLink = formatCharacterLink(profileId, profileName || 'Profil');
         tdProfile.innerHTML = profileLink || '-';
 
