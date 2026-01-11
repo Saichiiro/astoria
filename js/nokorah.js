@@ -353,11 +353,10 @@ function renderEmpty(root) {
 function renderActive(root) {
     const active = state.active;
     const rarity = state.rarity || "commun";
-    const totalPoints = getTotalBonusPoints();
-    const maxPoints = getMaxTotalPoints(rarity, state.upgradeLevel);
     const nextRarity = getNextRarity(rarity);
     const upgradeCost = getUpgradeCost(state.upgradeLevel);
     const rarityCost = nextRarity ? RARITY_COSTS[rarity] : null;
+    const canUpgradeRarity = !!nextRarity && state.upgradeLevel > 0 && state.upgradeLevel % 5 === 0;
     const rarityClass = `rarity-frame rarity-${rarity}${active?.rainbowFrame ? " rainbow" : ""}`;
     const badgeClass = `rarity-badge rarity-${rarity}${active?.rainbowFrame ? " rainbow" : ""}`;
 
@@ -382,7 +381,6 @@ function renderActive(root) {
                 <div class="nokorah-section-block">
                     <h4>Bonus cumulés</h4>
                     <div class="bonus-chips">${buildBonusChips()}</div>
-                    <div class="bonus-total">Total: ${totalPoints} / ${maxPoints} pts (niveau ${state.upgradeLevel})</div>
                 </div>
 
                 <div class="nokorah-section-block">
@@ -391,7 +389,7 @@ function renderActive(root) {
                 </div>
 
                 <div class="nokorah-actions">
-                    <button class="action-buttons focus-outline" data-action="rarity" ${!nextRarity ? "disabled" : ""}>
+                    <button class="action-buttons focus-outline" data-action="rarity" ${!canUpgradeRarity ? "disabled" : ""}>
                         Améliorer la rareté <span>${rarityCost ? `${rarityCost} Lucky Soul` : "Max"}</span>
                     </button>
                     <button class="action-buttons secondary focus-outline" data-action="stats">
@@ -598,6 +596,10 @@ function openAppearanceModal() {
 async function handleRarityUpgrade() {
     const next = getNextRarity(state.rarity);
     if (!next) return;
+    if (state.upgradeLevel <= 0 || state.upgradeLevel % 5 !== 0) {
+        alert("La rarete ne peut evoluer qu'aux niveaux multiples de 5.");
+        return;
+    }
     const cost = RARITY_COSTS[state.rarity];
     const ok = await ensureLuckySoul(cost);
     if (!ok) return;

@@ -126,6 +126,18 @@
 
   body.insertAdjacentHTML("afterbegin", markup);
 
+  const resolveModuleUrl = (relativePath) => {
+    const current = document.currentScript;
+    if (current && current.src) {
+      return new URL(relativePath, current.src).href;
+    }
+    const fallback = document.querySelector('script[src*="js/sidebar.js"]');
+    if (fallback && fallback.src) {
+      return new URL(relativePath, fallback.src).href;
+    }
+    return new URL(relativePath, window.location.href).href;
+  };
+
   const themeScriptLoaded = () => {
     if (typeof window.initThemeToggle === "function") {
       window.initThemeToggle(body);
@@ -189,7 +201,7 @@
     if (!logoutBtn || !loginBtn) return;
 
     try {
-      const auth = await import("./auth.js");
+      const auth = await import(resolveModuleUrl("./auth.js"));
       const isLoggedIn = typeof auth.isAuthenticated === "function"
         ? auth.isAuthenticated()
         : !!auth.getCurrentUser?.();
@@ -228,7 +240,7 @@
 
   const setupPanelShortcuts = async () => {
     try {
-      const panelShortcuts = await import("./ui/panel-shortcuts.js");
+      const panelShortcuts = await import(resolveModuleUrl("./ui/panel-shortcuts.js"));
       if (typeof panelShortcuts.initPanelShortcuts === "function") {
         panelShortcuts.initPanelShortcuts({
           selector: ".sidebarMenuInner [data-panel]",

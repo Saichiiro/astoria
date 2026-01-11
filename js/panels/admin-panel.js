@@ -43,12 +43,12 @@ export const adminPanel = {
     const kv = document.createElement("dl");
     kv.className = "panel-kv panel-admin-kv";
 
-    const userLabel = el("dt", "", "Users");
+    const usersLabel = el("dt", "", "Users");
     const userValue = el("dd", "", "-");
     const charLabel = el("dt", "", "Characters");
     const charValue = el("dd", "", "-");
 
-    kv.append(userLabel, userValue, charLabel, charValue);
+    kv.append(usersLabel, userValue, charLabel, charValue);
     wrapper.appendChild(kv);
 
     const actions = el("div", "panel-admin-actions");
@@ -95,9 +95,9 @@ export const adminPanel = {
     wrapper.appendChild(editSection);
 
     const userSection = el("div", "panel-admin-actions");
-    const userLabel = document.createElement("label");
-    userLabel.textContent = "Recherche utilisateur";
-    userLabel.setAttribute("for", "adminUserSearch");
+    const userSearchLabel = document.createElement("label");
+    userSearchLabel.textContent = "Recherche utilisateur";
+    userSearchLabel.setAttribute("for", "adminUserSearch");
 
     const userInput = document.createElement("input");
     userInput.type = "search";
@@ -108,7 +108,7 @@ export const adminPanel = {
     const userHint = el("p", "panel-admin-hint", "Tapez au moins 2 lettres.");
     const userList = el("div", "panel-user-list");
 
-    userSection.append(userLabel, userInput, userHint, userList);
+    userSection.append(userSearchLabel, userInput, userHint, userList);
     wrapper.appendChild(userSection);
 
     const futureSection = el("div", "panel-admin-placeholder");

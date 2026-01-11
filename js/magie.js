@@ -538,7 +538,7 @@
         updateSaveStatus();
 
         try {
-            authApi = await import("./js/auth.js");
+            authApi = await import("./auth.js");
         } catch (error) {
             authApi = null;
         }
