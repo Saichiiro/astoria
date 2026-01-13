@@ -82,6 +82,7 @@ function mapDbItem(row) {
     const buyText = row.price_pa ? `${row.price_pa} pa` : '';
     const sellText = row.price_po ? `${row.price_po} po` : '';
     return {
+        id: row.id,
         _dbId: row.id,
         source: 'db',
         name: row.name || '',
@@ -266,12 +267,12 @@ window.openEditModal = function(globalIndex) {
     openAdminModal(item);
 };
 
-function destroyCropper() {
+function destroyCropper(keepPreview = false) {
     if (cropper) {
         cropper.destroy();
         cropper = null;
     }
-    if (imagePreviewUrl) {
+    if (!keepPreview && imagePreviewUrl) {
         URL.revokeObjectURL(imagePreviewUrl);
         imagePreviewUrl = '';
     }
@@ -349,7 +350,9 @@ async function applyCropper() {
     // Don't revoke here - setImagePreview will handle it after image loads
     const newBlobUrl = URL.createObjectURL(blob);
     setImagePreview(newBlobUrl);
-    closeCropper();
+    closeBackdrop(dom.cropperBackdrop);
+    destroyCropper(true);
+    if (dom.imageInput) dom.imageInput.value = '';
 }
 
 async function uploadImage(dbId, nameHint) {
@@ -509,15 +512,19 @@ async function loadDbItems() {
         .filter(([name, ids]) => ids.length > 1);
 
     if (duplicates.length > 0) {
-        console.warn('[LOAD] ⚠️ DUPLICATE ITEMS DETECTED:');
+        console.warn('[LOAD] DUPLICATE ITEMS DETECTED:');
         duplicates.forEach(([name, ids]) => {
             console.warn(`  - "${name}": ${ids.length} copies with IDs:`, ids);
         });
-        console.warn('[LOAD] 💡 Delete duplicates manually in Supabase or use DELETE FROM items WHERE id IN (...ids)');
+        console.warn('[LOAD] Delete duplicates manually in Supabase or use DELETE FROM items WHERE id IN (...ids)');
     }
 
     const mapped = (data || []).map(mapDbItem);
-    window.astoriaCodex.addItems(mapped);
+    if (typeof window.astoriaCodex.setItems === 'function') {
+        window.astoriaCodex.setItems(mapped);
+    } else {
+        window.astoriaCodex.addItems(mapped);
+    }
 }
 
 function updateEditButton(detail) {

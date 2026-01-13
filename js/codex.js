@@ -119,6 +119,7 @@ function mapDbItem(row) {
     const buyText = row.price_pa ? `${row.price_pa} pa` : "";
     const sellText = row.price_po ? `${row.price_po} po` : "";
     return {
+        id: row.id,
         _dbId: row.id,
         source: "db",
         name: row.name || "",
@@ -140,24 +141,10 @@ async function hydrateItemsFromDb() {
         if (!Array.isArray(rows) || rows.length === 0) return;
 
         const mapped = rows.map(mapDbItem);
-        const existingIds = new Set(
-            allItems.map((item) => item && item._dbId).filter(Boolean)
-        );
-        const existingNames = new Set(
-            allItems.map((item) => normalizeName(item?.name || item?.nom || ""))
-        );
-
-        mapped.forEach((item) => {
-            if (!item || !item.name) return;
-            if (item._dbId && existingIds.has(item._dbId)) return;
-            const key = normalizeName(item.name);
-            if (existingNames.has(key)) return;
-            allItems.push(item);
-            getOrCreateItemMeta(item, allItems.length - 1);
-            existingIds.add(item._dbId);
-            existingNames.add(key);
-        });
-
+        allItems = mapped.slice();
+        currentData = allItems.slice();
+        rowCache.clear();
+        allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));
         preloadItems(allItems);
     } catch (error) {
         console.warn("Codex DB items load failed:", error);
@@ -1095,6 +1082,16 @@ function populateCategoryCounts() {
 }
 
 window.astoriaCodex = {
+    setItems(items) {
+        if (!Array.isArray(items)) return;
+        allItems = items.slice();
+        currentData = allItems.slice();
+        rowCache.clear();
+        allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));
+        preloadItems(allItems);
+        applyFilters();
+        populateCategoryCounts();
+    },
     addItems(items) {
         if (!Array.isArray(items) || items.length === 0) return;
         items.forEach((item) => {
