@@ -423,6 +423,7 @@
         async function initInventory() {
             console.log('Initializing inventory...');
 
+            await hydrateItemsFromDb();
             await initInventoryStorage();
             if (!inventoryAccessAllowed) {
                 renderInventoryAccessDenied();
@@ -455,6 +456,74 @@
                 return [];
             }
             return inventoryData;
+        }
+
+        function safeJson(value) {
+            if (!value) return {};
+            if (typeof value === 'object') return value;
+            if (typeof value === 'string') {
+                try {
+                    return JSON.parse(value);
+                } catch {
+                    return {};
+                }
+            }
+            return {};
+        }
+
+        function normalizeItemName(name) {
+            return String(name || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9]+/g, '')
+                .toLowerCase();
+        }
+
+        function mapDbItem(row) {
+            const images = safeJson(row.images);
+            const primary = images.primary || images.url || '';
+            const buyText = row.price_pa ? `${row.price_pa} pa` : '';
+            const sellText = row.price_po ? `${row.price_po} po` : '';
+            return {
+                _dbId: row.id,
+                source: 'db',
+                name: row.name || '',
+                description: row.description || '',
+                effect: row.effect || '',
+                category: row.category || '',
+                buyPrice: buyText,
+                sellPrice: sellText,
+                image: primary,
+                images: images
+            };
+        }
+
+        async function hydrateItemsFromDb() {
+            if (!Array.isArray(window.inventoryData)) return;
+            try {
+                const itemsApi = await import('./js/api/items-service.js');
+                if (!itemsApi?.getAllItems) return;
+                const rows = await itemsApi.getAllItems();
+                if (!Array.isArray(rows) || rows.length === 0) return;
+                const mapped = rows.map(mapDbItem);
+                const existingNames = new Set(
+                    window.inventoryData.map((item) => normalizeItemName(item?.name || item?.nom || ''))
+                );
+                const existingIds = new Set(
+                    window.inventoryData.map((item) => item && item._dbId).filter(Boolean)
+                );
+                mapped.forEach((item) => {
+                    if (!item || !item.name) return;
+                    if (item._dbId && existingIds.has(item._dbId)) return;
+                    const key = normalizeItemName(item.name);
+                    if (existingNames.has(key)) return;
+                    window.inventoryData.push(item);
+                    existingNames.add(key);
+                    existingIds.add(item._dbId);
+                });
+            } catch (error) {
+                console.warn('Inventory DB items load failed:', error);
+            }
         }
 
         /**

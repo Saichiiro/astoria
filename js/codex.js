@@ -1,14 +1,20 @@
 // On récupère les données depuis data.js (inventoryData)
 window.astoriaIsAdmin = false;
 
-const allItems = (typeof inventoryData !== "undefined") ? inventoryData : [];
+let allItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryData))
+    ? inventoryData.slice()
+    : [];
 const imageHelpers = window.astoriaImageHelpers || {};
-if (typeof imageHelpers.preloadMany === "function") {
-    const preloadCandidates = allItems
+function preloadItems(items) {
+    if (typeof imageHelpers.preloadMany !== "function") return;
+    const preloadCandidates = (items || [])
         .map((item) => (item && item.image) || "")
         .filter(Boolean);
     imageHelpers.preloadMany(preloadCandidates, 12);
 }
+
+preloadItems(allItems);
+
 let currentData = allItems.slice();
 const tableBody = document.getElementById("tableBody");
 const modal = document.getElementById("itemModal");
@@ -94,6 +100,69 @@ function escapeForAttribute(str) {
         .replace(/"/g, "&quot;");
 }
 
+function safeJson(value) {
+    if (!value) return {};
+    if (typeof value === "object") return value;
+    if (typeof value === "string") {
+        try {
+            return JSON.parse(value);
+        } catch {
+            return {};
+        }
+    }
+    return {};
+}
+
+function mapDbItem(row) {
+    const images = safeJson(row.images);
+    const primary = images.primary || images.url || "";
+    const buyText = row.price_pa ? `${row.price_pa} pa` : "";
+    const sellText = row.price_po ? `${row.price_po} po` : "";
+    return {
+        _dbId: row.id,
+        source: "db",
+        name: row.name || "",
+        description: row.description || "",
+        effect: row.effect || "",
+        category: row.category || "",
+        buyPrice: buyText,
+        sellPrice: sellText,
+        image: primary,
+        images: images
+    };
+}
+
+async function hydrateItemsFromDb() {
+    try {
+        const itemsApi = await import("./api/items-service.js");
+        if (!itemsApi?.getAllItems) return;
+        const rows = await itemsApi.getAllItems();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+
+        const mapped = rows.map(mapDbItem);
+        const existingIds = new Set(
+            allItems.map((item) => item && item._dbId).filter(Boolean)
+        );
+        const existingNames = new Set(
+            allItems.map((item) => normalizeName(item?.name || item?.nom || ""))
+        );
+
+        mapped.forEach((item) => {
+            if (!item || !item.name) return;
+            if (item._dbId && existingIds.has(item._dbId)) return;
+            const key = normalizeName(item.name);
+            if (existingNames.has(key)) return;
+            allItems.push(item);
+            getOrCreateItemMeta(item, allItems.length - 1);
+            existingIds.add(item._dbId);
+            existingNames.add(key);
+        });
+
+        preloadItems(allItems);
+    } catch (error) {
+        console.warn("Codex DB items load failed:", error);
+    }
+}
 // Stable item keys (avoid rebuilding rows/images on each filter)
 const itemMeta = new WeakMap();
 const rowCache = new Map();
@@ -1067,4 +1136,7 @@ window.astoriaCodex = {
 };
 
 bindPageEvents();
-initFromUrl();
+void (async () => {
+    await hydrateItemsFromDb();
+    initFromUrl();
+})();
