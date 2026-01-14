@@ -37,6 +37,11 @@ const dom = {
         maxLevel: document.getElementById('hdvMaxLevel'),
         rarity: document.getElementById('hdvRaritySelect'),
         sort: document.getElementById('hdvSortSelect'),
+        scrollToggle: document.getElementById('hdvScrollTypesToggle'),
+        scrollPanel: document.getElementById('hdvScrollTypesPanel'),
+        scrollList: document.getElementById('hdvScrollTypesList'),
+        scrollLabel: document.getElementById('hdvScrollTypesLabel'),
+        scrollClear: document.getElementById('hdvScrollTypesClear'),
         affordable: document.getElementById('hdvAffordableToggle'),
         chips: document.getElementById('hdvChips'),
         status: document.getElementById('hdvSearchStatus'),
@@ -66,6 +71,7 @@ const state = {
         minLevel: '',
         maxLevel: '',
         rarity: 'all',
+        scrollType: 'all',
         affordableOnly: false
     },
     sort: 'price_asc',
@@ -84,6 +90,28 @@ const searchHistory = window.astoriaSearchHistory
         maxItems: 4
     })
     : null;
+
+const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase());
+
+const SCROLL_TYPES = [
+    { key: 'feu', emoji: String.fromCodePoint(0x1F525), label: 'Feu', matchers: ['feu'] },
+    { key: 'eau', emoji: String.fromCodePoint(0x1F4A7), label: 'Eau', matchers: ['eau'] },
+    { key: 'glace', emoji: String.fromCodePoint(0x1F9CA), label: 'Glace', matchers: ['glace', 'cryo'] },
+    { key: 'vent', emoji: String.fromCodePoint(0x1F32C), label: 'Vent', matchers: ['vent'] },
+    { key: 'terre', emoji: String.fromCodePoint(0x1FAA8), label: 'Terre', matchers: ['terre'] },
+    { key: 'nature', emoji: String.fromCodePoint(0x1F331), label: 'Nature', matchers: ['nature'] },
+    { key: 'roche', emoji: String.fromCodePoint(0x1FAA8), label: 'Roche', matchers: ['roche'] },
+    { key: 'metaux', emoji: String.fromCodePoint(0x1F529), label: 'Metaux', matchers: ['metaux', 'metal'] },
+    { key: 'bois', emoji: String.fromCodePoint(0x1FAB5), label: 'Bois', matchers: ['bois'] },
+    { key: 'foudre', emoji: String.fromCodePoint(0x26A1), label: 'Foudre', matchers: ['foudre'] },
+    { key: 'lumiere', emoji: String.fromCodePoint(0x1F31F), label: 'Lumiere', matchers: ['lumiere'] },
+    { key: 'tenebres', emoji: String.fromCodePoint(0x1F319), label: 'Tenebres', matchers: ['tenebres'] }
+];
+
+const SCROLL_TYPE_MAP = new Map(SCROLL_TYPES.map((type) => [type.key, type]));
 
 function resolveCurrentUser() {
     console.log('[HDV] resolveCurrentUser - location:', window.location.href);
@@ -205,6 +233,48 @@ function resolveCharacterName(relation) {
     if (Array.isArray(relation)) return relation[0]?.name || null;
     if (typeof relation === 'object') return relation.name || null;
     return null;
+}
+
+function getScrollCategory(item) {
+    if (!item || !item.name) return null;
+    const name = normalizeText(item.name);
+    if (!name.includes('parchemin') && !name.includes('scroll')) return null;
+    if (name.includes('eveil') || name.includes('eveille') || (name.includes('veil') && name.includes('parchemin'))) return 'eveil';
+    if (name.includes('ascension')) return 'ascension';
+    return 'parchemin';
+}
+
+function getScrollTypeKey(item) {
+    const haystack = normalizeText(
+        [item?.name, item?.description, item?.effect]
+            .filter(Boolean)
+            .join(' ')
+    );
+
+    for (const type of SCROLL_TYPES) {
+        for (const matcher of type.matchers) {
+            if (haystack.includes(normalizeText(matcher))) {
+                return type.key;
+            }
+        }
+    }
+
+    return null;
+}
+
+function getScrollTypeLabel(key) {
+    const info = SCROLL_TYPE_MAP.get(key);
+    if (!info) return null;
+    return `${info.emoji} ${info.label}`;
+}
+
+function resolveListingItem(listing) {
+    return getItemById(listing.item_id) || {
+        name: listing.item_name || listing.item_id,
+        category: listing.item_category,
+        description: listing.item_description,
+        effect: listing.item_effect
+    };
 }
 
 function getItemById(itemId) {
@@ -448,6 +518,65 @@ function renderCategories() {
     }
 }
 
+function setScrollPanelOpen(isOpen) {
+    if (!dom.search.scrollPanel || !dom.search.scrollToggle) return;
+    dom.search.scrollPanel.classList.toggle('open', isOpen);
+    dom.search.scrollPanel.setAttribute('aria-hidden', String(!isOpen));
+    dom.search.scrollToggle.setAttribute('aria-expanded', String(isOpen));
+}
+
+function updateScrollToggleLabel() {
+    if (!dom.search.scrollLabel) return;
+    if (!state.filters.scrollType || state.filters.scrollType == 'all') {
+        dom.search.scrollLabel.textContent = 'Parchemins';
+        return;
+    }
+    const label = getScrollTypeLabel(state.filters.scrollType);
+    dom.search.scrollLabel.textContent = label ? `Parchemins: ${label}` : 'Parchemins';
+}
+
+function setScrollTypeFilter(typeKey) {
+    const next = typeKey || 'all';
+    state.filters.scrollType = next;
+    state.page = 1;
+    updateScrollToggleLabel();
+    renderChips();
+    refreshSearch();
+}
+
+function renderScrollTypePanel() {
+    if (!dom.search.scrollList || !dom.search.scrollClear) return;
+    dom.search.scrollList.innerHTML = '';
+
+    for (const type of SCROLL_TYPES) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'hdv-scroll-type-btn' + (state.filters.scrollType == type.key ? ' active' : '');
+        btn.textContent = `${type.emoji} ${type.label}`;
+        btn.addEventListener('click', () => {
+            setScrollTypeFilter(type.key);
+            renderScrollTypePanel();
+            setScrollPanelOpen(false);
+        });
+        dom.search.scrollList.appendChild(btn);
+    }
+
+    dom.search.scrollClear.onclick = () => {
+        setScrollTypeFilter('all');
+        renderScrollTypePanel();
+        setScrollPanelOpen(false);
+    };
+}
+
+function filterListingsByScrollType(listings) {
+    if (!state.filters.scrollType || state.filters.scrollType == 'all') return listings;
+    return listings.filter((listing) => {
+        const item = resolveListingItem(listing);
+        if (!getScrollCategory(item)) return false;
+        return getScrollTypeKey(item) == state.filters.scrollType;
+    });
+}
+
 function renderChips() {
     const chips = [];
 
@@ -465,6 +594,10 @@ function renderChips() {
     }
     if (state.filters.rarity !== 'all') {
         chips.push({ key: 'rarity', label: `Rareté: ${state.filters.rarity}` });
+    }
+    if (state.filters.scrollType && state.filters.scrollType !== 'all') {
+        const label = getScrollTypeLabel(state.filters.scrollType);
+        chips.push({ key: 'scrollType', label: `Parchemin: ${label || state.filters.scrollType}` });
     }
     if (state.filters.affordableOnly) {
         chips.push({ key: 'affordableOnly', label: `Achetable` });
@@ -488,10 +621,12 @@ function renderChips() {
     reset.textContent = 'Réinitialiser';
     reset.addEventListener('click', () => {
         state.category = 'all';
-        state.filters = { q: '', minLevel: '', maxLevel: '', rarity: 'all', affordableOnly: false };
+        state.filters = { q: '', minLevel: '', maxLevel: '', rarity: 'all', scrollType: 'all', affordableOnly: false };
         state.sort = 'price_asc';
         state.page = 1;
         syncFiltersToUI();
+        updateScrollToggleLabel();
+        renderScrollTypePanel();
         renderCategories();
         renderChips();
         refreshSearch();
@@ -514,6 +649,7 @@ function renderChips() {
             if (chip.key === 'minLevel') state.filters.minLevel = '';
             if (chip.key === 'maxLevel') state.filters.maxLevel = '';
             if (chip.key === 'rarity') state.filters.rarity = 'all';
+            if (chip.key === 'scrollType') state.filters.scrollType = 'all';
             if (chip.key === 'affordableOnly') state.filters.affordableOnly = false;
             if (chip.key === 'sort') state.sort = 'price_asc';
             state.page = 1;
@@ -534,6 +670,7 @@ function syncFiltersToUI() {
     dom.search.maxLevel.value = state.filters.maxLevel;
     dom.search.rarity.value = state.filters.rarity;
     dom.search.sort.value = state.sort;
+    updateScrollToggleLabel();
     dom.search.affordable.checked = !!state.filters.affordableOnly;
     if (dom.search.clear) {
         if ('hidden' in dom.search.clear) {
@@ -603,7 +740,7 @@ function renderListings(listings) {
     }
 
     for (const listing of listings) {
-        const item = getItemById(listing.item_id) || { name: listing.item_name || listing.item_id, category: listing.item_category };
+        const item = resolveListingItem(listing);
         const img = resolveItemImage(item);
         const total = listing.total_price ?? (listing.quantity * listing.unit_price);
         const canAfford = state.profile ? state.profile.kaels >= total : false;
@@ -612,6 +749,10 @@ function renderListings(listings) {
 
         const tdItem = document.createElement('td');
         const metaLines = [];
+        const scrollCategory = getScrollCategory(item);
+        const scrollTypeKey = scrollCategory ? getScrollTypeKey(item) : null;
+        const scrollLabel = scrollTypeKey ? getScrollTypeLabel(scrollTypeKey) : null;
+        if (scrollLabel) metaLines.push(`<div class="hdv-item-meta hdv-item-meta--scroll">${scrollLabel}</div>`);
         if (item.category) metaLines.push(`<div class="hdv-item-meta">${categoryLabel(item.category)}</div>`);
         const sellerName = resolveCharacterName(listing.seller_character);
         const sellerLink = formatCharacterLink(listing.seller_character_id, sellerName || 'Profil');
@@ -762,10 +903,28 @@ async function refreshSearch() {
     };
 
     try {
-        const result = await searchListings(filters, state.sort, state.page, state.pageSize);
-        renderListings(result.listings);
-        renderPagination(result.page, result.totalPages);
-        setStatus(dom.search.status, `${result.totalCount} offres • page ${result.page}/${result.totalPages}`, 'info');
+        const useScrollFilter = state.filters.scrollType && state.filters.scrollType !== 'all';
+        const requestPage = useScrollFilter ? 1 : state.page;
+        const requestSize = useScrollFilter ? Math.max(state.pageSize * 5, 50) : state.pageSize;
+        const result = await searchListings(filters, state.sort, requestPage, requestSize);
+        const listings = Array.isArray(result.listings) ? result.listings : [];
+        if (useScrollFilter) {
+            const filtered = filterListingsByScrollType(listings);
+            const totalCount = filtered.length;
+            const totalPages = Math.max(1, Math.ceil(totalCount / state.pageSize));
+            const safePage = Math.min(state.page, totalPages);
+            state.page = safePage;
+            const startIdx = (safePage - 1) * state.pageSize;
+            const pageListings = filtered.slice(startIdx, startIdx + state.pageSize);
+            renderListings(pageListings);
+            renderPagination(safePage, totalPages);
+            setStatus(dom.search.status, `${totalCount} offres filtrees - page ${safePage}/${totalPages}`, 'info');
+        } else {
+            renderListings(listings);
+            renderPagination(result.page, result.totalPages);
+            setStatus(dom.search.status, `${result.totalCount} offres - page ${result.page}/${result.totalPages}`, 'info');
+        }
+    }
     } catch (err) {
         console.error(err);
         renderListings([]);
@@ -834,7 +993,7 @@ function renderMyListings(listings) {
     }
 
     for (const listing of listings) {
-        const item = getItemById(listing.item_id) || { name: listing.item_name || listing.item_id, category: listing.item_category };
+        const item = resolveListingItem(listing);
         const img = resolveItemImage(item);
         const total = listing.total_price ?? (listing.quantity * listing.unit_price);
 
@@ -847,6 +1006,12 @@ function renderMyListings(listings) {
                 <div class="hdv-item-text">
                     <div class="hdv-item-name">${item.name || 'Item inconnu'}</div>
                     <div class="hdv-item-meta">${item.category ? categoryLabel(item.category) : ''}</div>
+                    ${(() => {
+                        const scrollCategory = getScrollCategory(item);
+                        const scrollTypeKey = scrollCategory ? getScrollTypeKey(item) : null;
+                        const scrollLabel = scrollTypeKey ? getScrollTypeLabel(scrollTypeKey) : null;
+                        return scrollLabel ? `<div class="hdv-item-meta hdv-item-meta--scroll">${scrollLabel}</div>` : '';
+                    })()}
                 </div>
             </div>
         `;
@@ -1107,6 +1272,23 @@ function wireEvents() {
         renderChips();
         refreshSearch();
     });
+    if (dom.search.scrollToggle && dom.search.scrollPanel) {
+        dom.search.scrollToggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const isOpen = dom.search.scrollPanel.classList.contains('open');
+            setScrollPanelOpen(!isOpen);
+            if (!isOpen) {
+                renderScrollTypePanel();
+            }
+        });
+        document.addEventListener('click', (event) => {
+            if (!dom.search.scrollPanel.classList.contains('open')) return;
+            if (dom.search.scrollPanel.contains(event.target)) return;
+            if (dom.search.scrollToggle.contains(event.target)) return;
+            setScrollPanelOpen(false);
+        });
+    }
+
 
     dom.search.affordable.addEventListener('change', () => {
         state.filters.affordableOnly = dom.search.affordable.checked;
