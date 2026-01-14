@@ -659,6 +659,7 @@
             const allItems = getAllItems();
             inventoryItems = [];
             nextItemId = 1;
+            const missingRows = [];
 
             if (!Array.isArray(rows)) return;
 
@@ -667,7 +668,10 @@
                 if (!Number.isFinite(qty) || qty <= 0) return;
                 const resolved = resolveItemByKey(row?.item_key, row?.item_index);
                 const sourceItem = resolved.item;
-                if (!sourceItem) return;
+                if (!sourceItem) {
+                    missingRows.push(row);
+                    return;
+                }
 
                 inventoryItems.push({
                     id: nextItemId++,
@@ -676,6 +680,7 @@
                     quantity: Math.floor(qty)
                 });
             });
+            return missingRows;
         }
 
         function buildInventoryRows(characterId) {
@@ -796,8 +801,11 @@
                 const rows = await inventoryApi.getInventoryRows?.(character?.id);
                 if (Array.isArray(rows)) {
                     if (rows.length > 0) {
-                        hydrateInventoryFromRows(rows);
+                        const missingRows = hydrateInventoryFromRows(rows) || [];
                         console.log(`Loaded ${inventoryItems.length} items from character_inventory`);
+                        if (missingRows.length) {
+                            await cleanupMissingInventoryRows(character?.id, missingRows);
+                        }
                         return;
                     }
 
@@ -815,6 +823,22 @@
                 console.warn('Inventory load error (character_inventory):', error);
             }
             hydrateInventoryFromRows([]);
+        }
+
+        async function cleanupMissingInventoryRows(characterId, rows) {
+            if (!characterId || !inventoryApi?.setInventoryItem) return;
+            const deletions = rows.map((row) => {
+                const key = row?.item_key ?? row?.item_index;
+                if (key == null) return null;
+                return inventoryApi.setInventoryItem(characterId, String(key), row?.item_index, 0);
+            }).filter(Boolean);
+            if (!deletions.length) return;
+            try {
+                await Promise.allSettled(deletions);
+                console.log(`Removed ${deletions.length} missing inventory items.`);
+            } catch (error) {
+                console.warn('Failed to cleanup missing inventory items:', error);
+            }
         }
 
         async function saveInventoryToCharacterProfile() {
