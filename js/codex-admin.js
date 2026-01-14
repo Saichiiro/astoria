@@ -415,7 +415,7 @@ async function uploadImage(dbId, nameHint) {
         .from(ITEMS_BUCKET)
         .upload(filePath, imageBlob, {
             cacheControl: '3600',
-            upsert: true,
+            upsert: false,
             contentType: 'image/png'
         });
 

@@ -116,7 +116,7 @@ function safeJson(value) {
 
 function mapDbItem(row) {
     const images = safeJson(row.images);
-    const primary = images.primary || images.url || "";
+    const primary = images.primary || images.url || row.image || row.image_url || "";
     const buyText = row.price_pa ? `${row.price_pa} pa` : "";
     const sellText = row.price_po ? `${row.price_po} po` : "";
     return {
