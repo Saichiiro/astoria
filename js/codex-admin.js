@@ -52,6 +52,33 @@ let imagePreviewUrl = '';
 let cropper = null;
 let syncZoom = false;
 const knownCategories = new Set();
+const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
+
+function normalizeItemName(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]+/g, "")
+        .toLowerCase();
+}
+
+function getItemTombstones() {
+    try {
+        const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function addItemTombstone(name) {
+    const key = normalizeItemName(name);
+    if (!key) return;
+    const tombstones = new Set(getItemTombstones());
+    tombstones.add(key);
+    localStorage.setItem(ITEM_TOMBSTONES_KEY, JSON.stringify(Array.from(tombstones)));
+}
 
 function setError(message) {
     if (!dom.error) return;
@@ -288,9 +315,11 @@ async function confirmDelete() {
 
         console.log('[DELETE] Successfully deleted from DB:', data);
 
+        addItemTombstone(editingItem?.name || "");
         // Remove from UI
         window.astoriaCodex?.removeItemByRef(editingItem);
         console.log('[DELETE] Removed from UI');
+        await loadDbItems();
 
         // Close modals
         closeDeleteModal();

@@ -21,6 +21,17 @@ let allItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryD
     ? inventoryData.slice()
     : [];
 const localItems = allItems.slice();
+const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
+
+function getItemTombstones() {
+    try {
+        const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
 const imageHelpers = window.astoriaImageHelpers || {};
 function preloadItems(items) {
     if (typeof imageHelpers.preloadMany !== "function") return;
@@ -154,9 +165,11 @@ function mergeLocalItems(dbItems) {
     if (!Array.isArray(dbItems)) return localItems.slice();
     const merged = [];
     const seenNames = new Set();
+    const tombstones = new Set(getItemTombstones());
     const addItem = (item) => {
         if (!item) return;
         const nameKey = normalizeName(item.name || item.nom || "");
+        if (nameKey && tombstones.has(nameKey)) return;
         if (nameKey && seenNames.has(nameKey)) return;
         if (nameKey) seenNames.add(nameKey);
         merged.push(item);

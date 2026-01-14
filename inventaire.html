@@ -455,7 +455,7 @@
                 console.warn('inventoryData not found in data.js');
                 return [];
             }
-            return inventoryData;
+            return inventoryData.filter((item) => !isLocalItemTombstoned(item));
         }
 
         function safeJson(value) {
@@ -477,6 +477,26 @@
                 .replace(/[\u0300-\u036f]/g, '')
                 .replace(/[^a-zA-Z0-9]+/g, '')
                 .toLowerCase();
+        }
+
+        const ITEM_TOMBSTONES_KEY = 'astoriaItemTombstones';
+
+        function getItemTombstones() {
+            try {
+                const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function isLocalItemTombstoned(item) {
+            if (!item || item._dbId || item.source === 'db') return false;
+            const key = normalizeItemName(item.name || item.nom || '');
+            if (!key) return false;
+            const tombstones = getItemTombstones();
+            return tombstones.includes(key);
         }
 
         function resolveItemByKey(itemKey, itemIndex) {
