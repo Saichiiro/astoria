@@ -262,15 +262,18 @@ export async function resetUserPasswordPublic(username, newPassword) {
             .from('users')
             .update({ password_hash: passwordHash })
             .eq('username', cleanUsername)
-            .select('id, username')
-            .single();
+            .select('id, username');
 
         if (error) {
             console.error('Error resetting user password (public):', error);
             return { success: false, error: 'Impossible de reinitialiser le mot de passe' };
         }
 
-        return { success: true, user: data };
+        if (!data || !data.length) {
+            return { success: false, error: "Utilisateur introuvable" };
+        }
+
+        return { success: true, user: data[0] };
     } catch (error) {
         console.error('Error in resetUserPasswordPublic:', error);
         return { success: false, error: 'Impossible de reinitialiser le mot de passe' };
