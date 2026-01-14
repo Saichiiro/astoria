@@ -161,14 +161,16 @@ function mapDbItem(row) {
     };
 }
 
-function mergeLocalItems(dbItems) {
+function mergeLocalItems(dbItems, disabledNames) {
     if (!Array.isArray(dbItems)) return localItems.slice();
     const merged = [];
     const seenNames = new Set();
+    const disabledSet = disabledNames instanceof Set ? disabledNames : new Set();
     const tombstones = new Set(getItemTombstones());
     const addItem = (item) => {
         if (!item) return;
         const nameKey = normalizeName(item.name || item.nom || "");
+        if (nameKey && disabledSet.has(nameKey)) return;
         if (nameKey && tombstones.has(nameKey)) return;
         if (nameKey && seenNames.has(nameKey)) return;
         if (nameKey) seenNames.add(nameKey);
@@ -196,8 +198,16 @@ async function hydrateItemsFromDb() {
         const rows = await res.json();
         if (!Array.isArray(rows) || rows.length === 0) return;
 
-        const mapped = rows.map(mapDbItem);
-        const merged = mergeLocalItems(mapped);
+        const disabledNames = new Set(
+            rows
+                .filter((row) => row && row.enabled === false)
+                .map((row) => normalizeName(row.name || row.nom || ""))
+                .filter(Boolean)
+        );
+        const mapped = rows
+            .filter((row) => row && row.enabled !== false)
+            .map(mapDbItem);
+        const merged = mergeLocalItems(mapped, disabledNames);
         replaceItems(merged);
     } catch (error) {
         console.warn("Codex DB items load failed:", error);

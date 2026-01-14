@@ -302,7 +302,7 @@ async function confirmDelete() {
     try {
         const { data, error } = await supabase
             .from('items')
-            .delete()
+            .update({ enabled: false })
             .eq('id', editingItem._dbId)
             .select();
 
@@ -617,7 +617,11 @@ async function loadDbItems() {
         }
     }
 
-    const filtered = (data || []).filter((row) => row && !idsToDelete?.includes(row.id));
+    const filtered = (data || []).filter((row) =>
+        row &&
+        row.enabled !== false &&
+        !idsToDelete?.includes(row.id)
+    );
     const mapped = filtered.map(mapDbItem);
     collectCategories(mapped);
     renderCategoryOptions();

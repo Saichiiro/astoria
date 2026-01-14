@@ -455,7 +455,9 @@
                 console.warn('inventoryData not found in data.js');
                 return [];
             }
-            return inventoryData.filter((item) => !isLocalItemTombstoned(item));
+            return inventoryData.filter((item) =>
+                !isLocalItemTombstoned(item) && !isItemDisabled(item)
+            );
         }
 
         function safeJson(value) {
@@ -480,6 +482,7 @@
         }
 
         const ITEM_TOMBSTONES_KEY = 'astoriaItemTombstones';
+        let disabledItemNames = new Set();
 
         function getItemTombstones() {
             try {
@@ -497,6 +500,12 @@
             if (!key) return false;
             const tombstones = getItemTombstones();
             return tombstones.includes(key);
+        }
+
+        function isItemDisabled(item) {
+            const key = normalizeItemName(item?.name || item?.nom || '');
+            if (!key) return false;
+            return disabledItemNames.has(key);
         }
 
         function resolveItemByKey(itemKey, itemIndex) {
@@ -550,7 +559,15 @@
                 if (!itemsApi?.getAllItems) return;
                 const rows = await itemsApi.getAllItems();
                 if (!Array.isArray(rows) || rows.length === 0) return;
-                const mapped = rows.map(mapDbItem);
+                disabledItemNames = new Set(
+                    rows
+                        .filter((row) => row && row.enabled === false)
+                        .map((row) => normalizeItemName(row.name || row.nom || ''))
+                        .filter(Boolean)
+                );
+                const mapped = rows
+                    .filter((row) => row && row.enabled !== false)
+                    .map(mapDbItem);
                 const nameToIndex = new Map();
                 window.inventoryData.forEach((item, idx) => {
                     const key = normalizeItemName(item?.name || item?.nom || '');
