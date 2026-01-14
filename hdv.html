@@ -93,7 +93,20 @@
                             <option value="Légendaire">Légendaire</option>
                         </select>
 
-                        
+                        <div class="hdv-scroll-filter">
+                            <button
+                                type="button"
+                                class="hdv-scroll-toggle"
+                                id="hdvScrollTypesToggle"
+                                title="Types de parchemins"
+                                aria-label="Afficher les types de parchemins"
+                                aria-expanded="false"
+                                aria-controls="hdvScrollTypesPanel">
+                                <span class="hdv-scroll-toggle-label" id="hdvScrollTypesLabel">Parchemins</span>
+                                <span class="hdv-scroll-toggle-icon">&#x25BE;</span>
+                            </button>
+                            <div class="hdv-scroll-panel" id="hdvScrollTypesPanel" aria-hidden="true">
+                                <div class="hdv-scroll-panel-title">Types de parchemins</div>
                                 <div class="hdv-scroll-panel-list" id="hdvScrollTypesList"></div>
                                 <button class="hdv-scroll-clear" type="button" id="hdvScrollTypesClear">Tous les types</button>
                             </div>
@@ -145,13 +158,6 @@
                                 <label class="hdv-filter-label" for="hdvSellItem">Objet</label>
                                 <select class="field-input" id="hdvSellItem"></select>
                                 <div class="hdv-help" id="hdvBasePriceHint"></div>
-                                <button class="item-action-scroll-toggle" type="button" id="hdvScrollTypesToggle" title="Types de parchemins" aria-label="Afficher les types de parchemins" aria-expanded="false" aria-controls="hdvScrollTypesPanel" disabled>
-                                    &#x25BE;
-                                </button>
-                                <div class="hdv-scroll-panel" id="hdvScrollTypesPanel" aria-hidden="true">
-                                    <div class="hdv-scroll-panel-title">Types de parchemins</div>
-                                    <div class="hdv-scroll-panel-list" id="hdvScrollTypesList"></div>
-                                </div>
                             </div>
 
                             <div class="hdv-sell-field">
@@ -216,6 +222,7 @@
 
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
+    <script src="js/ui/list-helpers.js"></script>
     <script src="js/ui/search-history.js"></script>
     <script src="js/ui/searchbar.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
