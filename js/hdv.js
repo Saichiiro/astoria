@@ -924,7 +924,6 @@ async function refreshSearch() {
             renderPagination(result.page, result.totalPages);
             setStatus(dom.search.status, `${result.totalCount} offres - page ${result.page}/${result.totalPages}`, 'info');
         }
-    }
     } catch (err) {
         console.error(err);
         renderListings([]);
