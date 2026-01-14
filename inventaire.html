@@ -479,9 +479,34 @@
                 .toLowerCase();
         }
 
+        function resolveItemByKey(itemKey, itemIndex) {
+            const allItems = getAllItems();
+            const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
+            if (numericIndex != null && numericIndex >= 0 && allItems[numericIndex]) {
+                return { item: allItems[numericIndex], index: numericIndex };
+            }
+
+            const numericKey = Number.isFinite(Number(itemKey)) ? Number(itemKey) : null;
+            if (numericKey != null && numericKey >= 0 && allItems[numericKey]) {
+                return { item: allItems[numericKey], index: numericKey };
+            }
+
+            const normalizedKey = normalizeItemName(itemKey);
+            if (normalizedKey) {
+                const byName = allItems.findIndex((entry) =>
+                    normalizeItemName(entry?.name || entry?.nom || '') === normalizedKey
+                );
+                if (byName >= 0) {
+                    return { item: allItems[byName], index: byName };
+                }
+            }
+
+            return { item: null, index: -1 };
+        }
+
         function mapDbItem(row) {
             const images = safeJson(row.images);
-            const primary = images.primary || images.url || '';
+            const primary = images.primary || images.url || row.image || row.image_url || '';
             const buyText = row.price_pa ? `${row.price_pa} pa` : '';
             const sellText = row.price_po ? `${row.price_po} po` : '';
             return {
@@ -506,20 +531,24 @@
                 const rows = await itemsApi.getAllItems();
                 if (!Array.isArray(rows) || rows.length === 0) return;
                 const mapped = rows.map(mapDbItem);
-                const existingNames = new Set(
-                    window.inventoryData.map((item) => normalizeItemName(item?.name || item?.nom || ''))
-                );
-                const existingIds = new Set(
-                    window.inventoryData.map((item) => item && item._dbId).filter(Boolean)
-                );
+                const nameToIndex = new Map();
+                window.inventoryData.forEach((item, idx) => {
+                    const key = normalizeItemName(item?.name || item?.nom || '');
+                    if (key) nameToIndex.set(key, idx);
+                });
                 mapped.forEach((item) => {
                     if (!item || !item.name) return;
-                    if (item._dbId && existingIds.has(item._dbId)) return;
                     const key = normalizeItemName(item.name);
-                    if (existingNames.has(key)) return;
+                    const existingIndex = nameToIndex.get(key);
+                    if (existingIndex != null) {
+                        window.inventoryData[existingIndex] = {
+                            ...window.inventoryData[existingIndex],
+                            ...item
+                        };
+                        return;
+                    }
                     window.inventoryData.push(item);
-                    existingNames.add(key);
-                    existingIds.add(item._dbId);
+                    nameToIndex.set(key, window.inventoryData.length - 1);
                 });
             } catch (error) {
                 console.warn('Inventory DB items load failed:', error);
@@ -597,16 +626,15 @@
             if (!Array.isArray(rows)) return;
 
             rows.forEach((row) => {
-                const idx = Number(row?.item_index ?? row?.item_key);
                 const qty = Number(row?.qty);
-                if (!Number.isFinite(idx) || idx < 0 || !Number.isFinite(qty) || qty <= 0) return;
-
-                const sourceItem = allItems[idx];
+                if (!Number.isFinite(qty) || qty <= 0) return;
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+                const sourceItem = resolved.item;
                 if (!sourceItem) return;
 
                 inventoryItems.push({
                     id: nextItemId++,
-                    sourceIndex: idx,
+                    sourceIndex: resolved.index,
                     ...sourceItem,
                     quantity: Math.floor(qty)
                 });
@@ -614,19 +642,19 @@
         }
 
         function buildInventoryRows(characterId) {
-            const allItems = getAllItems();
             return inventoryItems
                 .map((item) => {
                     if (item?.isCurrency) return null;
-                    const idx = Number.isFinite(Number(item?.sourceIndex))
-                        ? Number(item.sourceIndex)
-                        : allItems.findIndex((it) => it && it.name === item?.name);
                     const qty = Math.floor(Number(item?.quantity) || 0);
-                    if (!Number.isFinite(idx) || idx < 0 || qty <= 0) return null;
+                    if (qty <= 0) return null;
+                    const resolved = resolveItemByKey(item?.name, item?.sourceIndex);
+                    const idx = resolved.index;
+                    const itemKey = item?.name || resolved.item?.name;
+                    if (!itemKey) return null;
                     return {
                         character_id: characterId,
-                        item_key: String(idx),
-                        item_index: idx,
+                        item_key: String(itemKey),
+                        item_index: Number.isFinite(idx) && idx >= 0 ? idx : null,
                         qty
                     };
                 })
