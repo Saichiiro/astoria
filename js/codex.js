@@ -1,6 +1,22 @@
 // On récupère les données depuis data.js (inventoryData)
 window.astoriaIsAdmin = false;
 
+function initAdminFlag() {
+    try {
+        const raw = localStorage.getItem("astoria_session");
+        if (!raw) return;
+        const session = JSON.parse(raw);
+        if (!session || !session.user || !session.timestamp) return;
+        const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
+        if ((Date.now() - session.timestamp) > maxAgeMs) return;
+        window.astoriaIsAdmin = session.user.role === "admin";
+    } catch {
+        // ignore invalid session
+    }
+}
+
+initAdminFlag();
+
 let allItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryData))
     ? inventoryData.slice()
     : [];

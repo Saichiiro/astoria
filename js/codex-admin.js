@@ -529,7 +529,7 @@ async function loadDbItems() {
     console.log('[LOAD] Loading items from database...');
     const { data, error } = await supabase
         .from('items')
-        .select('id, name, description, effect, category, price_po, price_pa, images, enabled')
+        .select('id, name, description, effect, category, price_po, price_pa, images, enabled, created_at')
         .order('created_at', { ascending: true });
 
     if (error) {
@@ -552,6 +552,7 @@ async function loadDbItems() {
 
     const duplicates = Array.from(nameCounts.entries())
         .filter(([name, ids]) => ids.length > 1);
+    let idsToDelete = [];
 
     if (duplicates.length > 0) {
         console.warn('[LOAD] DUPLICATE ITEMS DETECTED:');
@@ -559,9 +560,36 @@ async function loadDbItems() {
             console.warn(`  - "${name}": ${ids.length} copies with IDs:`, ids);
         });
         console.warn('[LOAD] Delete duplicates manually in Supabase or use DELETE FROM items WHERE id IN (...ids)');
+
+        duplicates.forEach(([name, ids]) => {
+            const rows = (data || []).filter((item) => item.name === name);
+            rows.sort((a, b) => {
+                const aTime = new Date(a.created_at || 0).getTime();
+                const bTime = new Date(b.created_at || 0).getTime();
+                return bTime - aTime;
+            });
+            const keep = rows[0];
+            rows.slice(1).forEach((row) => {
+                if (row?.id) idsToDelete.push(row.id);
+            });
+        });
+
+        if (idsToDelete.length) {
+            const { error: deleteError } = await supabase
+                .from('items')
+                .delete()
+                .in('id', idsToDelete);
+            if (deleteError) {
+                console.error('[LOAD] Failed to delete duplicates:', deleteError);
+                idsToDelete = [];
+            } else {
+                console.warn('[LOAD] Removed duplicate items:', idsToDelete.length);
+            }
+        }
     }
 
-    const mapped = (data || []).map(mapDbItem);
+    const filtered = (data || []).filter((row) => row && !idsToDelete?.includes(row.id));
+    const mapped = filtered.map(mapDbItem);
     collectCategories(mapped);
     renderCategoryOptions();
     if (typeof window.astoriaCodex.setDbItems === 'function') {
