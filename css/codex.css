@@ -232,6 +232,7 @@
     justify-content: center;
     overflow: hidden;
     position: relative;
+    cursor: pointer;
 }
 
 .codex-admin-image-preview img {
@@ -255,6 +256,11 @@
 .codex-admin-image-hint {
     font-size: var(--text-sm);
     color: var(--color-gray-600);
+}
+
+.codex-admin-image-meta {
+    font-size: var(--text-xs);
+    color: var(--color-gray-700);
 }
 
 .codex-admin-actions,

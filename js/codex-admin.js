@@ -28,6 +28,8 @@ const dom = {
     imagePreview: document.getElementById('adminItemImagePreview'),
     imageTag: document.getElementById('adminItemImage'),
     imagePlaceholder: document.querySelector('#adminItemImagePreview .codex-admin-image-placeholder'),
+    imageMeta: document.getElementById('adminItemImageMeta'),
+    imageRemove: document.getElementById('adminItemImageRemove'),
     note: document.getElementById('adminItemNote'),
     cancelBtn: document.getElementById('adminItemCancel'),
     saveBtn: document.getElementById('adminItemSave'),
@@ -51,6 +53,8 @@ let imageBlob = null;
 let imagePreviewUrl = '';
 let cropper = null;
 let syncZoom = false;
+let imageMeta = null;
+let imageRemovalRequested = false;
 const knownCategories = new Set();
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 
@@ -89,6 +93,28 @@ function setError(message) {
     }
     dom.error.textContent = message;
     dom.error.classList.add('visible');
+}
+
+function formatBytes(bytes) {
+    const size = Number(bytes) || 0;
+    if (size <= 0) return '0 Ko';
+    if (size < 1024) return `${size} o`;
+    if (size < 1024 * 1024) return `${Math.round(size / 1024)} Ko`;
+    return `${(size / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
+function setImageMetaText(text) {
+    if (!dom.imageMeta) return;
+    dom.imageMeta.textContent = text || 'Aucun fichier';
+}
+
+function updateImageControls(hasImage) {
+    if (dom.imageBtn) {
+        dom.imageBtn.textContent = hasImage ? "Changer l'image" : "Importer l'image";
+    }
+    if (dom.imageRemove) {
+        dom.imageRemove.hidden = !hasImage;
+    }
 }
 
 function safeJson(value) {
@@ -190,6 +216,8 @@ function resetImagePreview() {
     if (dom.imagePlaceholder) {
         dom.imagePlaceholder.hidden = false;
     }
+    setImageMetaText('Aucun fichier');
+    updateImageControls(false);
 
     // Now safe to revoke blob URL
     if (imagePreviewUrl && imagePreviewUrl.startsWith('blob:')) {
@@ -209,6 +237,7 @@ function setImagePreview(url) {
     imagePreviewUrl = url;
     dom.imageTag.hidden = !url;
     dom.imagePlaceholder.hidden = !!url;
+    updateImageControls(!!url);
 
     if (!url) {
         dom.imageTag.src = '';
@@ -235,8 +264,18 @@ function setImagePreview(url) {
     dom.imageTag.src = url;
 }
 
+function clearImageSelection(message) {
+    imageBlob = null;
+    imageMeta = null;
+    imageRemovalRequested = true;
+    setImagePreview('');
+    setImageMetaText(message || 'Image supprimée');
+}
+
 function openAdminModal(item) {
     editingItem = item || null;
+    imageRemovalRequested = false;
+    imageMeta = null;
     setError('');
     if (dom.note) dom.note.textContent = '';
     renderCategoryOptions(editingItem?.category);
@@ -265,6 +304,7 @@ function openAdminModal(item) {
         dom.effectInput.value = editingItem.effect || '';
         if (editingItem.image) {
             setImagePreview(editingItem.image);
+            setImageMetaText('Image actuelle');
         }
     }
 
@@ -276,6 +316,8 @@ function closeAdminModal() {
     closeBackdrop(dom.backdrop);
     resetImagePreview();
     imageBlob = null;
+    imageMeta = null;
+    imageRemovalRequested = false;
     editingItem = null;
 }
 
@@ -356,6 +398,13 @@ function closeCropper() {
 }
 
 function openCropper(file) {
+    imageRemovalRequested = false;
+    imageMeta = {
+        name: file?.name || 'image.png',
+        size: file?.size || 0
+    };
+    setImageMetaText(`${imageMeta.name} • ${formatBytes(imageMeta.size)}`);
+
     if (!dom.cropperBackdrop || !dom.cropperImage) {
         imageBlob = file;
         imagePreviewUrl = URL.createObjectURL(file);
@@ -418,6 +467,10 @@ async function applyCropper() {
     }
 
     imageBlob = blob;
+    if (imageMeta) {
+        imageMeta = { ...imageMeta, size: blob.size };
+        setImageMetaText(`${imageMeta.name} • ${formatBytes(imageMeta.size)}`);
+    }
     // Don't revoke here - setImagePreview will handle it after image loads
     const newBlobUrl = URL.createObjectURL(blob);
     setImagePreview(newBlobUrl);
@@ -488,6 +541,9 @@ async function saveItem(event) {
         const isUpdate = editingItem && editingItem._dbId;
 
         if (isUpdate) {
+            if (imageRemovalRequested && !imageBlob) {
+                payload.images = null;
+            }
             const { data, error } = await supabase
                 .from('items')
                 .update(payload)
@@ -524,7 +580,7 @@ async function saveItem(event) {
                     console.warn('Failed to update item with image URL:', error);
                 }
             }
-        } else if (isUpdate && editingItem.images) {
+        } else if (isUpdate && !imageRemovalRequested && editingItem.images) {
             // Preserve existing images when updating without new image
             if (!row.images) {
                 row.images = editingItem.images;
@@ -544,6 +600,8 @@ async function saveItem(event) {
 
         // Reset image state
         imageBlob = null;
+        imageMeta = null;
+        imageRemovalRequested = false;
         closeAdminModal();
     } catch (error) {
         console.error('Save error:', error);
@@ -681,6 +739,8 @@ async function init() {
     dom.deleteConfirm?.addEventListener('click', confirmDelete);
 
     dom.imageBtn?.addEventListener('click', () => dom.imageInput?.click());
+    dom.imagePreview?.addEventListener('click', () => dom.imageInput?.click());
+    dom.imageRemove?.addEventListener('click', () => clearImageSelection());
     dom.imageInput?.addEventListener('change', (event) => {
         const file = event.target.files && event.target.files[0];
         if (!file) return;
