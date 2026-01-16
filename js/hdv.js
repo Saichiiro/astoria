@@ -80,21 +80,21 @@ const state = {
     inventory: []
 };
 
-const normalizeText = (value) => String(value || '')
+const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || '')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+    .toLowerCase());
 
 const SCROLL_TYPES = [
-    { key: 'feu', label: 'Feu', emoji: '&#x1F525;' },
-    { key: 'eau', label: 'Eau', emoji: '&#x1F4A7;' },
-    { key: 'glace', label: 'Glace', emoji: '&#x1F9CA;' },
-    { key: 'vent', label: 'Vent', emoji: '&#x1F32C;' },
-    { key: 'terre', label: 'Terre', emoji: '&#x1FAA8;' },
-    { key: 'nature', label: 'Nature', emoji: '&#x1F331;' },
-    { key: 'foudre', label: 'Foudre', emoji: '&#x26A1;' },
-    { key: 'lumiere', label: 'Lumiere', emoji: '&#x1F31F;' },
-    { key: 'tenebres', label: 'Tenebres', emoji: '&#x1F319;' }
+    { key: 'feu', label: 'Feu', emoji: String.fromCodePoint(0x1F525) },
+    { key: 'eau', label: 'Eau', emoji: String.fromCodePoint(0x1F4A7) },
+    { key: 'glace', label: 'Glace', emoji: String.fromCodePoint(0x1F9CA) },
+    { key: 'vent', label: 'Vent', emoji: String.fromCodePoint(0x1F32C) },
+    { key: 'terre', label: 'Terre', emoji: String.fromCodePoint(0x1FAA8) },
+    { key: 'nature', label: 'Nature', emoji: String.fromCodePoint(0x1F331) },
+    { key: 'foudre', label: 'Foudre', emoji: String.fromCodePoint(0x26A1) },
+    { key: 'lumiere', label: 'Lumiere', emoji: String.fromCodePoint(0x1F31F) },
+    { key: 'tenebres', label: 'Tenebres', emoji: String.fromCodePoint(0x1F319) }
 ];
 
 const SCROLL_TYPE_MAP = new Map(SCROLL_TYPES.map((type) => [type.key, type]));
@@ -117,28 +117,6 @@ const searchHistory = window.astoriaSearchHistory
         maxItems: 4
     })
     : null;
-
-const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase());
-
-const SCROLL_TYPES = [
-    { key: 'feu', emoji: String.fromCodePoint(0x1F525), label: 'Feu', matchers: ['feu'] },
-    { key: 'eau', emoji: String.fromCodePoint(0x1F4A7), label: 'Eau', matchers: ['eau'] },
-    { key: 'glace', emoji: String.fromCodePoint(0x1F9CA), label: 'Glace', matchers: ['glace', 'cryo'] },
-    { key: 'vent', emoji: String.fromCodePoint(0x1F32C), label: 'Vent', matchers: ['vent'] },
-    { key: 'terre', emoji: String.fromCodePoint(0x1FAA8), label: 'Terre', matchers: ['terre'] },
-    { key: 'nature', emoji: String.fromCodePoint(0x1F331), label: 'Nature', matchers: ['nature'] },
-    { key: 'roche', emoji: String.fromCodePoint(0x1FAA8), label: 'Roche', matchers: ['roche'] },
-    { key: 'metaux', emoji: String.fromCodePoint(0x1F529), label: 'Metaux', matchers: ['metaux', 'metal'] },
-    { key: 'bois', emoji: String.fromCodePoint(0x1FAB5), label: 'Bois', matchers: ['bois'] },
-    { key: 'foudre', emoji: String.fromCodePoint(0x26A1), label: 'Foudre', matchers: ['foudre'] },
-    { key: 'lumiere', emoji: String.fromCodePoint(0x1F31F), label: 'Lumiere', matchers: ['lumiere'] },
-    { key: 'tenebres', emoji: String.fromCodePoint(0x1F319), label: 'Tenebres', matchers: ['tenebres'] }
-];
-
-const SCROLL_TYPE_MAP = new Map(SCROLL_TYPES.map((type) => [type.key, type]));
 
 function resolveCurrentUser() {
     console.log('[HDV] resolveCurrentUser - location:', window.location.href);
@@ -260,12 +238,6 @@ function resolveCharacterName(relation) {
     if (Array.isArray(relation)) return relation[0]?.name || null;
     if (typeof relation === 'object') return relation.name || null;
     return null;
-}
-
-function getScrollTypeLabel(key) {
-    const info = SCROLL_TYPE_MAP.get(key);
-    if (!info) return null;
-    return `${info.emoji} ${info.label}`;
 }
 
 function resolveListingItem(listing) {
