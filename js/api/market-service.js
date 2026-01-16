@@ -125,7 +125,7 @@ export async function searchListings(filters = {}, sort = 'price_asc', page = 1,
     };
 }
 
-export async function createListing({ itemId, item, quantity, unitPrice }) {
+export async function createListing({ itemId, item, quantity, unitPrice, scrollType }) {
     const { user, character } = requireCharacter();
     const supabase = await getSupabaseClient();
 
@@ -140,6 +140,7 @@ export async function createListing({ itemId, item, quantity, unitPrice }) {
         item_id: String(itemId),
         quantity: safeQuantity,
         unit_price: safeUnitPrice,
+        scroll_type: scrollType || null,
         ...meta
     };
 

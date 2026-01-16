@@ -278,6 +278,7 @@ CREATE TABLE IF NOT EXISTS market (
     item_category TEXT,
     item_level INTEGER NOT NULL DEFAULT 0,
     item_rarity TEXT NOT NULL DEFAULT 'Inconnue',
+    scroll_type TEXT,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     unit_price BIGINT NOT NULL CHECK (unit_price >= 0),
     total_price BIGINT GENERATED ALWAYS AS ((quantity::bigint) * unit_price) STORED,
