@@ -964,6 +964,13 @@ function populateScrollTypeSelect(entry, selectedKey = '') {
         dom.mine.scrollTypeSelect.appendChild(opt);
     }
 
+    const totalOptions = availableTypes.length + 1;
+    if (availableTypes.length > 6) {
+        dom.mine.scrollTypeSelect.size = Math.min(10, totalOptions);
+    } else {
+        dom.mine.scrollTypeSelect.size = 1;
+    }
+
     if (selectedKey) {
         dom.mine.scrollTypeSelect.value = selectedKey;
     }
