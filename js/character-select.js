@@ -16,7 +16,7 @@ const dom = {
     status: document.getElementById('characterSelectStatus'),
     userName: document.getElementById('currentUserName'),
     userRole: document.getElementById('currentUserRole'),
-    logoutBtn: document.getElementById('logoutButton'),
+    logoutBtns: Array.from(document.querySelectorAll('#logoutButton')),
     backdrop: document.getElementById('createCharacterBackdrop'),
     form: document.getElementById('createCharacterForm'),
     error: document.getElementById('createCharacterError'),
@@ -234,10 +234,12 @@ if (dom.grid) {
     });
 }
 
-if (dom.logoutBtn) {
-    dom.logoutBtn.addEventListener('click', () => {
-        logout();
-        window.location.href = 'login.html';
+if (dom.logoutBtns.length) {
+    dom.logoutBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            logout();
+            window.location.href = 'login.html';
+        });
     });
 }
 

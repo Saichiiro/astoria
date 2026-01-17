@@ -193,12 +193,12 @@
     if (toggle) toggle.checked = false;
   });
 
-  const logoutBtn = document.getElementById("logoutButton");
-  const loginBtn = document.getElementById("loginButton");
+  const logoutBtns = Array.from(document.querySelectorAll("#logoutButton"));
+  const loginBtns = Array.from(document.querySelectorAll("#loginButton"));
   const adminShortcut = document.getElementById("adminShortcut");
 
   const setAuthButtons = async () => {
-    if (!logoutBtn || !loginBtn) return;
+    if (!logoutBtns.length || !loginBtns.length) return;
 
     try {
       const auth = await import(resolveModuleUrl("./auth.js"));
@@ -208,30 +208,36 @@
       const isAdmin = typeof auth.isAdmin === "function" ? auth.isAdmin() : false;
 
       if (isLoggedIn) {
-        logoutBtn.hidden = false;
-        loginBtn.hidden = true;
+        logoutBtns.forEach((btn) => (btn.hidden = false));
+        loginBtns.forEach((btn) => (btn.hidden = true));
         if (adminShortcut) adminShortcut.hidden = !isAdmin;
-        logoutBtn.addEventListener("click", () => {
-          if (typeof auth.logout === "function") {
-            auth.logout();
-          }
-          window.location.href = "login.html";
+        logoutBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            if (typeof auth.logout === "function") {
+              auth.logout();
+            }
+            window.location.href = "login.html";
+          });
         });
       } else {
-        logoutBtn.hidden = true;
-        loginBtn.hidden = false;
+        logoutBtns.forEach((btn) => (btn.hidden = true));
+        loginBtns.forEach((btn) => (btn.hidden = false));
         if (adminShortcut) adminShortcut.hidden = true;
-        loginBtn.addEventListener("click", () => {
-          window.location.href = "login.html";
+        loginBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            window.location.href = "login.html";
+          });
         });
       }
     } catch (error) {
       console.warn("Sidebar auth load failed:", error);
-      logoutBtn.hidden = true;
-      loginBtn.hidden = false;
+      logoutBtns.forEach((btn) => (btn.hidden = true));
+      loginBtns.forEach((btn) => (btn.hidden = false));
       if (adminShortcut) adminShortcut.hidden = true;
-      loginBtn.addEventListener("click", () => {
-        window.location.href = "login.html";
+      loginBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          window.location.href = "login.html";
+        });
       });
     }
   };
