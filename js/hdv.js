@@ -108,7 +108,9 @@ const SCROLL_TYPES = [
     { key: 'cryo', label: 'Cryo', emoji: String.fromCodePoint(0x1F9CA), matchers: ['cryo'] },
     { key: 'vent', label: 'Vent', emoji: String.fromCodePoint(0x1F32C), matchers: ['vent'] },
     { key: 'terre', label: 'Terre', emoji: String.fromCodePoint(0x1FAA8), matchers: ['terre'] },
+    { key: 'roche', label: 'Roche', emoji: String.fromCodePoint(0x1FAA8), matchers: ['roche'] },
     { key: 'nature', label: 'Nature', emoji: String.fromCodePoint(0x1F331), matchers: ['nature'] },
+    { key: 'osmose', label: 'Osmose', emoji: String.fromCodePoint(0x1F9EC), matchers: ['osmose'] },
     { key: 'foudre', label: 'Foudre', emoji: String.fromCodePoint(0x26A1), matchers: ['foudre'] },
     { key: 'lumiere', label: 'Lumiere', emoji: String.fromCodePoint(0x1F31F), matchers: ['lumiere'] },
     { key: 'tenebres', label: 'Tenebres', emoji: String.fromCodePoint(0x1F319), matchers: ['tenebres'] }
@@ -993,12 +995,7 @@ function populateScrollTypeSelect(entry, selectedKey = '') {
         dom.mine.scrollTypeSelect.appendChild(opt);
     }
 
-    const totalOptions = availableKeys.length + 1;
-    if (availableKeys.length > 6) {
-        dom.mine.scrollTypeSelect.size = Math.min(10, totalOptions);
-    } else {
-        dom.mine.scrollTypeSelect.size = 1;
-    }
+    dom.mine.scrollTypeSelect.size = 1;
 
     if (selectedKey) {
         dom.mine.scrollTypeSelect.value = selectedKey;
