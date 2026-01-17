@@ -803,6 +803,7 @@
 
             return {
                 version: 1,
+                migrated: true,
                 itemCount: inventoryItems.filter((item) => !item?.isCurrency).length,
                 totalQty,
                 scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
@@ -881,6 +882,7 @@
 
             const character = authApi.getActiveCharacter?.();
             const payload = character?.profile_data?.inventory;
+            const hasMigrated = payload?.migrated === true;
 
             if (payload && payload.scrollTypes && typeof payload.scrollTypes === 'object') {
                 scrollTypeStore = payload.scrollTypes;
@@ -901,11 +903,19 @@
                         return;
                     }
 
-                    loadFromLocalStorage();
-                    if (inventoryItems.length > 0) {
-                        console.log('Migrating local inventory to character_inventory...');
-                        await saveInventoryToBackend();
-                        return;
+                    if (!hasMigrated) {
+                        loadFromLocalStorage();
+                        if (inventoryItems.length > 0) {
+                            console.log('Migrating local inventory to character_inventory...');
+                            await saveInventoryToBackend();
+                            return;
+                        }
+                    } else {
+                        try {
+                            localStorage.removeItem('astoriaInventory');
+                        } catch {
+                            // ignore cleanup failures
+                        }
                     }
 
                     hydrateInventoryFromRows([]);
