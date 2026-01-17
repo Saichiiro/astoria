@@ -410,6 +410,45 @@
             })
             : null;
 
+        const INVENTORY_SYNC_KEY = 'astoria_inventory_sync';
+
+        function broadcastInventorySync(reason = 'update') {
+            try {
+                const character = authApi?.getActiveCharacter?.();
+                if (!character?.id) return;
+                const payload = {
+                    characterId: String(character.id),
+                    reason,
+                    ts: Date.now()
+                };
+                localStorage.setItem(INVENTORY_SYNC_KEY, JSON.stringify(payload));
+            } catch (error) {
+                console.warn('Inventory sync broadcast failed:', error);
+            }
+        }
+
+        async function handleInventorySync(payload) {
+            if (!payload) return;
+            if (inventoryStorageMode !== 'character' || !authApi) return;
+            const character = authApi.getActiveCharacter?.();
+            if (!character?.id) return;
+            if (String(payload.characterId) !== String(character.id)) return;
+
+            await loadInventory();
+            syncCurrencyItem();
+            renderInventory();
+        }
+
+        window.addEventListener('storage', (event) => {
+            if (event.key !== INVENTORY_SYNC_KEY || !event.newValue) return;
+            try {
+                const payload = JSON.parse(event.newValue);
+                void handleInventorySync(payload);
+            } catch {
+                // ignore invalid payloads
+            }
+        });
+
         // =================================================================
         // INITIALIZATION
         // =================================================================
@@ -870,14 +909,19 @@
             if (!character || !character.id) return;
 
             const rows = buildInventoryRows(character.id);
+            let saved = false;
 
             try {
                 await inventoryApi.replaceInventoryRows?.(character.id, rows);
+                saved = true;
             } catch (error) {
                 console.warn('Inventory save error (character_inventory):', error);
             }
 
             await saveInventoryToCharacterProfile();
+            if (saved) {
+                broadcastInventorySync('save');
+            }
         }
 
         function persistInventory() {

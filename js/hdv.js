@@ -80,6 +80,22 @@ const state = {
     inventory: []
 };
 
+const INVENTORY_SYNC_KEY = 'astoria_inventory_sync';
+
+function broadcastInventorySync(reason = 'update') {
+    try {
+        if (!state.character?.id) return;
+        const payload = {
+            characterId: String(state.character.id),
+            reason,
+            ts: Date.now()
+        };
+        localStorage.setItem(INVENTORY_SYNC_KEY, JSON.stringify(payload));
+    } catch (error) {
+        console.warn('[HDV] Inventory sync broadcast failed:', error);
+    }
+}
+
 const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -282,20 +298,32 @@ function resolveSourceIndex(item) {
     return idx >= 0 ? idx : null;
 }
 
+function resolveItemIndexByName(name) {
+    const key = normalizeText(name);
+    if (!key) return null;
+    const idx = state.items.findIndex((entry) => entry && normalizeText(entry.name) === key);
+    return idx >= 0 ? idx : null;
+}
 
 function mapInventoryRows(rows) {
     const items = [];
     if (!Array.isArray(rows)) return items;
 
     for (const row of rows) {
-        const idx = Number(row?.item_index ?? row?.item_key);
+        let idx = Number(row?.item_index);
+        if (!Number.isFinite(idx) || idx < 0) {
+            idx = resolveItemIndexByName(row?.item_key);
+        }
         const qty = Math.floor(Number(row?.qty) || 0);
-        if (!Number.isFinite(idx) || idx < 0 || qty <= 0) continue;
-        const item = state.items[idx] || { name: row?.item_key || String(idx) };
+        if (qty <= 0) continue;
+        const item = Number.isFinite(idx) && idx >= 0
+            ? state.items[idx]
+            : (row?.item_key ? { name: row?.item_key } : null);
+        if (!item) continue;
         items.push({
             ...item,
-            sourceIndex: idx,
-            itemKey: row?.item_key ? String(row.item_key) : String(idx),
+            sourceIndex: Number.isFinite(idx) && idx >= 0 ? idx : null,
+            itemKey: row?.item_key ? String(row.item_key) : String(item?.name || idx),
             quantity: qty
         });
     }
@@ -340,10 +368,21 @@ async function applyInventoryDelta(itemId, delta) {
     const nextQty = currentQty + delta;
     if (nextQty < 0) return false;
 
-    const itemKey = entry?.itemKey ? String(entry.itemKey) : String(sourceIndex);
+    const canonicalKey = baseItem?.name ? String(baseItem.name) : String(itemId || '');
+    const existingKey = entry?.itemKey ? String(entry.itemKey) : null;
+    const itemKey = canonicalKey || existingKey || String(sourceIndex);
 
     try {
-        await setInventoryItem(state.character.id, itemKey, sourceIndex, nextQty);
+        if (existingKey && canonicalKey && existingKey !== canonicalKey) {
+            if (nextQty > 0) {
+                await setInventoryItem(state.character.id, existingKey, sourceIndex, 0);
+                await setInventoryItem(state.character.id, canonicalKey, sourceIndex, nextQty);
+            } else {
+                await setInventoryItem(state.character.id, existingKey, sourceIndex, 0);
+            }
+        } else {
+            await setInventoryItem(state.character.id, itemKey, sourceIndex, nextQty);
+        }
     } catch (error) {
         console.error('Inventory update error:', error);
         return false;
@@ -353,6 +392,9 @@ async function applyInventoryDelta(itemId, delta) {
         state.inventory = state.inventory.filter((item) => item !== entry);
     } else if (entry) {
         entry.quantity = nextQty;
+        if (canonicalKey && existingKey && canonicalKey !== existingKey) {
+            entry.itemKey = canonicalKey;
+        }
     } else {
         state.inventory.push({
             ...baseItem,
@@ -362,6 +404,7 @@ async function applyInventoryDelta(itemId, delta) {
         });
     }
 
+    broadcastInventorySync('delta');
     return true;
 }
 
@@ -1320,6 +1363,20 @@ async function init() {
 window.addEventListener('storage', (event) => {
     if (event.key === 'astoria_session' || event.key === 'astoria_active_character') {
         void refreshProfile();
+    }
+    if (event.key === INVENTORY_SYNC_KEY && event.newValue) {
+        try {
+            const payload = JSON.parse(event.newValue);
+            const characterId = String(payload?.characterId || '');
+            if (state.character?.id && characterId === String(state.character.id)) {
+                void refreshInventory().then(() => {
+                    populateSellSelect();
+                    syncSellPriceFromSelection();
+                });
+            }
+        } catch {
+            // ignore invalid payloads
+        }
     }
 });
 
