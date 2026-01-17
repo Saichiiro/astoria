@@ -1256,6 +1256,7 @@
         if (scrollPanelList) {
             scrollPanelList.addEventListener('click', (event) => {
                 const addButton = event.target.closest('.scroll-type-add');
+                const removeButton = event.target.closest('.scroll-type-remove');
                 const qtyButton = event.target.closest('.scroll-type-qty-btn');
                 const item = event.target.closest('.scroll-type-item');
                 if (!item) return;
@@ -1263,6 +1264,12 @@
                 if (addButton) {
                     const qtyInput = item.querySelector('.scroll-type-qty-input');
                     addScrollTypeCount(typeKey, qtyInput?.value);
+                    if (qtyInput) qtyInput.value = 1;
+                    return;
+                }
+                if (removeButton) {
+                    const qtyInput = item.querySelector('.scroll-type-qty-input');
+                    removeScrollTypeCount(typeKey, qtyInput?.value);
                     if (qtyInput) qtyInput.value = 1;
                     return;
                 }
@@ -1705,6 +1712,7 @@
                             <input type="number" min="1" value="1" class="scroll-type-qty-input">
                             <button type="button" class="scroll-type-qty-btn" data-action="plus">+</button>
                             <button type="button" class="scroll-type-add">Ajouter</button>
+                            <button type="button" class="scroll-type-remove">Retirer</button>
                         </div>
                         ` : ''}
                     </div>
@@ -1762,6 +1770,39 @@
             persistInventory();
             renderInventory();
             showItemDetail(currentScrollItem);
+        }
+
+        function removeScrollTypeCount(typeKey, qty) {
+            if (!currentScrollItem || !scrollPanelCategory) return;
+            const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
+            if (safeQty < 1) return;
+            const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+            const current = Number(counts[typeKey]) || 0;
+            const next = Math.max(0, current - safeQty);
+            counts[typeKey] = next;
+            const total = sumScrollCounts(counts);
+
+            if (total <= 0) {
+                clearScrollCountsForItem(currentScrollItem);
+                currentScrollItem.quantity = 0;
+                const index = inventoryItems.findIndex((entry) => entry?.id === currentScrollItem?.id);
+                if (index >= 0) {
+                    inventoryItems.splice(index, 1);
+                    if (selectedItemIndex === currentScrollItem?.id) {
+                        selectedItemIndex = null;
+                        showDetailPlaceholder();
+                    }
+                }
+            } else {
+                saveScrollCounts(scrollPanelCategory, currentScrollItem, counts);
+                currentScrollItem.quantity = total;
+            }
+
+            persistInventory();
+            renderInventory();
+            if (selectedItemIndex === currentScrollItem?.id && total > 0) {
+                showItemDetail(currentScrollItem);
+            }
         }
 
         function updateScrollPanelForItem(item) {

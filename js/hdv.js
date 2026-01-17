@@ -121,6 +121,43 @@ function isScrollItem(item) {
     return name.includes('parchemin') || name.includes('scroll');
 }
 
+function getScrollCategory(item) {
+    if (!item || !item.name) return null;
+    const name = normalizeText(item.name);
+    if (!name.includes('parchemin') && !name.includes('scroll')) return null;
+    if (name.includes('eveil') || name.includes('eveille') || (name.includes('veil') && name.includes('parchemin'))) {
+        return 'eveil';
+    }
+    if (name.includes('ascension')) return 'ascension';
+    return null;
+}
+
+function getScrollTypeCounts(entry) {
+    const store =
+        state.character?.profile_data?.inventory?.scrollTypes ||
+        state.profile?.character?.profile_data?.inventory?.scrollTypes ||
+        state.profile?.inventory?.scrollTypes ||
+        null;
+    if (!store || typeof store !== 'object') return null;
+    const category = getScrollCategory(entry);
+    if (!category || !store[category]) return null;
+    const bucket = store[category];
+    const keys = [];
+    const sourceIndex = Number(entry?.sourceIndex);
+    if (Number.isFinite(sourceIndex) && sourceIndex >= 0) {
+        keys.push(`idx:${sourceIndex}`);
+    }
+    if (entry?.name) {
+        keys.push(`name:${normalizeText(entry.name)}`);
+    }
+    for (const key of keys) {
+        if (bucket[key]?.counts) {
+            return bucket[key].counts;
+        }
+    }
+    return null;
+}
+
 function getScrollTypeLabel(typeKey) {
     const entry = SCROLL_TYPE_MAP.get(typeKey);
     if (!entry) return '';
@@ -892,7 +929,7 @@ function populateSellSelect() {
     }
 }
 
-function populateScrollTypeSelect(selectedKey = '') {
+function populateScrollTypeSelect(entry, selectedKey = '') {
     if (!dom.mine.scrollTypeSelect) return;
     dom.mine.scrollTypeSelect.innerHTML = '';
     const placeholder = document.createElement('option');
@@ -900,7 +937,12 @@ function populateScrollTypeSelect(selectedKey = '') {
     placeholder.textContent = 'Choisir un type';
     dom.mine.scrollTypeSelect.appendChild(placeholder);
 
-    for (const type of SCROLL_TYPES) {
+    const counts = entry ? getScrollTypeCounts(entry) : null;
+    const availableTypes = counts
+        ? SCROLL_TYPES.filter((type) => (Number(counts[type.key]) || 0) > 0)
+        : SCROLL_TYPES;
+
+    for (const type of availableTypes) {
         const opt = document.createElement('option');
         opt.value = type.key;
         opt.innerHTML = `${type.emoji} ${type.label}`;
@@ -930,7 +972,7 @@ function syncSellPriceFromSelection() {
     const scrollField = dom.mine.scrollTypeField;
     if (scrollField && isScrollItem(item)) {
         scrollField.hidden = false;
-        populateScrollTypeSelect(dom.mine.scrollTypeSelect?.value || '');
+        populateScrollTypeSelect(entry || item, dom.mine.scrollTypeSelect?.value || '');
     } else if (scrollField) {
         scrollField.hidden = true;
         if (dom.mine.scrollTypeSelect) dom.mine.scrollTypeSelect.value = '';
