@@ -572,6 +572,58 @@
             return { item: null, index: -1 };
         }
 
+        async function reconcileInventoryRows(characterId, rows) {
+            if (!characterId || !inventoryApi?.setInventoryItem || !Array.isArray(rows)) return rows;
+
+            const canonicalByName = new Map();
+            rows.forEach((row) => {
+                const key = normalizeItemName(row?.item_key);
+                if (!key) return;
+                if (!canonicalByName.has(key)) canonicalByName.set(key, row);
+            });
+
+            const updates = [];
+            const nextRows = [];
+
+            rows.forEach((row) => {
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+                const canonicalKey = resolved?.item?.name ? String(resolved.item.name) : '';
+                const canonicalNorm = normalizeItemName(canonicalKey);
+                const rowNorm = normalizeItemName(row?.item_key);
+
+                if (!canonicalKey || !canonicalNorm || !rowNorm || canonicalNorm === rowNorm) {
+                    nextRows.push(row);
+                    return;
+                }
+
+                const canonicalRow = canonicalByName.get(canonicalNorm);
+                if (canonicalRow) {
+                    // Canonical row already exists, drop the legacy key row.
+                    updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+                    return;
+                }
+
+                // Migrate legacy key to canonical name.
+                updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+                updates.push(inventoryApi.setInventoryItem(characterId, canonicalKey, resolved.index, row?.qty));
+                nextRows.push({
+                    ...row,
+                    item_key: canonicalKey,
+                    item_index: Number.isFinite(resolved.index) && resolved.index >= 0 ? resolved.index : row?.item_index
+                });
+            });
+
+            if (updates.length) {
+                try {
+                    await Promise.allSettled(updates);
+                } catch (error) {
+                    console.warn('Inventory reconcile failed:', error);
+                }
+            }
+
+            return nextRows;
+        }
+
         function mapDbItem(row) {
             const images = safeJson(row.images);
             const primary = images.primary || images.url || row.image || row.image_url || '';
@@ -840,7 +892,8 @@
                 const rows = await inventoryApi.getInventoryRows?.(character?.id);
                 if (Array.isArray(rows)) {
                     if (rows.length > 0) {
-                        const missingRows = hydrateInventoryFromRows(rows) || [];
+                        const normalizedRows = await reconcileInventoryRows(character?.id, rows);
+                        const missingRows = hydrateInventoryFromRows(normalizedRows) || [];
                         console.log(`Loaded ${inventoryItems.length} items from character_inventory`);
                         if (missingRows.length) {
                             await cleanupMissingInventoryRows(character?.id, missingRows);
