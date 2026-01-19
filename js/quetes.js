@@ -1,0 +1,727 @@
+import { getActiveCharacter, getCurrentUser, isAdmin, refreshSessionUser } from "./auth.js";
+import { initCharacterSummary } from "./ui/character-summary.js";
+
+const QUEST_TYPES = ["Expedition", "Chasse", "Assistance", "Investigation"];
+const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
+const STATUS_META = {
+    available: { label: "Disponible", color: "#6aa7ff" },
+    in_progress: { label: "En cours", color: "#ff9c4a" },
+    locked: { label: "Acces restreint", color: "#ff6b6b" }
+};
+
+const state = {
+    quests: [],
+    history: [],
+    filters: {
+        search: "",
+        type: "all",
+        rank: "all",
+        historyType: "all"
+    },
+    page: 0,
+    perPage: 3,
+    activeQuestId: null,
+    activeImageIndex: 0,
+    isAdmin: false,
+    participant: null,
+    editor: {
+        questId: null,
+        images: [],
+        rewards: []
+    }
+};
+
+const dom = {
+    typeFilter: document.getElementById("questTypeFilter"),
+    rankFilter: document.getElementById("questRankFilter"),
+    searchInput: document.getElementById("questSearchInput"),
+    searchBtn: document.getElementById("questSearchBtn"),
+    prevBtn: document.getElementById("questPrevBtn"),
+    nextBtn: document.getElementById("questNextBtn"),
+    track: document.getElementById("questTrack"),
+    addBtn: document.getElementById("questAddBtn"),
+    historyFilters: document.getElementById("questHistoryFilters"),
+    historyMeta: document.getElementById("questHistoryMeta"),
+    historyBody: document.getElementById("questHistoryBody"),
+    detailModal: document.getElementById("questDetailModal"),
+    detailTitle: document.getElementById("questDetailTitle"),
+    detailType: document.getElementById("questDetailType"),
+    detailRank: document.getElementById("questDetailRank"),
+    detailStatus: document.getElementById("questDetailStatus"),
+    detailLocations: document.getElementById("questDetailLocations"),
+    detailRewards: document.getElementById("questDetailRewards"),
+    detailDescription: document.getElementById("questDetailDescription"),
+    detailParticipants: document.getElementById("questDetailParticipants"),
+    detailParticipantsCount: document.getElementById("questDetailParticipantsCount"),
+    detailNote: document.getElementById("questDetailNote"),
+    detailPrev: document.getElementById("questDetailPrev"),
+    detailNext: document.getElementById("questDetailNext"),
+    mediaImage: document.getElementById("questMediaImage"),
+    mediaDots: document.getElementById("questMediaDots"),
+    mediaPrev: document.getElementById("questMediaPrev"),
+    mediaNext: document.getElementById("questMediaNext"),
+    joinBtn: document.getElementById("questJoinBtn"),
+    editBtn: document.getElementById("questEditBtn"),
+    validateBtn: document.getElementById("questValidateBtn"),
+    editorModal: document.getElementById("questEditorModal"),
+    editorTitle: document.getElementById("questEditorTitle"),
+    editorForm: document.getElementById("questEditorForm"),
+    nameInput: document.getElementById("questNameInput"),
+    typeInput: document.getElementById("questTypeInput"),
+    rankInput: document.getElementById("questRankInput"),
+    statusInput: document.getElementById("questStatusInput"),
+    descInput: document.getElementById("questDescriptionInput"),
+    maxParticipantsInput: document.getElementById("questMaxParticipantsInput"),
+    repeatableInput: document.getElementById("questRepeatableInput"),
+    locationsInput: document.getElementById("questLocationsInput"),
+    imageUrlInput: document.getElementById("questImageUrlInput"),
+    imageFileInput: document.getElementById("questImageFileInput"),
+    addImageBtn: document.getElementById("questAddImageBtn"),
+    imagesList: document.getElementById("questImagesList"),
+    rewardNameInput: document.getElementById("questRewardNameInput"),
+    rewardQtyInput: document.getElementById("questRewardQtyInput"),
+    addRewardBtn: document.getElementById("questAddRewardBtn"),
+    rewardsList: document.getElementById("questRewardsList")
+};
+
+function normalize(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function buildParticipant(label, id) {
+    const safeLabel = String(label || "Invite");
+    const key = id ? `id:${id}` : `name:${normalize(safeLabel)}`;
+    return { key, label: safeLabel };
+}
+
+function resolveParticipant() {
+    const character = getActiveCharacter?.();
+    if (character && character.id) {
+        return buildParticipant(character.name || "Personnage", character.id);
+    }
+    if (character && character.name) {
+        return buildParticipant(character.name);
+    }
+    const user = getCurrentUser?.();
+    if (user && user.username) {
+        return buildParticipant(user.username);
+    }
+    return null;
+}
+
+function getStatusMeta(status) {
+    return STATUS_META[status] || STATUS_META.available;
+}
+
+function seedData() {
+    state.quests = [
+        {
+            id: "quest-1",
+            name: "Sauvetage",
+            type: "Expedition",
+            rank: "F",
+            status: "available",
+            repeatable: false,
+            description: "Retrouver les eclaireurs perdus dans les falaises d'Aethra.",
+            locations: ["Falaises d'Aethra", "Refuge du Vent"],
+            rewards: [{ name: "Potion de vitalite", qty: 2 }, { name: "Kaels", qty: 120 }],
+            images: [
+                "assets/images/objets/Fiole_de_vitalite.jpg",
+                "assets/images/objets/Cape_de_lAube_Vermeille_on.jpg"
+            ],
+            participants: [buildParticipant("Seraphina"), buildParticipant("Eden")],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-2",
+            name: "Oeil de Matera",
+            type: "Investigation",
+            rank: "C",
+            status: "in_progress",
+            repeatable: true,
+            description: "Examiner les vestiges luminescents et retrouver l'origine des murmures.",
+            locations: ["Sanctuaire Matera", "Crypte amethyste"],
+            rewards: [{ name: "Eclat lumineux", qty: 1 }, { name: "Kaels", qty: 220 }],
+            images: [
+                "assets/images/objets/Larme_de_Matera.png",
+                "assets/images/objets/Book_of_Aeris.png"
+            ],
+            participants: [buildParticipant("Lyra")],
+            maxParticipants: 4,
+            completedBy: []
+        },
+        {
+            id: "quest-3",
+            name: "Chasse au Colosse",
+            type: "Chasse",
+            rank: "D",
+            status: "locked",
+            repeatable: false,
+            description: "Le colosse de pierre s'est eveille. Rassembler une equipe experimentee.",
+            locations: ["Gorge de Vexarion"],
+            rewards: [{ name: "Eclat de roche", qty: 3 }, { name: "Kaels", qty: 180 }],
+            images: ["assets/images/objets/Armure_de_Vexarion.png"],
+            participants: [],
+            maxParticipants: 3,
+            completedBy: []
+        },
+        {
+            id: "quest-4",
+            name: "Refuge des Brumes",
+            type: "Assistance",
+            rank: "E",
+            status: "available",
+            repeatable: false,
+            description: "Secourir les voyageurs bloques dans la foret embrumee.",
+            locations: ["Foret des Brumes"],
+            rewards: [{ name: "Fruit Papooru", qty: 5 }],
+            images: ["assets/images/objets/Fruit_Papooru.jpg"],
+            participants: [buildParticipant("Mira")],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-5",
+            name: "Echo d'Aeris",
+            type: "Expedition",
+            rank: "B",
+            status: "available",
+            repeatable: true,
+            description: "Explorer les ruines suspendues et collecter les fragments mystiques.",
+            locations: ["Ruines d'Aeris"],
+            rewards: [{ name: "Livre d'Aeris", qty: 1 }, { name: "Kaels", qty: 420 }],
+            images: ["assets/images/objets/Book_of_Aeris.png"],
+            participants: [],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-6",
+            name: "Ruines d'Onyx",
+            type: "Investigation",
+            rank: "S",
+            status: "in_progress",
+            repeatable: false,
+            description: "Plonger dans les galeries d'Onyx pour retrouver les glyphes perdus.",
+            locations: ["Canyon d'Onyx", "Laboratoire abandonne"],
+            rewards: [{ name: "Cloche de Resonance", qty: 1 }, { name: "Kaels", qty: 620 }],
+            images: ["assets/images/objets/Cloche_de_Resonnance.png"],
+            participants: [buildParticipant("Orion"), buildParticipant("Naelis")],
+            maxParticipants: 4,
+            completedBy: [buildParticipant("Orion").key]
+        }
+    ];
+
+    state.history = [
+        {
+            id: "history-1",
+            date: "14/01/2026 17:54",
+            type: "Expedition",
+            rank: "F",
+            name: "Sauvetage",
+            gains: "Potion de vitalite x2"
+        },
+        {
+            id: "history-2",
+            date: "09/01/2026 10:35",
+            type: "Assistance",
+            rank: "F",
+            name: "Refuge des Brumes",
+            gains: "Fruit Papooru x3"
+        }
+    ];
+}
+
+function fillFilters() {
+    QUEST_TYPES.forEach((type) => {
+        const option = document.createElement("option");
+        option.value = type;
+        option.textContent = type;
+        dom.typeFilter.appendChild(option);
+    });
+
+    QUEST_RANKS.forEach((rank) => {
+        const option = document.createElement("option");
+        option.value = rank;
+        option.textContent = rank;
+        dom.rankFilter.appendChild(option);
+    });
+
+    QUEST_TYPES.forEach((type, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `quest-history-filter${index === 0 ? " active" : ""}`;
+        btn.textContent = type;
+        btn.dataset.value = type;
+        dom.historyFilters.appendChild(btn);
+    });
+
+    const allBtn = document.createElement("button");
+    allBtn.type = "button";
+    allBtn.className = "quest-history-filter active";
+    allBtn.textContent = "Toutes";
+    allBtn.dataset.value = "all";
+    dom.historyFilters.prepend(allBtn);
+}
+
+function getFilteredQuests() {
+    const search = normalize(state.filters.search);
+    return state.quests.filter((quest) => {
+        if (state.filters.type !== "all" && quest.type !== state.filters.type) return false;
+        if (state.filters.rank !== "all" && quest.rank !== state.filters.rank) return false;
+        if (!search) return true;
+        return normalize(quest.name).includes(search);
+    });
+}
+
+function setPage(nextPage, total) {
+    const maxPage = Math.max(0, Math.ceil(total / state.perPage) - 1);
+    state.page = Math.min(Math.max(0, nextPage), maxPage);
+}
+
+function renderQuestList() {
+    const filtered = getFilteredQuests();
+    setPage(state.page, filtered.length);
+    const start = state.page * state.perPage;
+    const slice = filtered.slice(start, start + state.perPage);
+
+    dom.track.innerHTML = "";
+    slice.forEach((quest, index) => {
+        const meta = getStatusMeta(quest.status);
+        const card = document.createElement("article");
+        card.className = "quest-card";
+        card.style.setProperty("--status-color", meta.color);
+        card.style.setProperty("--delay", `${index * 120}ms`);
+        card.innerHTML = `
+            <div class="quest-card-content">
+                <div class="quest-card-header">
+                    <h3 class="quest-card-title">${escapeHtml(quest.name)}</h3>
+                    <span class="quest-rank-badge">${escapeHtml(quest.rank)}</span>
+                </div>
+                <div class="quest-card-media">
+                    <img src="${escapeHtml(quest.images[0])}" alt="Illustration ${escapeHtml(quest.name)}">
+                </div>
+                <div class="quest-card-meta">
+                    <span class="quest-type-pill">${escapeHtml(quest.type)}</span>
+                    <span class="quest-status-pill">${escapeHtml(meta.label)}</span>
+                </div>
+                <div class="quest-card-actions">
+                    <button class="quest-details-btn" type="button" data-id="${escapeHtml(quest.id)}">Details</button>
+                </div>
+            </div>
+        `;
+        dom.track.appendChild(card);
+    });
+
+    dom.track.querySelectorAll(".quest-details-btn").forEach((btn) => {
+        btn.addEventListener("click", () => openDetail(btn.dataset.id));
+    });
+}
+
+function renderHistory() {
+    const filtered = state.filters.historyType === "all"
+        ? state.history
+        : state.history.filter((item) => item.type === state.filters.historyType);
+
+    dom.historyMeta.textContent = `${filtered.length} quete${filtered.length > 1 ? "s" : ""} executee${filtered.length > 1 ? "s" : ""}`;
+
+    dom.historyBody.innerHTML = filtered.map((entry) => `
+        <tr>
+            <td>${escapeHtml(entry.date)}</td>
+            <td>${escapeHtml(entry.type)}</td>
+            <td>${escapeHtml(entry.rank)}</td>
+            <td>${escapeHtml(entry.name)}</td>
+            <td>${escapeHtml(entry.gains)}</td>
+        </tr>
+    `).join("");
+}
+
+function updateHistoryFilterButtons() {
+    dom.historyFilters.querySelectorAll(".quest-history-filter").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.value === state.filters.historyType);
+    });
+}
+
+function openDetail(questId) {
+    const quest = state.quests.find((item) => item.id === questId);
+    if (!quest) return;
+    state.activeQuestId = questId;
+    state.activeImageIndex = 0;
+    renderDetail(quest);
+    dom.detailModal.classList.add("open");
+    dom.detailModal.setAttribute("aria-hidden", "false");
+}
+
+function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+}
+
+function renderDetail(quest) {
+    const meta = getStatusMeta(quest.status);
+    dom.detailTitle.textContent = quest.name;
+    dom.detailType.textContent = quest.type;
+    dom.detailRank.textContent = quest.rank;
+    dom.detailStatus.textContent = meta.label;
+    dom.detailStatus.style.color = meta.color;
+    dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
+
+    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${escapeHtml(loc)}</li>`).join("");
+    dom.detailRewards.innerHTML = quest.rewards.map((reward) => `<li>${escapeHtml(reward.name)} x${reward.qty}</li>`).join("");
+    dom.detailDescription.textContent = quest.description;
+
+    renderParticipants(quest);
+    renderMedia(quest);
+    renderJoinButton(quest);
+}
+
+function renderParticipants(quest) {
+    dom.detailParticipantsCount.textContent = `(${quest.participants.length}/${quest.maxParticipants})`;
+    if (!quest.participants.length) {
+        dom.detailParticipants.innerHTML = "<li>Aucun participant</li>";
+    } else {
+        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${escapeHtml(participant.label)}</li>`).join("");
+    }
+
+    const note = buildJoinNote(quest);
+    dom.detailNote.textContent = note || "";
+}
+
+function renderMedia(quest) {
+    const images = quest.images || [];
+    if (!images.length) {
+        dom.mediaImage.removeAttribute("src");
+        dom.mediaDots.innerHTML = "";
+        return;
+    }
+    const index = Math.max(0, Math.min(state.activeImageIndex, images.length - 1));
+    state.activeImageIndex = index;
+    dom.mediaImage.src = images[index];
+    dom.mediaDots.innerHTML = images.map((_, idx) => {
+        const active = idx === index ? "active" : "";
+        return `<span class="quest-media-dot ${active}"></span>`;
+    }).join("");
+}
+
+function buildJoinNote(quest) {
+    const participant = state.participant;
+    if (!participant) {
+        return "Selectionnez un personnage pour participer.";
+    }
+    if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
+        return "Quete deja realisee (non repetitive).";
+    }
+    if (quest.status === "locked") {
+        return "Acces restreint par le staff.";
+    }
+    if (!isParticipant(quest) && quest.participants.length >= quest.maxParticipants) {
+        return "Places compltes.";
+    }
+    return "";
+}
+
+function isParticipant(quest) {
+    if (!state.participant) return false;
+    return quest.participants.some((entry) => entry.key === state.participant.key);
+}
+
+function renderJoinButton(quest) {
+    const already = isParticipant(quest);
+    const note = buildJoinNote(quest);
+    const canJoin = !note || already;
+
+    dom.joinBtn.textContent = already ? "Annuler" : "Participer";
+    dom.joinBtn.disabled = !canJoin;
+}
+
+function toggleParticipation() {
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    if (!quest || !state.participant) return;
+    const already = isParticipant(quest);
+
+    if (!already) {
+        const note = buildJoinNote(quest);
+        if (note) return;
+        quest.participants.push(state.participant);
+    } else {
+        quest.participants = quest.participants.filter((entry) => entry.key !== state.participant.key);
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+}
+
+function validateQuest() {
+    if (!state.isAdmin) return;
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    if (!quest) return;
+
+    const date = new Date().toLocaleString("fr-FR");
+    const gains = quest.rewards.map((reward) => `${reward.name} x${reward.qty}`).join(", ");
+
+    state.history.unshift({
+        id: `history-${Date.now()}`,
+        date,
+        type: quest.type,
+        rank: quest.rank,
+        name: quest.name,
+        gains: gains || "Aucun gain"
+    });
+
+    quest.participants.forEach((participant) => {
+        if (!quest.completedBy.includes(participant.key)) {
+            quest.completedBy.push(participant.key);
+        }
+    });
+    quest.participants = [];
+
+    renderDetail(quest);
+    renderQuestList();
+    renderHistory();
+}
+
+function navigateDetail(delta) {
+    const filtered = getFilteredQuests();
+    if (!filtered.length) return;
+    const currentIndex = filtered.findIndex((quest) => quest.id === state.activeQuestId);
+    const nextIndex = (currentIndex + delta + filtered.length) % filtered.length;
+    openDetail(filtered[nextIndex].id);
+}
+
+function openEditor(quest) {
+    state.editor.questId = quest ? quest.id : null;
+    state.editor.images = quest ? [...quest.images] : [];
+    state.editor.rewards = quest ? quest.rewards.map((reward) => ({ ...reward })) : [];
+    dom.editorTitle.textContent = quest ? "Modifier la quete" : "Creation de quete";
+
+    dom.nameInput.value = quest ? quest.name : "";
+    dom.typeInput.value = quest ? quest.type : QUEST_TYPES[0];
+    dom.rankInput.value = quest ? quest.rank : QUEST_RANKS[0];
+    dom.statusInput.value = quest ? quest.status : "available";
+    dom.descInput.value = quest ? quest.description : "";
+    dom.maxParticipantsInput.value = quest ? quest.maxParticipants : 5;
+    dom.repeatableInput.checked = quest ? quest.repeatable : false;
+    dom.locationsInput.value = quest ? quest.locations.join(", ") : "";
+
+    renderEditorLists();
+    dom.editorModal.classList.add("open");
+    dom.editorModal.setAttribute("aria-hidden", "false");
+}
+
+function renderEditorLists() {
+    dom.imagesList.innerHTML = state.editor.images.map((src, idx) => `
+        <div class="quest-editor-item">
+            <span>${escapeHtml(src)}</span>
+            <button type="button" data-remove-image="${idx}">Retirer</button>
+        </div>
+    `).join("");
+
+    dom.rewardsList.innerHTML = state.editor.rewards.map((reward, idx) => `
+        <div class="quest-editor-item">
+            <span>${escapeHtml(reward.name)} x${reward.qty}</span>
+            <button type="button" data-remove-reward="${idx}">Retirer</button>
+        </div>
+    `).join("");
+}
+
+function handleEditorSubmit(event) {
+    event.preventDefault();
+    const name = dom.nameInput.value.trim();
+    if (!name) return;
+
+    const locations = dom.locationsInput.value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+
+    const questData = {
+        id: state.editor.questId || `quest-${Date.now()}`,
+        name,
+        type: dom.typeInput.value,
+        rank: dom.rankInput.value,
+        status: dom.statusInput.value,
+        repeatable: dom.repeatableInput.checked,
+        description: dom.descInput.value.trim() || "Description a definir.",
+        locations,
+        rewards: state.editor.rewards.length ? state.editor.rewards : [{ name: "Kaels", qty: 50 }],
+        images: state.editor.images.length ? state.editor.images : ["assets/images/objets/Clef_Manndorf.png"],
+        participants: [],
+        maxParticipants: Math.min(5, Math.max(1, Number(dom.maxParticipantsInput.value) || 1)),
+        completedBy: []
+    };
+
+    if (state.editor.questId) {
+        const idx = state.quests.findIndex((quest) => quest.id === state.editor.questId);
+        if (idx >= 0) state.quests[idx] = { ...state.quests[idx], ...questData };
+    } else {
+        state.quests.unshift(questData);
+    }
+
+    renderQuestList();
+    closeModal(dom.editorModal);
+}
+
+function handleAddImage() {
+    const url = dom.imageUrlInput.value.trim();
+    if (!url) return;
+    state.editor.images.push(url);
+    dom.imageUrlInput.value = "";
+    renderEditorLists();
+}
+
+function handleImageFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+        const src = String(reader.result || "");
+        if (src) {
+            state.editor.images.push(src);
+            renderEditorLists();
+        }
+    };
+    reader.readAsDataURL(file);
+    dom.imageFileInput.value = "";
+}
+
+function handleAddReward() {
+    const name = dom.rewardNameInput.value.trim();
+    const qty = Math.max(1, Number(dom.rewardQtyInput.value) || 1);
+    if (!name) return;
+    state.editor.rewards.push({ name, qty });
+    dom.rewardNameInput.value = "";
+    dom.rewardQtyInput.value = "1";
+    renderEditorLists();
+}
+
+function bindEditorListEvents() {
+    dom.imagesList.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-remove-image]");
+        if (!btn) return;
+        const idx = Number(btn.dataset.removeImage);
+        state.editor.images.splice(idx, 1);
+        renderEditorLists();
+    });
+
+    dom.rewardsList.addEventListener("click", (event) => {
+        const btn = event.target.closest("[data-remove-reward]");
+        if (!btn) return;
+        const idx = Number(btn.dataset.removeReward);
+        state.editor.rewards.splice(idx, 1);
+        renderEditorLists();
+    });
+}
+
+function syncAdminUI() {
+    document.querySelectorAll("[data-admin-only]").forEach((el) => {
+        if (state.isAdmin) {
+            el.removeAttribute("hidden");
+        } else {
+            el.setAttribute("hidden", "true");
+        }
+    });
+}
+
+function bindEvents() {
+    dom.searchBtn.addEventListener("click", () => {
+        state.filters.search = dom.searchInput.value;
+        renderQuestList();
+    });
+    dom.searchInput.addEventListener("input", () => {
+        state.filters.search = dom.searchInput.value;
+        renderQuestList();
+    });
+    dom.typeFilter.addEventListener("change", () => {
+        state.filters.type = dom.typeFilter.value;
+        state.page = 0;
+        renderQuestList();
+    });
+    dom.rankFilter.addEventListener("change", () => {
+        state.filters.rank = dom.rankFilter.value;
+        state.page = 0;
+        renderQuestList();
+    });
+    dom.prevBtn.addEventListener("click", () => {
+        state.page -= 1;
+        renderQuestList();
+    });
+    dom.nextBtn.addEventListener("click", () => {
+        state.page += 1;
+        renderQuestList();
+    });
+    dom.detailPrev.addEventListener("click", () => navigateDetail(-1));
+    dom.detailNext.addEventListener("click", () => navigateDetail(1));
+    dom.mediaPrev.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (!quest) return;
+        state.activeImageIndex -= 1;
+        if (state.activeImageIndex < 0) state.activeImageIndex = quest.images.length - 1;
+        renderMedia(quest);
+    });
+    dom.mediaNext.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (!quest) return;
+        state.activeImageIndex += 1;
+        if (state.activeImageIndex >= quest.images.length) state.activeImageIndex = 0;
+        renderMedia(quest);
+    });
+    dom.joinBtn.addEventListener("click", toggleParticipation);
+    dom.editBtn.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (quest) openEditor(quest);
+    });
+    dom.validateBtn.addEventListener("click", validateQuest);
+    dom.addBtn.addEventListener("click", () => openEditor(null));
+
+    dom.detailModal.addEventListener("click", (event) => {
+        if (event.target.dataset.close === "true") {
+            closeModal(dom.detailModal);
+        }
+    });
+    dom.editorModal.addEventListener("click", (event) => {
+        if (event.target.dataset.close === "true") {
+            closeModal(dom.editorModal);
+        }
+    });
+
+    dom.historyFilters.addEventListener("click", (event) => {
+        const btn = event.target.closest(".quest-history-filter");
+        if (!btn) return;
+        state.filters.historyType = btn.dataset.value;
+        updateHistoryFilterButtons();
+        renderHistory();
+    });
+
+    dom.editorForm.addEventListener("submit", handleEditorSubmit);
+    dom.addImageBtn.addEventListener("click", handleAddImage);
+    dom.imageFileInput.addEventListener("change", handleImageFile);
+    dom.addRewardBtn.addEventListener("click", handleAddReward);
+    bindEditorListEvents();
+}
+
+async function init() {
+    await refreshSessionUser?.();
+    await initCharacterSummary({ enableDropdown: true, showKaels: true });
+    state.isAdmin = Boolean(isAdmin?.());
+    state.participant = resolveParticipant();
+
+    seedData();
+    fillFilters();
+    syncAdminUI();
+    bindEvents();
+    renderQuestList();
+    renderHistory();
+}
+
+init();

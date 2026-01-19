@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau des quetes - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Yeseva+One&display=swap">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/quetes.css">
+</head>
+<body class="quest-board">
+    <main class="quest-page">
+        <header class="quest-header">
+            <a class="quest-back" href="profil.html" title="Retour au profil">&#8592; Retour</a>
+            <div class="quest-title-wrap">
+                <span class="quest-title-kicker">Astoria</span>
+                <h1 class="quest-title">Tableau des quetes</h1>
+            </div>
+            <div class="quest-header-right">
+                <div class="character-summary" aria-label="Resume du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Selectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="quest-add-btn" id="questAddBtn" type="button" data-admin-only>+ Ajouter</button>
+            </div>
+        </header>
+
+        <section class="quest-search" aria-label="Recherche de quetes">
+            <div class="quest-search-panel">
+                <div class="quest-search-title">Recherche</div>
+                <div class="quest-search-controls">
+                    <label class="quest-filter">
+                        <span class="quest-filter-label">Type</span>
+                        <select id="questTypeFilter" class="quest-filter-select">
+                            <option value="all">Toutes categories</option>
+                        </select>
+                    </label>
+                    <label class="quest-filter">
+                        <span class="quest-filter-label">Rang</span>
+                        <select id="questRankFilter" class="quest-filter-select">
+                            <option value="all">Tous les rangs</option>
+                        </select>
+                    </label>
+                    <div class="quest-search-input">
+                        <input id="questSearchInput" type="search" placeholder="Rechercher une quete..." aria-label="Rechercher une quete">
+                        <button class="quest-search-btn" id="questSearchBtn" type="button" aria-label="Rechercher">&#128269;</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="quest-carousel" aria-label="Liste des quetes">
+            <button class="quest-arrow quest-arrow--left" id="questPrevBtn" type="button" aria-label="Quetes precedentes">&#10094;</button>
+            <div class="quest-track" id="questTrack" aria-live="polite"></div>
+            <button class="quest-arrow quest-arrow--right" id="questNextBtn" type="button" aria-label="Quetes suivantes">&#10095;</button>
+        </section>
+
+        <section class="quest-history" aria-label="Historique des quetes">
+            <div class="quest-history-header">
+                <h2>Historique</h2>
+                <div class="quest-history-subtitle">Les quetes validees apparaissent ici.</div>
+            </div>
+            <div class="quest-history-body">
+                <aside class="quest-history-filters" aria-label="Categories">
+                    <div class="quest-history-filters-title">Categories</div>
+                    <div class="quest-history-filter-list" id="questHistoryFilters"></div>
+                </aside>
+                <div class="quest-history-table">
+                    <div class="quest-history-meta" id="questHistoryMeta">0 quete executee</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Rang</th>
+                                <th>Nom</th>
+                                <th>Gains</th>
+                            </tr>
+                        </thead>
+                        <tbody id="questHistoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="quest-modal" id="questDetailModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
+        <div class="quest-modal-card" role="dialog" aria-modal="true" aria-labelledby="questDetailTitle">
+            <button class="quest-modal-close" type="button" data-close="true" aria-label="Fermer">&times;</button>
+            <div class="quest-modal-nav">
+                <button class="quest-modal-arrow" id="questDetailPrev" type="button" aria-label="Quete precedente">&#10094;</button>
+                <button class="quest-modal-arrow" id="questDetailNext" type="button" aria-label="Quete suivante">&#10095;</button>
+            </div>
+            <div class="quest-modal-header">
+                <div>
+                    <div class="quest-modal-type" id="questDetailType"></div>
+                    <h3 class="quest-modal-title" id="questDetailTitle">Quete</h3>
+                </div>
+                <div class="quest-modal-badges">
+                    <span class="quest-rank-badge" id="questDetailRank">F</span>
+                    <span class="quest-status-badge" id="questDetailStatus">Disponible</span>
+                </div>
+            </div>
+            <div class="quest-modal-content">
+                <div class="quest-modal-media">
+                    <div class="quest-media-frame">
+                        <button class="quest-media-arrow" id="questMediaPrev" type="button" aria-label="Image precedente">&#10094;</button>
+                        <img id="questMediaImage" alt="Illustration de quete">
+                        <button class="quest-media-arrow" id="questMediaNext" type="button" aria-label="Image suivante">&#10095;</button>
+                    </div>
+                    <div class="quest-media-dots" id="questMediaDots"></div>
+                </div>
+                <div class="quest-modal-info">
+                    <div class="quest-info-block">
+                        <h4>Lieu(x)</h4>
+                        <ul id="questDetailLocations"></ul>
+                    </div>
+                    <div class="quest-info-block">
+                        <h4>Recompenses</h4>
+                        <ul id="questDetailRewards"></ul>
+                    </div>
+                    <div class="quest-info-block">
+                        <h4>Description</h4>
+                        <p id="questDetailDescription"></p>
+                    </div>
+                </div>
+                <div class="quest-modal-participants">
+                    <div class="quest-participants-header">
+                        <h4>Participants</h4>
+                        <span id="questDetailParticipantsCount">(0/0)</span>
+                    </div>
+                    <ul id="questDetailParticipants"></ul>
+                    <div class="quest-participants-note" id="questDetailNote"></div>
+                </div>
+            </div>
+            <div class="quest-modal-actions">
+                <button class="quest-action-btn" id="questJoinBtn" type="button">Participer</button>
+                <button class="quest-action-btn quest-action-btn--ghost" id="questEditBtn" type="button" data-admin-only>Modifier</button>
+                <button class="quest-action-btn quest-action-btn--warn" id="questValidateBtn" type="button" data-admin-only>Valider participation</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="quest-modal quest-modal--editor" id="questEditorModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
+        <div class="quest-modal-card quest-editor-card" role="dialog" aria-modal="true" aria-labelledby="questEditorTitle">
+            <button class="quest-modal-close" type="button" data-close="true" aria-label="Fermer">&times;</button>
+            <h3 class="quest-modal-title" id="questEditorTitle">Creation de quete</h3>
+            <form id="questEditorForm" class="quest-editor-form">
+                <div class="quest-editor-grid">
+                    <label class="quest-editor-field">
+                        <span>Nom de quete</span>
+                        <input id="questNameInput" type="text" required>
+                    </label>
+                    <label class="quest-editor-field">
+                        <span>Type de quete</span>
+                        <select id="questTypeInput" required></select>
+                    </label>
+                    <label class="quest-editor-field">
+                        <span>Rang de difficulte</span>
+                        <select id="questRankInput" required></select>
+                    </label>
+                    <label class="quest-editor-field">
+                        <span>Acces</span>
+                        <select id="questStatusInput">
+                            <option value="available">Disponible</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="locked">Acces restreint</option>
+                        </select>
+                    </label>
+                    <label class="quest-editor-field quest-editor-field--wide">
+                        <span>Description</span>
+                        <textarea id="questDescriptionInput" rows="4"></textarea>
+                    </label>
+                    <label class="quest-editor-field">
+                        <span>Participation (1-5)</span>
+                        <input id="questMaxParticipantsInput" type="number" min="1" max="5" value="5">
+                    </label>
+                    <label class="quest-editor-field quest-editor-field--inline">
+                        <span>Repetition</span>
+                        <input id="questRepeatableInput" type="checkbox">
+                    </label>
+                    <label class="quest-editor-field quest-editor-field--wide">
+                        <span>Lieu(x) (separes par des virgules)</span>
+                        <input id="questLocationsInput" type="text" placeholder="Foret d'Aeris, Ruines de Nox">
+                    </label>
+                </div>
+                <div class="quest-editor-split">
+                    <div class="quest-editor-block">
+                        <h4>Images</h4>
+                        <div class="quest-editor-row">
+                            <input id="questImageUrlInput" type="url" placeholder="URL de l'image">
+                            <button id="questAddImageBtn" type="button">Ajouter</button>
+                        </div>
+                        <input id="questImageFileInput" type="file" accept="image/*">
+                        <div class="quest-editor-list" id="questImagesList"></div>
+                    </div>
+                    <div class="quest-editor-block">
+                        <h4>Recompenses</h4>
+                        <div class="quest-editor-row">
+                            <input id="questRewardNameInput" type="text" placeholder="Objet">
+                            <input id="questRewardQtyInput" type="number" min="1" value="1">
+                            <button id="questAddRewardBtn" type="button">Ajouter</button>
+                        </div>
+                        <div class="quest-editor-list" id="questRewardsList"></div>
+                        <div class="quest-editor-hint">Relier a l'inventaire au moment de l'integration.</div>
+                    </div>
+                </div>
+                <div class="quest-editor-actions">
+                    <button class="quest-action-btn quest-action-btn--ghost" type="button" data-close="true">Annuler</button>
+                    <button class="quest-action-btn" type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="js/quetes.js"></script>
+</body>
+</html>
