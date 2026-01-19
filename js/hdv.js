@@ -334,6 +334,17 @@ async function applyScrollTypeRestock(entry, typeKey, quantity) {
     return false;
 }
 
+function resolveRestockEntry(itemId, item) {
+    const inventoryEntry = getInventoryEntry(itemId);
+    if (inventoryEntry) return inventoryEntry;
+    const baseItem = item || getItemById(itemId) || { name: itemId };
+    const sourceIndex = resolveSourceIndex(baseItem);
+    if (Number.isFinite(sourceIndex)) {
+        return { ...baseItem, sourceIndex };
+    }
+    return baseItem;
+}
+
 function getScrollTypeLabel(typeKey) {
     const entry = getScrollTypeMeta(typeKey);
     if (!entry) {
@@ -990,8 +1001,9 @@ function renderListings(listings) {
                     await buyListing(listing.id);
                     await refreshProfile();
                     const inventoryUpdated = await applyInventoryDelta(listing.item_id, listing.quantity);
-                    const scrollUpdated = listing.scroll_type && isScrollItem(item)
-                        ? await applyScrollTypeRestock(item, listing.scroll_type, listing.quantity)
+                    const restockEntry = resolveRestockEntry(listing.item_id, item);
+                    const scrollUpdated = listing.scroll_type && isScrollItem(restockEntry)
+                        ? await applyScrollTypeRestock(restockEntry, listing.scroll_type, listing.quantity)
                         : true;
                     populateSellSelect();
                     await refreshSearch();
@@ -1256,8 +1268,9 @@ function renderMyListings(listings) {
                 try {
                     await cancelListing(listing.id);
                     const inventoryUpdated = await applyInventoryDelta(listing.item_id, listing.quantity);
-                    const scrollUpdated = listing.scroll_type && isScrollItem(item)
-                        ? await applyScrollTypeRestock(item, listing.scroll_type, listing.quantity)
+                    const restockEntry = resolveRestockEntry(listing.item_id, item);
+                    const scrollUpdated = listing.scroll_type && isScrollItem(restockEntry)
+                        ? await applyScrollTypeRestock(restockEntry, listing.scroll_type, listing.quantity)
                         : true;
                     populateSellSelect();
                     await refreshMine();

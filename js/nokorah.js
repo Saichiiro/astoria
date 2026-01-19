@@ -266,18 +266,6 @@ function flattenSkills(categories) {
 }
 
 async function loadSkills() {
-    try {
-        const response = await fetch("data/skills.sample.json", { cache: "no-store" });
-        if (response.ok) {
-            const payload = await response.json();
-            if (Array.isArray(payload.skills)) {
-                return payload.skills;
-            }
-        }
-    } catch {
-        // ignore
-    }
-
     if (Array.isArray(window.skillsCategories)) {
         return flattenSkills(window.skillsCategories);
     }
