@@ -1,7 +1,7 @@
 import { getActiveCharacter, getCurrentUser, isAdmin, refreshSessionUser } from "./auth.js";
 import { initCharacterSummary } from "./ui/character-summary.js";
 
-const QUEST_TYPES = ["Expedition", "Chasse", "Assistance", "Investigation"];
+const QUEST_TYPES = ["Expédition", "Chasse", "Assistance", "Investigation"];
 const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
 const STATUS_META = {
     available: { label: "Disponible", color: "#6aa7ff" },
@@ -79,6 +79,7 @@ const dom = {
     typeInput: document.getElementById("questTypeInput"),
     rankInput: document.getElementById("questRankInput"),
     statusInput: document.getElementById("questStatusInput"),
+    statusDots: Array.from(document.querySelectorAll(".quest-editor-status-dot")),
     descInput: document.getElementById("questDescriptionInput"),
     maxParticipantsInput: document.getElementById("questMaxParticipantsInput"),
     repeatableInput: document.getElementById("questRepeatableInput"),
@@ -90,7 +91,8 @@ const dom = {
     rewardNameInput: document.getElementById("questRewardNameInput"),
     rewardQtyInput: document.getElementById("questRewardQtyInput"),
     addRewardBtn: document.getElementById("questAddRewardBtn"),
-    rewardsList: document.getElementById("questRewardsList")
+    rewardsList: document.getElementById("questRewardsList"),
+    imagePreview: document.querySelector(".quest-editor-image-preview")
 };
 
 function normalize(value) {
@@ -131,12 +133,19 @@ function getStatusMeta(status) {
     return STATUS_META[status] || STATUS_META.available;
 }
 
+function syncStatusDots(value) {
+    if (!dom.statusDots.length) return;
+    dom.statusDots.forEach((dot) => {
+        dot.classList.toggle("is-active", dot.dataset.status === value);
+    });
+}
+
 function seedData() {
     state.quests = [
         {
             id: "quest-1",
             name: "Sauvetage",
-            type: "Expedition",
+            type: "Expédition",
             rank: "F",
             status: "available",
             repeatable: false,
@@ -202,7 +211,7 @@ function seedData() {
         {
             id: "quest-5",
             name: "Echo d'Aeris",
-            type: "Expedition",
+            type: "Expédition",
             rank: "B",
             status: "available",
             repeatable: true,
@@ -235,7 +244,7 @@ function seedData() {
         {
             id: "history-1",
             date: "14/01/2026 17:54",
-            type: "Expedition",
+            type: "Expédition",
             rank: "F",
             name: "Sauvetage",
             gains: "Potion de vitalite x2"
@@ -339,7 +348,8 @@ function renderHistory() {
         ? state.history
         : state.history.filter((item) => item.type === state.filters.historyType);
 
-    dom.historyMeta.textContent = `${filtered.length} quete${filtered.length > 1 ? "s" : ""} executee${filtered.length > 1 ? "s" : ""}`;
+    const plural = filtered.length !== 1;
+    dom.historyMeta.textContent = `${filtered.length} Quête${plural ? "s" : ""} exécutée${plural ? "s" : ""}`;
 
     dom.historyBody.innerHTML = filtered.map((entry) => `
         <tr>
@@ -427,13 +437,13 @@ function buildJoinNote(quest) {
         return "Selectionnez un personnage pour participer.";
     }
     if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
-        return "Quete deja realisee (non repetitive).";
+        return "Quête déjà réalisée (non répétitive).";
     }
     if (quest.status === "locked") {
         return "Acces restreint par le staff.";
     }
     if (!isParticipant(quest) && quest.participants.length >= quest.maxParticipants) {
-        return "Places compltes.";
+        return "Places complètes.";
     }
     return "";
 }
@@ -471,7 +481,10 @@ function toggleParticipation() {
 
 function validateQuest() {
     if (!state.isAdmin) return;
-    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    const questId = dom.editorModal.classList.contains("open") && state.editor.questId
+        ? state.editor.questId
+        : state.activeQuestId;
+    const quest = state.quests.find((item) => item.id === questId);
     if (!quest) return;
 
     const date = new Date().toLocaleString("fr-FR");
@@ -493,7 +506,9 @@ function validateQuest() {
     });
     quest.participants = [];
 
-    renderDetail(quest);
+    if (state.activeQuestId === quest.id) {
+        renderDetail(quest);
+    }
     renderQuestList();
     renderHistory();
 }
@@ -552,7 +567,7 @@ function getCarouselViewportWidth() {
     return Math.max(0, root.clientWidth - leftWidth - rightWidth - gap * gapCount);
 }
 
-function scrollCarousel(direction) {
+function scrollCarousel(direction, stepOverride) {
     const snaps = state.carousel.snaps || [];
     if (!snaps.length) return;
     let closestIndex = 0;
@@ -564,7 +579,8 @@ function scrollCarousel(direction) {
             closestIndex = idx;
         }
     });
-    const nextIndex = Math.max(0, Math.min(snaps.length - 1, closestIndex + direction));
+    const step = stepOverride || 1;
+    const nextIndex = Math.max(0, Math.min(snaps.length - 1, closestIndex + direction * step));
     applyCarouselPosition(snaps[nextIndex], true);
 }
 
@@ -613,6 +629,13 @@ function isEditableTarget(target) {
     if (target.isContentEditable) return true;
     const tag = target.tagName ? target.tagName.toLowerCase() : "";
     return tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function isCarouselFocused() {
+    const active = document.activeElement;
+    if (!active) return false;
+    if (active === dom.track) return true;
+    return dom.track.contains(active) || active === dom.prevBtn || active === dom.nextBtn;
 }
 
 function applyCarouselPosition(nextX, animate = false) {
@@ -784,7 +807,7 @@ function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
     state.editor.rewards = quest ? quest.rewards.map((reward) => ({ ...reward })) : [];
-    dom.editorTitle.textContent = quest ? "Modifier la quete" : "Creation de quete";
+    dom.editorTitle.textContent = quest ? "Modifier la quête" : "Création de Quêtes";
 
     dom.nameInput.value = quest ? quest.name : "";
     dom.typeInput.value = quest ? quest.type : QUEST_TYPES[0];
@@ -794,6 +817,10 @@ function openEditor(quest) {
     dom.maxParticipantsInput.value = quest ? quest.maxParticipants : 5;
     dom.repeatableInput.checked = quest ? quest.repeatable : false;
     dom.locationsInput.value = quest ? quest.locations.join(", ") : "";
+    syncStatusDots(dom.statusInput.value);
+    if (dom.validateBtn) {
+        dom.validateBtn.disabled = !quest;
+    }
 
     renderEditorLists();
     dom.editorModal.classList.add("open");
@@ -814,6 +841,19 @@ function renderEditorLists() {
             <button type="button" data-remove-reward="${idx}">Retirer</button>
         </div>
     `).join("");
+
+    if (dom.imagePreview) {
+        const previewSrc = state.editor.images[0];
+        if (previewSrc) {
+            dom.imagePreview.style.backgroundImage = `url(${previewSrc})`;
+            dom.imagePreview.classList.add("has-image");
+            dom.imagePreview.textContent = "";
+        } else {
+            dom.imagePreview.style.backgroundImage = "none";
+            dom.imagePreview.classList.remove("has-image");
+            dom.imagePreview.textContent = "Image";
+        }
+    }
 }
 
 function handleEditorSubmit(event) {
@@ -855,10 +895,15 @@ function handleEditorSubmit(event) {
 
 function handleAddImage() {
     const url = dom.imageUrlInput.value.trim();
-    if (!url) return;
-    state.editor.images.push(url);
-    dom.imageUrlInput.value = "";
-    renderEditorLists();
+    if (url) {
+        state.editor.images.push(url);
+        dom.imageUrlInput.value = "";
+        renderEditorLists();
+        return;
+    }
+    if (dom.imageFileInput) {
+        dom.imageFileInput.click();
+    }
 }
 
 function handleImageFile(event) {
@@ -942,21 +987,34 @@ function bindEvents() {
         state.filters.rank = dom.rankFilter.value;
         renderQuestList();
     });
+    dom.statusInput.addEventListener("change", () => {
+        syncStatusDots(dom.statusInput.value);
+    });
+    dom.statusDots.forEach((dot) => {
+        dot.addEventListener("click", () => {
+            const status = dot.dataset.status;
+            if (!status) return;
+            dom.statusInput.value = status;
+            syncStatusDots(status);
+        });
+    });
     dom.prevBtn.addEventListener("click", () => {
-        scrollCarousel(-1);
+        scrollCarousel(-1, getVisibleCount());
     });
     dom.nextBtn.addEventListener("click", () => {
-        scrollCarousel(1);
+        scrollCarousel(1, getVisibleCount());
     });
     window.addEventListener("keydown", (event) => {
         if (event.defaultPrevented) return;
         if (isEditableTarget(event.target)) return;
+        if (dom.detailModal.classList.contains("open")) return;
+        if (!isCarouselFocused()) return;
         if (event.key === "ArrowLeft") {
             event.preventDefault();
-            scrollCarousel(-1);
+            scrollCarousel(-1, getVisibleCount());
         } else if (event.key === "ArrowRight") {
             event.preventDefault();
-            scrollCarousel(1);
+            scrollCarousel(1, getVisibleCount());
         }
     });
     dom.detailPrev.addEventListener("click", () => navigateDetail(-1));
@@ -1026,3 +1084,5 @@ async function init() {
 }
 
 init();
+
+
