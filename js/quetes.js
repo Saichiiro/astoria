@@ -32,8 +32,11 @@ const state = {
 const dom = {
     typeFilter: document.getElementById("questTypeFilter"),
     rankFilter: document.getElementById("questRankFilter"),
+    searchRoot: document.getElementById("questSearch"),
     searchInput: document.getElementById("questSearchInput"),
-    searchBtn: document.getElementById("questSearchBtn"),
+    searchToggle: document.getElementById("questSearchToggle"),
+    searchClear: document.getElementById("questSearchClear"),
+    searchHistory: document.getElementById("questSearchHistory"),
     prevBtn: document.getElementById("questPrevBtn"),
     nextBtn: document.getElementById("questNextBtn"),
     track: document.getElementById("questTrack"),
@@ -828,14 +831,25 @@ function syncAdminUI() {
 }
 
 function bindEvents() {
-    dom.searchBtn.addEventListener("click", () => {
-        state.filters.search = dom.searchInput.value;
-        renderQuestList();
-    });
-    dom.searchInput.addEventListener("input", () => {
-        state.filters.search = dom.searchInput.value;
-        renderQuestList();
-    });
+    if (dom.searchRoot && dom.searchInput && window.astoriaSearchBar) {
+        window.astoriaSearchBar.bind({
+            root: dom.searchRoot,
+            input: dom.searchInput,
+            toggle: dom.searchToggle,
+            clearButton: dom.searchClear,
+            dropdown: dom.searchHistory,
+            debounceWait: 200,
+            onSearch: (value) => {
+                state.filters.search = String(value || "");
+                renderQuestList();
+            }
+        });
+    } else {
+        dom.searchInput.addEventListener("input", () => {
+            state.filters.search = dom.searchInput.value;
+            renderQuestList();
+        });
+    }
     dom.typeFilter.addEventListener("change", () => {
         state.filters.type = dom.typeFilter.value;
         renderQuestList();

@@ -133,7 +133,7 @@ body.quest-board::after {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    align-items: center;
+    align-items: flex-end;
 }
 
 .quest-filter {
@@ -159,35 +159,10 @@ body.quest-board::after {
     min-width: 180px;
 }
 
-.quest-search-input {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #fff;
-    border: 2px solid rgba(255, 106, 162, 0.45);
-    flex: 1;
-    min-width: 220px;
-}
-
-.quest-search-input input {
-    border: none;
-    outline: none;
-    flex: 1;
-    font-weight: 600;
-    background: transparent;
-}
-
-.quest-search-btn {
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--quest-pink);
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 8px 16px rgba(255, 106, 162, 0.35);
+.quest-search-controls .inventory-search {
+    flex: 1 1 260px;
+    max-width: 480px;
+    align-self: flex-end;
 }
 
 .quest-carousel {
@@ -215,12 +190,13 @@ body.quest-board::after {
     gap: 24px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
-    scroll-padding: 6px;
+    scroll-padding-inline: 12px;
     padding: 6px 6px 14px;
     scrollbar-width: none;
     -ms-overflow-style: none;
     cursor: grab;
     touch-action: pan-y;
+    user-select: none;
 }
 
 .quest-track::-webkit-scrollbar {
@@ -243,7 +219,7 @@ body.quest-board::after {
     animation: questCardIn 0.6s ease both;
     animation-delay: var(--delay, 0ms);
     flex: 0 0 calc((100% - 48px) / 3);
-    scroll-snap-align: start;
+    scroll-snap-align: center;
 }
 
 .quest-card::before {

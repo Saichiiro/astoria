@@ -54,9 +54,13 @@
                             <option value="all">Tous les rangs</option>
                         </select>
                     </label>
-                    <div class="quest-search-input">
-                        <input id="questSearchInput" type="search" placeholder="Rechercher une quete..." aria-label="Rechercher une quete">
-                        <button class="quest-search-btn" id="questSearchBtn" type="button" aria-label="Rechercher">&#128269;</button>
+                    <div class="inventory-search" id="questSearch">
+                        <button type="button" class="inventory-search-toggle" id="questSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                            <span class="inventory-search-icon">&#128269;</span>
+                        </button>
+                        <input id="questSearchInput" type="search" class="inventory-search-input" placeholder="Rechercher une quete..." aria-label="Rechercher une quete">
+                        <button type="button" class="inventory-search-clear" id="questSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                        <div class="recent-searches-dropdown inventory-search-history" id="questSearchHistory"></div>
                     </div>
                 </div>
             </div>
@@ -228,6 +232,8 @@
         </div>
     </div>
 
+    <script src="js/ui/searchbar.js"></script>
     <script type="module" src="js/quetes.js"></script>
+    <script src="js/sidebar.js"></script>
 </body>
 </html>

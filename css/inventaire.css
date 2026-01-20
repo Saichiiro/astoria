@@ -600,7 +600,7 @@
     min-height: 0;
     position: relative;
     z-index: 1;
-    max-height: 260px;
+    max-height: calc(5 * 54px + 4 * var(--space-3));
 }
 
 .scroll-type-item {
