@@ -160,9 +160,14 @@ body.quest-board::after {
 }
 
 .quest-search-controls .inventory-search {
-    flex: 1 1 260px;
+    flex: 0 0 auto;
     max-width: 480px;
     align-self: flex-end;
+}
+
+.quest-search-controls .inventory-search.is-open,
+.quest-search-controls .inventory-search:focus-within {
+    flex: 1 1 260px;
 }
 
 .quest-carousel {
@@ -281,6 +286,8 @@ body.quest-board::after {
     height: 100%;
     object-fit: cover;
     transition: transform 0.2s ease;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .quest-card-meta {

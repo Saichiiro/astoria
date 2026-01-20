@@ -302,7 +302,7 @@ function renderQuestList() {
                     <span class="quest-rank-badge">${escapeHtml(quest.rank)}</span>
                 </div>
                 <div class="quest-card-media">
-                    <img src="${escapeHtml(quest.images[0])}" alt="Illustration ${escapeHtml(quest.name)}">
+                    <img src="${escapeHtml(quest.images[0])}" alt="Illustration ${escapeHtml(quest.name)}" draggable="false">
                 </div>
                 <div class="quest-card-meta">
                     <span class="quest-type-pill">${escapeHtml(quest.type)}</span>
@@ -404,6 +404,7 @@ function renderMedia(quest) {
     const index = Math.max(0, Math.min(state.activeImageIndex, images.length - 1));
     state.activeImageIndex = index;
     dom.mediaImage.src = images[index];
+    dom.mediaImage.setAttribute("draggable", "false");
     dom.mediaDots.innerHTML = images.map((_, idx) => {
         const active = idx === index ? "active" : "";
         return `<span class="quest-media-dot ${active}"></span>`;
@@ -586,6 +587,7 @@ function bindCarouselDrag() {
     };
 
     dom.track.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button, a, input, select, textarea")) return;
         if (event.button !== 0) return;
         isDragging = true;
         moved = false;
@@ -653,6 +655,7 @@ function bindMediaDrag() {
     let velocity = 0;
 
     dom.mediaFrame.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button")) return;
         if (event.button !== 0) return;
         isDragging = true;
         startX = event.clientX;
