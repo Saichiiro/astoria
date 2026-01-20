@@ -262,6 +262,25 @@ function seedData() {
 }
 
 function fillFilters() {
+    const populateSelect = (select, options, placeholder) => {
+        if (!select) return;
+        select.innerHTML = "";
+        if (placeholder) {
+            const placeholderOption = document.createElement("option");
+            placeholderOption.value = "";
+            placeholderOption.textContent = placeholder;
+            placeholderOption.disabled = true;
+            placeholderOption.selected = true;
+            select.appendChild(placeholderOption);
+        }
+        options.forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+        });
+    };
+
     QUEST_TYPES.forEach((type) => {
         const option = document.createElement("option");
         option.value = type;
@@ -275,6 +294,9 @@ function fillFilters() {
         option.textContent = rank;
         dom.rankFilter.appendChild(option);
     });
+
+    populateSelect(dom.typeInput, QUEST_TYPES, "Sélectionner (déroulant)");
+    populateSelect(dom.rankInput, QUEST_RANKS, "Sélectionner (déroulant)");
 
     QUEST_TYPES.forEach((type, index) => {
         const btn = document.createElement("button");
