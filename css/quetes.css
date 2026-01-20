@@ -10,41 +10,22 @@ body.quest-board {
     --quest-font-body: "Quicksand", "Trebuchet MS", sans-serif;
     font-family: var(--quest-font-body);
     min-height: 100vh;
-    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7), transparent 55%),
-        radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.55), transparent 45%),
-        linear-gradient(135deg, #f7d8ff 0%, #d9d0ff 45%, #fbd6f4 100%);
+    background-color: #fff;
+    background-image: url("../assets/images/general_background.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--quest-ink);
     overflow-x: hidden;
     position: relative;
 }
 
-body.quest-board::before,
-body.quest-board::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        radial-gradient(circle, rgba(255, 255, 255, 0.8) 0 2px, transparent 3px),
-        radial-gradient(circle, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2.5px);
-    background-size: 160px 160px, 220px 220px;
-    background-position: 20px 40px, 90px 80px;
-    opacity: 0.5;
-    animation: questSparkle 10s linear infinite;
-}
-
-body.quest-board::after {
-    background-image:
-        radial-gradient(circle, rgba(255, 255, 255, 0.4) 0 2px, transparent 3px),
-        radial-gradient(circle, rgba(255, 255, 255, 0.35) 0 1px, transparent 2px);
-    background-size: 240px 240px, 300px 300px;
-    opacity: 0.35;
-}
 
 .quest-page {
-    max-width: 1240px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 40px 24px 80px;
+    padding: 32px 24px 72px;
     position: relative;
     z-index: 1;
 }
@@ -177,7 +158,7 @@ body.quest-board::after {
     background: rgba(255, 191, 228, 0.5);
     border-radius: 22px;
     border: 2px dotted rgba(255, 106, 162, 0.6);
-    padding: 18px 26px;
+    padding: 16px 24px;
     box-shadow: var(--quest-shadow);
     display: grid;
     grid-template-columns: 1fr auto;
@@ -197,6 +178,11 @@ body.quest-board::after {
     grid-template-columns: repeat(2, minmax(160px, 1fr)) minmax(240px, 1.4fr);
     gap: 16px;
     align-items: end;
+}
+
+.quest-search-controls .inventory-search-toggle {
+    width: 32px;
+    height: 32px;
 }
 
 .quest-filter {
@@ -229,7 +215,7 @@ body.quest-board::after {
     border-radius: 999px;
     border-color: rgba(255, 106, 162, 0.6);
     background: rgba(255, 255, 255, 0.95);
-    padding: 4px 8px;
+    padding: 4px 10px;
     box-shadow: inset 0 0 0 1px rgba(255, 106, 162, 0.12);
 }
 
@@ -258,12 +244,19 @@ body.quest-board::after {
 }
 
 .quest-carousel {
-    margin: 24px 0 44px;
+    margin: 18px 0 36px;
     display: grid;
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 26px;
     overflow: visible;
+}
+
+.quest-carousel-viewport {
+    overflow: hidden;
+    padding: 10px 10px 20px;
+    position: relative;
+    min-height: 320px;
 }
 
 .quest-arrow {
@@ -288,6 +281,11 @@ body.quest-board::after {
     will-change: transform;
 }
 
+.quest-track:focus-visible {
+    outline: 2px dashed rgba(255, 106, 162, 0.6);
+    outline-offset: 6px;
+}
+
 .quest-track.is-dragging {
     cursor: grabbing;
 }
@@ -310,12 +308,13 @@ body.quest-board::after {
 .quest-card::before {
     content: "";
     position: absolute;
-    inset: -22px;
+    inset: -18px;
     border-radius: 26px;
     background: var(--status-color, rgba(106, 167, 255, 0.4));
-    filter: blur(30px);
+    filter: blur(26px);
     opacity: 0.4;
     z-index: -1;
+    pointer-events: none;
 }
 
 .quest-card-content {
@@ -574,7 +573,7 @@ body.quest-board::after {
     position: fixed;
     inset: 0;
     display: none;
-    z-index: 40;
+    z-index: 60;
 }
 
 .quest-modal.open {
@@ -924,6 +923,7 @@ body.quest-board::after {
 .quest-modal--editor .quest-modal-card {
     max-width: 1120px;
     padding-right: 120px;
+    z-index: 2;
 }
 
 .quest-modal--editor .quest-modal-title {
@@ -937,6 +937,7 @@ body.quest-board::after {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow: visible;
 }
 
 .quest-editor-layout {
@@ -950,6 +951,7 @@ body.quest-board::after {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    overflow: visible;
 }
 
 .quest-editor-field {
@@ -968,6 +970,17 @@ body.quest-board::after {
     font-weight: 600;
     font-family: var(--quest-font-body);
     background: #fff;
+    position: relative;
+    z-index: 2;
+}
+
+.quest-editor-field select {
+    background-color: #fff;
+    color: #4c3a63;
+}
+
+.quest-editor-field select option {
+    color: #4c3a63;
 }
 
 .quest-editor-field--wide {
@@ -990,10 +1003,10 @@ body.quest-board::after {
 }
 
 .quest-editor-block {
-    background: rgba(255, 106, 162, 0.08);
+    background: #fff;
     border-radius: 18px;
     padding: 16px;
-    border: 2px solid rgba(255, 106, 162, 0.2);
+    border: 2px solid rgba(255, 106, 162, 0.25);
 }
 
 .quest-editor-block h4 {
@@ -1003,8 +1016,8 @@ body.quest-board::after {
 }
 
 .quest-editor-block--images {
-    background: rgba(255, 255, 255, 0.85);
-    border: 2px solid rgba(255, 106, 162, 0.35);
+    background: #fff;
+    border: 2px solid rgba(255, 106, 162, 0.25);
 }
 
 .quest-editor-image-row {
@@ -1060,8 +1073,8 @@ body.quest-board::after {
 }
 
 .quest-editor-block--rewards {
-    background: rgba(255, 255, 255, 0.85);
-    border: 2px solid rgba(255, 106, 162, 0.35);
+    background: #fff;
+    border: 2px solid rgba(255, 106, 162, 0.25);
 }
 
 .quest-editor-row {
@@ -1072,6 +1085,9 @@ body.quest-board::after {
 
 .quest-editor-row input {
     flex: 1;
+    border-radius: 12px;
+    border: 1px solid rgba(76, 58, 99, 0.5);
+    padding: 8px 10px;
 }
 
 .quest-editor-row input[type="number"] {
@@ -1118,18 +1134,23 @@ body.quest-board::after {
     gap: 12px;
     padding: 8px 12px;
     border-radius: 12px;
-    background: #fff;
-    border: 1px solid rgba(255, 106, 162, 0.2);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 106, 162, 0.25);
     font-weight: 600;
+    color: #4c3a63;
 }
 
 .quest-editor-item button {
     border: none;
-    background: rgba(255, 106, 162, 0.12);
+    background: rgba(255, 106, 162, 0.08);
     color: var(--quest-pink);
-    border-radius: 10px;
-    padding: 4px 10px;
+    border-radius: 999px;
+    padding: 4px 12px;
     cursor: pointer;
+}
+
+.quest-editor-item button:hover {
+    background: rgba(255, 106, 162, 0.2);
 }
 
 .quest-editor-hint {
@@ -1156,6 +1177,7 @@ body.quest-board::after {
     flex-direction: column;
     align-items: center;
     gap: 14px;
+    z-index: 3;
 }
 
 .quest-editor-status {

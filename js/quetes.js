@@ -46,6 +46,7 @@ const dom = {
     searchHistory: document.getElementById("questSearchHistory"),
     prevBtn: document.getElementById("questPrevBtn"),
     nextBtn: document.getElementById("questNextBtn"),
+    viewport: document.getElementById("questViewport"),
     track: document.getElementById("questTrack"),
     addBtn: document.getElementById("questAddBtn"),
     historyFilters: document.getElementById("questHistoryFilters"),
@@ -550,21 +551,12 @@ function updateCarouselParallax() {
 
 function getVisibleCount() {
     if (window.innerWidth <= 720) return 1;
-    if (window.innerWidth <= 980) return 2;
     return 3;
 }
 
 function getCarouselViewportWidth() {
-    const root = dom.track.parentElement;
-    if (!root) return dom.track.clientWidth || 0;
-    const styles = window.getComputedStyle(root);
-    const gap = Number.parseFloat(styles.columnGap || styles.gap || 0) || 0;
-    const leftVisible = dom.prevBtn && window.getComputedStyle(dom.prevBtn).display !== "none";
-    const rightVisible = dom.nextBtn && window.getComputedStyle(dom.nextBtn).display !== "none";
-    const leftWidth = leftVisible ? dom.prevBtn.offsetWidth : 0;
-    const rightWidth = rightVisible ? dom.nextBtn.offsetWidth : 0;
-    const gapCount = leftVisible && rightVisible ? 2 : leftVisible || rightVisible ? 1 : 0;
-    return Math.max(0, root.clientWidth - leftWidth - rightWidth - gap * gapCount);
+    if (!dom.viewport) return dom.track.clientWidth || 0;
+    return dom.viewport.clientWidth || 0;
 }
 
 function scrollCarousel(direction, stepOverride) {
@@ -634,7 +626,7 @@ function isEditableTarget(target) {
 function isCarouselFocused() {
     const active = document.activeElement;
     if (!active) return false;
-    if (active === dom.track) return true;
+    if (active === dom.track || active === dom.viewport) return true;
     return dom.track.contains(active) || active === dom.prevBtn || active === dom.nextBtn;
 }
 
@@ -1067,6 +1059,9 @@ function bindEvents() {
     bindEditorListEvents();
     bindCarouselDrag();
     bindMediaDrag();
+    dom.track.addEventListener("pointerdown", () => {
+        dom.track.focus();
+    });
 }
 
 async function init() {
