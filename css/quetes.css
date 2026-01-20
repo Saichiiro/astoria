@@ -176,6 +176,7 @@ body.quest-board::after {
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: 20px;
+    overflow: hidden;
 }
 
 .quest-arrow {
@@ -193,20 +194,11 @@ body.quest-board::after {
 .quest-track {
     display: flex;
     gap: 24px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: 12px;
     padding: 6px 6px 14px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
     cursor: grab;
     touch-action: pan-y;
     user-select: none;
-}
-
-.quest-track::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    will-change: transform;
 }
 
 .quest-track.is-dragging {

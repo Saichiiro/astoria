@@ -26,6 +26,13 @@ const state = {
         questId: null,
         images: [],
         rewards: []
+    },
+    carousel: {
+        x: 0,
+        step: 0,
+        minX: 0,
+        maxX: 0,
+        isDragging: false
     }
 };
 
@@ -320,7 +327,8 @@ function renderQuestList() {
         btn.addEventListener("click", () => openDetail(btn.dataset.id));
     });
 
-    dom.track.scrollTo({ left: 0, behavior: "auto" });
+    updateCarouselMetrics();
+    applyCarouselPosition(0);
     updateCarouselParallax();
 }
 
@@ -527,27 +535,49 @@ function getVisibleCount() {
     const step = getTrackStep();
     const gap = getTrackGap();
     if (!step) return 1;
-    return Math.max(1, Math.floor((dom.track.clientWidth + gap) / step));
+    return Math.max(1, Math.floor((dom.track.parentElement.clientWidth + gap) / step));
 }
 
 function scrollCarousel(direction) {
-    const step = getTrackStep();
     const visible = getVisibleCount();
-    if (!step) return;
-    dom.track.scrollBy({ left: step * visible * direction, behavior: "smooth" });
+    const distance = state.carousel.step * visible * direction;
+    applyCarouselPosition(state.carousel.x + distance, true);
 }
 
 function snapCarousel() {
-    const step = getTrackStep();
+    const step = state.carousel.step || getTrackStep();
     if (!step) return;
-    const index = Math.round(dom.track.scrollLeft / step);
-    dom.track.scrollTo({ left: index * step, behavior: "smooth" });
+    const index = Math.round(state.carousel.x / step);
+    applyCarouselPosition(index * step, true);
+}
+
+function updateCarouselMetrics() {
+    const step = getTrackStep();
+    const trackWidth = (dom.track.querySelectorAll(".quest-card").length * step) - getTrackGap();
+    const viewportWidth = dom.track.parentElement.clientWidth;
+    state.carousel.step = step;
+    state.carousel.maxX = 0;
+    state.carousel.minX = Math.min(0, viewportWidth - trackWidth);
+    if (!Number.isFinite(state.carousel.minX)) state.carousel.minX = 0;
+    state.carousel.x = Math.max(state.carousel.minX, Math.min(state.carousel.maxX, state.carousel.x));
+    dom.track.style.width = `${trackWidth}px`;
+}
+
+function applyCarouselPosition(nextX, animate = false) {
+    const bounded = Math.max(state.carousel.minX, Math.min(state.carousel.maxX, nextX));
+    state.carousel.x = bounded;
+    if (animate) {
+        dom.track.style.transition = "transform 0.35s ease";
+    } else {
+        dom.track.style.transition = "none";
+    }
+    dom.track.style.transform = `translateX(${bounded}px)`;
+    updateCarouselParallax();
 }
 
 function bindCarouselDrag() {
-    let isDragging = false;
     let startX = 0;
-    let startScroll = 0;
+    let startPos = 0;
     let moved = false;
     let skipClick = false;
     let lastX = 0;
@@ -569,8 +599,7 @@ function bindCarouselDrag() {
             const delta = time - lastFrame;
             lastFrame = time;
             momentumVelocity *= 0.92;
-            dom.track.scrollLeft -= momentumVelocity * delta;
-            updateCarouselParallax();
+            applyCarouselPosition(state.carousel.x + momentumVelocity * delta, false);
             if (Math.abs(momentumVelocity) > 0.02) {
                 momentumId = requestAnimationFrame(step);
             } else {
@@ -589,11 +618,12 @@ function bindCarouselDrag() {
     dom.track.addEventListener("pointerdown", (event) => {
         if (event.target.closest("button, a, input, select, textarea")) return;
         if (event.button !== 0) return;
-        isDragging = true;
+        updateCarouselMetrics();
+        state.carousel.isDragging = true;
         moved = false;
         skipClick = false;
         startX = event.clientX;
-        startScroll = dom.track.scrollLeft;
+        startPos = state.carousel.x;
         lastX = event.clientX;
         lastTime = performance.now();
         velocity = 0;
@@ -603,10 +633,10 @@ function bindCarouselDrag() {
     });
 
     dom.track.addEventListener("pointermove", (event) => {
-        if (!isDragging) return;
+        if (!state.carousel.isDragging) return;
         const delta = event.clientX - startX;
         if (Math.abs(delta) > 6) moved = true;
-        dom.track.scrollLeft = startScroll - delta;
+        applyCarouselPosition(startPos + delta, false);
         const now = performance.now();
         const dt = now - lastTime;
         if (dt > 0) {
@@ -614,12 +644,11 @@ function bindCarouselDrag() {
             lastX = event.clientX;
             lastTime = now;
         }
-        updateCarouselParallax();
     });
 
     function endDrag(event) {
-        if (!isDragging) return;
-        isDragging = false;
+        if (!state.carousel.isDragging) return;
+        state.carousel.isDragging = false;
         dom.track.releasePointerCapture(event.pointerId);
         dom.track.classList.remove("is-dragging");
         if (moved) {
@@ -640,10 +669,10 @@ function bindCarouselDrag() {
         event.stopPropagation();
     });
 
-    dom.track.addEventListener("scroll", () => {
-        if (isDragging) return;
-        updateCarouselParallax();
-    }, { passive: true });
+    window.addEventListener("resize", () => {
+        updateCarouselMetrics();
+        applyCarouselPosition(state.carousel.x, false);
+    });
 }
 
 function bindMediaDrag() {
