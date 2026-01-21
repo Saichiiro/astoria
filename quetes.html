@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau des quêtes - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Yeseva+One&display=swap">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/quetes.css">
@@ -202,10 +203,11 @@
                         <div class="quest-editor-block quest-editor-block--rewards">
                             <h4>Récompenses</h4>
                             <div class="quest-editor-row">
-                                <input id="questRewardNameInput" type="text" placeholder="Objet">
-                                <input id="questRewardQtyInput" type="number" min="1" value="1">
+                                <select id="questRewardSelect" aria-label="Objet de récompense"></select>
+                                <input id="questRewardQtyInput" type="number" min="1" value="1" aria-label="Quantité de récompense">
                                 <button id="questAddRewardBtn" type="button">+</button>
                             </div>
+                            <div class="quest-reward-preview" id="questRewardPreview"></div>
                             <div class="quest-editor-list" id="questRewardsList"></div>
                             <div class="quest-editor-hint">Relier à l'inventaire au moment de l'intégration.</div>
                         </div>
@@ -260,6 +262,30 @@
         </div>
     </div>
 
+    <div class="quest-cropper-backdrop" id="questCropperBackdrop" aria-hidden="true">
+        <div class="quest-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="questCropperTitle">
+            <div class="quest-cropper-header">
+                <h2 class="quest-cropper-title" id="questCropperTitle">Recadrer l'image</h2>
+                <button type="button" class="quest-cropper-close" id="questCropperClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="quest-cropper-body">
+                <div class="quest-cropper-stage">
+                    <img id="questCropperImage" alt="Aperçu recadrage">
+                </div>
+                <div class="quest-cropper-controls">
+                    <label for="questCropperZoom">Zoom</label>
+                    <input type="range" id="questCropperZoom" min="0.2" max="3" step="0.01" value="1">
+                    <p class="quest-cropper-hint">Glisse pour ajuster le cadrage carré.</p>
+                </div>
+            </div>
+            <div class="quest-cropper-actions">
+                <button type="button" class="quest-cropper-button secondary" id="questCropperCancel">Annuler</button>
+                <button type="button" class="quest-cropper-button" id="questCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
     <script src="js/ui/searchbar.js"></script>
     <script type="module" src="js/quetes.js"></script>
     <script src="js/sidebar.js"></script>

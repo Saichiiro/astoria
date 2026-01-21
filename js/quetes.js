@@ -10,6 +10,9 @@ const STATUS_META = {
     locked: { label: "Acces restreint", color: "#ff6b6b" }
 };
 
+const QUEST_STORAGE_KEY = "astoria_quests_state";
+const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
+
 const state = {
     quests: [],
     history: [],
@@ -36,6 +39,11 @@ const state = {
         minX: 0,
         maxX: 0,
         isDragging: false
+    },
+    cropper: {
+        instance: null,
+        pendingFile: null,
+        previewUrl: ""
     }
 };
 
@@ -93,10 +101,18 @@ const dom = {
     addImageBtn: document.getElementById("questAddImageBtn"),
     imagesList: document.getElementById("questImagesList"),
     rewardNameInput: document.getElementById("questRewardNameInput"),
+    rewardSelect: document.getElementById("questRewardSelect"),
     rewardQtyInput: document.getElementById("questRewardQtyInput"),
     addRewardBtn: document.getElementById("questAddRewardBtn"),
     rewardsList: document.getElementById("questRewardsList"),
-    imagePreview: document.querySelector(".quest-editor-image-preview")
+    imagePreview: document.querySelector(".quest-editor-image-preview"),
+    rewardPreview: document.getElementById("questRewardPreview"),
+    cropperBackdrop: document.getElementById("questCropperBackdrop"),
+    cropperImage: document.getElementById("questCropperImage"),
+    cropperZoom: document.getElementById("questCropperZoom"),
+    cropperClose: document.getElementById("questCropperClose"),
+    cropperCancel: document.getElementById("questCropperCancel"),
+    cropperConfirm: document.getElementById("questCropperConfirm")
 };
 
 function normalize(value) {
@@ -147,6 +163,37 @@ function getStatusMeta(status) {
     return STATUS_META[status] || STATUS_META.available;
 }
 
+function loadStoredState() {
+    try {
+        const questsRaw = localStorage.getItem(QUEST_STORAGE_KEY);
+        const historyRaw = localStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
+        const quests = questsRaw ? JSON.parse(questsRaw) : null;
+        const history = historyRaw ? JSON.parse(historyRaw) : null;
+        if (Array.isArray(quests) && quests.length) {
+            state.quests = quests.map((quest) => ({
+                ...quest,
+                participants: Array.isArray(quest.participants)
+                    ? Array.from(new Map(quest.participants.map((entry) => [entry.key, entry])).values())
+                    : []
+            }));
+        }
+        if (Array.isArray(history)) {
+            state.history = history;
+        }
+    } catch (error) {
+        console.warn("[Quetes] Failed to load stored quests:", error);
+    }
+}
+
+function persistState() {
+    try {
+        localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(state.quests));
+        localStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify(state.history));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist quests:", error);
+    }
+}
+
 function resolveParticipantId(participant) {
     if (!participant) return null;
     if (participant.id) return participant.id;
@@ -191,6 +238,55 @@ async function loadItemCatalog() {
     } catch (error) {
         console.warn("[Quetes] Items load failed:", error);
     }
+}
+
+function resolveItemImage(item) {
+    if (!item) return "";
+    if (typeof item.image === "string") return item.image;
+    if (Array.isArray(item.images) && item.images.length) return item.images[0];
+    return "";
+}
+
+function populateRewardSelect() {
+    if (!dom.rewardSelect) return;
+    dom.rewardSelect.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Sélectionner un objet";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    dom.rewardSelect.appendChild(placeholder);
+    state.items
+        .slice()
+        .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fr"))
+        .forEach((item) => {
+            if (!item?.name) return;
+            const option = document.createElement("option");
+            option.value = item.name;
+            option.textContent = item.name;
+            dom.rewardSelect.appendChild(option);
+        });
+    updateRewardPreview();
+}
+
+function updateRewardPreview() {
+    if (!dom.rewardPreview) return;
+    const selectedName = dom.rewardSelect?.value || "";
+    const item = resolveItemByName(selectedName);
+    if (!item) {
+        dom.rewardPreview.classList.add("empty");
+        dom.rewardPreview.innerHTML = "Sélectionne un objet pour voir son aperçu.";
+        return;
+    }
+    dom.rewardPreview.classList.remove("empty");
+    const image = resolveItemImage(item);
+    dom.rewardPreview.innerHTML = `
+        ${image ? `<img src="${escapeHtml(image)}" alt="Aperçu ${escapeHtml(item.name)}">` : ""}
+        <div>
+            <strong>${escapeHtml(item.name)}</strong><br>
+            ${item.description ? escapeHtml(item.description) : "Pas de description disponible."}
+        </div>
+    `;
 }
 
 function resolveItemByName(name) {
@@ -285,7 +381,8 @@ function syncStatusDots(value) {
 }
 
 function seedData() {
-    state.quests = [
+    if (!state.quests.length) {
+        state.quests = [
         {
             id: "quest-1",
             name: "Sauvetage",
@@ -382,9 +479,11 @@ function seedData() {
             maxParticipants: 4,
             completedBy: [buildParticipant("Orion").key]
         }
-    ];
+        ];
+    }
 
-    state.history = [
+    if (!state.history.length) {
+        state.history = [
         {
             id: "history-1",
             date: "14/01/2026 17:54",
@@ -401,7 +500,8 @@ function seedData() {
             name: "Refuge des Brumes",
             gains: "Fruit Papooru x3"
         }
-    ];
+        ];
+    }
 }
 
 function fillFilters() {
@@ -636,13 +736,16 @@ function toggleParticipation() {
     if (!already) {
         const note = buildJoinNote(quest);
         if (note) return;
-        quest.participants.push(state.participant);
+        if (!isParticipant(quest)) {
+            quest.participants.push(state.participant);
+        }
     } else {
         quest.participants = quest.participants.filter((entry) => entry.key !== state.participant.key);
     }
 
     renderDetail(quest);
     renderQuestList();
+    persistState();
 }
 
 async function validateQuest() {
@@ -679,6 +782,7 @@ async function validateQuest() {
     }
     renderQuestList();
     renderHistory();
+    persistState();
 }
 
 function navigateDetail(delta) {
@@ -980,6 +1084,10 @@ function openEditor(quest) {
     if (dom.validateBtn) {
         dom.validateBtn.disabled = !quest;
     }
+    if (dom.rewardSelect) {
+        dom.rewardSelect.selectedIndex = 0;
+        updateRewardPreview();
+    }
 
     renderEditorLists();
     dom.editorModal.classList.add("open");
@@ -1050,6 +1158,7 @@ function handleEditorSubmit(event) {
 
     renderQuestList();
     closeModal(dom.editorModal);
+    persistState();
 }
 
 function handleAddImage() {
@@ -1065,27 +1174,103 @@ function handleAddImage() {
     }
 }
 
+function destroyCropper(keepPreview = false) {
+    if (state.cropper.instance) {
+        state.cropper.instance.destroy();
+        state.cropper.instance = null;
+    }
+    if (!keepPreview && state.cropper.previewUrl) {
+        URL.revokeObjectURL(state.cropper.previewUrl);
+        state.cropper.previewUrl = "";
+    }
+}
+
+function closeCropper(resetInput = true) {
+    if (dom.cropperBackdrop) {
+        dom.cropperBackdrop.classList.remove("open");
+        dom.cropperBackdrop.setAttribute("aria-hidden", "true");
+    }
+    destroyCropper();
+    if (resetInput && dom.imageFileInput) {
+        dom.imageFileInput.value = "";
+    }
+    state.cropper.pendingFile = null;
+}
+
+function openCropper(file) {
+    if (!dom.cropperBackdrop || !dom.cropperImage || !window.Cropper) {
+        console.warn("[Quetes] Cropper unavailable, falling back to raw image.");
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = String(reader.result || "");
+            if (src) {
+                state.editor.images.push(src);
+                renderEditorLists();
+            }
+        };
+        reader.readAsDataURL(file);
+        return;
+    }
+    destroyCropper();
+    state.cropper.pendingFile = file;
+    state.cropper.previewUrl = URL.createObjectURL(file);
+    dom.cropperImage.src = state.cropper.previewUrl;
+    dom.cropperBackdrop.classList.add("open");
+    dom.cropperBackdrop.setAttribute("aria-hidden", "false");
+    state.cropper.instance = new Cropper(dom.cropperImage, {
+        viewMode: 1,
+        aspectRatio: 1,
+        background: false,
+        autoCropArea: 1,
+        movable: true,
+        zoomable: true,
+        guides: false,
+        ready() {
+            if (dom.cropperZoom) {
+                dom.cropperZoom.value = 1;
+            }
+        },
+        zoom(event) {
+            if (!dom.cropperZoom) return;
+            dom.cropperZoom.value = event.detail.ratio.toFixed(2);
+        }
+    });
+}
+
+async function applyCropper() {
+    if (!state.cropper.instance) {
+        closeCropper();
+        return;
+    }
+    const canvas = state.cropper.instance.getCroppedCanvas({
+        width: 512,
+        height: 512,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: "high"
+    });
+    const dataUrl = canvas?.toDataURL("image/png");
+    if (dataUrl) {
+        state.editor.images.push(dataUrl);
+        renderEditorLists();
+    }
+    closeCropper(false);
+}
+
 function handleImageFile(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-        const src = String(reader.result || "");
-        if (src) {
-            state.editor.images.push(src);
-            renderEditorLists();
-        }
-    };
-    reader.readAsDataURL(file);
-    dom.imageFileInput.value = "";
+    openCropper(file);
 }
 
 function handleAddReward() {
-    const name = dom.rewardNameInput.value.trim();
+    const name = dom.rewardSelect?.value || "";
     const qty = Math.max(1, Number(dom.rewardQtyInput.value) || 1);
     if (!name) return;
     state.editor.rewards.push({ name, qty });
-    dom.rewardNameInput.value = "";
+    if (dom.rewardSelect) {
+        dom.rewardSelect.selectedIndex = 0;
+        updateRewardPreview();
+    }
     dom.rewardQtyInput.value = "1";
     renderEditorLists();
 }
@@ -1223,11 +1408,27 @@ function bindEvents() {
     dom.addImageBtn.addEventListener("click", handleAddImage);
     dom.imageFileInput.addEventListener("change", handleImageFile);
     dom.addRewardBtn.addEventListener("click", handleAddReward);
+    dom.rewardSelect?.addEventListener("change", updateRewardPreview);
+    dom.cropperClose?.addEventListener("click", () => closeCropper());
+    dom.cropperCancel?.addEventListener("click", () => closeCropper());
+    dom.cropperConfirm?.addEventListener("click", () => applyCropper());
+    dom.cropperZoom?.addEventListener("input", () => {
+        if (!state.cropper.instance) return;
+        const value = Number(dom.cropperZoom.value);
+        if (Number.isFinite(value)) {
+            state.cropper.instance.zoomTo(value);
+        }
+    });
     bindEditorListEvents();
     bindCarouselDrag();
     bindMediaDrag();
     dom.track.addEventListener("pointerdown", () => {
         dom.track.focus();
+    });
+    dom.cropperBackdrop?.addEventListener("click", (event) => {
+        if (event.target === dom.cropperBackdrop) {
+            closeCropper();
+        }
     });
 }
 
@@ -1237,7 +1438,9 @@ async function init() {
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
 
+    loadStoredState();
     await loadItemCatalog();
+    populateRewardSelect();
     seedData();
     fillFilters();
     syncAdminUI();
