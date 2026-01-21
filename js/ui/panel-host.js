@@ -32,13 +32,13 @@ export function createPanelHost({ root = document.body, variant = "drawer" } = {
   openFullLink.target = "_self";
   openFullLink.rel = "noopener";
   openFullLink.hidden = true;
-  openFullLink.textContent = "Ouvrir la page complète";
+  openFullLink.textContent = "Ouvrir la page complete";
 
   const closeBtn = document.createElement("button");
   closeBtn.type = "button";
   closeBtn.className = "panel-close";
   closeBtn.setAttribute("aria-label", "Fermer");
-  closeBtn.textContent = "×";
+  closeBtn.textContent = "x";
 
   actions.appendChild(openFullLink);
   actions.appendChild(closeBtn);
@@ -61,17 +61,51 @@ export function createPanelHost({ root = document.body, variant = "drawer" } = {
     if (!href) {
       openFullLink.hidden = true;
       openFullLink.removeAttribute("href");
-      openFullLink.textContent = "Ouvrir la page complète";
+      openFullLink.textContent = "Ouvrir la page complete";
       return;
     }
 
     openFullLink.hidden = false;
     openFullLink.href = href;
-    openFullLink.textContent = label || "Ouvrir la page complète";
+    openFullLink.textContent = label || "Ouvrir la page complete";
   }
 
   function setTitle(text) {
     title.textContent = text || "";
+  }
+
+  function buildFallbackContent(titleText, messageText = "Aucun contenu disponible.") {
+    const wrapper = document.createElement("div");
+    wrapper.className = "panel-card";
+    const heading = document.createElement("h3");
+    heading.className = "panel-card-title";
+    heading.textContent = titleText || "Panel";
+    const message = document.createElement("p");
+    message.className = "panel-muted";
+    message.textContent = messageText;
+    wrapper.append(heading, message);
+    return wrapper;
+  }
+
+  function normalizeNode(node, titleText) {
+    if (node && typeof node === "object" && "nodeType" in node) {
+      const childCount = node.childNodes ? node.childNodes.length : 0;
+      if (childCount === 0) {
+        const fallback = buildFallbackContent(
+          titleText,
+          "Ce panneau est vide pour le moment."
+        );
+        if (node.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+          return fallback;
+        }
+        node.appendChild(fallback);
+      }
+      return node;
+    }
+    if (typeof node === "string") {
+      return buildFallbackContent(titleText, node);
+    }
+    return buildFallbackContent(titleText);
   }
 
   function setContent(node) {
@@ -88,23 +122,25 @@ export function createPanelHost({ root = document.body, variant = "drawer" } = {
   }
 
   function open({ panelId, titleText, fullPageHref, fullPageLabel, node, variant: openVariant } = {}) {
+    const safeTitle = String(titleText || "").trim() || "Panel";
+    const safeNode = normalizeNode(node, safeTitle);
     if (openVariant) {
       setVariant(openVariant);
     }
 
     if (isOpen) {
-      setTitle(titleText);
+      setTitle(safeTitle);
       setOpenFullPage({ href: fullPageHref, label: fullPageLabel });
-      setContent(node);
+      setContent(safeNode);
       currentPanelId = panelId || null;
       return;
     }
 
     previousFocusStack.push(document.activeElement);
 
-    setTitle(titleText);
+    setTitle(safeTitle);
     setOpenFullPage({ href: fullPageHref, label: fullPageLabel });
-    setContent(node);
+    setContent(safeNode);
     currentPanelId = panelId || null;
 
     isOpen = true;

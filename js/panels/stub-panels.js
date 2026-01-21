@@ -296,6 +296,34 @@ export const hdvPanel = {
   },
 };
 
+export const quetesPanel = buildStubPanel({
+  id: "quetes",
+  title: "Quetes",
+  fullPageHref: "quetes.html",
+  fullPageLabel: "Ouvrir les quetes",
+  blurb: "Panel en preparation. Apercu des quetes en cours.",
+  load: async (summary) => {
+    const quests = readJson("astoria_quests_state", []);
+    const history = readJson("astoria_quests_history", []);
+    const questCount = Array.isArray(quests) ? quests.length : 0;
+    const historyCount = Array.isArray(history) ? history.length : 0;
+
+    if (!questCount && !historyCount) {
+      summary.textContent = "Aucune quete enregistree.";
+      return;
+    }
+
+    if (questCount && historyCount) {
+      summary.textContent = `${questCount} quete(s) - ${historyCount} historique(s)`;
+      return;
+    }
+
+    summary.textContent = questCount
+      ? `${questCount} quete(s) enregistree(s)`
+      : `${historyCount} historique(s) de quete`;
+  },
+});
+
 export const magiePanel = buildStubPanel({
   id: "magie",
   title: "Magie",

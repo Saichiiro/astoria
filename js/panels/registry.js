@@ -5,6 +5,7 @@ import {
   codexPanel,
   competencesPanel,
   hdvPanel,
+  quetesPanel,
   magiePanel,
   nokorahPanel,
 } from "./stub-panels.js";
@@ -17,6 +18,7 @@ export function getProfilePanels() {
     codexPanel,
     competencesPanel,
     hdvPanel,
+    quetesPanel,
     magiePanel,
     nokorahPanel,
   ];

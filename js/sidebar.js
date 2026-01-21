@@ -95,6 +95,7 @@
               <span class="menu-icon" aria-hidden="true">&#128301;</span>
               <span class="menu-text">Qu&#234;tes</span>
             </a>
+            <button type="button" class="menu-open" data-panel="quetes" aria-label="Ouvrir le panneau Qu&#234;tes">&#8599;</button>
           </div>
         </li>
         <li class="menu-item">

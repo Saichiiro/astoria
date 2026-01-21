@@ -1,8 +1,9 @@
-import { getActiveCharacter, getAllItems, getCurrentUser, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
+﻿import { getActiveCharacter, getAllItems, getCurrentUser, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
 import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
+import { getCharacterById, updateCharacter } from "./api/characters-service.js";
 
-const QUEST_TYPES = ["Expédition", "Chasse", "Assistance", "Investigation"];
+const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation"];
 const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
 const STATUS_META = {
     available: { label: "Disponible", color: "#6aa7ff" },
@@ -105,6 +106,11 @@ const dom = {
     imagesList: document.getElementById("questImagesList"),
     rewardNameInput: document.getElementById("questRewardNameInput"),
     rewardSelect: document.getElementById("questRewardSelect"),
+    rewardPicker: document.getElementById("questRewardPicker"),
+    rewardTrigger: document.getElementById("questRewardTrigger"),
+    rewardPopover: document.getElementById("questRewardPopover"),
+    rewardOptions: document.getElementById("questRewardOptions"),
+    rewardTooltip: document.getElementById("questRewardTooltip"),
     rewardQtyInput: document.getElementById("questRewardQtyInput"),
     addRewardBtn: document.getElementById("questAddRewardBtn"),
     rewardsList: document.getElementById("questRewardsList"),
@@ -437,46 +443,132 @@ function resolveItemImage(item) {
     return "";
 }
 
-function populateRewardSelect() {
-    if (!dom.rewardSelect) return;
-    dom.rewardSelect.innerHTML = "";
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Sélectionner un objet";
-    placeholder.disabled = true;
-    placeholder.selected = true;
-    dom.rewardSelect.appendChild(placeholder);
-    state.items
-        .slice()
-        .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fr"))
-        .forEach((item) => {
-            if (!item?.name) return;
-            const option = document.createElement("option");
-            option.value = item.name;
-            option.textContent = item.name;
-            dom.rewardSelect.appendChild(option);
-        });
-    updateRewardPreview();
+function ensureKaelsItem() {
+    const existing = state.items.find((item) => normalizeText(item?.name) === "kaels");
+    if (existing) return;
+    state.items.push({
+        id: "kaels",
+        name: "Kaels",
+        category: "Monnaie",
+        description: "Monnaie d'Astoria.",
+        effect: "",
+        images: []
+    });
 }
 
+function getRewardItems() {
+    ensureKaelsItem();
+    return state.items
+        .slice()
+        .filter((item) => item?.name)
+        .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fr"));
+}
+
+function setRewardTriggerLabel(name) {
+    if (!dom.rewardTrigger) return;
+    dom.rewardTrigger.textContent = name || "S\u00E9lectionner un objet";
+}
+
+function renderRewardTooltip(item) {
+    if (!dom.rewardTooltip) return;
+    if (!item || normalizeText(item?.name) === "kaels") {
+        dom.rewardTooltip.classList.add("is-empty");
+        dom.rewardTooltip.textContent = "Survole un objet pour voir son apercu.";
+        return;
+    }
+    dom.rewardTooltip.classList.remove("is-empty");
+    const image = resolveItemImage(item);
+    const description = item.description || item.effect || "Pas de description disponible.";
+    dom.rewardTooltip.innerHTML = `
+        ${image ? `<img src="${escapeHtml(image)}" alt="Apercu ${escapeHtml(item.name)}">` : ""}
+        <div>
+            <strong>${escapeHtml(item.name)}</strong><br>
+            ${escapeHtml(description)}
+        </div>
+    `;
+}
+
+function renderRewardMenu(items) {
+    if (!dom.rewardOptions) return;
+    dom.rewardOptions.innerHTML = "";
+    items.forEach((item) => {
+        const option = document.createElement("div");
+        option.className = "quest-reward-option";
+        option.setAttribute("role", "option");
+        option.dataset.rewardName = item.name;
+        option.textContent = item.name;
+        dom.rewardOptions.appendChild(option);
+    });
+    renderRewardTooltip(null);
+}
+
+function populateRewardSelect() {
+    if (!dom.rewardSelect) return;
+    const items = getRewardItems();
+    dom.rewardSelect.value = "";
+    renderRewardMenu(items);
+    setRewardTriggerLabel("");
+    updateRewardPreview();
+}
 function updateRewardPreview() {
     if (!dom.rewardPreview) return;
     const selectedName = dom.rewardSelect?.value || "";
     const item = resolveItemByName(selectedName);
     if (!item) {
         dom.rewardPreview.classList.add("empty");
-        dom.rewardPreview.innerHTML = "Sélectionne un objet pour voir son aperçu.";
+        dom.rewardPreview.innerHTML = "S\u00E9lectionne un objet pour voir son aper\u00E7u.";
         return;
     }
     dom.rewardPreview.classList.remove("empty");
     const image = resolveItemImage(item);
     dom.rewardPreview.innerHTML = `
-        ${image ? `<img src="${escapeHtml(image)}" alt="Aperçu ${escapeHtml(item.name)}">` : ""}
+        ${image ? `<img src="${escapeHtml(image)}" alt="Aper\u00E7u ${escapeHtml(item.name)}">` : ""}
         <div>
             <strong>${escapeHtml(item.name)}</strong><br>
             ${item.description ? escapeHtml(item.description) : "Pas de description disponible."}
         </div>
     `;
+}
+function updateRewardMenuActive(name) {
+    if (!dom.rewardOptions) return;
+    const activeKey = normalizeText(name);
+    dom.rewardOptions.querySelectorAll(".quest-reward-option").forEach((option) => {
+        const isActive = normalizeText(option.dataset.rewardName) === activeKey && activeKey;
+        option.classList.toggle("is-active", Boolean(isActive));
+    });
+}
+
+function openRewardPopover() {
+    if (!dom.rewardPopover) return;
+    dom.rewardPopover.hidden = false;
+    dom.rewardTrigger?.setAttribute("aria-expanded", "true");
+    const selected = resolveItemByName(dom.rewardSelect?.value || "");
+    updateRewardMenuActive(dom.rewardSelect?.value || "");
+    renderRewardTooltip(selected || null);
+}
+
+function closeRewardPopover() {
+    if (!dom.rewardPopover) return;
+    dom.rewardPopover.hidden = true;
+    dom.rewardTrigger?.setAttribute("aria-expanded", "false");
+}
+
+function toggleRewardPopover() {
+    if (!dom.rewardPopover) return;
+    if (dom.rewardPopover.hidden) {
+        openRewardPopover();
+    } else {
+        closeRewardPopover();
+    }
+}
+
+function selectRewardItem(name) {
+    if (!dom.rewardSelect) return;
+    dom.rewardSelect.value = name || "";
+    setRewardTriggerLabel(name);
+    updateRewardPreview();
+    updateRewardMenuActive(name);
+    closeRewardPopover();
 }
 
 function resolveItemByName(name) {
@@ -547,6 +639,30 @@ async function applyInventoryDelta(characterId, itemName, delta) {
     }
 }
 
+async function applyKaelsDelta(characterId, delta) {
+    const safeDelta = Math.trunc(Number(delta) || 0);
+    if (!characterId || !safeDelta) return false;
+    let current = null;
+    const active = getActiveCharacter?.();
+    if (active && active.id === characterId && Number.isFinite(active.kaels)) {
+        current = Number(active.kaels);
+    }
+    if (!Number.isFinite(current)) {
+        const row = await getCharacterById(characterId);
+        current = Number(row?.kaels);
+    }
+    if (!Number.isFinite(current)) {
+        current = 0;
+    }
+    const next = current + safeDelta;
+    if (next < 0) return false;
+    const result = await updateCharacter(characterId, { kaels: next });
+    if (result?.success && active && active.id === characterId) {
+        document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { kaels: next } }));
+    }
+    return Boolean(result?.success);
+}
+
 async function applyRewardsToParticipants(quest) {
     if (!quest || !Array.isArray(quest.rewards) || quest.rewards.length === 0) return;
     for (const participant of quest.participants) {
@@ -556,6 +672,7 @@ async function applyRewardsToParticipants(quest) {
             const rewardName = String(reward?.name || "").trim();
             if (!rewardName) continue;
             if (normalizeText(rewardName) === "kaels") {
+                await applyKaelsDelta(characterId, reward.qty || 0);
                 continue;
             }
             await applyInventoryDelta(characterId, rewardName, reward.qty || 0);
@@ -576,7 +693,7 @@ function seedData() {
         {
             id: "quest-1",
             name: "Sauvetage",
-            type: "Expédition",
+            type: "Exp\u00E9dition",
             rank: "F",
             status: "available",
             repeatable: false,
@@ -642,7 +759,7 @@ function seedData() {
         {
             id: "quest-5",
             name: "Echo d'Aeris",
-            type: "Expédition",
+            type: "Exp\u00E9dition",
             rank: "B",
             status: "available",
             repeatable: true,
@@ -677,7 +794,7 @@ function seedData() {
         {
             id: "history-1",
             date: "14/01/2026 17:54",
-            type: "Expédition",
+            type: "Exp\u00E9dition",
             rank: "F",
             name: "Sauvetage",
             gains: "Potion de vitalite x2"
@@ -728,8 +845,8 @@ function fillFilters() {
         dom.rankFilter.appendChild(option);
     });
 
-    populateSelect(dom.typeInput, QUEST_TYPES, "Sélectionner (déroulant)");
-    populateSelect(dom.rankInput, QUEST_RANKS, "Sélectionner (déroulant)");
+    populateSelect(dom.typeInput, QUEST_TYPES, "S\u00E9lectionner (d\u00E9roulant)");
+    populateSelect(dom.rankInput, QUEST_RANKS, "S\u00E9lectionner (d\u00E9roulant)");
 
     QUEST_TYPES.forEach((type, index) => {
         const btn = document.createElement("button");
@@ -810,7 +927,7 @@ function renderHistory() {
         : state.history.filter((item) => item.type === state.filters.historyType);
 
     const plural = filtered.length !== 1;
-    dom.historyMeta.textContent = `${filtered.length} Quête${plural ? "s" : ""} exécutée${plural ? "s" : ""}`;
+    dom.historyMeta.textContent = `${filtered.length} Qu\u00EAte${plural ? "s" : ""} ex\u00E9cut\u00E9e${plural ? "s" : ""}`;
 
     dom.historyBody.innerHTML = filtered.map((entry) => `
         <tr>
@@ -903,13 +1020,13 @@ function buildJoinNote(quest) {
         return "Selectionnez un personnage pour participer.";
     }
     if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
-        return "Quête déjà réalisée (non répétitive).";
+        return "Qu\u00EAte d\u00E9j\u00E0 r\u00E9alis\u00E9e (non r\u00E9p\u00E9titive).";
     }
     if (quest.status === "locked") {
         return "Acces restreint par le staff.";
     }
     if (!isParticipant(quest) && quest.participants.length >= quest.maxParticipants) {
-        return "Places complètes.";
+        return "Places compl\u00E8tes.";
     }
     return "";
 }
@@ -1279,7 +1396,7 @@ function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
     state.editor.rewards = quest ? quest.rewards.map((reward) => ({ ...reward })) : [];
-    dom.editorTitle.textContent = quest ? "Modifier la quête" : "Création de Quêtes";
+    dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
     dom.nameInput.value = quest ? quest.name : "";
     dom.typeInput.value = quest ? quest.type : QUEST_TYPES[0];
@@ -1294,8 +1411,10 @@ function openEditor(quest) {
         dom.validateBtn.disabled = !quest;
     }
     if (dom.rewardSelect) {
-        dom.rewardSelect.selectedIndex = 0;
+        dom.rewardSelect.value = "";
+        setRewardTriggerLabel("");
         updateRewardPreview();
+        renderRewardTooltip(null);
     }
 
     renderEditorLists();
@@ -1482,8 +1601,10 @@ function handleAddReward() {
     if (!name) return;
     state.editor.rewards.push({ name, qty });
     if (dom.rewardSelect) {
-        dom.rewardSelect.selectedIndex = 0;
+        dom.rewardSelect.value = "";
+        setRewardTriggerLabel("");
         updateRewardPreview();
+        renderRewardTooltip(null);
     }
     dom.rewardQtyInput.value = "1";
     renderEditorLists();
@@ -1622,7 +1743,36 @@ function bindEvents() {
     dom.addImageBtn.addEventListener("click", handleAddImage);
     dom.imageFileInput.addEventListener("change", handleImageFile);
     dom.addRewardBtn.addEventListener("click", handleAddReward);
-    dom.rewardSelect?.addEventListener("change", updateRewardPreview);
+    dom.rewardTrigger?.addEventListener("click", (event) => {
+        event.preventDefault();
+        toggleRewardPopover();
+    });
+    dom.rewardOptions?.addEventListener("click", (event) => {
+        const option = event.target.closest(".quest-reward-option");
+        if (!option) return;
+        selectRewardItem(option.dataset.rewardName);
+    });
+    dom.rewardOptions?.addEventListener("pointerover", (event) => {
+        const option = event.target.closest(".quest-reward-option");
+        if (!option) return;
+        const item = resolveItemByName(option.dataset.rewardName);
+        renderRewardTooltip(item);
+    });
+    dom.rewardOptions?.addEventListener("pointerleave", () => {
+        const selected = resolveItemByName(dom.rewardSelect?.value || "");
+        renderRewardTooltip(selected || null);
+    });
+    document.addEventListener("click", (event) => {
+        if (!dom.rewardPicker || !dom.rewardPopover || dom.rewardPopover.hidden) return;
+        if (!dom.rewardPicker.contains(event.target)) {
+            closeRewardPopover();
+        }
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            closeRewardPopover();
+        }
+    });
     dom.cropperClose?.addEventListener("click", () => closeCropper());
     dom.cropperCancel?.addEventListener("click", () => closeCropper());
     dom.cropperConfirm?.addEventListener("click", () => applyCropper());
@@ -1646,6 +1796,19 @@ function bindEvents() {
     });
 }
 
+async function initQuestPanelShortcuts() {
+    try {
+        const panelShortcuts = await import("./ui/panel-shortcuts.js");
+        if (typeof panelShortcuts.initPanelShortcuts === "function") {
+            panelShortcuts.initPanelShortcuts({
+                selector: ".quest-page [data-panel]"
+            });
+        }
+    } catch (error) {
+        console.warn("[Quetes] Panel shortcuts failed:", error);
+    }
+}
+
 async function init() {
     await refreshSessionUser?.();
     await initCharacterSummary({ enableDropdown: true, showKaels: true });
@@ -1664,11 +1827,17 @@ async function init() {
     fillFilters();
     syncAdminUI();
     bindEvents();
+    await initQuestPanelShortcuts();
     renderQuestList();
     renderHistory();
     syncLocalItemsToDb();
 }
 
 init();
+
+
+
+
+
 
 

@@ -31,11 +31,41 @@ export function initPanelShortcuts({
   const panelHost = createPanelHost({ root: document.body, variant });
   const resolveContext = typeof getContext === "function" ? getContext : buildDefaultContext;
 
+  function buildFallbackPanel(titleText, messageText) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "panel-card";
+    const title = document.createElement("h3");
+    title.className = "panel-card-title";
+    title.textContent = titleText || "Panel";
+    const message = document.createElement("p");
+    message.className = "panel-muted";
+    message.textContent = messageText || "Aucun contenu disponible.";
+    wrapper.appendChild(title);
+    wrapper.appendChild(message);
+    return wrapper;
+  }
+
   async function renderPanel(panelId) {
     const panel = getPanelById(panelId);
-    if (!panel) return;
+    if (!panel) {
+      panelHost.open({
+        panelId,
+        titleText: "Panel",
+        node: buildFallbackPanel("Panel indisponible", `Aucun panel pour ${panelId || "cette section"}.`),
+      });
+      return;
+    }
     const ctx = await resolveContext();
-    const node = panel.renderPanel(ctx);
+    let node = null;
+    try {
+      node = panel.renderPanel(ctx);
+    } catch (error) {
+      console.warn("Panel render failed:", error);
+      node = buildFallbackPanel("Panel indisponible", "Impossible d'afficher ce panneau.");
+    }
+    if (!node) {
+      node = buildFallbackPanel("Panel indisponible", "Aucun contenu disponible.");
+    }
     panelHost.open({
       panelId: panel.id,
       titleText: panel.title,

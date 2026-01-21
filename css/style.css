@@ -1573,6 +1573,26 @@ body.sidebar-layout.sidebar-open .panel-backdrop {
     pointer-events: auto;
 }
 
+.panel-drawer[aria-hidden="true"] {
+    transform: translateX(105%);
+}
+
+.panel-drawer.panel-variant-modal[aria-hidden="true"] {
+    transform: translate(-50%, -50%) scale(0.96);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.panel-drawer[aria-hidden="false"] {
+    transform: translateX(0);
+}
+
+.panel-drawer.panel-variant-modal[aria-hidden="false"] {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
 .panel-header {
     display: flex;
     align-items: center;
