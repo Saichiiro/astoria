@@ -15,6 +15,7 @@ const QUEST_STORAGE_KEY = "astoria_quests_state";
 const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
 const QUESTS_TABLE = "quests";
 const QUEST_HISTORY_TABLE = "quest_history";
+const REWARD_ELEMENTS = ["Feu", "Eau", "Vent", "Terre", "Glace", "Foudre", "Lumiere", "Ombre"];
 
 const state = {
     quests: [],
@@ -171,6 +172,32 @@ function buildRewardMeta(item) {
     if (buy) meta.push(`Achat: ${buy}`);
     if (sell) meta.push(`Vente: ${sell}`);
     return meta;
+}
+
+function shouldRandomizeElement(itemOrName) {
+    const name = normalizeText(itemOrName?.name || itemOrName || "");
+    return name.includes("parchemin") || name.includes("scroll");
+}
+
+function pickRewardElement() {
+    const max = REWARD_ELEMENTS.length;
+    if (!max) return "";
+    return REWARD_ELEMENTS[Math.floor(Math.random() * max)];
+}
+
+function ensureRewardElement(reward) {
+    if (!reward) return reward;
+    if (!reward.element && shouldRandomizeElement(reward.name)) {
+        reward.element = pickRewardElement();
+    }
+    return reward;
+}
+
+function formatRewardLabel(reward) {
+    if (!reward) return "";
+    const name = String(reward.name || "");
+    const element = reward.element ? ` (${reward.element})` : "";
+    return `${name}${element}`;
 }
 
 function buildParticipant(label, id) {
@@ -738,6 +765,7 @@ async function applyKaelsDelta(characterId, delta) {
 
 async function applyRewardsToParticipants(quest) {
     if (!quest || !Array.isArray(quest.rewards) || quest.rewards.length === 0) return;
+    quest.rewards.forEach((reward) => ensureRewardElement(reward));
     for (const participant of quest.participants) {
         const characterId = resolveParticipantId(participant);
         if (!characterId) continue;
@@ -1045,7 +1073,10 @@ function renderDetail(quest) {
     dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
 
     dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${escapeHtml(loc)}</li>`).join("");
-    dom.detailRewards.innerHTML = quest.rewards.map((reward) => `<li>${escapeHtml(reward.name)} x${reward.qty}</li>`).join("");
+    quest.rewards.forEach((reward) => ensureRewardElement(reward));
+    dom.detailRewards.innerHTML = quest.rewards
+        .map((reward) => `<li>${escapeHtml(formatRewardLabel(reward))} x${reward.qty}</li>`)
+        .join("");
     dom.detailDescription.textContent = quest.description;
 
     renderParticipants(quest);
@@ -1153,7 +1184,8 @@ async function validateQuest() {
     }
 
     const date = new Date().toLocaleString("fr-FR");
-    const gains = quest.rewards.map((reward) => `${reward.name} x${reward.qty}`).join(", ");
+    quest.rewards.forEach((reward) => ensureRewardElement(reward));
+    const gains = quest.rewards.map((reward) => `${formatRewardLabel(reward)} x${reward.qty}`).join(", ");
 
     state.history.unshift({
         id: `history-${Date.now()}`,
@@ -1468,7 +1500,7 @@ function bindMediaDrag() {
 function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
-    state.editor.rewards = quest ? quest.rewards.map((reward) => ({ ...reward })) : [];
+    state.editor.rewards = quest ? quest.rewards.map((reward) => ensureRewardElement(reward)) : [];
     dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
     dom.nameInput.value = quest ? quest.name : "";
@@ -1505,10 +1537,14 @@ function renderEditorLists() {
 
     dom.rewardsList.innerHTML = state.editor.rewards.map((reward, idx) => {
         const item = resolveItemByName(reward.name);
-        const tooltip = item?.description ? ` data-tooltip="${escapeHtml(item.description)}"` : "";
+        const label = formatRewardLabel(reward);
+        const tooltipParts = [];
+        if (item?.description) tooltipParts.push(item.description);
+        if (reward.element) tooltipParts.push(`Element: ${reward.element}`);
+        const tooltip = tooltipParts.length ? ` data-tooltip="${escapeHtml(tooltipParts.join(" | "))}"` : "";
         return `
         <div class="quest-editor-item"${tooltip}>
-            <span>${escapeHtml(reward.name)} x${reward.qty}</span>
+            <span>${escapeHtml(label)} x${reward.qty}</span>
             <button type="button" data-remove-reward="${idx}">Retirer</button>
         </div>
         `;
@@ -1672,7 +1708,7 @@ function handleAddReward() {
     const name = dom.rewardSelect?.value || "";
     const qty = Math.max(1, Number(dom.rewardQtyInput.value) || 1);
     if (!name) return;
-    state.editor.rewards.push({ name, qty });
+    state.editor.rewards.push(ensureRewardElement({ name, qty }));
     if (dom.rewardSelect) {
         dom.rewardSelect.value = "";
         setRewardTriggerLabel("");
@@ -1684,20 +1720,25 @@ function handleAddReward() {
 }
 
 function bindEditorListEvents() {
-    dom.imagesList.addEventListener("click", (event) => {
-        const btn = event.target.closest("[data-remove-image]");
-        if (!btn) return;
-        const idx = Number(btn.dataset.removeImage);
-        state.editor.images.splice(idx, 1);
-        renderEditorLists();
-    });
-
-    dom.rewardsList.addEventListener("click", (event) => {
-        const btn = event.target.closest("[data-remove-reward]");
-        if (!btn) return;
-        const idx = Number(btn.dataset.removeReward);
-        state.editor.rewards.splice(idx, 1);
-        renderEditorLists();
+    if (!dom.editorModal) return;
+    dom.editorModal.addEventListener("click", (event) => {
+        const removeImageBtn = event.target.closest("[data-remove-image]");
+        if (removeImageBtn) {
+            const idx = Number(removeImageBtn.dataset.removeImage);
+            if (Number.isFinite(idx)) {
+                state.editor.images.splice(idx, 1);
+                renderEditorLists();
+            }
+            return;
+        }
+        const removeRewardBtn = event.target.closest("[data-remove-reward]");
+        if (removeRewardBtn) {
+            const idx = Number(removeRewardBtn.dataset.removeReward);
+            if (Number.isFinite(idx)) {
+                state.editor.rewards.splice(idx, 1);
+                renderEditorLists();
+            }
+        }
     });
 }
 
