@@ -202,6 +202,8 @@ function getScrollTypeMeta(key) {
 
 function getScrollTypeKey(entry) {
     if (!entry) return null;
+    const taggedKey = window.astoriaItemTags?.getScrollTypeKeyFromTags?.(entry);
+    if (taggedKey) return taggedKey;
     const haystack = normalizeText([entry.name, entry.description, entry.effect].filter(Boolean).join(' '));
     for (const type of getScrollTypeMetaList()) {
         const matchers = Array.isArray(type.matchers) ? type.matchers : [type.key];

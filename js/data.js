@@ -340,12 +340,27 @@ const inventoryData = [
         return null;
     };
 
+    const getScrollTypeKeyFromTags = (itemOrTags) => {
+        const tags = getTags(itemOrTags);
+        if (!tags.length) return "";
+        for (const tag of tags) {
+            if (tag.startsWith("scroll:") || tag.startsWith("scroll-") || tag.startsWith("scroll_")) {
+                return tag.slice(7);
+            }
+            if (tag.startsWith("parchemin:") || tag.startsWith("parchemin-") || tag.startsWith("parchemin_")) {
+                return tag.slice(10);
+            }
+        }
+        return "";
+    };
+
     window.astoriaItemTags = {
         normalizeText,
         getTags,
         hasTag,
         isScrollItem,
-        getScrollCategory
+        getScrollCategory,
+        getScrollTypeKeyFromTags
     };
 })();
 

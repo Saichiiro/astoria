@@ -336,6 +336,30 @@
             window.astoriaScrollTypes = DEFAULT_SCROLL_TYPES;
         }
         const SCROLL_TYPES_META_KEY = 'astoria_scroll_types_meta';
+        const SCROLL_TYPE_FALLBACK_EMOJI = String.fromCodePoint(0x2728);
+
+        function formatScrollTypeLabel(key) {
+            const raw = String(key || '').replace(/[-_]+/g, ' ').trim();
+            if (!raw) return '';
+            return raw.charAt(0).toUpperCase() + raw.slice(1);
+        }
+
+        function getScrollTypeMetaByKey(key) {
+            if (!key) return null;
+            if (typeof window.astoriaGetScrollTypeMeta === 'function') {
+                const entry = window.astoriaGetScrollTypeMeta(key);
+                if (entry) return entry;
+            }
+            const normalized = normalizeText(key);
+            const existing = SCROLL_TYPES.find((type) => normalizeText(type.key) === normalized);
+            if (existing) return existing;
+            return {
+                key: String(key),
+                label: formatScrollTypeLabel(key),
+                emoji: SCROLL_TYPE_FALLBACK_EMOJI,
+                matchers: []
+            };
+        }
 
         function persistScrollTypeMeta() {
             try {
@@ -1435,6 +1459,8 @@
         }
 
         function getScrollTypeKey(item) {
+            const taggedKey = window.astoriaItemTags?.getScrollTypeKeyFromTags?.(item);
+            if (taggedKey) return taggedKey;
             const haystack = normalizeText(
                 [item?.name, item?.description, item?.effect]
                     .filter(Boolean)
@@ -1513,6 +1539,9 @@
             const seededTypeKey = getScrollTypeKey(item);
             if (seededTypeKey && nextQty > 0) {
                 const counts = getEmptyScrollCounts();
+                if (counts[seededTypeKey] === undefined) {
+                    counts[seededTypeKey] = 0;
+                }
                 counts[seededTypeKey] = nextQty;
                 saveScrollCounts(category, item, counts);
             } else {
@@ -1523,6 +1552,11 @@
         function normalizeScrollCounts(rawCounts) {
             const counts = getEmptyScrollCounts();
             if (!rawCounts) return counts;
+            Object.keys(rawCounts).forEach((typeKey) => {
+                if (counts[typeKey] === undefined) {
+                    counts[typeKey] = 0;
+                }
+            });
             Object.keys(counts).forEach((typeKey) => {
                 const value = Number(rawCounts[typeKey]);
                 counts[typeKey] = Number.isFinite(value) && value > 0 ? value : 0;
@@ -1647,6 +1681,9 @@
             const seededQty = Math.max(0, Number(item.quantity) || 0);
             if (seededTypeKey && seededQty > 0) {
                 const counts = getEmptyScrollCounts();
+                if (counts[seededTypeKey] === undefined) {
+                    counts[seededTypeKey] = 0;
+                }
                 counts[seededTypeKey] = seededQty;
                 saveScrollCounts(category, item, counts);
                 return { counts, hasStored: true };
@@ -1718,7 +1755,10 @@
             if (!scrollPanelTitle || !scrollPanelList || !scrollPanelEmpty) return;
 
             const titleText = category === 'eveil' ? '\u00c9veil' : 'Ascension';
-            const visibleTypes = SCROLL_TYPES.filter((type) => (counts[type.key] || 0) > 0);
+            const visibleKeys = Object.keys(counts).filter((key) => (counts[key] || 0) > 0);
+            const visibleTypes = visibleKeys
+                .map((key) => getScrollTypeMetaByKey(key))
+                .filter(Boolean);
             scrollPanelTitle.textContent = titleText;
 
             if (visibleTypes.length === 0) {
@@ -1797,6 +1837,7 @@
             const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
             if (safeQty < 1) return;
             const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+            if (counts[typeKey] === undefined) counts[typeKey] = 0;
             counts[typeKey] = (counts[typeKey] || 0) + safeQty;
             saveScrollCounts(scrollPanelCategory, currentScrollItem, counts);
             const total = sumScrollCounts(counts);
@@ -1811,6 +1852,7 @@
             const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
             if (safeQty < 1) return;
             const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+            if (counts[typeKey] === undefined) counts[typeKey] = 0;
             const current = Number(counts[typeKey]) || 0;
             const next = Math.max(0, current - safeQty);
             counts[typeKey] = next;
