@@ -943,10 +943,14 @@ async function applyScrollTypeRewards(characterId, entries) {
     return Boolean(result?.success);
 }
 
-async function applyRewardsToParticipants(quest) {
+async function applyRewardsToParticipants(quest, participantsOverride = null) {
     if (!quest || !Array.isArray(quest.rewards) || quest.rewards.length === 0) return;
     quest.rewards.forEach((reward) => ensureRewardElement(reward));
-    for (const participant of quest.participants) {
+    const recipients = Array.isArray(participantsOverride) && participantsOverride.length
+        ? participantsOverride
+        : quest.participants;
+    if (!recipients.length) return;
+    for (const participant of recipients) {
         const characterId = resolveParticipantId(participant);
         if (!characterId) continue;
         const scrollEntries = [];
@@ -1345,7 +1349,7 @@ function renderMedia(quest) {
 
 function buildJoinNote(quest) {
     const participant = state.participant;
-    if (!participant) {
+    if (!participant || !participant.id) {
         return "Selectionnez un personnage pour participer.";
     }
     if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
@@ -1376,7 +1380,7 @@ function renderJoinButton(quest) {
 
 function toggleParticipation() {
     const quest = state.quests.find((item) => item.id === state.activeQuestId);
-    if (!quest || !state.participant) return;
+    if (!quest || !state.participant || !state.participant.id) return;
     const already = isParticipant(quest);
 
     if (!already) {
@@ -1421,9 +1425,13 @@ async function validateQuest() {
         gains: gains || "Aucun gain"
     });
 
-    await applyRewardsToParticipants(quest);
+    const recipients = quest.participants.length
+        ? quest.participants
+        : (state.participant && state.participant.id ? [state.participant] : []);
 
-    quest.participants.forEach((participant) => {
+    await applyRewardsToParticipants(quest, recipients);
+
+    recipients.forEach((participant) => {
         if (!quest.completedBy.includes(participant.key)) {
             quest.completedBy.push(participant.key);
         }
