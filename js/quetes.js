@@ -67,6 +67,43 @@ const state = {
     isValidating: false
 };
 
+const questStorage = (() => {
+    const memory = new Map();
+    const tryStore = (store) => {
+        if (!store) return null;
+        try {
+            const key = "__astoria_quest_test__";
+            store.setItem(key, "1");
+            store.removeItem(key);
+            return store;
+        } catch {
+            return null;
+        }
+    };
+    const local = tryStore(window.localStorage);
+    const session = local ? null : tryStore(window.sessionStorage);
+    const backend = local || session;
+    const mode = local ? "local" : session ? "session" : "memory";
+    return {
+        mode,
+        getItem: (key) => (backend ? backend.getItem(key) : (memory.has(key) ? memory.get(key) : null)),
+        setItem: (key, value) => {
+            if (backend) {
+                backend.setItem(key, value);
+            } else {
+                memory.set(key, value);
+            }
+        },
+        removeItem: (key) => {
+            if (backend) {
+                backend.removeItem(key);
+            } else {
+                memory.delete(key);
+            }
+        }
+    };
+})();
+
 const dom = {
     typeFilter: document.getElementById("questTypeFilter"),
     rankFilter: document.getElementById("questRankFilter"),
@@ -327,8 +364,8 @@ function parseJsonArray(value) {
 
 function loadStoredState() {
     try {
-        const questsRaw = localStorage.getItem(QUEST_STORAGE_KEY);
-        const historyRaw = localStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
+        const questsRaw = questStorage.getItem(QUEST_STORAGE_KEY);
+        const historyRaw = questStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
         const quests = questsRaw ? JSON.parse(questsRaw) : null;
         const history = historyRaw ? JSON.parse(historyRaw) : null;
         if (Array.isArray(quests) && quests.length) {
@@ -350,8 +387,8 @@ function loadStoredState() {
 function persistState() {
     try {
         state.history = dedupeHistory(state.history);
-        localStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(state.quests));
-        localStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify(state.history));
+        questStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(state.quests));
+        questStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify(state.history));
     } catch (error) {
         console.warn("[Quetes] Failed to persist quests:", error);
     }
@@ -460,9 +497,11 @@ async function upsertQuestToDb(quest) {
             .from(QUESTS_TABLE)
             .upsert([payload], { onConflict: "id" });
         if (error) throw error;
+        return true;
     } catch (error) {
         console.warn("[Quetes] Failed to upsert quest:", error);
     }
+    return false;
 }
 
 async function deleteQuestFromDb(questId) {
@@ -1231,12 +1270,18 @@ function openDetail(questId) {
     renderDetail(quest);
     dom.detailModal.classList.add("open");
     dom.detailModal.setAttribute("aria-hidden", "false");
+    dom.detailModal.removeAttribute("inert");
 }
 
 function closeModal(modal) {
     if (!modal) return;
+    const active = document.activeElement;
+    if (active && modal.contains(active)) {
+        active.blur();
+    }
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute("inert", "");
 }
 
 function renderDetail(quest) {
@@ -1708,6 +1753,7 @@ function openEditor(quest) {
     renderEditorLists();
     dom.editorModal.classList.add("open");
     dom.editorModal.setAttribute("aria-hidden", "false");
+    dom.editorModal.removeAttribute("inert");
 }
 
 function renderEditorLists() {
@@ -1783,7 +1829,10 @@ async function handleEditorSubmit(event) {
     renderQuestList();
     closeModal(dom.editorModal);
     persistState();
-    await upsertQuestToDb(questData);
+    const saved = await upsertQuestToDb(questData);
+    if (!saved && questStorage.mode === "memory") {
+        console.warn("[Quetes] Quest saved in memory only (storage blocked).");
+    }
 }
 
 function handleAddImage() {
