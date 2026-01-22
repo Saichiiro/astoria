@@ -275,11 +275,18 @@ function ensureRewardElement(reward) {
     return reward;
 }
 
-function formatRewardLabel(reward) {
+function formatRewardLabel(reward, options = {}) {
     if (!reward) return "";
+    const showElement = options.showElement !== false;
     const name = String(reward.name || "");
-    const element = reward.element ? ` (${reward.element})` : "";
+    const element = showElement && reward.element ? ` (${reward.element})` : "";
     return `${name}${element}`;
+}
+
+function stripRewardElement(reward) {
+    if (!reward) return reward;
+    const { element, elementKey, ...rest } = reward;
+    return rest;
 }
 
 function getScrollTypeKeyForReward(reward) {
@@ -401,7 +408,7 @@ function dedupeHistory(list) {
     list.forEach((entry) => {
         const signature = entry?.id
             ? `id:${entry.id}`
-            : `sig:${entry?.date}|${entry?.type}|${entry?.rank}|${entry?.name}|${entry?.gains}`;
+            : `sig:${entry?.date}|${entry?.type}|${entry?.rank}|${entry?.name}|${entry?.gains}|${entry?.characterId || ""}|${entry?.characterLabel || ""}`;
         if (seen.has(signature)) return;
         seen.add(signature);
         output.push(entry);
@@ -434,7 +441,9 @@ function mapHistoryRow(row) {
         type: row.type,
         rank: row.rank,
         name: row.name,
-        gains: row.gains
+        gains: row.gains,
+        characterId: row.character_id ?? row.characterId ?? null,
+        characterLabel: row.character_label ?? row.characterLabel ?? ""
     };
 }
 
@@ -523,7 +532,7 @@ async function insertHistoryToDb(entry) {
     if (entry.synced) return;
     try {
         const supabase = await getSupabaseClient();
-        const payload = {
+        const basePayload = {
             id: entry.id,
             date: entry.date,
             type: entry.type,
@@ -531,9 +540,19 @@ async function insertHistoryToDb(entry) {
             name: entry.name,
             gains: entry.gains
         };
-        const { error } = await supabase
+        const payload = {
+            ...basePayload,
+            character_id: entry.characterId || null,
+            character_label: entry.characterLabel || null
+        };
+        let { error } = await supabase
             .from(QUEST_HISTORY_TABLE)
             .upsert([payload], { onConflict: "id" });
+        if (error) {
+            ({ error } = await supabase
+                .from(QUEST_HISTORY_TABLE)
+                .upsert([basePayload], { onConflict: "id" }));
+        }
         if (error) throw error;
         entry.synced = true;
     } catch (error) {
@@ -943,9 +962,12 @@ async function applyScrollTypeRewards(characterId, entries) {
     return Boolean(result?.success);
 }
 
-async function applyRewardsToParticipants(quest, participantsOverride = null) {
-    if (!quest || !Array.isArray(quest.rewards) || quest.rewards.length === 0) return;
-    quest.rewards.forEach((reward) => ensureRewardElement(reward));
+async function applyRewardsToParticipants(quest, participantsOverride = null, rewardsOverride = null) {
+    if (!quest) return;
+    const rewards = Array.isArray(rewardsOverride) && rewardsOverride.length
+        ? rewardsOverride
+        : quest.rewards;
+    if (!Array.isArray(rewards) || rewards.length === 0) return;
     const recipients = Array.isArray(participantsOverride) && participantsOverride.length
         ? participantsOverride
         : quest.participants;
@@ -954,7 +976,7 @@ async function applyRewardsToParticipants(quest, participantsOverride = null) {
         const characterId = resolveParticipantId(participant);
         if (!characterId) continue;
         const scrollEntries = [];
-        for (const reward of quest.rewards) {
+        for (const reward of rewards) {
             const rewardName = String(reward?.name || "").trim();
             if (!rewardName) continue;
             if (normalizeText(rewardName) === "kaels") {
@@ -1242,9 +1264,13 @@ function renderQuestList() {
 }
 
 function renderHistory() {
+    const activeCharacterId = state.participant?.id || getActiveCharacter?.()?.id || null;
+    const scoped = activeCharacterId
+        ? state.history.filter((item) => item.characterId === activeCharacterId)
+        : state.history;
     const filtered = state.filters.historyType === "all"
-        ? state.history
-        : state.history.filter((item) => item.type === state.filters.historyType);
+        ? scoped
+        : scoped.filter((item) => item.type === state.filters.historyType);
 
     const plural = filtered.length !== 1;
     dom.historyMeta.textContent = `${filtered.length} Qu\u00EAte${plural ? "s" : ""} ex\u00E9cut\u00E9e${plural ? "s" : ""}`;
@@ -1298,10 +1324,9 @@ function renderDetail(quest) {
     dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
 
     dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${escapeHtml(loc)}</li>`).join("");
-    quest.rewards.forEach((reward) => ensureRewardElement(reward));
     if (quest.rewards.length) {
         dom.detailRewards.innerHTML = quest.rewards
-            .map((reward) => `<li>${escapeHtml(formatRewardLabel(reward))} x${reward.qty}</li>`)
+            .map((reward) => `<li>${escapeHtml(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
             .join("");
     } else {
         dom.detailRewards.innerHTML = "<li>Aucune recompense</li>";
@@ -1412,24 +1437,45 @@ async function validateQuest() {
         return;
     }
 
-    const date = new Date().toLocaleString("fr-FR");
-    quest.rewards.forEach((reward) => ensureRewardElement(reward));
-    const gains = quest.rewards.map((reward) => `${formatRewardLabel(reward)} x${reward.qty}`).join(", ");
-
-    state.history.unshift({
-        id: `history-${Date.now()}`,
-        date,
-        type: quest.type,
-        rank: quest.rank,
-        name: quest.name,
-        gains: gains || "Aucun gain"
-    });
-
     const recipients = quest.participants.length
         ? quest.participants
         : (state.participant && state.participant.id ? [state.participant] : []);
+    const date = new Date().toLocaleString("fr-FR");
+    const appliedRewards = Array.isArray(quest.rewards)
+        ? quest.rewards.map((reward) => {
+            const baseReward = stripRewardElement(reward) || {};
+            return ensureRewardElement({ ...baseReward });
+        })
+        : [];
+    const gains = appliedRewards.length
+        ? appliedRewards.map((reward) => `${formatRewardLabel(reward)} x${reward.qty}`).join(", ")
+        : "Aucun gain";
+    const timestamp = Date.now();
+    const historyEntries = recipients.length
+        ? recipients.map((participant, index) => ({
+            id: `history-${timestamp}-${index}`,
+            date,
+            type: quest.type,
+            rank: quest.rank,
+            name: quest.name,
+            gains,
+            characterId: resolveParticipantId(participant),
+            characterLabel: participant.label || ""
+        }))
+        : [{
+            id: `history-${timestamp}`,
+            date,
+            type: quest.type,
+            rank: quest.rank,
+            name: quest.name,
+            gains,
+            characterId: null,
+            characterLabel: ""
+        }];
 
-    await applyRewardsToParticipants(quest, recipients);
+    state.history.unshift(...historyEntries);
+
+    await applyRewardsToParticipants(quest, recipients, appliedRewards);
 
     recipients.forEach((participant) => {
         if (!quest.completedBy.includes(participant.key)) {
@@ -1445,7 +1491,9 @@ async function validateQuest() {
     renderHistory();
     persistState();
     await upsertQuestToDb(quest);
-    await insertHistoryToDb(state.history[0]);
+    for (const entry of historyEntries) {
+        await insertHistoryToDb(entry);
+    }
     state.isValidating = false;
 }
 
@@ -1736,7 +1784,7 @@ function bindMediaDrag() {
 function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
-    state.editor.rewards = quest ? quest.rewards.map((reward) => ensureRewardElement(reward)) : [];
+    state.editor.rewards = quest ? quest.rewards.map((reward) => stripRewardElement(reward)) : [];
     dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
     dom.nameInput.value = quest ? quest.name : "";
@@ -1774,10 +1822,9 @@ function renderEditorLists() {
 
     dom.rewardsList.innerHTML = state.editor.rewards.map((reward, idx) => {
         const item = resolveItemByName(reward.name);
-        const label = formatRewardLabel(reward);
+        const label = formatRewardLabel(reward, { showElement: false });
         const tooltipParts = [];
         if (item?.description) tooltipParts.push(item.description);
-        if (reward.element) tooltipParts.push(`Element: ${reward.element}`);
         const tooltip = tooltipParts.length ? ` data-tooltip="${escapeHtml(tooltipParts.join(" | "))}"` : "";
         return `
         <div class="quest-editor-item"${tooltip}>
@@ -1948,7 +1995,7 @@ function handleAddReward() {
     const name = dom.rewardSelect?.value || "";
     const qty = Math.max(1, Number(dom.rewardQtyInput.value) || 1);
     if (!name) return;
-    state.editor.rewards.push(ensureRewardElement({ name, qty }));
+    state.editor.rewards.push({ name, qty });
     if (dom.rewardSelect) {
         dom.rewardSelect.value = "";
         setRewardTriggerLabel("");
@@ -2090,6 +2137,11 @@ function bindEvents() {
         if (!btn) return;
         state.filters.historyType = btn.dataset.value;
         updateHistoryFilterButtons();
+        renderHistory();
+    });
+    window.addEventListener("astoria:character-changed", () => {
+        state.participant = resolveParticipant();
+        renderQuestList();
         renderHistory();
     });
 
