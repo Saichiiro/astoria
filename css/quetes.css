@@ -1129,6 +1129,7 @@ body.quest-board {
     display: flex;
     gap: 10px;
     margin-bottom: 10px;
+    align-items: center;
 }
 
 .quest-editor-row input {
@@ -1167,6 +1168,9 @@ body.quest-board {
     color: #4c3a63;
     text-align: left;
     cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .quest-reward-trigger:focus-visible {
@@ -1178,9 +1182,12 @@ body.quest-board {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
-    right: 0;
+    right: auto;
+    width: min(520px, 90vw);
+    min-width: 320px;
+    --reward-option-height: 44px;
     display: grid;
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: minmax(180px, 1fr) 240px;
     gap: 10px;
     padding: 10px;
     border-radius: 14px;
@@ -1191,17 +1198,24 @@ body.quest-board {
 }
 
 .quest-reward-options {
+    display: grid;
+    gap: 6px;
     max-height: calc(var(--reward-option-height, 36px) * 10);
     overflow-y: auto;
     padding-right: 4px;
     border-right: 1px dashed rgba(255, 106, 162, 0.25);
+    scrollbar-gutter: stable;
 }
 
 .quest-reward-option {
-    display: flex;
+    display: grid;
+    grid-template-columns: 34px 1fr;
     align-items: center;
-    padding: 8px 8px;
+    gap: 10px;
+    padding: 6px 8px;
+    min-height: var(--reward-option-height, 44px);
     border-radius: 10px;
+    border: 1px solid transparent;
     cursor: pointer;
     font-weight: 600;
     color: #4c3a63;
@@ -1213,34 +1227,123 @@ body.quest-board {
 .quest-reward-option:hover,
 .quest-reward-option.is-active {
     background: rgba(255, 106, 162, 0.12);
+    border-color: rgba(255, 106, 162, 0.3);
+}
+
+.quest-reward-option-thumb {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255, 106, 162, 0.12);
+    border: 1px solid rgba(255, 106, 162, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #8a5ca3;
+    overflow: hidden;
+}
+
+.quest-reward-option-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.quest-reward-option-info {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.quest-reward-option-title {
+    font-weight: 700;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.quest-reward-option-meta {
+    font-size: 0.7rem;
+    color: rgba(61, 42, 87, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .quest-reward-tooltip {
-    min-height: 90px;
+    min-height: 120px;
+    max-height: calc(var(--reward-option-height, 36px) * 10);
     font-size: 0.8rem;
     color: rgba(61, 42, 87, 0.8);
     display: grid;
-    gap: 8px;
+    grid-template-columns: 96px 1fr;
+    gap: 10px;
     align-content: start;
+    padding: 8px;
+    overflow: auto;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 106, 162, 0.2);
 }
 
 .quest-reward-tooltip.is-empty {
     opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .quest-reward-tooltip img {
     width: 100%;
-    height: 110px;
+    height: 96px;
     border-radius: 12px;
     object-fit: cover;
     border: 1px solid rgba(255, 106, 162, 0.2);
+}
+
+.quest-reward-tooltip-thumb {
+    width: 96px;
+    height: 96px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 106, 162, 0.2);
+    background: rgba(255, 106, 162, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #8a5ca3;
+}
+
+.quest-reward-tooltip-body {
+    display: grid;
+    gap: 6px;
+}
+
+.quest-reward-tooltip-title {
+    font-weight: 700;
+    color: var(--quest-pink);
+}
+
+.quest-reward-tooltip-meta {
+    font-size: 0.72rem;
+    color: rgba(61, 42, 87, 0.65);
+}
+
+.quest-reward-tooltip-desc {
+    line-height: 1.4;
+    color: rgba(61, 42, 87, 0.8);
 }
 
 .quest-reward-preview {
     display: grid;
     grid-template-columns: 48px 1fr;
     gap: 10px;
-    align-items: center;
+    align-items: start;
     padding: 8px 10px;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.85);
@@ -1255,12 +1358,50 @@ body.quest-board {
     border-radius: 10px;
     object-fit: cover;
     border: 1px solid rgba(255, 106, 162, 0.25);
+    display: block;
 }
 
 .quest-reward-preview.empty {
     grid-template-columns: 1fr;
 }
 
+.quest-reward-preview-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 106, 162, 0.25);
+    background: rgba(255, 106, 162, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #8a5ca3;
+}
+
+.quest-reward-preview-body {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.quest-reward-preview-title {
+    font-weight: 700;
+    color: var(--quest-pink);
+}
+
+.quest-reward-preview-meta {
+    font-size: 0.72rem;
+    color: rgba(61, 42, 87, 0.6);
+}
+
+.quest-reward-preview-desc {
+    line-height: 1.4;
+    color: rgba(61, 42, 87, 0.75);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 #questAddRewardBtn {
     border: none;
     background: var(--quest-pink);
@@ -1525,6 +1666,8 @@ body.quest-board {
 
     .quest-reward-popover {
         grid-template-columns: 1fr;
+        width: min(92vw, 520px);
+        min-width: 0;
     }
 
     .quest-reward-options {

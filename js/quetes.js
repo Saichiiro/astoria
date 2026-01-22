@@ -147,6 +147,32 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function sanitizeText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function formatCategory(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function getRewardInitial(item) {
+    const name = String(item?.name || "").trim();
+    return name ? name.charAt(0).toUpperCase() : "?";
+}
+
+function buildRewardMeta(item) {
+    const meta = [];
+    const category = formatCategory(item?.category);
+    if (category) meta.push(category);
+    const buy = String(item?.buyPrice || "").trim();
+    const sell = String(item?.sellPrice || "").trim();
+    if (buy) meta.push(`Achat: ${buy}`);
+    if (sell) meta.push(`Vente: ${sell}`);
+    return meta;
+}
+
 function buildParticipant(label, id) {
     const safeLabel = String(label || "Invite");
     const key = id ? `id:${id}` : `name:${normalize(safeLabel)}`;
@@ -466,7 +492,9 @@ function getRewardItems() {
 
 function setRewardTriggerLabel(name) {
     if (!dom.rewardTrigger) return;
-    dom.rewardTrigger.textContent = name || "S\u00E9lectionner un objet";
+    const label = name || "S\u00E9lectionner un objet";
+    dom.rewardTrigger.textContent = label;
+    dom.rewardTrigger.title = label;
 }
 
 function renderRewardTooltip(item) {
@@ -478,14 +506,22 @@ function renderRewardTooltip(item) {
     }
     dom.rewardTooltip.classList.remove("is-empty");
     const image = resolveItemImage(item);
-    const description = item.description || item.effect || "Pas de description disponible.";
+    const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
+    const meta = buildRewardMeta(item);
+    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${escapeHtml(meta.join(" | "))}</div>` : "";
     dom.rewardTooltip.innerHTML = `
-        ${image ? `<img src="${escapeHtml(image)}" alt="Apercu ${escapeHtml(item.name)}">` : ""}
-        <div>
-            <strong>${escapeHtml(item.name)}</strong><br>
-            ${escapeHtml(description)}
+        <div class="quest-reward-tooltip-media">
+            ${image
+                ? `<img src="${escapeHtml(image)}" alt="Apercu ${escapeHtml(item.name)}">`
+                : `<div class="quest-reward-tooltip-thumb">${escapeHtml(getRewardInitial(item))}</div>`}
+        </div>
+        <div class="quest-reward-tooltip-body">
+            <div class="quest-reward-tooltip-title">${escapeHtml(item.name)}</div>
+            ${metaLine}
+            <div class="quest-reward-tooltip-desc">${escapeHtml(description)}</div>
         </div>
     `;
+    dom.rewardTooltip.scrollTop = 0;
 }
 
 function renderRewardMenu(items) {
@@ -496,7 +532,38 @@ function renderRewardMenu(items) {
         option.className = "quest-reward-option";
         option.setAttribute("role", "option");
         option.dataset.rewardName = item.name;
-        option.textContent = item.name;
+        option.title = item.name;
+
+        const thumb = document.createElement("span");
+        thumb.className = "quest-reward-option-thumb";
+        const image = resolveItemImage(item);
+        if (image) {
+            const img = document.createElement("img");
+            img.src = image;
+            img.alt = item.name;
+            img.loading = "lazy";
+            img.decoding = "async";
+            thumb.appendChild(img);
+        } else {
+            thumb.textContent = getRewardInitial(item);
+        }
+
+        const info = document.createElement("span");
+        info.className = "quest-reward-option-info";
+        const title = document.createElement("span");
+        title.className = "quest-reward-option-title";
+        title.textContent = item.name;
+        info.appendChild(title);
+
+        const category = formatCategory(item.category);
+        if (category) {
+            const meta = document.createElement("span");
+            meta.className = "quest-reward-option-meta";
+            meta.textContent = category;
+            info.appendChild(meta);
+        }
+
+        option.append(thumb, info);
         dom.rewardOptions.appendChild(option);
     });
     renderRewardTooltip(null);
@@ -521,11 +588,17 @@ function updateRewardPreview() {
     }
     dom.rewardPreview.classList.remove("empty");
     const image = resolveItemImage(item);
+    const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
+    const category = formatCategory(item.category);
+    const metaLine = category ? `<div class="quest-reward-preview-meta">${escapeHtml(category)}</div>` : "";
     dom.rewardPreview.innerHTML = `
-        ${image ? `<img src="${escapeHtml(image)}" alt="Aper\u00E7u ${escapeHtml(item.name)}">` : ""}
-        <div>
-            <strong>${escapeHtml(item.name)}</strong><br>
-            ${item.description ? escapeHtml(item.description) : "Pas de description disponible."}
+        ${image
+            ? `<img src="${escapeHtml(image)}" alt="Aper\u00E7u ${escapeHtml(item.name)}">`
+            : `<div class="quest-reward-preview-thumb">${escapeHtml(getRewardInitial(item))}</div>`}
+        <div class="quest-reward-preview-body">
+            <div class="quest-reward-preview-title">${escapeHtml(item.name)}</div>
+            ${metaLine}
+            <div class="quest-reward-preview-desc">${escapeHtml(description)}</div>
         </div>
     `;
 }
