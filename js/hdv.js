@@ -124,12 +124,20 @@ let scrollTypeMetaMap = null;
 const FALLBACK_SCROLL_EMOJI = String.fromCodePoint(0x2728);
 
 function isScrollItem(item) {
+    const helper = window.astoriaItemTags;
+    if (helper?.isScrollItem) {
+        return helper.isScrollItem(item);
+    }
     if (!item || !item.name) return false;
     const name = normalizeText(item.name);
     return name.includes('parchemin') || name.includes('scroll');
 }
 
 function getScrollCategory(item) {
+    const helper = window.astoriaItemTags;
+    if (helper?.getScrollCategory) {
+        return helper.getScrollCategory(item);
+    }
     if (!item || !item.name) return null;
     const name = normalizeText(item.name);
     if (!name.includes('parchemin') && !name.includes('scroll')) return null;

@@ -197,6 +197,102 @@ const inventoryData = [
     //   }
 ];
 
+(function () {
+    if (window.astoriaItemTags) return;
+
+    const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase());
+
+    const splitTags = (value) => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        if (typeof value === "string") {
+            return value.split(/[;,]/g);
+        }
+        return [];
+    };
+
+    const normalizeTag = (value) => normalizeText(value).trim();
+
+    const getTags = (itemOrTags) => {
+        let raw = itemOrTags;
+        if (itemOrTags && typeof itemOrTags === "object" && !Array.isArray(itemOrTags)) {
+            raw = itemOrTags.tags ?? itemOrTags.tag ?? itemOrTags.labels ?? null;
+        }
+        return splitTags(raw)
+            .map((tag) => normalizeTag(String(tag || "")))
+            .filter(Boolean);
+    };
+
+    const hasTag = (itemOrTags, tag) => {
+        const tags = getTags(itemOrTags);
+        if (!tags.length) return false;
+        const needle = normalizeTag(tag);
+        return tags.includes(needle);
+    };
+
+    const getTaggedValue = (tags, prefix) => {
+        const key = normalizeTag(prefix);
+        for (const tag of tags) {
+            if (tag.startsWith(`${key}:`) || tag.startsWith(`${key}-`) || tag.startsWith(`${key}_`)) {
+                return tag.slice(key.length + 1);
+            }
+        }
+        return "";
+    };
+
+    const isScrollItem = (itemOrName) => {
+        const tags = getTags(itemOrName);
+        if (tags.length) {
+            if (tags.some((tag) =>
+                tag === "scroll" ||
+                tag === "parchemin" ||
+                tag.startsWith("scroll:") ||
+                tag.startsWith("parchemin:") ||
+                tag.startsWith("scroll-") ||
+                tag.startsWith("parchemin-") ||
+                tag.startsWith("scroll_") ||
+                tag.startsWith("parchemin_")
+            )) {
+                return true;
+            }
+        }
+        const name = typeof itemOrName === "string" ? itemOrName : itemOrName?.name;
+        if (!name) return false;
+        const normalized = normalizeText(name);
+        return normalized.includes("parchemin") || normalized.includes("scroll");
+    };
+
+    const getScrollCategory = (itemOrName) => {
+        const tags = getTags(itemOrName);
+        if (tags.length) {
+            const tagged = getTaggedValue(tags, "scroll") || getTaggedValue(tags, "parchemin");
+            if (tagged) return tagged;
+            if ((tags.includes("scroll") || tags.includes("parchemin")) && tags.includes("eveil")) return "eveil";
+            if ((tags.includes("scroll") || tags.includes("parchemin")) && tags.includes("ascension")) return "ascension";
+        }
+        const name = typeof itemOrName === "string" ? itemOrName : itemOrName?.name;
+        if (!name) return null;
+        const normalized = normalizeText(name);
+        if (!normalized.includes("parchemin") && !normalized.includes("scroll")) return null;
+        if (normalized.includes("eveil") || normalized.includes("eveille") || (normalized.includes("veil") && normalized.includes("parchemin"))) {
+            return "eveil";
+        }
+        if (normalized.includes("ascension")) return "ascension";
+        return null;
+    };
+
+    window.astoriaItemTags = {
+        normalizeText,
+        getTags,
+        hasTag,
+        isScrollItem,
+        getScrollCategory
+    };
+})();
+
 window.inventoryData = inventoryData;
 
 // -----------------------------------------------------------------------------

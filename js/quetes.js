@@ -175,6 +175,10 @@ function buildRewardMeta(item) {
 }
 
 function shouldRandomizeElement(itemOrName) {
+    const helper = window.astoriaItemTags;
+    if (helper?.isScrollItem) {
+        return helper.isScrollItem(itemOrName);
+    }
     const name = normalizeText(itemOrName?.name || itemOrName || "");
     return name.includes("parchemin") || name.includes("scroll");
 }
