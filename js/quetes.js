@@ -2171,6 +2171,19 @@ function bindEvents() {
             if (!status) return;
             dom.statusInput.value = status;
             syncStatusDots(status);
+            if (state.editor.questId) {
+                const quest = state.quests.find((item) => item.id === state.editor.questId);
+                if (quest) {
+                    quest.status = status;
+                    renderQuestList();
+                    if (state.activeQuestId === quest.id) {
+                        renderDetail(quest);
+                    }
+                    renderQuestProgressPanel();
+                    persistState();
+                    upsertQuestToDb(quest);
+                }
+            }
         });
     });
     dom.prevBtn.addEventListener("click", () => {
