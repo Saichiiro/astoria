@@ -86,9 +86,37 @@
         <aside class="quest-progress-panel" aria-label="Suivi des qu&#234;tes">
             <div class="quest-progress-header">
                 <h2>Suivi de qu&#234;te</h2>
-                <button type="button" class="menu-open quest-progress-open" data-panel="inventaire" aria-label="Ouvrir le panneau Inventaire">&#8599;</button>
             </div>
-            <p>Placeholder: suivi du progr&#232;s, objectifs en cours, etc.</p>
+            <div class="quest-progress-body">
+                <div class="quest-progress-row">
+                    <span class="quest-progress-label">Qu&#234;te</span>
+                    <span class="quest-progress-value" id="questProgressName">Aucune qu&#234;te en cours.</span>
+                </div>
+                <div class="quest-progress-row">
+                    <span class="quest-progress-label">Date</span>
+                    <span class="quest-progress-value" id="questProgressDate">&mdash;</span>
+                </div>
+                <div class="quest-progress-row">
+                    <span class="quest-progress-label">Type</span>
+                    <span class="quest-progress-value" id="questProgressType">&mdash;</span>
+                </div>
+                <div class="quest-progress-row">
+                    <span class="quest-progress-label">Rang</span>
+                    <span class="quest-progress-value" id="questProgressRank">&mdash;</span>
+                </div>
+                <div class="quest-progress-row">
+                    <span class="quest-progress-label">Statut</span>
+                    <span class="quest-progress-value" id="questProgressStatus">&mdash;</span>
+                </div>
+            </div>
+            <div class="quest-progress-notes" data-admin-only>
+                <label for="questProgressNotes">Notes admin</label>
+                <textarea id="questProgressNotes" rows="3" placeholder="Notes internes par personnage."></textarea>
+                <div class="quest-progress-notes-actions">
+                    <button type="button" class="quest-progress-save" id="questProgressSave">Sauvegarder</button>
+                    <span class="quest-progress-saved" id="questProgressSaved" aria-live="polite"></span>
+                </div>
+            </div>
         </aside>
 
         <section class="quest-history" id="questHistory" aria-label="Historique des qu&#234;tes">

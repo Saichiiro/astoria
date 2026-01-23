@@ -1431,7 +1431,7 @@
             // Fallback local (au cas où le helper n'est pas disponible)
             if (item) {
                 const raw = item.image || item.img || item?.images?.primary || item?.images?.url || '';
-                if (raw && (raw.startsWith('http') || raw.startsWith('data:'))) {
+                if (typeof raw === 'string' && raw.trim()) {
                     return raw;
                 }
             }

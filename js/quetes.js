@@ -13,6 +13,7 @@ const STATUS_META = {
 
 const QUEST_STORAGE_KEY = "astoria_quests_state";
 const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
+const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
 const QUESTS_TABLE = "quests";
 const QUEST_HISTORY_TABLE = "quest_history";
 const REWARD_ELEMENTS = ["Feu", "Eau", "Vent", "Terre", "Glace", "Foudre", "Lumiere", "Ombre"];
@@ -64,7 +65,8 @@ const state = {
         pendingFile: null,
         previewUrl: ""
     },
-    isValidating: false
+    isValidating: false,
+    adminNotes: {}
 };
 
 const questStorage = (() => {
@@ -104,6 +106,25 @@ const questStorage = (() => {
     };
 })();
 
+function loadAdminNotesMap() {
+    try {
+        const raw = questStorage.getItem(QUEST_ADMIN_NOTES_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveAdminNotesMap(map) {
+    try {
+        questStorage.setItem(QUEST_ADMIN_NOTES_KEY, JSON.stringify(map || {}));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist admin notes:", error);
+    }
+}
+
 const dom = {
     typeFilter: document.getElementById("questTypeFilter"),
     rankFilter: document.getElementById("questRankFilter"),
@@ -117,6 +138,14 @@ const dom = {
     viewport: document.getElementById("questViewport"),
     track: document.getElementById("questTrack"),
     addBtn: document.getElementById("questAddBtn"),
+    progressName: document.getElementById("questProgressName"),
+    progressDate: document.getElementById("questProgressDate"),
+    progressType: document.getElementById("questProgressType"),
+    progressRank: document.getElementById("questProgressRank"),
+    progressStatus: document.getElementById("questProgressStatus"),
+    progressNotes: document.getElementById("questProgressNotes"),
+    progressSave: document.getElementById("questProgressSave"),
+    progressSaved: document.getElementById("questProgressSaved"),
     historyFilters: document.getElementById("questHistoryFilters"),
     historyMeta: document.getElementById("questHistoryMeta"),
     historyBody: document.getElementById("questHistoryBody"),
@@ -350,6 +379,66 @@ function resolveParticipant() {
         return buildParticipant(user.username);
     }
     return null;
+}
+
+function getParticipantStorageKey() {
+    if (state.participant?.id) return `id:${state.participant.id}`;
+    if (state.participant?.key) return state.participant.key;
+    return "";
+}
+
+function getActiveQuestForParticipant() {
+    const participant = state.participant;
+    if (!participant) return null;
+    const matches = state.quests.filter((quest) =>
+        quest.participants?.some((entry) => entry.key === participant.key)
+    );
+    if (!matches.length) return null;
+    return matches.find((quest) => quest.status === "in_progress") || matches[0];
+}
+
+function formatJoinedAt(value) {
+    if (!value) return "";
+    const date = typeof value === "number" ? new Date(value) : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("fr-FR");
+}
+
+function renderQuestProgressPanel() {
+    if (!dom.progressName) return;
+    const quest = getActiveQuestForParticipant();
+    if (!quest) {
+        dom.progressName.textContent = "Aucune qu\u00EAte en cours.";
+        if (dom.progressDate) dom.progressDate.textContent = "-";
+        if (dom.progressType) dom.progressType.textContent = "-";
+        if (dom.progressRank) dom.progressRank.textContent = "-";
+        if (dom.progressStatus) {
+            dom.progressStatus.textContent = "-";
+            dom.progressStatus.style.color = "";
+        }
+    } else {
+        const entry = quest.participants.find((participant) => participant.key === state.participant?.key);
+        const joined = formatJoinedAt(entry?.joinedAt);
+        const meta = getStatusMeta(quest.status);
+        dom.progressName.textContent = quest.name;
+        if (dom.progressDate) dom.progressDate.textContent = joined || "-";
+        if (dom.progressType) dom.progressType.textContent = quest.type;
+        if (dom.progressRank) dom.progressRank.textContent = quest.rank;
+        if (dom.progressStatus) {
+            dom.progressStatus.textContent = meta.label;
+            dom.progressStatus.style.color = meta.color;
+        }
+    }
+
+    if (dom.progressNotes) {
+        const key = getParticipantStorageKey();
+        const note = key ? state.adminNotes[key] || "" : "";
+        dom.progressNotes.value = note;
+        dom.progressNotes.disabled = !key;
+    }
+    if (dom.progressSaved) {
+        dom.progressSaved.textContent = "";
+    }
 }
 
 function getStatusMeta(status) {
@@ -1261,6 +1350,7 @@ function renderQuestList() {
     const initial = snaps.length > 1 ? snaps[1] : snaps[0] || 0;
     applyCarouselPosition(initial);
     updateCarouselParallax();
+    renderQuestProgressPanel();
 }
 
 function renderHistory() {
@@ -1383,6 +1473,9 @@ function buildJoinNote(quest) {
     if (quest.status === "locked") {
         return "Acces restreint par le staff.";
     }
+    if (quest.status === "in_progress" && !isParticipant(quest)) {
+        return "Qu\u00EAte en cours.";
+    }
     if (!isParticipant(quest) && quest.participants.length >= quest.maxParticipants) {
         return "Places compl\u00E8tes.";
     }
@@ -1412,7 +1505,7 @@ function toggleParticipation() {
         const note = buildJoinNote(quest);
         if (note) return;
         if (!isParticipant(quest)) {
-            quest.participants.push(state.participant);
+            quest.participants.push({ ...state.participant, joinedAt: Date.now() });
         }
     } else {
         quest.participants = quest.participants.filter((entry) => entry.key !== state.participant.key);
@@ -1420,6 +1513,7 @@ function toggleParticipation() {
 
     renderDetail(quest);
     renderQuestList();
+    renderQuestProgressPanel();
     persistState();
     upsertQuestToDb(quest);
 }
@@ -1489,6 +1583,7 @@ async function validateQuest() {
     }
     renderQuestList();
     renderHistory();
+    renderQuestProgressPanel();
     persistState();
     await upsertQuestToDb(quest);
     for (const entry of historyEntries) {
@@ -2139,10 +2234,27 @@ function bindEvents() {
         updateHistoryFilterButtons();
         renderHistory();
     });
+    dom.progressSave?.addEventListener("click", () => {
+        if (!state.isAdmin || !dom.progressNotes) return;
+        const key = getParticipantStorageKey();
+        if (!key) return;
+        state.adminNotes[key] = dom.progressNotes.value.trim();
+        saveAdminNotesMap(state.adminNotes);
+        if (dom.progressSaved) {
+            dom.progressSaved.textContent = "Sauvegard\u00E9.";
+            const existing = Number(dom.progressSaved.dataset.timerId || 0);
+            if (existing) window.clearTimeout(existing);
+            const timer = window.setTimeout(() => {
+                if (dom.progressSaved) dom.progressSaved.textContent = "";
+            }, 2000);
+            dom.progressSaved.dataset.timerId = String(timer);
+        }
+    });
     window.addEventListener("astoria:character-changed", () => {
         state.participant = resolveParticipant();
         renderQuestList();
         renderHistory();
+        renderQuestProgressPanel();
     });
 
     dom.editorForm.addEventListener("submit", handleEditorSubmit);
@@ -2220,6 +2332,7 @@ async function init() {
     await initCharacterSummary({ enableDropdown: true, showKaels: true });
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
+    state.adminNotes = loadAdminNotesMap();
 
     const dbLoaded = await loadQuestsFromDb();
     const historyLoaded = await loadHistoryFromDb();

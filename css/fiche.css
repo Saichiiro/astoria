@@ -28,9 +28,22 @@
 
 .relation-row {
     display: grid;
-    grid-template-columns: 1.2fr 0.9fr 1fr auto auto;
+    grid-template-columns: 1.2fr 0.9fr 1fr auto auto auto;
     gap: var(--space-2);
     align-items: center;
+}
+
+.relation-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(216, 27, 96, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--color-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
 }
 
 .relation-add-btn,
@@ -66,6 +79,7 @@
     }
 
     .relation-row .field-input,
+    .relation-row .relation-icon,
     .relation-row .relation-link-btn,
     .relation-row .relation-remove-btn {
         width: 100%;

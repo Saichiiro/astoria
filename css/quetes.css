@@ -471,6 +471,33 @@ body.quest-board {
     box-shadow: var(--quest-shadow);
 }
 
+.quest-progress-body {
+    display: grid;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.quest-progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.quest-progress-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(61, 42, 87, 0.55);
+}
+
+.quest-progress-value {
+    font-weight: 700;
+    color: rgba(61, 42, 87, 0.9);
+    text-align: right;
+}
+
 .quest-progress-header {
     display: flex;
     align-items: center;
@@ -493,10 +520,54 @@ body.quest-board {
     background: rgba(255, 255, 255, 0.9);
 }
 
-.quest-progress-panel p {
-    margin: 0;
-    color: rgba(61, 42, 87, 0.7);
-    font-weight: 600;
+.quest-progress-notes {
+    margin-top: 12px;
+    display: grid;
+    gap: 6px;
+}
+
+.quest-progress-notes label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: rgba(61, 42, 87, 0.75);
+}
+
+.quest-progress-notes textarea {
+    min-height: 90px;
+    resize: vertical;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 106, 162, 0.25);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: #4c3a63;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.quest-progress-notes textarea:focus-visible {
+    outline: 2px solid rgba(255, 106, 162, 0.35);
+    outline-offset: 2px;
+}
+
+.quest-progress-notes-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quest-progress-save {
+    border-radius: 999px;
+    border: 1px solid rgba(255, 106, 162, 0.4);
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--quest-pink);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.quest-progress-saved {
+    font-size: 0.75rem;
+    color: rgba(61, 42, 87, 0.6);
 }
 
 .quest-history-tabs {

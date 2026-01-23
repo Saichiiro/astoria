@@ -109,6 +109,7 @@ const state = {
     storageKeys: null,
     nokorahService: null,
     characterId: null,
+    auth: null,
     mode: 'local', // 'local' or 'supabase'
     selectedAppearance: PRESET_APPEARANCES[0],
     uploadDataUrl: ""
@@ -249,9 +250,18 @@ function slugify(input) {
         .toLowerCase();
 }
 
+function isExcludedSkillCategory(category) {
+    if (!category) return false;
+    const id = String(category.id || "").toLowerCase();
+    if (id === "pouvoirs") return true;
+    const label = slugify(category.label || "");
+    return label.includes("pouvoirs-alice") || label.includes("arme-meister");
+}
+
 function flattenSkills(categories) {
     const list = [];
     (categories || []).forEach((category) => {
+        if (isExcludedSkillCategory(category)) return;
         (category.skills || []).forEach((skill) => {
             if (!skill || !skill.name) return;
             const id = skill.id || slugify(skill.name);
@@ -265,9 +275,93 @@ function flattenSkills(categories) {
     return list;
 }
 
+function buildSkillListFromCompetences(competences, categories) {
+    if (!competences) return null;
+    const baseValues = competences.baseValuesByCategory || {};
+    const allocations = competences.allocationsByCategory || {};
+    const categoryIds = new Set([
+        ...Object.keys(baseValues || {}),
+        ...Object.keys(allocations || {})
+    ]);
+    if (!categoryIds.size) return null;
+
+    const categoriesById = new Map();
+    (categories || []).forEach((category) => {
+        if (!category?.id) return;
+        categoriesById.set(category.id, category);
+    });
+
+    const list = [];
+    const seen = new Set();
+    const pushSkill = (name, category) => {
+        if (!name) return;
+        const id = slugify(name);
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        list.push({
+            id,
+            name,
+            category: category?.label || category?.id || ""
+        });
+    };
+
+    categoryIds.forEach((categoryId) => {
+        const category = categoriesById.get(categoryId) || { id: categoryId, label: categoryId };
+        if (isExcludedSkillCategory(category)) return;
+        const names = new Set([
+            ...Object.keys(baseValues[categoryId] || {}),
+            ...Object.keys(allocations[categoryId] || {})
+        ]);
+        if (!names.size && category.skills?.length) {
+            category.skills.forEach((skill) => pushSkill(skill?.name, category));
+            return;
+        }
+        names.forEach((name) => pushSkill(name, category));
+    });
+
+    return list;
+}
+
+function loadCompetencesSnapshot() {
+    const categories = Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+    let characterId = state.characterId;
+    let competences = null;
+
+    if (state.auth?.getActiveCharacter) {
+        const character = state.auth.getActiveCharacter();
+        if (character?.id) {
+            characterId = character.id;
+            competences = character.profile_data?.competences || null;
+        }
+    }
+
+    if (!competences) {
+        const prefix = characterId ? `astoria_competences_${characterId}:` : "";
+        const baseValuesByCategory = readJson(`${prefix}skillsBaseValuesByCategory`, null);
+        const allocationsByCategory = readJson(`${prefix}skillsAllocationsByCategory`, null);
+        const pointsByCategory = readJson(`${prefix}skillsPointsByCategory`, null);
+        const locksByCategory = readJson(`${prefix}skillsLocksByCategory`, null);
+        if (baseValuesByCategory || allocationsByCategory || pointsByCategory || locksByCategory) {
+            competences = {
+                baseValuesByCategory: baseValuesByCategory || {},
+                allocationsByCategory: allocationsByCategory || {},
+                pointsByCategory: pointsByCategory || {},
+                locksByCategory: locksByCategory || {}
+            };
+        }
+    }
+
+    return { competences, categories };
+}
+
 async function loadSkills() {
-    if (Array.isArray(window.skillsCategories)) {
-        return flattenSkills(window.skillsCategories);
+    const { competences, categories } = loadCompetencesSnapshot();
+    const fromCompetences = buildSkillListFromCompetences(competences, categories);
+    if (fromCompetences && fromCompetences.length) {
+        return fromCompetences;
+    }
+    if (Array.isArray(categories) && categories.length) {
+        return flattenSkills(categories);
     }
     return [];
 }
@@ -640,25 +734,41 @@ function animateRoulette(finalResults) {
     document.querySelectorAll("[data-nokorah-root]").forEach((root) => {
         const cards = Array.from(root.querySelectorAll("[data-roulette]"));
         const resultEl = root.querySelector("[data-roulette-result]");
+        const track = root.querySelector(".roulette-track");
         if (!cards.length || !resultEl) return;
 
-        cards.forEach((card) => card.classList.add("is-rolling"));
+        cards.forEach((card) => {
+            card.classList.add("is-rolling");
+            card.classList.remove("is-final");
+        });
+        if (track) track.classList.add("is-spinning");
+        resultEl.textContent = "Roulette en cours...";
+
         let tick = 0;
-        const interval = setInterval(() => {
+        const totalTicks = 18;
+        const spinStep = () => {
             cards.forEach((card) => {
                 const skill = state.skills[Math.floor(Math.random() * state.skills.length)];
                 card.textContent = skill ? skill.name : "?";
             });
             tick += 1;
-            if (tick > 8) {
-                clearInterval(interval);
-                cards.forEach((card, index) => {
-                    card.classList.remove("is-rolling");
-                    card.textContent = finalResults[index] || finalResults[0] || "?";
-                });
-                resultEl.textContent = `Bonus obtenu : ${finalResults.map((name) => `+1 ${name}`).join(", ")}`;
+            if (tick <= totalTicks) {
+                const progress = tick / totalTicks;
+                const delay = 70 + Math.pow(progress, 2) * 220;
+                window.setTimeout(spinStep, delay);
+                return;
             }
-        }, 140);
+
+            cards.forEach((card, index) => {
+                card.classList.remove("is-rolling");
+                card.classList.add("is-final");
+                card.textContent = finalResults[index] || finalResults[0] || "?";
+            });
+            if (track) track.classList.remove("is-spinning");
+            resultEl.textContent = `Bonus obtenu : ${finalResults.map((name) => `+1 ${name}`).join(", ")}`;
+        };
+
+        spinStep();
     });
 }
 
@@ -686,6 +796,7 @@ async function confirmFarewell() {
 async function buildNokorahAdapter() {
     try {
         const auth = await import('./auth.js');
+        state.auth = auth;
         if (typeof auth.refreshSessionUser === 'function') {
             await auth.refreshSessionUser();
         }
@@ -914,6 +1025,15 @@ export async function initNokorah() {
     state.inventory = await buildInventoryAdapter();
     await refreshLuckySoul();
     renderAll();
+
+    window.addEventListener("astoria:character-changed", async () => {
+        await buildNokorahAdapter();
+        await loadState();
+        state.skills = await loadSkills();
+        state.inventory = await buildInventoryAdapter();
+        await refreshLuckySoul();
+        renderAll();
+    });
 }
 
 window.initNokorah = initNokorah;

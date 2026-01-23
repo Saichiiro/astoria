@@ -951,6 +951,9 @@
                 { value: 'mentor', label: 'Mentor' },
                 { value: 'ally', label: 'Allie' }
             ];
+            const RELATION_ICONS = {
+                friend: '\uD83E\uDD1D'
+            };
             let authApi = null;
             try {
                 authApi = await import('./js/auth.js');
@@ -979,6 +982,20 @@
                 }
                 link.hidden = false;
                 link.href = `profil.html?character=${encodeURIComponent(value)}`;
+            }
+
+            function updateRelationIcon(row) {
+                const iconEl = row.querySelector('.relation-icon');
+                const typeSelect = row.querySelector('.relation-type');
+                if (!iconEl || !typeSelect) return;
+                const icon = RELATION_ICONS[typeSelect.value] || '';
+                iconEl.textContent = icon;
+                iconEl.hidden = !icon;
+                if (icon) {
+                    iconEl.title = 'Amitie';
+                } else {
+                    iconEl.removeAttribute('title');
+                }
             }
 
             function createRelationRow(data) {
@@ -1011,12 +1028,17 @@
                 link.rel = 'noopener';
                 link.hidden = true;
 
+                const icon = document.createElement('span');
+                icon.className = 'relation-icon';
+                icon.hidden = true;
+                icon.setAttribute('aria-hidden', 'true');
+
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'relation-remove-btn';
                 removeBtn.textContent = 'Retirer';
 
-                row.append(nameInput, typeSelect, charInput, link, removeBtn);
+                row.append(nameInput, typeSelect, charInput, icon, link, removeBtn);
 
                 if (data) {
                     if (data.name) nameInput.value = data.name;
@@ -1025,10 +1047,14 @@
                 }
 
                 updateRelationLink(row);
+                updateRelationIcon(row);
 
                 const markDirty = () => markTabDirty('background');
                 nameInput.addEventListener('input', markDirty);
-                typeSelect.addEventListener('change', markDirty);
+                typeSelect.addEventListener('change', () => {
+                    updateRelationIcon(row);
+                    markDirty();
+                });
                 charInput.addEventListener('input', () => {
                     updateRelationLink(row);
                     markDirty();
