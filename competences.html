@@ -6,7 +6,7 @@
     <title>Compétences - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
-    <style type="text/tailwindcss">
+    <style>
         /* =====================================================================
            FEUILLE DE COMPÉTENCES - Mise en page & thème local à cette page
            ===================================================================== */
@@ -713,7 +713,8 @@
             }
         }
     
-        @layer utilities {
+        </style>
+<style type="text/tailwindcss">@layer utilities {
             .fade-in {
                 @apply opacity-0 translate-y-2;
                 animation: fadeIn 0.6s ease forwards;
@@ -752,7 +753,7 @@
 </head>
 <body data-admin="false" class="min-h-screen">
     <main class="skills-page fade-in" aria-labelledby="skillsPageTitle">
-        <header class="skills-header">
+        <header class="skills-header tw-panel">
             <a href="index.html" class="skills-back-link tw-back tw-press">← Retour</a>
             <div class="skills-header-main">
                 <h1 class="skills-title" id="skillsPageTitle">Feuille de compétences</h1>

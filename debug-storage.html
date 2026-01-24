@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Diagnostic localStorage - Astoria</title>
-    <style type="text/tailwindcss">
+    <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
             max-width: 800px;
@@ -71,7 +71,8 @@
             background: #ad1457;
         }
     
-        @layer utilities {
+        </style>
+<style type="text/tailwindcss">@layer utilities {
             .fade-in {
                 @apply opacity-0 translate-y-2;
                 animation: fadeIn 0.6s ease forwards;

@@ -6,7 +6,7 @@
     <title>Connexion - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
-    <style type="text/tailwindcss">
+    <style>
         .auth-container {
             min-height: 100vh;
             display: flex;
@@ -189,7 +189,8 @@
             }
         }
     
-        @layer utilities {
+        </style>
+<style type="text/tailwindcss">@layer utilities {
             .fade-in {
                 @apply opacity-0 translate-y-2;
                 animation: fadeIn 0.6s ease forwards;
@@ -269,7 +270,7 @@
                     <input type="password" id="resetPasswordConfirm" class="form-input tw-input" required autocomplete="new-password" placeholder="Confirmer le mot de passe">
                 </div>
                 <button type="submit" class="auth-button tw-btn tw-press" id="resetButton">Reinitialiser le mot de passe</button>
-                <button type="button" class="auth-link tw-btn-ghost tw-press" id="backToLoginLink">Retour a la connexion</button>
+                <button type="button" class="auth-link tw-btn-ghost tw-press" id="backToLoginLink">Retour à la connexion</button>
             </form>
             <form id="registerForm" style="display:none;">
                 <div class="form-group">
