@@ -1098,6 +1098,9 @@ body.quest-board {
     padding: 10px 14px;
     font-weight: 600;
     font-family: var(--quest-font-body);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .quest-editor-block--images input[type="file"] {
@@ -1420,7 +1423,7 @@ body.quest-board {
 }
 
 .quest-editor-block--rewards .quest-editor-list {
-    max-height: 190px;
+    max-height: calc(3 * 34px + 16px);
     overflow-y: auto;
     padding-right: 6px;
     scrollbar-gutter: stable;
@@ -1457,6 +1460,13 @@ body.quest-board {
     font-weight: 600;
     color: #4c3a63;
     position: relative;
+}
+
+.quest-editor-item span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .quest-editor-block--rewards .quest-editor-item {
