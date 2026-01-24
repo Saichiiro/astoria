@@ -28,7 +28,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-                @layer components {
+                        @layer components {
             .tw-surface { @apply shadow-soft ring-1 ring-black/5; }
             .tw-surface-strong { @apply shadow-soft ring-2 ring-astoria-200/60; }
             .tw-press { @apply transition-transform duration-200 ease-out active:scale-[0.98]; }
@@ -40,13 +40,14 @@
             .tw-btn-ghost { @apply rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600; }
             .tw-input { @apply rounded-xl border border-astoria-200/60 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-astoria-400/40; }
             .tw-pill { @apply inline-flex items-center gap-1 rounded-full bg-white/70 border border-astoria-200/60 px-3 py-1 text-xs font-semibold text-astoria-600; }
+            .tw-back { @apply inline-flex items-center gap-2 rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600 px-4 py-2 font-semibold shadow-soft; }
         }
 </style>
 </head>
 <body class="min-h-screen">
     <main class="hdv-page fade-in" aria-labelledby="hdvTitle">
-        <header class="page-header">
-            <a href="profil.html" class="magic-back-link" title="Retour au profil">⟵ Retour</a>
+        <header class="page-header tw-panel">
+            <a href="profil.html" class="magic-back-link tw-back tw-press" title="Retour au profil">⟵ Retour</a>
             <div class="page-header-main">
                 <div class="page-title-block">
                     <h1 class="page-title" id="hdvTitle">Hôtel de vente</h1>
@@ -73,48 +74,48 @@
                 </div>
             </div>
         </header>
-        <nav class="hdv-tabs" role="tablist" aria-label="Onglets Hôtel de vente">
-            <button class="hdv-tab active tw-press" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
+        <nav class="hdv-tabs tw-panel" role="tablist" aria-label="Onglets Hôtel de vente">
+            <button class="hdv-tab active tw-press tw-btn-ghost" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
                 Rechercher
             </button>
-            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
+            <button class="hdv-tab tw-press tw-btn-ghost" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
                 Mes offres
             </button>
-            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
+            <button class="hdv-tab tw-press tw-btn-ghost" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
                 Historique
             </button>
         </nav>
         <section class="hdv-layout" aria-label="Interface Hôtel de vente">
-            <aside class="hdv-sidebar" aria-label="Catégories">
+            <aside class="hdv-sidebar tw-panel" aria-label="Catégories">
                 <h2 class="hdv-sidebar-title">Catégories</h2>
                 <div class="hdv-category-list" id="hdvCategories"></div>
             </aside>
             <section class="hdv-content">
-                <div class="hdv-panel active tw-surface" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
+                <div class="hdv-panel active tw-surface tw-panel" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
                     <section class="hdv-filterbar" aria-label="Filtres">
                         <div class="inventory-search" id="hdvSearch">
-                            <button type="button" class="inventory-search-toggle tw-press" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                            <button type="button" class="inventory-search-toggle tw-press tw-btn-ghost" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
                                 <span class="inventory-search-icon">&#x1F50D;</span>
                             </button>
                             <input
                                 id="hdvSearchInput"
                                 type="search"
-                                class="inventory-search-input"
+                                class="inventory-search-input tw-input"
                                 placeholder="Rechercher un item..."
                                 autocomplete="off"
                                 aria-label="Rechercher un item">
-                            <button type="button" class="inventory-search-clear tw-press" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <button type="button" class="inventory-search-clear tw-press tw-btn-ghost" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
                             <div class="recent-searches-dropdown inventory-search-history" id="hdvSearchHistory"></div>
                         </div>
                         <div class="hdv-filter-group">
                             <label class="hdv-filter-label" for="hdvMinLevel">Niv. min</label>
-                            <input class="field-input hdv-filter-input" id="hdvMinLevel" type="number" min="0" placeholder="0">
+                            <input class="field-input hdv-filter-input tw-input" id="hdvMinLevel" type="number" min="0" placeholder="0">
                         </div>
                         <div class="hdv-filter-group">
                             <label class="hdv-filter-label" for="hdvMaxLevel">Niv. max</label>
-                            <input class="field-input hdv-filter-input" id="hdvMaxLevel" type="number" min="0" placeholder="999">
+                            <input class="field-input hdv-filter-input tw-input" id="hdvMaxLevel" type="number" min="0" placeholder="999">
                         </div>
-                        <select class="category-dropdown" id="hdvRaritySelect" aria-label="Rareté">
+                        <select class="category-dropdown tw-input" id="hdvRaritySelect" aria-label="Rareté">
                             <option value="all">Toutes raretés</option>
                             <option value="Inconnue">Inconnue</option>
                             <option value="Commun">Commun</option>
@@ -123,13 +124,13 @@
                             <option value="Légendaire">Légendaire</option>
                         </select>
                         <div class="hdv-scroll-filter">
-                            <div class="hdv-scroll-panel tw-surface" id="hdvScrollTypesPanel" aria-hidden="true">
+                            <div class="hdv-scroll-panel tw-surface tw-panel" id="hdvScrollTypesPanel" aria-hidden="true">
                                 <div class="hdv-scroll-panel-title">Types de parchemins</div>
                                 <div class="hdv-scroll-panel-list" id="hdvScrollTypesList"></div>
-                                <button class="hdv-scroll-clear tw-press" type="button" id="hdvScrollTypesClear">Tous les types</button>
+                                <button class="hdv-scroll-clear tw-press tw-btn-ghost" type="button" id="hdvScrollTypesClear">Tous les types</button>
                             </div>
                         </div>
-                        <select class="category-dropdown" id="hdvSortSelect" aria-label="Tri">
+                        <select class="category-dropdown tw-input" id="hdvSortSelect" aria-label="Tri">
                             <option value="price_asc">Les moins chers</option>
                             <option value="price_desc">Les plus chers</option>
                             <option value="level_desc">Niveau</option>
@@ -142,7 +143,7 @@
                     </section>
                     <div class="filter-chips" id="hdvChips" aria-label="Filtres actifs"></div>
                     <div class="hdv-status" id="hdvSearchStatus" aria-live="polite"></div>
-                    <div class="table-container">
+                    <div class="table-container tw-panel">
                         <table aria-label="Résultats Hôtel de vente">
                             <thead>
                                 <tr>
@@ -159,27 +160,27 @@
                     </div>
                     <div class="hdv-pagination" id="hdvPagination" aria-label="Pagination"></div>
                 </div>
-                <div class="hdv-panel tw-surface" id="hdvTabMine" role="tabpanel" aria-label="Mes offres">
+                <div class="hdv-panel tw-surface tw-panel" id="hdvTabMine" role="tabpanel" aria-label="Mes offres">
                     <div class="hdv-status" id="hdvMineStatus" aria-live="polite"></div>
                     <section class="hdv-sell-card tw-surface tw-hover" aria-label="Créer une offre">
                         <h2 class="hdv-section-title">Créer une offre</h2>
                         <div class="hdv-sell-form">
                         <div class="hdv-sell-field">
                             <label class="hdv-filter-label" for="hdvSellItem">Objet</label>
-                            <select class="field-input" id="hdvSellItem"></select>
+                            <select class="field-input tw-input" id="hdvSellItem"></select>
                             <div class="hdv-help" id="hdvBasePriceHint"></div>
                         </div>
                         <div class="hdv-sell-field" id="hdvScrollTypeField" hidden>
                             <label class="hdv-filter-label" for="hdvScrollTypeSelect">Type de parchemin</label>
-                            <select class="field-input" id="hdvScrollTypeSelect"></select>
+                            <select class="field-input tw-input" id="hdvScrollTypeSelect"></select>
                         </div>
                             <div class="hdv-sell-field">
                                 <label class="hdv-filter-label" for="hdvSellQty">Quantité</label>
-                                <input class="field-input" id="hdvSellQty" type="number" min="1" value="1">
+                                <input class="field-input tw-input" id="hdvSellQty" type="number" min="1" value="1">
                             </div>
                             <div class="hdv-sell-field">
                                 <label class="hdv-filter-label" for="hdvSellUnitPrice">Prix/unité</label>
-                                <input class="field-input" id="hdvSellUnitPrice" type="number" min="0" value="0">
+                                <input class="field-input tw-input" id="hdvSellUnitPrice" type="number" min="0" value="0">
                             </div>
                             <div class="hdv-sell-actions">
                                 <button class="btn-primary hdv-action-btn tw-press" id="hdvCreateListing" type="button">Mettre en vente</button>
@@ -188,7 +189,7 @@
                     </section>
                     <section class="hdv-section" aria-label="Mes ventes actives">
                         <h2 class="hdv-section-title">Mes offres actives</h2>
-                        <div class="table-container">
+                        <div class="table-container tw-panel">
                             <table aria-label="Mes offres">
                                 <thead>
                                     <tr>
@@ -203,11 +204,11 @@
                         </div>
                     </section>
                 </div>
-                <div class="hdv-panel tw-surface" id="hdvTabHistory" role="tabpanel" aria-label="Historique">
+                <div class="hdv-panel tw-surface tw-panel" id="hdvTabHistory" role="tabpanel" aria-label="Historique">
                     <div class="hdv-status" id="hdvHistoryStatus" aria-live="polite"></div>
                     <section class="hdv-section" aria-label="Transactions">
                         <h2 class="hdv-section-title">Mes transactions</h2>
-                        <div class="table-container">
+                        <div class="table-container tw-panel">
                             <table aria-label="Historique des transactions">
                                 <thead>
                                     <tr>

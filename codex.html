@@ -31,7 +31,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-                @layer components {
+                        @layer components {
             .tw-surface { @apply shadow-soft ring-1 ring-black/5; }
             .tw-surface-strong { @apply shadow-soft ring-2 ring-astoria-200/60; }
             .tw-press { @apply transition-transform duration-200 ease-out active:scale-[0.98]; }
@@ -43,12 +43,13 @@
             .tw-btn-ghost { @apply rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600; }
             .tw-input { @apply rounded-xl border border-astoria-200/60 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-astoria-400/40; }
             .tw-pill { @apply inline-flex items-center gap-1 rounded-full bg-white/70 border border-astoria-200/60 px-3 py-1 text-xs font-semibold text-astoria-600; }
+            .tw-back { @apply inline-flex items-center gap-2 rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600 px-4 py-2 font-semibold shadow-soft; }
         }
 </style>
 </head>
 <body class="min-h-screen">
-    <main class="wrapper fade-in tw-surface" aria-labelledby="pageTitle">
-        <div class="top-bar">
+    <main class="wrapper fade-in tw-surface tw-panel" aria-labelledby="pageTitle">
+        <div class="top-bar tw-panel">
             <!-- Navigation placeholder -->
             <nav aria-label="Navigation principale" class="top-nav">
                 <span class="top-nav-placeholder" aria-hidden="true"></span>
@@ -66,7 +67,7 @@
                     <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
                     <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
                     <div class="character-summary-meta">
-                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        <span class="stats-badge tw-pill" id="characterKaelsBadge" hidden>0 kaels</span>
                         <div class="character-souls" id="characterSouls" hidden>
                             <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
                             <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
@@ -74,28 +75,28 @@
                     </div>
                 </div>
             </div>
-            <span class="stats-badge" id="statsBadge">0 objet</span>
-            <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
+            <span class="stats-badge tw-pill" id="statsBadge">0 objet</span>
+            <button type="button" class="admin-add-btn tw-press tw-btn" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
             <!-- Dropdown catégories -->
-            <select id="categoryFilter" class="category-dropdown">
+            <select id="categoryFilter" class="category-dropdown tw-input">
                 <option value="">Toutes catégories</option>
                 <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
                 <option value="consommable">&#x1F9EA; Consommables</option>
                 <option value="agricole">&#x1F33E; Agricole</option>
             </select>
             <div class="inventory-search" id="codexSearch">
-                <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                <button type="button" class="inventory-search-toggle tw-press tw-btn-ghost" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
                     <span class="inventory-search-icon">&#x1F50D;</span>
                 </button>
                 <input
                     type="search"
                     id="searchInput"
-                    class="inventory-search-input"
+                    class="inventory-search-input tw-input"
                     placeholder="Rechercher un objet..."
                     aria-label="Rechercher un objet">
                 <button
                     id="clearSearchBtn"
-                    class="inventory-search-clear tw-press"
+                    class="inventory-search-clear tw-press tw-btn-ghost"
                     type="button"
                     aria-label="Effacer la recherche"
                     hidden>x</button>
@@ -103,7 +104,7 @@
             </div>
         </div>
         <div class="filter-chips" id="filterChips"></div>
-        <div class="table-container">
+        <div class="table-container tw-panel">
             <table id="inventoryTable">
                 <thead>
                     <tr>
@@ -122,26 +123,26 @@
     <!-- Modal pour voir un item en grand / détails -->
     <div
         id="itemModal"
-        class="modal tw-surface"
+        class="modal tw-surface tw-panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modalName"
         aria-describedby="modalDescription"
     >
-        <div class="modal-inner tw-surface">
+        <div class="modal-inner tw-surface tw-panel">
             <div class="modal-header">
                 <h2 class="modal-title" id="modalName"></h2>
                 <div class="modal-admin-actions" id="modalAdminActions" hidden>
-                    <button type="button" class="admin-edit-btn tw-press" id="adminEditBtn">Modifier</button>
+                    <button type="button" class="admin-edit-btn tw-press tw-btn-ghost" id="adminEditBtn">Modifier</button>
                 </div>
                 <button class="modal-close tw-press" aria-label="Fermer la fenêtre">×</button>
             </div>
-            <div class="modal-body tw-surface">
+            <div class="modal-body tw-surface tw-panel">
                 <div class="modal-media">
-                    <div class="modal-carousel tw-surface" id="modalCarousel">
-                        <button class="carousel-btn prev tw-press" id="carouselPrev" aria-label="Image précédente">‹</button>
+                    <div class="modal-carousel tw-surface tw-panel" id="modalCarousel">
+                        <button class="carousel-btn prev tw-press tw-btn-ghost" id="carouselPrev" aria-label="Image précédente">‹</button>
                         <img id="modalImage" alt="">
-                        <button class="carousel-btn next tw-press" id="carouselNext" aria-label="Image suivante">›</button>
+                        <button class="carousel-btn next tw-press tw-btn-ghost" id="carouselNext" aria-label="Image suivante">›</button>
                     </div>
                     <div class="carousel-dots" id="carouselDots"></div>
                 </div>
@@ -154,10 +155,10 @@
         </div>
     </div>
     <div class="codex-admin-backdrop" id="adminItemBackdrop" aria-hidden="true">
-        <div class="codex-admin-modal tw-surface" role="dialog" aria-modal="true" aria-labelledby="adminItemTitle">
+        <div class="codex-admin-modal tw-surface tw-panel tw-panel" role="dialog" aria-modal="true" aria-labelledby="adminItemTitle">
             <div class="codex-admin-header">
                 <h2 class="codex-admin-title" id="adminItemTitle">Ajouter un objet</h2>
-                <button type="button" class="codex-admin-close tw-press" id="adminItemClose" aria-label="Fermer">x</button>
+                <button type="button" class="codex-admin-close tw-press tw-btn-ghost" id="adminItemClose" aria-label="Fermer">x</button>
             </div>
             <div class="codex-admin-error" id="adminItemError" role="alert"></div>
             <div class="codex-admin-note" id="adminItemNote"></div>
@@ -167,31 +168,31 @@
                     <div class="codex-admin-grid">
                         <div class="codex-admin-field">
                             <label class="codex-admin-label" for="adminItemName">Nom</label>
-                            <input class="codex-admin-input" id="adminItemName" name="name" required>
+                            <input class="codex-admin-input tw-input" id="adminItemName" name="name" required>
                         </div>
                         <div class="codex-admin-field">
                             <label class="codex-admin-label" for="adminItemCategory">Categorie</label>
-                            <select class="codex-admin-input" id="adminItemCategory" name="category">
+                            <select class="codex-admin-input tw-input" id="adminItemCategory" name="category">
                                 <option value="">Choisir une categorie</option>
                             </select>
                         </div>
                         <div class="codex-admin-field">
                             <label class="codex-admin-label" for="adminItemBuy">Prix achat</label>
-                            <input class="codex-admin-input" id="adminItemBuy" name="buy" placeholder="ex: 5 po">
+                            <input class="codex-admin-input tw-input" id="adminItemBuy" name="buy" placeholder="ex: 5 po">
                         </div>
                         <div class="codex-admin-field">
                             <label class="codex-admin-label" for="adminItemSell">Prix vente</label>
-                            <input class="codex-admin-input" id="adminItemSell" name="sell" placeholder="ex: 2 po">
+                            <input class="codex-admin-input tw-input" id="adminItemSell" name="sell" placeholder="ex: 2 po">
                         </div>
                     </div>
                 </div>
                 <div class="codex-admin-section">
                     <div class="codex-admin-section-title">Description</div>
-                    <textarea class="codex-admin-textarea" id="adminItemDescription" name="description" rows="3" placeholder="Description courte..."></textarea>
+                    <textarea class="codex-admin-textarea tw-input" id="adminItemDescription" name="description" rows="3" placeholder="Description courte..."></textarea>
                 </div>
                 <div class="codex-admin-section">
                     <div class="codex-admin-section-title">Effet</div>
-                    <textarea class="codex-admin-textarea" id="adminItemEffect" name="effect" rows="2" placeholder="Effet principal..."></textarea>
+                    <textarea class="codex-admin-textarea tw-input" id="adminItemEffect" name="effect" rows="2" placeholder="Effet principal..."></textarea>
                 </div>
                 <div class="codex-admin-section">
                     <div class="codex-admin-section-title">Image</div>
@@ -219,7 +220,7 @@
         </div>
     </div>
     <div class="codex-cropper-backdrop" id="itemCropperBackdrop" aria-hidden="true">
-        <div class="codex-cropper-modal tw-surface" role="dialog" aria-modal="true" aria-labelledby="itemCropperTitle">
+        <div class="codex-cropper-modal tw-surface tw-panel" role="dialog" aria-modal="true" aria-labelledby="itemCropperTitle">
             <div class="codex-cropper-header">
                 <h2 class="codex-cropper-title" id="itemCropperTitle">Recadrer l'image</h2>
                 <button type="button" class="codex-cropper-close tw-press" id="itemCropperClose" aria-label="Fermer">x</button>
@@ -242,7 +243,7 @@
     </div>
     <!-- Delete confirmation modal -->
     <div class="codex-delete-backdrop" id="deleteItemBackdrop" aria-hidden="true">
-        <div class="codex-delete-modal tw-surface" role="dialog" aria-modal="true" aria-labelledby="deleteItemTitle">
+        <div class="codex-delete-modal tw-surface tw-panel" role="dialog" aria-modal="true" aria-labelledby="deleteItemTitle">
             <div class="codex-delete-header">
                 <h2 class="codex-delete-title" id="deleteItemTitle">Supprimer l'objet</h2>
             </div>

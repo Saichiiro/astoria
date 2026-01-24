@@ -28,7 +28,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-                @layer components {
+                        @layer components {
             .tw-surface { @apply shadow-soft ring-1 ring-black/5; }
             .tw-surface-strong { @apply shadow-soft ring-2 ring-astoria-200/60; }
             .tw-press { @apply transition-transform duration-200 ease-out active:scale-[0.98]; }
@@ -40,14 +40,15 @@
             .tw-btn-ghost { @apply rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600; }
             .tw-input { @apply rounded-xl border border-astoria-200/60 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-astoria-400/40; }
             .tw-pill { @apply inline-flex items-center gap-1 rounded-full bg-white/70 border border-astoria-200/60 px-3 py-1 text-xs font-semibold text-astoria-600; }
+            .tw-back { @apply inline-flex items-center gap-2 rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600 px-4 py-2 font-semibold shadow-soft; }
         }
 </style>
 </head>
 <body class="nokorah-theme min-h-screen">
     <main class="nokorah-page fade-in">
-        <header class="nokorah-header">
+        <header class="nokorah-header tw-panel">
             <div>
-                <a class="nokorah-back" href="profil.html" title="Retour au profil">← Retour</a>
+                <a class="nokorah-back tw-back tw-press" href="profil.html" title="Retour au profil">← Retour</a>
                 <h1 class="nokorah-title">Nokorah</h1>
             </div>
             <div class="character-summary" aria-label="Résumé du personnage">
@@ -65,7 +66,7 @@
             </div>
         </header>
         <section class="nokorah-hero">
-            <div class="nokorah-hero-card tw-surface tw-hover">
+            <div class="nokorah-hero-card tw-surface tw-panel tw-hover">
                 <span class="nokorah-hero-tag">✨ Nouveauté : Compagnons Nokorah</span>
                 <h2 class="nokorah-section-title">Un esprit doux, un style unique</h2>
                 <p class="nokorah-lore">
@@ -86,27 +87,27 @@
         <section class="nokorah-section">
             <h2 class="nokorah-section-title">Règles principales</h2>
             <div class="rules-grid">
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>1 Nokorah max</h4>
                     <p>Un seul Nokorah actif à la fois, impossible de cumuler plusieurs esprits.</p>
                 </div>
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>Invocation</h4>
                     <p>Invoquer un Nokorah consomme 25 Lucky Soul. La rareté initiale est Commun.</p>
                 </div>
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>Abandon</h4>
                     <p>Changer nécessite 100 Lucky Soul et une scène d'adieux obligatoire.</p>
                 </div>
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>Bonus cumulés</h4>
                     <p>Les bonus de rareté se cumulent. Les points sont distribués sur les compétences existantes.</p>
                 </div>
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>Accessoire</h4>
                     <p>Certains Nokorah sont accessoires : aucun effet en combat (tag visible).</p>
                 </div>
-                <div class="rule-card tw-surface tw-hover">
+                <div class="rule-card tw-surface tw-panel tw-hover">
                     <h4>Améliorations</h4>
                     <p>Les stats évoluent via une roulette aléatoire, avec un coût qui grimpe fortement.</p>
                 </div>

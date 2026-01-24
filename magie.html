@@ -28,7 +28,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-                @layer components {
+                        @layer components {
             .tw-surface { @apply shadow-soft ring-1 ring-black/5; }
             .tw-surface-strong { @apply shadow-soft ring-2 ring-astoria-200/60; }
             .tw-press { @apply transition-transform duration-200 ease-out active:scale-[0.98]; }
@@ -40,13 +40,14 @@
             .tw-btn-ghost { @apply rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600; }
             .tw-input { @apply rounded-xl border border-astoria-200/60 bg-white/90 px-4 py-2 text-sm font-semibold text-gray-700 focus:ring-2 focus:ring-astoria-400/40; }
             .tw-pill { @apply inline-flex items-center gap-1 rounded-full bg-white/70 border border-astoria-200/60 px-3 py-1 text-xs font-semibold text-astoria-600; }
+            .tw-back { @apply inline-flex items-center gap-2 rounded-full border border-astoria-200/70 bg-white/80 text-astoria-600 px-4 py-2 font-semibold shadow-soft; }
         }
 </style>
 </head>
 <body data-admin="false" class="min-h-screen">
     <main class="magic-page fade-in" aria-labelledby="magicPageTitle">
         <header class="magic-header">
-            <a href="index.html" class="magic-back-link" title="Retour à l'accueil">&#8592; Retour</a>
+            <a href="index.html" class="magic-back-link tw-back tw-press" title="Retour à l'accueil">&#8592; Retour</a>
             <div class="magic-header-main">
                 <div class="magic-title-block">
                     <h1 class="magic-title" id="magicPageTitle">Fiche Magie | Spécification</h1>
@@ -67,32 +68,32 @@
             </div>
         </header>
         <section class="magic-layout" aria-label="Fiche magie détaillée">
-            <div class="magic-sheet tw-surface">
+            <div class="magic-sheet tw-surface tw-panel">
                 <div class="magic-page-tabs" id="magicPageTabs" role="tablist" aria-label="Pages de fiche magie">
-                    <button type="button" class="magic-page-tab magic-page-tab--add tw-press" id="magicAddPageBtn" aria-label="Ajouter une page">+</button>
+                    <button type="button" class="magic-page-tab magic-page-tab--add tw-press tw-btn-ghost" id="magicAddPageBtn" aria-label="Ajouter une page">+</button>
                 </div>
                 <!-- Contenu principal -->
                 <section class="magic-content" aria-live="polite">
                     <div class="magic-top-nav" aria-label="Sections de la fiche" role="navigation">
-                        <button class="magic-nav-btn magic-nav-btn--active tw-press" data-target="magic-summary">
+                        <button class="magic-nav-btn magic-nav-btn--active tw-press tw-btn-ghost" data-target="magic-summary">
                             Résumé &amp; spécialisation
                         </button>
-                        <button class="magic-nav-btn tw-press" data-target="magic-parameters">
+                        <button class="magic-nav-btn tw-press tw-btn-ghost" data-target="magic-parameters">
                             Paramètres de fonctionnement
                         </button>
-                        <button class="magic-nav-btn tw-press" data-target="magic-capacities">
+                        <button class="magic-nav-btn tw-press tw-btn-ghost" data-target="magic-capacities">
                             Capacités &amp; sorts
                         </button>
-                        <button class="magic-nav-btn tw-press" data-target="magic-progression">
+                        <button class="magic-nav-btn tw-press tw-btn-ghost" data-target="magic-progression">
                             Progression &amp; limitations
                         </button>
-                        <button class="magic-nav-btn magic-nav-btn--admin tw-press" data-target="magic-admin">
+                        <button class="magic-nav-btn magic-nav-btn--admin tw-press tw-btn-ghost" data-target="magic-admin">
                             Zone admin
                         </button>
                     </div>
                     <div class="magic-save-row">
                         <span class="magic-save-status" id="magicSaveStatus">Sauvegarde en attente.</span>
-                        <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicSaveBtn">Sauvegarder</button>
+                        <button type="button" class="magic-btn magic-btn-primary tw-press tw-btn" id="magicSaveBtn">Sauvegarder</button>
                     </div>
                     <div class="magic-content-body">
                         <!-- 1. Résumé & spécialisation -->
@@ -103,12 +104,12 @@
                                     <h3 class="magic-card-title">Magie principale</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicName">Nom de la magie</label>
-                                        <input id="magicName" class="magic-input" type="text" placeholder="Ex : Lame de Résonance Astrale">
+                                        <input id="magicName" class="magic-input tw-input" type="text" placeholder="Ex : Lame de Résonance Astrale">
                                     </div>
                                     <div class="magic-form-row magic-form-row--split">
                                         <div class="magic-form-field">
                                             <label class="magic-label" for="magicSpecialization">Spécialisation</label>
-                                            <select id="magicSpecialization" class="magic-input">
+                                            <select id="magicSpecialization" class="magic-input tw-input">
                                                 <option value="">Sélectionner...</option>
                                                 <option value="meister">Meister Arme</option>
                                                 <option value="sorcellerie">Sorcellerie</option>
@@ -117,7 +118,7 @@
                                         </div>
                                         <div class="magic-form-field">
                                             <label class="magic-label" for="magicSubtypes">Sous-type(s)</label>
-                                            <input id="magicSubtypes" class="magic-input" type="text" placeholder="Ex : élémentaire, mental, soutien...">
+                                            <input id="magicSubtypes" class="magic-input tw-input" type="text" placeholder="Ex : élémentaire, mental, soutien...">
                                         </div>
                                     </div>
                                 </article>
@@ -125,11 +126,11 @@
                                     <h3 class="magic-card-title">Résumé narratif &amp; technique</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicSummaryRp">Résumé RP</label>
-                                        <textarea id="magicSummaryRp" class="magic-input magic-input--textarea" rows="3" placeholder="En 2-3 lignes, décrivez comment la magie se manifeste en jeu."></textarea>
+                                        <textarea id="magicSummaryRp" class="magic-input tw-input--textarea tw-input" rows="3" placeholder="En 2-3 lignes, décrivez comment la magie se manifeste en jeu."></textarea>
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicSummaryTech">Résumé technique</label>
-                                        <textarea id="magicSummaryTech" class="magic-input magic-input--textarea" rows="3" placeholder="Portée globale, nature, style d'utilisation, contraintes générales..."></textarea>
+                                        <textarea id="magicSummaryTech" class="magic-input tw-input--textarea tw-input" rows="3" placeholder="Portée globale, nature, style d'utilisation, contraintes générales..."></textarea>
                                     </div>
                                 </article>
                                 <article class="magic-card tw-surface tw-hover">
@@ -147,11 +148,11 @@
                                     <h3 class="magic-card-title">Origine &amp; portée</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicSource">Source de magie</label>
-                                        <input id="magicSource" class="magic-input" type="text" placeholder="Mana, pacte, émotions, artefact...">
+                                        <input id="magicSource" class="magic-input tw-input" type="text" placeholder="Mana, pacte, émotions, artefact...">
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicRange">Portée</label>
-                                        <select id="magicRange" class="magic-input">
+                                        <select id="magicRange" class="magic-input tw-input">
                                             <option value="">Sélectionner...</option>
                                             <option value="melee">Corps-à-corps</option>
                                             <option value="short">Courte portée</option>
@@ -164,22 +165,22 @@
                                     <h3 class="magic-card-title">Effet &amp; coût</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicEffectType">Type d'effet principal</label>
-                                        <input id="magicEffectType" class="magic-input" type="text" placeholder="Dégâts, soin, contrôle, utilitaire...">
+                                        <input id="magicEffectType" class="magic-input tw-input" type="text" placeholder="Dégâts, soin, contrôle, utilitaire...">
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicGlobalCost">Coût global</label>
-                                        <textarea id="magicGlobalCost" class="magic-input magic-input--textarea" rows="2" placeholder="Fatigue, mana, nombre d'utilisations par scène, etc."></textarea>
+                                        <textarea id="magicGlobalCost" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Fatigue, mana, nombre d'utilisations par scène, etc."></textarea>
                                     </div>
                                 </article>
                                 <article class="magic-card tw-surface tw-hover">
                                     <h3 class="magic-card-title">Conditions &amp; faiblesses</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicActivation">Conditions d'activation</label>
-                                        <textarea id="magicActivation" class="magic-input magic-input--textarea" rows="2" placeholder="Contact, incantation, geste, émotion, pacte..."></textarea>
+                                        <textarea id="magicActivation" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Contact, incantation, geste, émotion, pacte..."></textarea>
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicWeaknesses">Faiblesses générales</label>
-                                        <textarea id="magicWeaknesses" class="magic-input magic-input--textarea" rows="2" placeholder="Contres, limitations, situations de désavantage."></textarea>
+                                        <textarea id="magicWeaknesses" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Contres, limitations, situations de désavantage."></textarea>
                                     </div>
                                 </article>
                             </div>
@@ -194,14 +195,14 @@
                                     </p>
                                 </div>
                                 <div class="magic-section-actions">
-                                    <select id="magicCapacityFilter" class="magic-input magic-input--sm" aria-label="Filtrer les capacités">
+                                    <select id="magicCapacityFilter" class="magic-input tw-input--sm tw-input" aria-label="Filtrer les capacités">
                                         <option value="">Toutes les catégories</option>
                                         <option value="offensif">Offensif</option>
                                         <option value="defensif">Défensif</option>
                                         <option value="soutien">Soutien</option>
                                         <option value="utilitaire">Utilitaire</option>
                                     </select>
-                                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicAddCapacityBtn">
+                                    <button type="button" class="magic-btn magic-btn-primary tw-press tw-btn" id="magicAddCapacityBtn">
                                         + Ajouter une capacité
                                     </button>
                                 </div>
@@ -209,12 +210,12 @@
                             <div class="magic-capacity-form" id="magicCapacityForm" hidden>
                                 <div class="magic-form-row">
                                     <label class="magic-label" for="magicNewCapName">Nom de la capacite</label>
-                                    <input id="magicNewCapName" class="magic-input" type="text" placeholder="Ex : Lame eclipse" />
+                                    <input id="magicNewCapName" class="magic-input tw-input" type="text" placeholder="Ex : Lame eclipse" />
                                 </div>
                                 <div class="magic-form-row magic-form-row--split">
                                     <div class="magic-form-field">
                                         <label class="magic-label" for="magicNewCapType">Type</label>
-                                        <select id="magicNewCapType" class="magic-input">
+                                        <select id="magicNewCapType" class="magic-input tw-input">
                                             <option value="offensif">Offensif</option>
                                             <option value="defensif">Defensif</option>
                                             <option value="soutien">Soutien</option>
@@ -223,7 +224,7 @@
                                     </div>
                                     <div class="magic-form-field">
                                         <label class="magic-label" for="magicNewCapRank">Rang</label>
-                                        <select id="magicNewCapRank" class="magic-input">
+                                        <select id="magicNewCapRank" class="magic-input tw-input">
                                             <option value="mineur">Mineur</option>
                                             <option value="majeur">Majeur</option>
                                             <option value="signature">Signature</option>
@@ -233,25 +234,25 @@
                                 </div>
                                 <div class="magic-form-row">
                                     <label class="magic-label" for="magicNewCapRp">Description RP</label>
-                                    <textarea id="magicNewCapRp" class="magic-input magic-input--textarea" rows="2" placeholder="Declenchement, ambiance, etc."></textarea>
+                                    <textarea id="magicNewCapRp" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Declenchement, ambiance, etc."></textarea>
                                 </div>
                                 <div class="magic-form-row">
                                     <label class="magic-label" for="magicNewCapEffect">Effet mecanique</label>
-                                    <textarea id="magicNewCapEffect" class="magic-input magic-input--textarea" rows="2" placeholder="Degats, effets, duree..."></textarea>
+                                    <textarea id="magicNewCapEffect" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Degats, effets, duree..."></textarea>
                                 </div>
                                 <div class="magic-form-row magic-form-row--split">
                                     <div class="magic-form-field">
                                         <label class="magic-label" for="magicNewCapCost">Cout</label>
-                                        <input id="magicNewCapCost" class="magic-input" type="text" placeholder="Mana, fatigue..." />
+                                        <input id="magicNewCapCost" class="magic-input tw-input" type="text" placeholder="Mana, fatigue..." />
                                     </div>
                                     <div class="magic-form-field">
                                         <label class="magic-label" for="magicNewCapLimits">Limites</label>
-                                        <input id="magicNewCapLimits" class="magic-input" type="text" placeholder="Conditions, contraintes..." />
+                                        <input id="magicNewCapLimits" class="magic-input tw-input" type="text" placeholder="Conditions, contraintes..." />
                                     </div>
                                 </div>
                                 <div class="magic-capacity-form-actions">
-                                    <button type="button" class="magic-btn magic-btn-outline tw-press" id="magicCapacityCancel">Annuler</button>
-                                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicCapacitySave">Ajouter</button>
+                                    <button type="button" class="magic-btn magic-btn-outline tw-press tw-btn-ghost" id="magicCapacityCancel">Annuler</button>
+                                    <button type="button" class="magic-btn magic-btn-primary tw-press tw-btn" id="magicCapacitySave">Ajouter</button>
                                 </div>
                             </div>
                             <ul class="magic-capacity-list" id="magicCapacityList" aria-label="Liste des capacités">
@@ -268,16 +269,16 @@
                                     <div class="magic-form-row magic-form-row--split">
                                         <div class="magic-form-field">
                                             <label class="magic-label" for="magicMaxSlots">Nombre maximum de capacités</label>
-                                            <input id="magicMaxSlots" class="magic-input" type="number" min="0" max="99" value="8">
+                                            <input id="magicMaxSlots" class="magic-input tw-input" type="number" min="0" max="99" value="8">
                                         </div>
                                         <div class="magic-form-field">
                                             <label class="magic-label" for="magicStartingSlots">Capacités débloquées au départ</label>
-                                            <input id="magicStartingSlots" class="magic-input" type="number" min="0" max="99" value="4">
+                                            <input id="magicStartingSlots" class="magic-input tw-input" type="number" min="0" max="99" value="4">
                                         </div>
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicUnlockConditions">Conditions de déblocage</label>
-                                        <textarea id="magicUnlockConditions" class="magic-input magic-input--textarea" rows="3" placeholder="Par exemple : progression RP, validation MJ, paliers de niveau, quêtes, etc."></textarea>
+                                        <textarea id="magicUnlockConditions" class="magic-input tw-input--textarea tw-input" rows="3" placeholder="Par exemple : progression RP, validation MJ, paliers de niveau, quêtes, etc."></textarea>
                                     </div>
                                 </article>
                                 <article class="magic-card tw-surface tw-hover">
@@ -314,7 +315,7 @@
                                     <h3 class="magic-card-title">Statut de la fiche</h3>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicSheetStatus">Statut</label>
-                                        <select id="magicSheetStatus" class="magic-input">
+                                        <select id="magicSheetStatus" class="magic-input tw-input">
                                             <option value="draft">Brouillon</option>
                                             <option value="pending">En attente de validation</option>
                                             <option value="approved">Validée</option>
@@ -331,13 +332,13 @@
                                 <article class="magic-card tw-surface tw-hover">
                                     <h3 class="magic-card-title">Actions admin</h3>
                                     <div class="magic-admin-actions">
-                                        <button type="button" class="magic-btn magic-btn-outline tw-press">Valider</button>
-                                        <button type="button" class="magic-btn magic-btn-outline tw-press">Demander des corrections</button>
-                                        <button type="button" class="magic-btn magic-btn-outline tw-press">Ajouter une note interne</button>
+                                        <button type="button" class="magic-btn magic-btn-outline tw-press tw-btn-ghost">Valider</button>
+                                        <button type="button" class="magic-btn magic-btn-outline tw-press tw-btn-ghost">Demander des corrections</button>
+                                        <button type="button" class="magic-btn magic-btn-outline tw-press tw-btn-ghost">Ajouter une note interne</button>
                                     </div>
                                     <div class="magic-form-row">
                                         <label class="magic-label" for="magicAdminNotes">Note interne</label>
-                                        <textarea id="magicAdminNotes" class="magic-input magic-input--textarea" rows="3" placeholder="Commentaires MJ / staff, remarques d'équilibrage, suivi des modifications."></textarea>
+                                        <textarea id="magicAdminNotes" class="magic-input tw-input--textarea tw-input" rows="3" placeholder="Commentaires MJ / staff, remarques d'équilibrage, suivi des modifications."></textarea>
                                     </div>
                                 </article>
                             </div>
