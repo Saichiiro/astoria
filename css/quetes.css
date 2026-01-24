@@ -462,114 +462,6 @@ body.quest-board {
     box-shadow: var(--quest-shadow);
 }
 
-.quest-progress-panel {
-    margin: 10px 0 24px;
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 22px;
-    border: 2px solid rgba(255, 106, 162, 0.2);
-    padding: 18px 22px;
-    box-shadow: var(--quest-shadow);
-}
-
-.quest-progress-body {
-    display: grid;
-    gap: 6px;
-    margin-top: 6px;
-}
-
-.quest-progress-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.quest-progress-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: rgba(61, 42, 87, 0.55);
-}
-
-.quest-progress-value {
-    font-weight: 700;
-    color: rgba(61, 42, 87, 0.9);
-    text-align: right;
-}
-
-.quest-progress-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 6px;
-}
-
-.quest-progress-panel h2 {
-    margin: 0;
-    color: var(--quest-pink);
-    font-family: var(--quest-font-display);
-    font-size: 1.1rem;
-}
-
-.quest-progress-open {
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9);
-}
-
-.quest-progress-notes {
-    margin-top: 12px;
-    display: grid;
-    gap: 6px;
-}
-
-.quest-progress-notes label {
-    font-weight: 700;
-    font-size: 0.8rem;
-    color: rgba(61, 42, 87, 0.75);
-}
-
-.quest-progress-notes textarea {
-    min-height: 90px;
-    resize: vertical;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 106, 162, 0.25);
-    padding: 10px 12px;
-    font-family: inherit;
-    font-size: 0.85rem;
-    color: #4c3a63;
-    background: rgba(255, 255, 255, 0.92);
-}
-
-.quest-progress-notes textarea:focus-visible {
-    outline: 2px solid rgba(255, 106, 162, 0.35);
-    outline-offset: 2px;
-}
-
-.quest-progress-notes-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.quest-progress-save {
-    border-radius: 999px;
-    border: 1px solid rgba(255, 106, 162, 0.4);
-    padding: 6px 14px;
-    background: rgba(255, 255, 255, 0.95);
-    color: var(--quest-pink);
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.quest-progress-saved {
-    font-size: 0.75rem;
-    color: rgba(61, 42, 87, 0.6);
-}
-
 .quest-history-tabs {
     display: inline-flex;
     align-items: center;
@@ -1527,6 +1419,32 @@ body.quest-board {
     gap: 8px;
 }
 
+.quest-editor-block--rewards .quest-editor-list {
+    max-height: 190px;
+    overflow-y: auto;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+    border-radius: 14px;
+}
+
+.quest-editor-block--rewards .quest-editor-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.quest-editor-block--rewards .quest-editor-list::-webkit-scrollbar-track {
+    background: rgba(255, 106, 162, 0.08);
+    border-radius: 999px;
+}
+
+.quest-editor-block--rewards .quest-editor-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 106, 162, 0.35);
+    border-radius: 999px;
+}
+
+.quest-editor-block--rewards .quest-editor-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 106, 162, 0.5);
+}
+
 .quest-editor-item {
     display: flex;
     align-items: center;
@@ -1539,6 +1457,11 @@ body.quest-board {
     font-weight: 600;
     color: #4c3a63;
     position: relative;
+}
+
+.quest-editor-block--rewards .quest-editor-item {
+    padding: 5px 10px;
+    font-size: 0.84rem;
 }
 
 .quest-editor-item button {
