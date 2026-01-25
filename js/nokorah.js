@@ -8,9 +8,9 @@ const RARITY_LABELS = {
 };
 const RARITY_COSTS = {
     commun: 45,
-    rare: 60,
-    epique: 100,
-    mythique: 150
+    rare: 70,
+    epique: 95,
+    mythique: 120
 };
 const BASE_CAPS = {
     commun: 5,
@@ -389,7 +389,16 @@ function formatLuckySoul(value) {
 
 function getUpgradeCost(level) {
     const safeLevel = Math.max(0, Number(level) || 0);
-    return Math.round(25 + safeLevel * 15 + safeLevel * safeLevel * 2);
+    return (safeLevel + 1) * 5;
+}
+
+function getRarityIndex(rarity) {
+    const idx = RARITY_ORDER.indexOf(rarity);
+    return idx >= 0 ? idx : 0;
+}
+
+function getLevelCapForRarity(rarity) {
+    return (getRarityIndex(rarity) + 1) * 5;
 }
 
 function getNextRarity(rarity) {
@@ -445,7 +454,9 @@ function renderActive(root) {
     const nextRarity = getNextRarity(rarity);
     const upgradeCost = getUpgradeCost(state.upgradeLevel);
     const rarityCost = nextRarity ? RARITY_COSTS[rarity] : null;
-    const canUpgradeRarity = !!nextRarity && state.upgradeLevel > 0 && state.upgradeLevel % 5 === 0;
+    const levelCap = getLevelCapForRarity(rarity);
+    const canUpgradeRarity = !!nextRarity && state.upgradeLevel >= levelCap;
+    const canUpgradeStats = state.upgradeLevel + 1 <= levelCap;
     const rarityClass = `rarity-frame rarity-${rarity}${active?.rainbowFrame ? " rainbow" : ""}`;
     const badgeClass = `rarity-badge rarity-${rarity}${active?.rainbowFrame ? " rainbow" : ""}`;
 
@@ -464,7 +475,10 @@ function renderActive(root) {
                             ${buildAccessoryTag(active)}
                         </div>
                     </div>
-                    <div class="lucky-soul-meter">Lucky Soul: <strong>${state.luckySoulCount}</strong></div>
+                    <div class="nokorah-side-info">
+                        <div class="lucky-soul-meter">Lucky Soul: <strong>${state.luckySoulCount}</strong></div>
+                        <div class="nokorah-level">Niveau <strong>${state.upgradeLevel}</strong> / ${levelCap}</div>
+                    </div>
                 </div>
 
                 <div class="nokorah-section-block">
@@ -481,7 +495,7 @@ function renderActive(root) {
                     <button class="action-buttons focus-outline" data-action="rarity" ${!canUpgradeRarity ? "disabled" : ""}>
                         Am&eacute;liorer la raret&eacute; <span>${rarityCost ? rarityCost + " Lucky Soul" : "Max"}</span>
                     </button>
-                    <button class="action-buttons secondary focus-outline" data-action="stats">
+                    <button class="action-buttons secondary focus-outline" data-action="stats" ${!canUpgradeStats ? "disabled" : ""}>
                         Am&eacute;liorer les stats <span>${upgradeCost} Lucky Soul</span>
                     </button>
                     <button class="action-buttons secondary focus-outline" data-action="appearance">
@@ -685,8 +699,9 @@ function openAppearanceModal() {
 async function handleRarityUpgrade() {
     const next = getNextRarity(state.rarity);
     if (!next) return;
-    if (state.upgradeLevel <= 0 || state.upgradeLevel % 5 !== 0) {
-        alert("La rarete ne peut evoluer qu'aux niveaux multiples de 5.");
+    const levelCap = getLevelCapForRarity(state.rarity);
+    if (state.upgradeLevel < levelCap) {
+        alert("La rarete ne peut evoluer qu'apres un palier de 5 niveaux.");
         return;
     }
     const cost = RARITY_COSTS[state.rarity];
@@ -704,6 +719,16 @@ async function handleStatsUpgrade() {
         return;
     }
     const nextLevel = state.upgradeLevel + 1;
+    const levelCap = getLevelCapForRarity(state.rarity);
+    const nextRarity = getNextRarity(state.rarity);
+    if (nextLevel > levelCap) {
+        if (nextRarity) {
+            alert("Niveau max atteint pour cette raret&eacute;. Am&eacute;liore la raret&eacute; pour continuer.");
+        } else {
+            alert("Niveau maximum atteint.");
+        }
+        return;
+    }
     const maxTotal = getMaxTotalPoints(state.rarity, nextLevel);
     const currentTotal = getTotalBonusPoints();
     if (currentTotal >= maxTotal) {
@@ -716,28 +741,54 @@ async function handleStatsUpgrade() {
     if (!ok) return;
 
     const available = maxTotal - currentTotal;
-    const pointsToAdd = Math.min(available, 1 + Math.floor(Math.random() * Math.min(3, available)));
-    const results = [];
+    if (available <= 0) {
+        alert("Plafond de points atteint pour ce niveau.");
+        return;
+    }
 
-    for (let i = 0; i < pointsToAdd; i += 1) {
+    const rolled = [];
+    for (let i = 0; i < 3; i += 1) {
         const choice = state.skills[Math.floor(Math.random() * state.skills.length)];
-        if (!choice) continue;
-        const entry = state.bonuses.find((bonus) => bonus.skillId === choice.id);
+        if (choice) rolled.push(choice);
+    }
+    if (!rolled.length) return;
+
+    const firstId = rolled[0]?.id;
+    const triple = rolled.length === 3 && rolled.every((entry) => entry?.id === firstId);
+    const awarded = new Map();
+
+    const applyBonus = (skill, points) => {
+        if (!skill || points <= 0) return;
+        const entry = state.bonuses.find((bonus) => bonus.skillId === skill.id);
         if (entry) {
-            entry.points += 1;
+            entry.points += points;
         } else {
-            state.bonuses.push({ skillId: choice.id, name: choice.name, points: 1 });
+            state.bonuses.push({ skillId: skill.id, name: skill.name, points });
         }
-        results.push(choice.name);
+        awarded.set(skill.id, {
+            id: skill.id,
+            name: skill.name,
+            points: (awarded.get(skill.id)?.points || 0) + points
+        });
+    };
+
+    if (triple) {
+        const points = Math.min(3, available);
+        applyBonus(rolled[0], points);
+    } else {
+        const awards = Math.min(available, rolled.length);
+        for (let i = 0; i < awards; i += 1) {
+            applyBonus(rolled[i], 1);
+        }
     }
 
     state.upgradeLevel = nextLevel;
     await saveState();
     renderAll();
-    animateRoulette(results);
+    animateRoulette(rolled, Array.from(awarded.values()));
 }
 
-function animateRoulette(finalResults) {
+function animateRoulette(rolledSkills, awardedEntries) {
     document.querySelectorAll("[data-nokorah-root]").forEach((root) => {
         const cards = Array.from(root.querySelectorAll("[data-roulette]"));
         const resultEl = root.querySelector("[data-roulette-result]");
@@ -769,10 +820,13 @@ function animateRoulette(finalResults) {
             cards.forEach((card, index) => {
                 card.classList.remove("is-rolling");
                 card.classList.add("is-final");
-                card.textContent = finalResults[index] || finalResults[0] || "?";
+                card.textContent = rolledSkills[index]?.name || rolledSkills[0]?.name || "?";
             });
             if (track) track.classList.remove("is-spinning");
-            resultEl.textContent = `Bonus obtenu : ${finalResults.map((name) => `+1 ${name}`).join(", ")}`;
+            const label = awardedEntries.length
+                ? awardedEntries.map((entry) => `+${entry.points} ${entry.name}`).join(", ")
+                : "Aucun bonus.";
+            resultEl.textContent = `Bonus obtenu : ${label}`;
         };
 
         spinStep();

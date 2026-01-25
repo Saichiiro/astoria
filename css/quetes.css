@@ -281,6 +281,7 @@ body.quest-board {
     padding: 18px 26px 24px;
     position: relative;
     min-height: 320px;
+    perspective: 900px;
 }
 
 .quest-arrow {
@@ -336,16 +337,17 @@ body.quest-board {
     transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.45s ease, border-color 0.45s ease;
     cursor: pointer;
     transform: translateZ(0);
+    transform-style: preserve-3d;
 }
 
 .quest-card::before {
     content: "";
     position: absolute;
-    inset: -10px;
+    inset: 0;
     border-radius: 26px;
     background: var(--status-color, rgba(106, 167, 255, 0.4));
-    filter: blur(18px);
-    opacity: 0.28;
+    filter: blur(12px);
+    opacity: 0.18;
     z-index: -1;
     pointer-events: none;
     transition: opacity 0.45s ease;
@@ -364,7 +366,7 @@ body.quest-board {
 }
 
 .quest-card:hover {
-    transform: translateY(-7px) rotateZ(-0.5deg);
+    transform: translateY(-8px) rotateX(4deg) rotateY(-3deg) rotateZ(-0.6deg);
     box-shadow: 0 26px 44px rgba(96, 58, 125, 0.22);
     border-color: rgba(255, 106, 162, 0.9);
 }
