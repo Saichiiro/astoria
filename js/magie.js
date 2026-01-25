@@ -26,6 +26,8 @@
     const pageTabs = document.getElementById("magicPageTabs");
     const addPageBtn = document.getElementById("magicAddPageBtn");
     const affinityDisplay = document.getElementById("magicAffinityDisplay");
+    const scrollEveilCountEl = document.getElementById("magicEveilCount");
+    const scrollAscensionCountEl = document.getElementById("magicAscensionCount");
     const formFields = Array.from(
         document.querySelectorAll(".magic-content input[id], .magic-content textarea[id], .magic-content select[id]")
     );
@@ -71,6 +73,19 @@
             upgrades: [],
             locked: false
         }
+    ];
+
+    const CAPACITY_TYPES = [
+        { value: "offensif", label: "Offensif" },
+        { value: "defensif", label: "Défensif" },
+        { value: "soutien", label: "Soutien" },
+        { value: "utilitaire", label: "Utilitaire" }
+    ];
+
+    const CAPACITY_RANKS = [
+        { value: "mineur", label: "Mineur" },
+        { value: "signature", label: "Signature" },
+        { value: "ultime", label: "Ultime" }
     ];
 
     const FALLBACK_SCROLL_EMOJI = String.fromCodePoint(0x2728);
@@ -367,6 +382,30 @@
         return "unknown";
     }
 
+    function getScrollCounts(profileData, category) {
+        const baseItem = getScrollBaseItem(category);
+        if (!baseItem) return {};
+        const key = getScrollItemKey(baseItem);
+        const scrollTypes = profileData?.inventory?.scrollTypes || {};
+        const bucket = scrollTypes[category] || {};
+        const entry = bucket[key];
+        return entry?.counts && typeof entry.counts === "object" ? { ...entry.counts } : {};
+    }
+
+    function sumScrollCounts(counts) {
+        if (!counts || typeof counts !== "object") return 0;
+        return Object.values(counts).reduce((sum, value) => sum + (Number(value) || 0), 0);
+    }
+
+    function renderScrollMeter() {
+        if (!scrollEveilCountEl || !scrollAscensionCountEl) return;
+        const profileData = currentCharacter?.profile_data || {};
+        const eveilCounts = getScrollCounts(profileData, "eveil");
+        const ascensionCounts = getScrollCounts(profileData, "ascension");
+        scrollEveilCountEl.textContent = String(sumScrollCounts(eveilCounts));
+        scrollAscensionCountEl.textContent = String(sumScrollCounts(ascensionCounts));
+    }
+
     async function applyScrollCost({ category, affinityKey, cost }) {
         if (!currentCharacter?.id || !affinityKey || !Number.isFinite(cost)) {
             return { ok: false, reason: "missing-data" };
@@ -426,7 +465,23 @@
             }
         } catch {}
 
+        renderScrollMeter();
         return { ok: true };
+    }
+
+    function getAscensionCostForPage(page) {
+        const specialization = page?.fields?.magicSpecialization;
+        if (specialization && specialization !== "sorcellerie") return null;
+        const affinityKey = page?.fields?.magicAffinityKey;
+        if (!affinityKey) return null;
+        const progress = loadMagicProgress();
+        const entry = progress.affinities[affinityKey];
+        if (!entry || !entry.unlocked) return null;
+        const affinityType = entry.affinityType || "none";
+        const techniquesCount = Number(entry.techniquesCount) || 0;
+        const ascensionLevel = Number(entry.ascensionLevel) || 0;
+        if (techniquesCount < ascensionLevel) return 0;
+        return getAscensionCost(affinityType, ascensionLevel + 1);
     }
 
     async function consumeAscensionForTechnique(page) {
@@ -640,7 +695,7 @@
         if (!addPageBtn) {
             addBtn.type = "button";
             addBtn.id = "magicAddPageBtn";
-            addBtn.className = "magic-page-tab magic-page-tab--add";
+            addBtn.className = "magic-page-tab magic-page-tab--add tw-press";
             addBtn.textContent = "+";
             addBtn.setAttribute("aria-label", "Ajouter une page");
             addBtn.addEventListener("click", handleAddPage);
@@ -769,6 +824,7 @@
         const capacities = currentPage && Array.isArray(currentPage.capacities) ? currentPage.capacities : [];
         const isSorcelleriePage = !currentPage?.fields?.magicSpecialization
             || currentPage.fields.magicSpecialization === "sorcellerie";
+        const ascensionCost = isSorcelleriePage ? getAscensionCostForPage(currentPage) : null;
 
         capacityList.innerHTML = "";
 
@@ -778,53 +834,112 @@
                 const normalizedUpgrades = Array.isArray(cap.upgrades)
                     ? cap.upgrades.map((entry, index) => {
                         if (entry && typeof entry === "object") {
+                            const snapshot = entry.snapshot || entry.state || null;
                             return {
                                 ...entry,
                                 level: Number(entry.level) || index + 2,
                                 note: entry.note ?? entry.content ?? entry.text ?? "",
-                                createdAt: entry.createdAt ?? null
+                                createdAt: entry.createdAt ?? null,
+                                snapshot
                             };
                         }
                         return {
                             level: index + 2,
                             note: String(entry || ""),
-                            createdAt: null
+                            createdAt: null,
+                            snapshot: null
                         };
                     })
                     : [];
                 const level = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1);
                 cap.level = level;
                 cap.upgrades = normalizedUpgrades;
-                const upgradesHtml = normalizedUpgrades.length
-                    ? normalizedUpgrades.map((entry) => `
-                        <div class="magic-capacity-upgrade-item">
-                            <div class="magic-capacity-upgrade-level">Niveau ${entry.level}</div>
-                            <div class="magic-capacity-upgrade-note">${entry.note || "-"}</div>
-                        </div>
-                    `).join("")
-                    : `<div class="magic-capacity-field-value magic-capacity-field-value--dim">Aucune amélioration.</div>`;
-                const upgradesSection = isSorcelleriePage ? `
-                        <div class="magic-capacity-upgrades">
-                            <div class="magic-capacity-field-label">Améliorations</div>
-                            <div class="magic-capacity-upgrade-list">
-                                ${upgradesHtml}
+                const historyHtml = normalizedUpgrades.length
+                    ? normalizedUpgrades.map((entry) => {
+                        if (entry.snapshot) {
+                            const snap = entry.snapshot;
+                            return `
+                            <div class="magic-capacity-history-card">
+                                <div class="magic-capacity-field-label">Niveau ${entry.level}</div>
+                                <div class="magic-capacity-field-value">${snap.name || cap.name}</div>
+                                <div class="magic-capacity-field-value magic-capacity-field-value--dim">${snap.type || cap.type} • ${snap.rank || cap.rank}</div>
+                                <div class="magic-capacity-field-value magic-capacity-field-value--dim">${snap.rp || "-"}</div>
+                                <div class="magic-capacity-field-value">${snap.effect || "-"}</div>
+                                <div class="magic-capacity-field-value magic-capacity-field-value--dim">${snap.cost || "-"}</div>
+                                <div class="magic-capacity-field-value magic-capacity-field-value--dim">${snap.limits || "-"}</div>
                             </div>
+                            `;
+                        }
+                        return `
+                        <div class="magic-capacity-history-card">
+                            <div class="magic-capacity-field-label">Niveau ${entry.level}</div>
+                            <div class="magic-capacity-field-value magic-capacity-field-value--dim">${entry.note || "Aucun détail."}</div>
                         </div>
+                        `;
+                    }).join("")
+                    : `<div class="magic-capacity-field-value magic-capacity-field-value--dim">Aucun historique.</div>`;
+                const typeOptions = CAPACITY_TYPES.map((option) =>
+                    `<option value="${option.value}" ${option.value === cap.type ? "selected" : ""}>${option.label}</option>`
+                ).join("");
+                const rankOptions = CAPACITY_RANKS.map((option) =>
+                    `<option value="${option.value}" ${option.value === cap.rank ? "selected" : ""}>${option.label}</option>`
+                ).join("");
+                const costLabel = ascensionCost == null
+                    ? "Indisponible"
+                    : ascensionCost === 0
+                        ? "Gratuit"
+                        : `${ascensionCost} parchemins`;
+                const upgradesSection = isSorcelleriePage ? `
                         <div class="magic-capacity-actions">
                             <button type="button" class="magic-btn magic-btn-outline tw-press" data-upgrade="${cap.id}">Améliorer</button>
                         </div>
                         <div class="magic-capacity-upgrade-form" data-upgrade-form="${cap.id}" hidden>
-                            <label class="magic-label" for="magicUpgradeNote-${cap.id}">Nouveau contenu</label>
-                            <textarea id="magicUpgradeNote-${cap.id}" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Ajoutez le nouveau contenu obtenu via l'amélioration..."></textarea>
+                            <div class="magic-capacity-upgrade-meta">Coût d'ascension : ${costLabel}</div>
+                            <div class="magic-capacity-upgrade-grid">
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeName-${cap.id}">Nom
+                                    <input id="magicUpgradeName-${cap.id}" class="magic-input tw-input" type="text" value="${cap.name}">
+                                </label>
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeType-${cap.id}">Type
+                                    <select id="magicUpgradeType-${cap.id}" class="magic-input tw-input">${typeOptions}</select>
+                                </label>
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeRank-${cap.id}">Rang
+                                    <select id="magicUpgradeRank-${cap.id}" class="magic-input tw-input">${rankOptions}</select>
+                                </label>
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeNote-${cap.id}">Note d'amélioration
+                                    <textarea id="magicUpgradeNote-${cap.id}" class="magic-input tw-input--textarea tw-input" rows="2" placeholder="Ajoutez un rappel de l'amélioration (optionnel)."></textarea>
+                                </label>
+                            </div>
+                            <label class="magic-label magic-upgrade-field" for="magicUpgradeRp-${cap.id}">Description RP
+                                <textarea id="magicUpgradeRp-${cap.id}" class="magic-input tw-input--textarea tw-input" rows="2">${cap.rp || ""}</textarea>
+                            </label>
+                            <label class="magic-label magic-upgrade-field" for="magicUpgradeEffect-${cap.id}">Effet mécanique
+                                <textarea id="magicUpgradeEffect-${cap.id}" class="magic-input tw-input--textarea tw-input" rows="2">${cap.effect || ""}</textarea>
+                            </label>
+                            <div class="magic-capacity-upgrade-grid">
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeCost-${cap.id}">Coût
+                                    <input id="magicUpgradeCost-${cap.id}" class="magic-input tw-input" type="text" value="${cap.cost || ""}">
+                                </label>
+                                <label class="magic-label magic-upgrade-field" for="magicUpgradeLimits-${cap.id}">Limites
+                                    <input id="magicUpgradeLimits-${cap.id}" class="magic-input tw-input" type="text" value="${cap.limits || ""}">
+                                </label>
+                            </div>
+                            ${isAdmin ? `
+                                <label class="magic-label" for="magicUpgradeAdmin-${cap.id}">Note admin</label>
+                                <textarea id="magicUpgradeAdmin-${cap.id}" class="magic-input tw-input--textarea tw-input" rows="2">${cap.adminNote || ""}</textarea>
+                            ` : ""}
                             <div class="magic-capacity-form-actions">
                                 <button type="button" class="magic-btn magic-btn-outline tw-press" data-upgrade-cancel="${cap.id}">Annuler</button>
                                 <button type="button" class="magic-btn magic-btn-primary tw-press" data-upgrade-save="${cap.id}">Valider</button>
                             </div>
                         </div>
+                        <div class="magic-capacity-history" data-history-panel="${cap.id}">
+                            <div class="magic-capacity-field-label">Niveaux precedents</div>
+                            ${historyHtml}
+                        </div>
                     `
                     : "";
                 const levelTag = isSorcelleriePage
-                    ? `<span class="magic-tag magic-tag--level">Niveau ${level}</span>`
+                    ? `<span class="magic-tag magic-tag--level" data-history="${cap.id}" role="button" tabindex="0">Niveau ${level}</span>`
                     : "";
                 const li = document.createElement("li");
                 li.className = "magic-capacity-item";
@@ -885,16 +1000,42 @@
                     const upgradeForm = li.querySelector(`[data-upgrade-form="${cap.id}"]`);
                     const upgradeSave = li.querySelector(`[data-upgrade-save="${cap.id}"]`);
                     const upgradeCancel = li.querySelector(`[data-upgrade-cancel="${cap.id}"]`);
-                    const upgradeNote = upgradeForm?.querySelector("textarea");
+                    const historyButton = li.querySelector(`[data-history="${cap.id}"]`);
+                    const historyPanel = li.querySelector(`[data-history-panel="${cap.id}"]`);
+
+                    const upgradeName = upgradeForm?.querySelector(`#magicUpgradeName-${cap.id}`);
+                    const upgradeType = upgradeForm?.querySelector(`#magicUpgradeType-${cap.id}`);
+                    const upgradeRank = upgradeForm?.querySelector(`#magicUpgradeRank-${cap.id}`);
+                    const upgradeNote = upgradeForm?.querySelector(`#magicUpgradeNote-${cap.id}`);
+                    const upgradeRp = upgradeForm?.querySelector(`#magicUpgradeRp-${cap.id}`);
+                    const upgradeEffect = upgradeForm?.querySelector(`#magicUpgradeEffect-${cap.id}`);
+                    const upgradeCost = upgradeForm?.querySelector(`#magicUpgradeCost-${cap.id}`);
+                    const upgradeLimits = upgradeForm?.querySelector(`#magicUpgradeLimits-${cap.id}`);
+                    const upgradeAdmin = upgradeForm?.querySelector(`#magicUpgradeAdmin-${cap.id}`);
 
                     const toggleUpgradeForm = (open) => {
                         if (!upgradeForm) return;
                         upgradeForm.hidden = !open;
-                        if (open && upgradeNote) {
-                            upgradeNote.value = "";
-                            upgradeNote.focus();
+                        if (open) {
+                            upgradeName?.focus();
                         }
                     };
+
+                    if (historyButton && historyPanel) {
+                        const toggleHistory = () => {
+                            historyPanel.classList.toggle("is-open");
+                        };
+                        historyButton.addEventListener("click", (event) => {
+                            event.stopPropagation();
+                            toggleHistory();
+                        });
+                        historyButton.addEventListener("keydown", (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                toggleHistory();
+                            }
+                        });
+                    }
 
                     if (upgradeButton) {
                         upgradeButton.addEventListener("click", (event) => {
@@ -911,18 +1052,43 @@
                     if (upgradeSave) {
                         upgradeSave.addEventListener("click", async (event) => {
                             event.stopPropagation();
-                            const note = upgradeNote?.value.trim() || "";
-                            if (!note) {
-                                alert("Ajoutez le contenu de l'amélioration.");
+                            const nextName = upgradeName?.value.trim() || cap.name;
+                            if (!nextName) {
+                                alert("Ajoutez un nom pour la capacité.");
                                 return;
                             }
                             const ok = await consumeAscensionForTechnique(pages[activePageIndex]);
                             if (!ok) return;
-                            const nextLevel = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1) + 1;
-                            cap.level = nextLevel;
+                            const snapshot = {
+                                name: cap.name,
+                                type: cap.type,
+                                rank: cap.rank,
+                                rp: cap.rp,
+                                effect: cap.effect,
+                                cost: cap.cost,
+                                limits: cap.limits,
+                                adminNote: cap.adminNote
+                            };
+                            const previousLevel = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1);
+                            cap.level = previousLevel + 1;
+                            cap.name = nextName;
+                            cap.type = upgradeType?.value || cap.type;
+                            cap.rank = upgradeRank?.value || cap.rank;
+                            cap.rp = upgradeRp?.value.trim() || "";
+                            cap.effect = upgradeEffect?.value.trim() || "";
+                            cap.cost = upgradeCost?.value.trim() || "";
+                            cap.limits = upgradeLimits?.value.trim() || "";
+                            if (upgradeAdmin) {
+                                cap.adminNote = upgradeAdmin.value.trim();
+                            }
                             cap.upgrades = [
                                 ...(Array.isArray(cap.upgrades) ? cap.upgrades : []),
-                                { level: nextLevel, note, createdAt: Date.now() }
+                                {
+                                    level: previousLevel,
+                                    note: upgradeNote?.value.trim() || "",
+                                    snapshot,
+                                    createdAt: Date.now()
+                                }
                             ];
                             renderCapacities(capacityFilter ? capacityFilter.value : "");
                             saveToStorage();
@@ -1067,8 +1233,12 @@
             await persistToProfile(payload);
             markSaved();
             saveBtn.textContent = "Sauvegarde OK";
+            saveBtn.classList.remove("magic-btn--shimmer");
+            void saveBtn.offsetWidth;
+            saveBtn.classList.add("magic-btn--shimmer");
             setTimeout(() => {
                 saveBtn.textContent = "Sauvegarder";
+                saveBtn.classList.remove("magic-btn--shimmer");
             }, 1600);
         });
     }
@@ -1104,6 +1274,7 @@
         applyFormFields(pages[activePageIndex].fields || {});
         setActiveSection(activeSection);
         renderCapacities(capacityFilter ? capacityFilter.value : "");
+        renderScrollMeter();
         renderPageTabs();
         renderPagesOverview();
         saveToStorage();
@@ -1116,6 +1287,7 @@
             applyFormFields(pages[activePageIndex]?.fields || {});
             renderPageTabs();
             renderPagesOverview();
+            renderScrollMeter();
         });
     })();
 })();

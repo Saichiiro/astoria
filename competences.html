@@ -623,6 +623,60 @@
             transform: none;
             filter: none;
         }
+        .skills-add-btn {
+            border: none;
+            background: linear-gradient(135deg, #ffe8f0, #fff5fb);
+            color: var(--skills-book-ink);
+            font-weight: 700;
+            padding: 0.5rem 0.9rem;
+            border-radius: 999px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(120, 38, 70, 0.15);
+        }
+        .skills-add-form {
+            margin-top: 12px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 18px;
+            padding: 12px;
+            border: 1px solid rgba(120, 38, 70, 0.2);
+            display: grid;
+            gap: 10px;
+        }
+        .skills-add-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .skills-add-row input,
+        .skills-add-row select {
+            border-radius: 999px;
+            border: 1px solid rgba(120, 38, 70, 0.25);
+            padding: 0.45rem 0.8rem;
+            font-weight: 600;
+            color: var(--skills-book-ink);
+            background: #fff;
+        }
+        .skills-add-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        .skills-add-actions button {
+            border-radius: 999px;
+            border: none;
+            font-weight: 700;
+            padding: 0.45rem 0.9rem;
+            cursor: pointer;
+        }
+        .skills-add-actions .skills-add-cancel {
+            background: #fff;
+            border: 1px solid rgba(120, 38, 70, 0.2);
+            color: var(--skills-book-ink);
+        }
+        .skills-add-actions .skills-add-submit {
+            background: #f6b5cd;
+            color: #fff;
+        }
         .skills-validation {
             font-size: var(--text-sm);
             color: var(--color-primary-dark);
@@ -829,10 +883,8 @@
                                 ↺
                             </button>
                         </div>
-                        <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
-                    </div>
-                </div>
-                <ul class="skills-list" id="skillsList">
+                        <button type="button" class="skills-add-btn tw-press" id="skillsAddBtn">Ajouter</button>`r`n                        <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
+                    </div>`r`n                </div>`r`n                <div class="skills-add-form" id="skillsAddForm" hidden>`r`n                    <div class="skills-add-row">`r`n                        <input type="text" id="skillsAddName" placeholder="Nom de compétence">`r`n                        <input type="text" id="skillsAddIcon" placeholder="Emoji (optionnel)">`r`n                        <select id="skillsAddCategory" aria-label="Catégorie"></select>`r`n                    </div>`r`n                    <div class="skills-add-actions">`r`n                        <button type="button" class="skills-add-cancel" id="skillsAddCancel">Annuler</button>`r`n                        <button type="button" class="skills-add-submit" id="skillsAddSubmit">Ajouter</button>`r`n                    </div>`r`n                </div>`r`n                <ul class="skills-list" id="skillsList">
                     <!-- Lignes de compétences injectées par JavaScript -->
                 </ul>
                 <div class="skills-validation" id="skillsValidationFeedback" role="status" aria-live="polite"></div>
@@ -852,3 +904,4 @@
     <script src="js/sidebar.js"></script>
 </body>
 </html>
+

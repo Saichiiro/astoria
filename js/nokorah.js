@@ -26,6 +26,7 @@ const UPGRADE_STEPS = {
     mythique: 6,
     legendaire: 10
 };
+const MAX_NOKORAH_LEVEL = 113;
 
 const LUCKY_SOUL_ITEM = {
     key: "Lucky Soul",
@@ -398,6 +399,8 @@ function getRarityIndex(rarity) {
 }
 
 function getLevelCapForRarity(rarity) {
+    const next = getNextRarity(rarity);
+    if (!next) return MAX_NOKORAH_LEVEL;
     return (getRarityIndex(rarity) + 1) * 5;
 }
 

@@ -11,6 +11,13 @@
     const skillsFeedbackEl = document.getElementById("skillsValidationFeedback");
     const skillsPagePrevEl = document.getElementById("skillsPagePrev");
     const skillsPageNextEl = document.getElementById("skillsPageNext");
+    const skillsAddBtn = document.getElementById("skillsAddBtn");
+    const skillsAddForm = document.getElementById("skillsAddForm");
+    const skillsAddName = document.getElementById("skillsAddName");
+    const skillsAddIcon = document.getElementById("skillsAddIcon");
+    const skillsAddCategory = document.getElementById("skillsAddCategory");
+    const skillsAddCancel = document.getElementById("skillsAddCancel");
+    const skillsAddSubmit = document.getElementById("skillsAddSubmit");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
 
@@ -20,7 +27,11 @@
         return;
     }
 
-    const skillsCategories = Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+    const baseCategories = Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+    const skillsCategories = baseCategories.map((category) => ({
+        ...category,
+        skills: Array.isArray(category.skills) ? category.skills.map((skill) => ({ ...skill })) : []
+    }));
 
     const MAX_SKILL_POINTS = 40;
 
@@ -28,6 +39,7 @@
     const skillsAllocStorageKey = "skillsAllocationsByCategory";
     const skillsBaseValuesKey = "skillsBaseValuesByCategory";
     const skillsLocksKey = "skillsLocksByCategory";
+    const skillsCustomKey = "skillsCustomByCategory";
 
     const DEFAULT_CATEGORY_POINTS = {
         arts: 75,
@@ -59,6 +71,7 @@
         allocationsByCategory: loadFromStorage(skillsAllocStorageKey),
         baseValuesByCategory: loadFromStorage(skillsBaseValuesKey),
         locksByCategory: loadFromStorage(skillsLocksKey),
+        customSkillsByCategory: loadFromStorage(skillsCustomKey),
         isAdmin: document.body.dataset.admin === "true",
     };
 
@@ -69,6 +82,8 @@
         if (skillsPointsPlusEl) skillsPointsPlusEl.hidden = true;
         if (skillsPointsResetEl) skillsPointsResetEl.hidden = true;
         if (skillsPointsValueEl) skillsPointsValueEl.readOnly = true;
+        if (skillsAddBtn) skillsAddBtn.hidden = true;
+        if (skillsAddForm) skillsAddForm.hidden = true;
     }
 
     if (!skillsCategories.length) {
@@ -76,12 +91,66 @@
         return;
     }
 
+    hydrateCustomSkills();
     renderSkillsTabs();
     renderSkillsCategory(getActiveCategory());
     updateSkillsPointsDisplay();
     wireTabsKeyboardNavigation();
     wirePageNavigation();
     updatePageNavigation();
+
+    if (skillsAddCategory) {
+        skillsAddCategory.innerHTML = skillsCategories
+            .map((category) => `<option value="${category.id}">${category.label}</option>`)
+            .join("");
+    }
+
+    const closeAddForm = () => {
+        if (!skillsAddForm) return;
+        skillsAddForm.hidden = true;
+        if (skillsAddName) skillsAddName.value = "";
+        if (skillsAddIcon) skillsAddIcon.value = "";
+        if (skillsAddCategory) skillsAddCategory.value = skillsState.activeCategoryId;
+    };
+
+    if (skillsAddBtn) {
+        skillsAddBtn.addEventListener("click", () => {
+            if (!skillsAddForm) return;
+            skillsAddForm.hidden = !skillsAddForm.hidden;
+            if (!skillsAddForm.hidden && skillsAddCategory) {
+                skillsAddCategory.value = skillsState.activeCategoryId;
+                skillsAddName?.focus();
+            }
+        });
+    }
+
+    if (skillsAddCancel) {
+        skillsAddCancel.addEventListener("click", () => {
+            closeAddForm();
+        });
+    }
+
+    if (skillsAddSubmit) {
+        skillsAddSubmit.addEventListener("click", () => {
+            if (!skillsState.isAdmin) return;
+            const name = skillsAddName?.value.trim() || "";
+            const icon = skillsAddIcon?.value.trim() || "";
+            const categoryId = skillsAddCategory?.value || skillsState.activeCategoryId;
+            if (!name) {
+                updateFeedback("Ajoutez un nom de compÃ©tence.");
+                return;
+            }
+            const ok = addCustomSkill(categoryId, { name, icon, baseValue: 0 });
+            if (!ok) {
+                updateFeedback("Cette compÃ©tence existe dÃ©jÃ .");
+                return;
+            }
+            renderSkillsTabs();
+            setActiveSkillsCategory(categoryId);
+            closeAddForm();
+            updateFeedback("CompÃ©tence ajoutÃ©e.");
+        });
+    }
 
     // -----------------------------------------------------------------
     // Helpers de stockage
@@ -108,23 +177,78 @@
         }
     }
 
+    function normalizeSkillName(value) {
+        return String(value || "").trim().toLowerCase();
+    }
+
+    function hydrateCustomSkills() {
+        const customByCategory = skillsState.customSkillsByCategory || {};
+        skillsCategories.forEach((category) => {
+            const customList = Array.isArray(customByCategory[category.id]) ? customByCategory[category.id] : [];
+            if (!customList.length) return;
+            const existing = new Set((category.skills || []).map((skill) => normalizeSkillName(skill.name)));
+            customList.forEach((skill) => {
+                if (!skill?.name) return;
+                if (existing.has(normalizeSkillName(skill.name))) return;
+                category.skills.push({
+                    name: String(skill.name),
+                    baseValue: Number(skill.baseValue) || 0,
+                    icon: String(skill.icon || "")
+                });
+            });
+        });
+    }
+
+    function addCustomSkill(categoryId, skill) {
+        if (!categoryId || !skill?.name) return false;
+        const category = skillsCategories.find((entry) => entry.id === categoryId);
+        if (!category) return false;
+        const normalizedName = normalizeSkillName(skill.name);
+        const exists = (category.skills || []).some((entry) => normalizeSkillName(entry.name) === normalizedName);
+        if (exists) return false;
+        const newSkill = {
+            name: String(skill.name).trim(),
+            baseValue: Number(skill.baseValue) || 0,
+            icon: String(skill.icon || "")
+        };
+        category.skills = Array.isArray(category.skills) ? category.skills : [];
+        category.skills.push(newSkill);
+
+        skillsState.customSkillsByCategory = skillsState.customSkillsByCategory || {};
+        const list = Array.isArray(skillsState.customSkillsByCategory[categoryId])
+            ? skillsState.customSkillsByCategory[categoryId]
+            : [];
+        list.push(newSkill);
+        skillsState.customSkillsByCategory[categoryId] = list;
+
+        skillsState.allocationsByCategory[categoryId] = skillsState.allocationsByCategory[categoryId] || {};
+        skillsState.baseValuesByCategory[categoryId] = skillsState.baseValuesByCategory[categoryId] || {};
+        skillsState.baseValuesByCategory[categoryId][newSkill.name] = 0;
+        saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+        saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+        return true;
+    }
+
     function buildDefaultCompetences() {
         const pointsByCategory = {};
         const baseValuesByCategory = {};
         const allocationsByCategory = {};
         const locksByCategory = {};
+        const customSkillsByCategory = {};
 
         skillsCategories.forEach((category) => {
             pointsByCategory[category.id] = DEFAULT_CATEGORY_POINTS[category.id] ?? 0;
             allocationsByCategory[category.id] = {};
             locksByCategory[category.id] = false;
             baseValuesByCategory[category.id] = {};
+            customSkillsByCategory[category.id] = [];
             (category.skills || []).forEach((skill) => {
                 baseValuesByCategory[category.id][skill.name] = 0;
             });
         });
 
-        return { version: 1, pointsByCategory, allocationsByCategory, baseValuesByCategory, locksByCategory };
+        return { version: 1, pointsByCategory, allocationsByCategory, baseValuesByCategory, locksByCategory, customSkillsByCategory };
     }
 
     async function initPersistence() {
@@ -157,17 +281,20 @@
                     allocationsByCategory: persisted?.allocationsByCategory || fallback.allocationsByCategory,
                     baseValuesByCategory: persisted?.baseValuesByCategory || fallback.baseValuesByCategory,
                     locksByCategory: persisted?.locksByCategory || fallback.locksByCategory,
+                    customSkillsByCategory: persisted?.customSkillsByCategory || fallback.customSkillsByCategory,
                 };
 
                 skillsState.pointsByCategory = merged.pointsByCategory;
                 skillsState.allocationsByCategory = merged.allocationsByCategory;
                 skillsState.baseValuesByCategory = merged.baseValuesByCategory;
                 skillsState.locksByCategory = merged.locksByCategory;
+                skillsState.customSkillsByCategory = merged.customSkillsByCategory;
 
                 saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
                 saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
                 saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
                 saveToStorage(skillsLocksKey, skillsState.locksByCategory);
+                saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
 
                 if (!persisted) {
                     await flushProfileSave();
@@ -221,6 +348,7 @@
                 allocationsByCategory: skillsState.allocationsByCategory,
                 baseValuesByCategory: skillsState.baseValuesByCategory,
                 locksByCategory: skillsState.locksByCategory,
+                customSkillsByCategory: skillsState.customSkillsByCategory,
             },
         };
 

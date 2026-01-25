@@ -80,10 +80,14 @@
         <section class="magic-layout" aria-label="Fiche magie détaillée">
             <div class="magic-sheet tw-surface tw-panel">
                 <div class="magic-page-tabs" id="magicPageTabs" role="tablist" aria-label="Pages de fiche magie">
-                    <button type="button" class="magic-page-tab magic-page-tab--add tw-press tw-btn-ghost" id="magicAddPageBtn" aria-label="Ajouter une page">+</button>
+                    <button type="button" class="magic-page-tab magic-page-tab--add tw-press" id="magicAddPageBtn" aria-label="Ajouter une page">+</button>
                 </div>
                 <!-- Contenu principal -->
                 <section class="magic-content" aria-live="polite">
+                    <div class="magic-scroll-meter" id="magicScrollMeter" aria-label="Parchemins disponibles">
+                        <span class="magic-scroll-pill">Éveil: <strong id="magicEveilCount">0</strong></span>
+                        <span class="magic-scroll-pill">Ascension: <strong id="magicAscensionCount">0</strong></span>
+                    </div>
                     <div class="magic-top-nav" aria-label="Sections de la fiche" role="navigation">
                         <button class="magic-nav-btn magic-nav-btn--active tw-press tw-btn-ghost" data-target="magic-summary">
                             Résumé &amp; spécialisation
