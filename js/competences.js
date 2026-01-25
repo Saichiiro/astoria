@@ -16,6 +16,7 @@
     const skillsAddName = document.getElementById("skillsAddName");
     const skillsAddIcon = document.getElementById("skillsAddIcon");
     const skillsAddCategory = document.getElementById("skillsAddCategory");
+    const skillsAddCap = document.getElementById("skillsAddCap");
     const skillsAddCancel = document.getElementById("skillsAddCancel");
     const skillsAddSubmit = document.getElementById("skillsAddSubmit");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
@@ -34,6 +35,11 @@
     }));
 
     const MAX_SKILL_POINTS = 40;
+
+    function getSkillCap(skill) {
+        const cap = Number(skill?.cap);
+        return Number.isFinite(cap) && cap > 0 ? cap : MAX_SKILL_POINTS;
+    }
 
     const skillsStorageKey = "skillsPointsByCategory";
     const skillsAllocStorageKey = "skillsAllocationsByCategory";
@@ -110,19 +116,48 @@
         skillsAddForm.hidden = true;
         if (skillsAddName) skillsAddName.value = "";
         if (skillsAddIcon) skillsAddIcon.value = "";
+        if (skillsAddCap) skillsAddCap.value = String(MAX_SKILL_POINTS);
         if (skillsAddCategory) skillsAddCategory.value = skillsState.activeCategoryId;
+    };
+
+    const openAddForm = () => {
+        if (!skillsAddForm) return;
+        skillsAddForm.hidden = false;
+        if (skillsAddCategory) {
+            skillsAddCategory.value = skillsState.activeCategoryId;
+        }
+        if (skillsAddCap && !skillsAddCap.value) {
+            skillsAddCap.value = String(MAX_SKILL_POINTS);
+        }
+        skillsAddName?.focus();
     };
 
     if (skillsAddBtn) {
         skillsAddBtn.addEventListener("click", () => {
             if (!skillsAddForm) return;
-            skillsAddForm.hidden = !skillsAddForm.hidden;
-            if (!skillsAddForm.hidden && skillsAddCategory) {
-                skillsAddCategory.value = skillsState.activeCategoryId;
-                skillsAddName?.focus();
+            if (skillsAddForm.hidden) {
+                openAddForm();
+            } else {
+                closeAddForm();
             }
         });
     }
+
+    if (skillsAddForm) {
+        skillsAddForm.addEventListener("click", (event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.hasAttribute("data-close-modal")) {
+                closeAddForm();
+            }
+        });
+    }
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (skillsAddForm && !skillsAddForm.hidden) {
+            closeAddForm();
+        }
+    });
 
     if (skillsAddCancel) {
         skillsAddCancel.addEventListener("click", () => {
@@ -136,11 +171,14 @@
             const name = skillsAddName?.value.trim() || "";
             const icon = skillsAddIcon?.value.trim() || "";
             const categoryId = skillsAddCategory?.value || skillsState.activeCategoryId;
+            const capRaw = skillsAddCap?.value.trim() || "";
+            const parsedCap = capRaw ? parseInt(capRaw, 10) : MAX_SKILL_POINTS;
+            const cap = Number.isFinite(parsedCap) && parsedCap > 0 ? parsedCap : MAX_SKILL_POINTS;
             if (!name) {
                 updateFeedback("Ajoutez un nom de compÃ©tence.");
                 return;
             }
-            const ok = addCustomSkill(categoryId, { name, icon, baseValue: 0 });
+            const ok = addCustomSkill(categoryId, { name, icon, baseValue: 0, cap });
             if (!ok) {
                 updateFeedback("Cette compÃ©tence existe dÃ©jÃ .");
                 return;
@@ -193,7 +231,8 @@
                 category.skills.push({
                     name: String(skill.name),
                     baseValue: Number(skill.baseValue) || 0,
-                    icon: String(skill.icon || "")
+                    icon: String(skill.icon || ""),
+                    cap: Number(skill.cap) || MAX_SKILL_POINTS
                 });
             });
         });
@@ -206,10 +245,12 @@
         const normalizedName = normalizeSkillName(skill.name);
         const exists = (category.skills || []).some((entry) => normalizeSkillName(entry.name) === normalizedName);
         if (exists) return false;
+        const capValue = Number(skill.cap) || MAX_SKILL_POINTS;
         const newSkill = {
             name: String(skill.name).trim(),
             baseValue: Number(skill.baseValue) || 0,
-            icon: String(skill.icon || "")
+            icon: String(skill.icon || ""),
+            cap: capValue
         };
         category.skills = Array.isArray(category.skills) ? category.skills : [];
         category.skills.push(newSkill);
@@ -492,7 +533,8 @@
             const base = savedBase ?? 0;
             const bonus = bonusBySkill[skill.name] || 0;
             const totalValue = base + allocation + bonus;
-            const isMaxed = base + allocation >= MAX_SKILL_POINTS;
+            const cap = getSkillCap(skill);
+            const isMaxed = base + allocation >= cap;
             const li = document.createElement("li");
             li.className = "skills-line";
 
@@ -517,7 +559,7 @@
 
             const value = document.createElement("span");
             value.className = "skills-value";
-            value.textContent = `${totalValue} / ${MAX_SKILL_POINTS}`;
+            value.textContent = `${totalValue} / ${cap}`;
 
             const incBtn = document.createElement("button");
             incBtn.type = "button";
@@ -553,12 +595,13 @@
         const savedBase = skillsState.baseValuesByCategory[categoryId]?.[skill.name];
         const base = savedBase ?? 0;
         const currentTotal = base + currentAlloc;
+        const cap = getSkillCap(skill);
 
-        if (delta > 0 && (available <= 0 || currentTotal >= MAX_SKILL_POINTS)) return;
+        if (delta > 0 && (available <= 0 || currentTotal >= cap)) return;
         if (delta < 0 && currentAlloc <= 0) return;
 
         if (delta > 0) {
-            const increment = Math.min(delta, available, MAX_SKILL_POINTS - currentTotal);
+            const increment = Math.min(delta, available, cap - currentTotal);
             if (increment <= 0) return;
             allocations[skill.name] = currentAlloc + increment;
             skillsState.pointsByCategory[categoryId] = Math.max(0, available - increment);
@@ -575,10 +618,10 @@
         const nextAlloc = allocations[skill.name] || 0;
         const bonus = bonusBySkill[skill.name] || 0;
         const newTotal = base + nextAlloc + bonus;
-        valueEl.textContent = `${newTotal} / ${MAX_SKILL_POINTS}`;
+        valueEl.textContent = `${newTotal} / ${cap}`;
         const isLocked = skillsState.locksByCategory[categoryId];
         decBtn.disabled = nextAlloc <= 0 || isLocked;
-        incBtn.disabled = base + nextAlloc >= MAX_SKILL_POINTS || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
+        incBtn.disabled = base + nextAlloc >= cap || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
 
         updateSkillsPointsDisplay();
         updatePendingHighlights(categoryId);
@@ -744,10 +787,11 @@
             const allocation = allocations[nameEl.textContent] || 0;
             const bonus = bonusBySkill[nameEl.textContent] || 0;
             const total = base + allocation + bonus;
+            const cap = getSkillCap(skill);
             if (valueEl) {
-                valueEl.textContent = `${total} / ${MAX_SKILL_POINTS}`;
+                valueEl.textContent = `${total} / ${cap}`;
             }
-            const atMax = base + allocation >= MAX_SKILL_POINTS;
+            const atMax = base + allocation >= cap;
             decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
             incBtn.disabled = atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
         });
@@ -847,7 +891,8 @@
             if (allocation > 0) {
                 const savedBase = skillsState.baseValuesByCategory[activeCategory.id][skill.name];
                 const currentBase = savedBase ?? 0;
-                const newBase = Math.min(currentBase + allocation, MAX_SKILL_POINTS);
+                const cap = getSkillCap(skill);
+                const newBase = Math.min(currentBase + allocation, cap);
                 skillsState.baseValuesByCategory[activeCategory.id][skill.name] = newBase;
             }
         });
