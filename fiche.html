@@ -453,7 +453,7 @@
                             <div class="magie-scroll-panel tw-surface">
                                 <div class="magie-scroll-header">
                                     <h3 class="magie-scroll-title">Parchemins & affinités</h3>
-                                    <p class="magie-scroll-subtitle">Éveil pour débloquer. Ascension pour nouvelles techniques et améliorations.</p>
+                                    <p class="magie-scroll-subtitle">Éveil pour débloquer. L'ascension se gère dans la page magie.</p>
                                 </div>
                                 <div class="magie-scroll-status" id="magieScrollStatus"></div>
                             </div>
@@ -1291,6 +1291,33 @@
                 return progress;
             }
 
+            function applySorcellerieProgressFallback() {
+                const progress = loadMagicProgress();
+                const affinities = progress?.affinities || {};
+                const picks = { primary: '', secondary: '', hidden: '' };
+                Object.keys(affinities).forEach((key) => {
+                    const entry = affinities[key];
+                    const type = entry?.affinityType;
+                    if (type === 'primary' && !picks.primary) {
+                        picks.primary = key;
+                    } else if (type === 'secondary' && !picks.secondary && key !== picks.primary) {
+                        picks.secondary = key;
+                    } else if (type === 'hidden' && !picks.hidden && key !== picks.primary && key !== picks.secondary) {
+                        picks.hidden = key;
+                    }
+                });
+                const [primarySelect, secondarySelect, hiddenSelect] = sorcellerieSelects;
+                if (primarySelect && !primarySelect.value && picks.primary) {
+                    applyMagicOptions(primarySelect, picks.primary);
+                }
+                if (secondarySelect && !secondarySelect.value && picks.secondary) {
+                    applyMagicOptions(secondarySelect, picks.secondary);
+                }
+                if (hiddenSelect && !hiddenSelect.value && picks.hidden) {
+                    applyMagicOptions(hiddenSelect, picks.hidden);
+                }
+            }
+
             function getScrollBaseItem(category) {
                 const items = Array.isArray(window.inventoryData) ? window.inventoryData : [];
                 const targets = category === 'eveil'
@@ -1865,7 +1892,12 @@
                     }
                 });
                 if (tabName === 'sorcellerie') {
-                    sorcellerieSelects.forEach(applyMagicOptions);
+                    sorcellerieSelects.forEach((select) => {
+                        if (!select) return;
+                        const savedValue = data[select.id];
+                        applyMagicOptions(select, savedValue || select.value);
+                    });
+                    applySorcellerieProgressFallback();
                 }
                 // Restore dynamic magie supplementaire
                 if (tabName === 'sorcellerie' && data.magieSupplementaire) {
