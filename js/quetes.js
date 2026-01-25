@@ -1288,6 +1288,10 @@ function renderQuestList() {
         const joined = isParticipant(quest);
         const card = document.createElement("article");
         card.className = `quest-card${joined ? " is-joined" : ""}`;
+        card.dataset.id = quest.id;
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `Ouvrir la quête ${quest.name}`);
         card.style.setProperty("--status-color", meta.color);
         card.style.setProperty("--delay", `${index * 120}ms`);
         const adminAction = state.isAdmin
@@ -1342,6 +1346,22 @@ function renderQuestList() {
             renderQuestList();
             persistState();
             await deleteQuestFromDb(questId);
+        });
+    });
+
+    dom.track.querySelectorAll(".quest-card").forEach((card) => {
+        const questId = card.dataset.id;
+        const shouldIgnore = (event) => event.target.closest(".quest-details-btn, .quest-delete-btn");
+        card.addEventListener("click", (event) => {
+            if (!questId || shouldIgnore(event)) return;
+            openDetail(questId);
+        });
+        card.addEventListener("keydown", (event) => {
+            if (!questId || shouldIgnore(event)) return;
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openDetail(questId);
+            }
         });
     });
 

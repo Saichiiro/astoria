@@ -69,7 +69,7 @@ body.nokorah-theme {
     box-shadow: var(--shadow-md);
 }
 
-.nokorah-hero {
+.nokorah-hero {
     display: grid;
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     gap: var(--space-10);
@@ -79,18 +79,24 @@ body.nokorah-theme {
     padding: clamp(1.5rem, 3vw, 2.5rem);
     box-shadow: var(--nokorah-shadow);
     position: relative;
-    overflow: hidden;
-}
-
-.nokorah-hero::after {
+    overflow: hidden;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.nokorah-hero::after {
     content: "";
     position: absolute;
     inset: auto -15% -30% auto;
     width: 320px;
     height: 320px;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 70%);
-    opacity: 0.7;
-}
+    opacity: 0.7;
+}
+
+.nokorah-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 46px rgba(63, 42, 37, 0.18);
+}
 
 .nokorah-hero-card {
     display: grid;
@@ -142,12 +148,18 @@ body.nokorah-theme {
     margin: 0 0 var(--space-5);
 }
 
-.nokorah-manager {
+.nokorah-manager {
     background: #fff;
     border-radius: 24px;
     padding: var(--space-8);
-    box-shadow: var(--nokorah-shadow);
-}
+    box-shadow: var(--nokorah-shadow);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.nokorah-manager:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 46px rgba(63, 42, 37, 0.18);
+}
 
 .nokorah-card {
     display: grid;
@@ -201,29 +213,42 @@ body.nokorah-theme {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
 }
 
-.nokorah-card-media {
+.nokorah-card-media {
     position: relative;
     padding: var(--space-4);
     background: linear-gradient(160deg, #fff6f0, #f7f7ff);
-    align-self: start;
-    justify-self: start;
-}
+    align-self: start;
+    justify-self: start;
+    border-radius: 24px;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.nokorah-card-media:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(63, 42, 37, 0.16);
+}
 
-.rarity-frame {
+.rarity-frame {
     border-radius: 22px;
     border: 4px solid var(--rarity-color, #fff);
-    box-shadow: var(--nokorah-glow);
-    position: relative;
-}
+    box-shadow: var(--nokorah-glow);
+    position: relative;
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
 
-.rarity-frame::after {
+.rarity-frame::after {
     content: "";
     position: absolute;
     inset: 6px;
     border-radius: 18px;
     border: 1px solid rgba(255, 255, 255, 0.55);
-    pointer-events: none;
-}
+    pointer-events: none;
+}
+
+.rarity-frame:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75), 0 14px 30px rgba(255, 140, 120, 0.32);
+}
 
 .rarity-frame img {
     width: 100%;
@@ -539,13 +564,19 @@ body.nokorah-theme {
     gap: var(--space-4);
 }
 
-.rule-card {
+.rule-card {
     background: #fff;
     border-radius: 18px;
     padding: var(--space-5);
-    box-shadow: var(--shadow-md);
-    border: 1px solid rgba(255, 210, 175, 0.5);
-}
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 210, 175, 0.5);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.rule-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(63, 42, 37, 0.16);
+}
 
 .rule-card h4 {
     margin: 0 0 var(--space-2);
@@ -590,13 +621,19 @@ body.nokorah-theme {
     gap: var(--space-4);
 }
 
-.rarity-preview-card {
+.rarity-preview-card {
     background: #fff;
     border-radius: 18px;
     padding: var(--space-4);
-    text-align: center;
-    box-shadow: var(--shadow-md);
-}
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.rarity-preview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 32px rgba(63, 42, 37, 0.16);
+}
 
 .rarity-preview-card img {
     width: 100%;
@@ -660,26 +697,32 @@ body.nokorah-theme {
     margin-top: var(--space-3);
 }
 
-.appearance-option {
+.appearance-option {
     border-radius: 14px;
     padding: var(--space-3);
     background: #fff6f0;
     border: 2px solid transparent;
     text-align: center;
-    cursor: pointer;
-    transition: border-color var(--transition-fast), transform var(--transition-fast);
-}
+    cursor: pointer;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
 
 .appearance-option img {
     width: 80px;
     height: 80px;
 }
 
-.appearance-option.selected {
+.appearance-option.selected {
     border-color: #ffb18b;
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(255, 172, 120, 0.2);
-}
+    box-shadow: 0 10px 20px rgba(255, 172, 120, 0.2);
+}
+
+.appearance-option:hover {
+    border-color: rgba(255, 177, 136, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 18px rgba(255, 177, 136, 0.2);
+}
 
 .focus-outline:focus-visible {
     outline: 3px solid rgba(255, 169, 120, 0.8);
@@ -696,7 +739,7 @@ body.nokorah-theme {
     }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 720px) {
     .nokorah-header {
         flex-direction: column;
         align-items: flex-start;
@@ -719,7 +762,26 @@ body.nokorah-theme {
         height: 120px;
     }
 
-    .panel-drawer .nokorah-actions {
-        grid-template-columns: 1fr;
-    }
-}
+    .panel-drawer .nokorah-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .nokorah-page {
+        padding: 0 var(--space-4) var(--space-12);
+    }
+
+    .nokorah-hero {
+        border-radius: 24px;
+        padding: var(--space-6);
+    }
+
+    .nokorah-manager {
+        padding: var(--space-5);
+    }
+
+    .nokorah-card {
+        gap: var(--space-5);
+    }
+}
