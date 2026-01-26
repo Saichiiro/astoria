@@ -225,6 +225,11 @@ export function initProfileTagSelector({ characterId, isAdmin = false } = {}) {
 
     menu.classList.add('profile-tags-menu');
 
+    // Move dropdown to body to avoid positioning context issues
+    if (menu.parentElement !== document.body) {
+        document.body.appendChild(menu);
+    }
+
     let canEdit = !!characterId;
     let userIsAdmin = isAdmin;
     toggle.disabled = false;
