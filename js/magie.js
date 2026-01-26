@@ -42,6 +42,14 @@
     const affinityDisplay = document.getElementById("magicAffinityDisplay");
     const scrollEveilCountEl = document.getElementById("magicEveilCount");
     const scrollAscensionCountEl = document.getElementById("magicAscensionCount");
+    const aliceStatsMeterEl = document.getElementById("magicAliceStatsMeter");
+    const alicePuissanceEl = document.getElementById("magicAlicePuissance");
+    const alicePuissanceUpgradesEl = document.getElementById("magicAlicePuissanceUpgrades");
+    const aliceControleEl = document.getElementById("magicAliceControle");
+    const aliceControleUpgradesEl = document.getElementById("magicAliceControleUpgrades");
+    const meisterSoulsMeterEl = document.getElementById("magicMeisterSoulsMeter");
+    const meisterProgSoulsEl = document.getElementById("magicMeisterProgSouls");
+    const meisterConsoSoulsEl = document.getElementById("magicMeisterConsoSouls");
     const formFields = Array.from(
         document.querySelectorAll(".magic-content input[id], .magic-content textarea[id], .magic-content select[id]")
     );
@@ -472,8 +480,82 @@
         return Number(counts[affinityKey]) || 0;
     }
 
+    function getAliceStats() {
+        const competencesData = getFicheTabData("competences");
+        const puissance = Number(competencesData?.alicePuissance) || 0;
+        const controle = Number(competencesData?.aliceControle) || 0;
+
+        const puissanceMinor = Math.floor(puissance / 5);
+        const puissanceUltimate = Math.floor(puissance / 10);
+        const controleMinor = Math.floor(controle / 5);
+        const controleUltimate = Math.floor(controle / 10);
+
+        return {
+            puissance,
+            controle,
+            puissanceMinor,
+            puissanceUltimate,
+            controleMinor,
+            controleUltimate,
+            totalPuissanceUpgrades: puissanceMinor + puissanceUltimate,
+            totalControleUpgrades: controleMinor + controleUltimate
+        };
+    }
+
+    function getMeisterSouls() {
+        const eaterData = getFicheTabData("eater");
+        const progSouls = Number(eaterData?.eaterAmesProgression) || 0;
+        const consoSouls = Number(eaterData?.eaterAmesConso) || 0;
+
+        const minorUpgrades = [40, 80, 120, 200, 250, 375, 425].filter(threshold => progSouls >= threshold).length;
+        const ultimateLevel = progSouls >= 475 ? 3 : progSouls >= 325 ? 2 : progSouls >= 150 ? 1 : 0;
+
+        return {
+            progSouls,
+            consoSouls,
+            minorUpgrades,
+            ultimateLevel,
+            totalUpgrades: minorUpgrades + ultimateLevel
+        };
+    }
+
     function renderScrollMeter() {
+        const meterContainer = document.getElementById("magicScrollMeter");
+        const currentPage = pages[activePageIndex];
+        const specialization = currentPage?.fields?.magicSpecialization;
+
+        if (aliceStatsMeterEl) aliceStatsMeterEl.style.display = "none";
+        if (meisterSoulsMeterEl) meisterSoulsMeterEl.style.display = "none";
+        if (meterContainer) meterContainer.style.display = "none";
+
+        if (specialization === "alice") {
+            if (aliceStatsMeterEl) {
+                aliceStatsMeterEl.style.display = "";
+                const stats = getAliceStats();
+                if (alicePuissanceEl) alicePuissanceEl.textContent = String(stats.puissance);
+                if (alicePuissanceUpgradesEl) {
+                    alicePuissanceUpgradesEl.textContent = `${stats.puissanceMinor}M + ${stats.puissanceUltimate}U`;
+                }
+                if (aliceControleEl) aliceControleEl.textContent = String(stats.controle);
+                if (aliceControleUpgradesEl) {
+                    aliceControleUpgradesEl.textContent = `${stats.controleMinor}M + ${stats.controleUltimate}U`;
+                }
+            }
+            return;
+        }
+
+        if (specialization === "meister") {
+            if (meisterSoulsMeterEl) {
+                meisterSoulsMeterEl.style.display = "";
+                const souls = getMeisterSouls();
+                if (meisterProgSoulsEl) meisterProgSoulsEl.textContent = String(souls.progSouls);
+                if (meisterConsoSoulsEl) meisterConsoSoulsEl.textContent = String(souls.consoSouls);
+            }
+            return;
+        }
+
         if (!scrollEveilCountEl || !scrollAscensionCountEl) return;
+        if (meterContainer) meterContainer.style.display = "";
         const profileData = currentCharacter?.profile_data || {};
         const eveilCounts = getScrollCounts(profileData, "eveil");
         const ascensionCounts = getScrollCounts(profileData, "ascension");
@@ -484,6 +566,27 @@
 
     function getAscensionCostLabel(page, rank, nextLevel) {
         const specialization = page?.fields?.magicSpecialization;
+
+        if (specialization === "alice") {
+            if (rank === "ultime") {
+                const requiredStat = nextLevel * 10;
+                return `Requis: ${requiredStat} pts (Puissance ou Contrôle)`;
+            }
+            const requiredStat = nextLevel * 5;
+            return `Requis: ${requiredStat} pts (Puissance ou Contrôle)`;
+        }
+
+        if (specialization === "meister") {
+            if (rank === "ultime") {
+                const thresholds = [150, 325, 475];
+                const required = thresholds[Math.min(nextLevel - 1, 2)] || 150;
+                return `Requis: ${required}% âmes de progression`;
+            }
+            const thresholds = [40, 80, 120, 200, 250, 375, 425];
+            const required = thresholds[Math.min(nextLevel - 1, 6)] || 40;
+            return `Requis: ${required}% âmes de progression`;
+        }
+
         if (specialization && specialization !== "sorcellerie") return "Indisponible";
         if (rank === "ultime") {
             return `${getUltimeAscensionCost(nextLevel)} parchemins`;
