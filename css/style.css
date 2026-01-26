@@ -190,6 +190,14 @@ body:not(.nokorah-theme) > *:not(.panel-backdrop):not(.panel-drawer) {
     border-color: rgba(216, 27, 96, 0.25);
 }
 
+.tw-surface:focus-within,
+.tw-panel:focus-within,
+.tw-card:focus-within,
+.panel-card:focus-within {
+    box-shadow: 0 0 0 2px rgba(255, 106, 162, 0.2), 0 14px 28px rgba(216, 27, 96, 0.16);
+    border-color: rgba(216, 27, 96, 0.3);
+}
+
 .tw-btn,
 .tw-back,
 .auth-button {
