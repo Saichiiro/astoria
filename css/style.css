@@ -158,7 +158,7 @@ body:not(.nokorah-theme)::before {
     z-index: 0;
 }
 
-body:not(.nokorah-theme) > * {
+body:not(.nokorah-theme) > *:not(.panel-backdrop):not(.panel-drawer) {
     position: relative;
     z-index: 1;
 }
