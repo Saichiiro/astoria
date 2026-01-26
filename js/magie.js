@@ -136,6 +136,20 @@
         autre: "Zone"
     };
 
+    const CAPACITY_TEMPORALITY_LABELS = {
+        t0: "0 Tour (Instantane)",
+        t1: "1 Tour",
+        t2: "2 Tours",
+        t3: "3 Tours",
+        t4: "4 Tours",
+        t5: "5 Tours",
+        t6: "6 Tours",
+        t7: "7 Tours",
+        combat1: "1 Utilisation par combat",
+        combat2: "2 Utilisations par combat",
+        combat3: "3 Utilisations par combat"
+    };
+
     const FALLBACK_SCROLL_EMOJI = String.fromCodePoint(0x2728);
     const FALLBACK_MAGIC_AFFINITIES = [
         { key: "feu", label: "Feu", emoji: String.fromCodePoint(0x1F525) },
@@ -1020,19 +1034,33 @@
                     { value: "longue", label: "Longue (20m+)" }
                 ].map((option) => `<option value="${option.value}" ${option.value === cap.distance ? "selected" : ""}>${option.label}</option>`).join("");
                 const activationOptions = [
-                    { value: "instantane", label: "Instantane" },
-                    { value: "court", label: "Court" },
-                    { value: "long", label: "Long" }
+                    { value: "t0", label: "0 Tour (Instantane)" },
+                    { value: "t1", label: "1 Tour" },
+                    { value: "t2", label: "2 Tours" },
+                    { value: "t3", label: "3 Tours" },
+                    { value: "t4", label: "4 Tours" },
+                    { value: "t5", label: "5 Tours" }
                 ].map((option) => `<option value="${option.value}" ${option.value === cap.activationTime ? "selected" : ""}>${option.label}</option>`).join("");
                 const durationOptions = [
-                    { value: "instantane", label: "Instantane" },
-                    { value: "persistant", label: "Persistant" }
+                    { value: "t0", label: "0 Tour (Instantane)" },
+                    { value: "t1", label: "1 Tour" },
+                    { value: "t2", label: "2 Tours" },
+                    { value: "t3", label: "3 Tours" },
+                    { value: "t4", label: "4 Tours" },
+                    { value: "t5", label: "5 Tours" }
                 ].map((option) => `<option value="${option.value}" ${option.value === cap.duration ? "selected" : ""}>${option.label}</option>`).join("");
                 const cooldownOptions = [
-                    { value: "aucun", label: "Aucun" },
-                    { value: "court", label: "Court" },
-                    { value: "moyen", label: "Moyen" },
-                    { value: "long", label: "Long" }
+                    { value: "t0", label: "0 Tour (Instantane)" },
+                    { value: "t1", label: "1 Tour" },
+                    { value: "t2", label: "2 Tours" },
+                    { value: "t3", label: "3 Tours" },
+                    { value: "t4", label: "4 Tours" },
+                    { value: "t5", label: "5 Tours" },
+                    { value: "t6", label: "6 Tours" },
+                    { value: "t7", label: "7 Tours" },
+                    { value: "combat1", label: "1 Utilisation par combat" },
+                    { value: "combat2", label: "2 Utilisations par combat" },
+                    { value: "combat3", label: "3 Utilisations par combat" }
                 ].map((option) => `<option value="${option.value}" ${option.value === cap.cooldown ? "selected" : ""}>${option.label}</option>`).join("");
                 const nextLevel = level + 1;
                 const costLabel = ascensionCost == null
@@ -1194,7 +1222,7 @@
                         </div>
                         <div>
                             <div class="magic-capacity-field-label">Temporalite</div>
-                            <div class="magic-capacity-field-value magic-capacity-field-value--dim">${cap.activationTime || "-"} • ${cap.duration || "-"} • ${cap.cooldown || "-"}</div>
+                            <div class="magic-capacity-field-value magic-capacity-field-value--dim">${CAPACITY_TEMPORALITY_LABELS[cap.activationTime] || cap.activationTime || "-"} • ${CAPACITY_TEMPORALITY_LABELS[cap.duration] || cap.duration || "-"} • ${CAPACITY_TEMPORALITY_LABELS[cap.cooldown] || cap.cooldown || "-"}</div>
                         </div>
                         <div>
                             <div class="magic-capacity-field-label">Description RP</div>
@@ -1368,9 +1396,9 @@
                             cap.zoneType = upgradeZone?.value || cap.zoneType || "";
                             cap.zoneDetail = upgradeZoneDetail?.value.trim() || "";
                             cap.distance = upgradeDistance?.value || cap.distance || "cac";
-                            cap.activationTime = upgradeActivation?.value || cap.activationTime || "instantane";
-                            cap.duration = upgradeDuration?.value || cap.duration || "instantane";
-                            cap.cooldown = upgradeCooldown?.value || cap.cooldown || "aucun";
+                            cap.activationTime = upgradeActivation?.value || cap.activationTime || "t0";
+                            cap.duration = upgradeDuration?.value || cap.duration || "t0";
+                            cap.cooldown = upgradeCooldown?.value || cap.cooldown || "t0";
                             cap.rp = nextRp;
                             cap.perception = upgradePerception?.value.trim() || "";
                             cap.tell = upgradeTell?.value.trim() || "";
@@ -1421,9 +1449,9 @@
         if (capZoneInput) capZoneInput.value = "";
         if (capZoneDetailInput) capZoneDetailInput.value = "";
         if (capDistanceInput) capDistanceInput.value = "cac";
-        if (capActivationInput) capActivationInput.value = "instantane";
-        if (capDurationInput) capDurationInput.value = "instantane";
-        if (capCooldownInput) capCooldownInput.value = "aucun";
+        if (capActivationInput) capActivationInput.value = "t0";
+        if (capDurationInput) capDurationInput.value = "t0";
+        if (capCooldownInput) capCooldownInput.value = "t0";
         if (capRpInput) capRpInput.value = "";
         if (capPerceptionInput) capPerceptionInput.value = "";
         if (capTellInput) capTellInput.value = "";
@@ -1456,9 +1484,9 @@
             zoneType: capZoneInput?.value || "",
             zoneDetail: capZoneDetailInput?.value.trim() || "",
             distance: capDistanceInput?.value || "cac",
-            activationTime: capActivationInput?.value || "instantane",
-            duration: capDurationInput?.value || "instantane",
-            cooldown: capCooldownInput?.value || "aucun",
+            activationTime: capActivationInput?.value || "t0",
+            duration: capDurationInput?.value || "t0",
+            cooldown: capCooldownInput?.value || "t0",
             rp,
             perception: capPerceptionInput?.value.trim() || "",
             tell: capTellInput?.value.trim() || "",
