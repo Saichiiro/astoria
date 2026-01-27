@@ -2939,61 +2939,6 @@ button:hover .shortcut-icon {
     outline-offset: 4px;
 }
 
-/* Performance hints for animations - Use these to hint browser optimization */
-.will-animate {
-    will-change: transform, opacity;
-}
-
-.gpu-accelerate {
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-/* Opt-in animations - Only GPU-accelerated properties (transform, opacity) */
-.fade-in {
-    animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.fade-out {
-    animation: fadeOut 0.3s ease-out;
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
-.slide-up {
-    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Disable ALL animations for users who prefer reduced motion */
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
-}
 
 /* Accessibility helpers */
 .sr-only {

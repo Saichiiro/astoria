@@ -29,7 +29,9 @@
       "Bash(fi)",
       "Bash(done)",
       "Bash(start:*)",
-      "Bash(gh issue edit:*)"
+      "Bash(gh issue edit:*)",
+      "Bash(gh issue close:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
