@@ -48,11 +48,35 @@
                         <span class="magic-scroll-pill">Éveil: <strong id="magicEveilCount">0</strong></span>
                         <span class="magic-scroll-pill">Ascension: <strong id="magicAscensionCount">0</strong></span>
                     </div>
-                    <div class="magic-scroll-meter" id="magicAliceStatsMeter" aria-label="Stats Alice" style="display: none;">
-                        <span class="magic-scroll-pill">Puissance: <strong id="magicAlicePuissance">0</strong>/40
-                            (<strong id="magicAlicePuissanceUpgrades">0</strong> améliorations)</span>
-                        <span class="magic-scroll-pill">Contrôle: <strong id="magicAliceControle">0</strong>/40
-                            (<strong id="magicAliceControleUpgrades">0</strong> améliorations)</span>
+                    <div class="magic-scroll-meter magic-alice-stats" id="magicAliceStatsMeter" aria-label="Stats Alice" style="display: none;">
+                        <div class="alice-stat-group">
+                            <div class="alice-stat-label">
+                                <span class="alice-stat-title">⚡ Puissance Alice</span>
+                                <span class="alice-stat-value"><strong id="magicAlicePuissance">0</strong>/40</span>
+                            </div>
+                            <div class="alice-stat-upgrades">
+                                <span class="alice-upgrade-pill alice-upgrade-pill--minor" title="Améliorations pour sorts mineurs">
+                                    <strong id="magicAlicePuissanceMinor">0</strong> amélio. mineures
+                                </span>
+                                <span class="alice-upgrade-pill alice-upgrade-pill--ultimate" title="Améliorations pour sorts ultimes">
+                                    <strong id="magicAlicePuissanceUltimate">0</strong> amélio. ultimes
+                                </span>
+                            </div>
+                        </div>
+                        <div class="alice-stat-group">
+                            <div class="alice-stat-label">
+                                <span class="alice-stat-title">🎯 Contrôle Alice</span>
+                                <span class="alice-stat-value"><strong id="magicAliceControle">0</strong>/40</span>
+                            </div>
+                            <div class="alice-stat-upgrades">
+                                <span class="alice-upgrade-pill alice-upgrade-pill--minor" title="Nouveaux sorts mineurs">
+                                    <strong id="magicAliceControleMinor">0</strong> sorts mineurs
+                                </span>
+                                <span class="alice-upgrade-pill alice-upgrade-pill--ultimate" title="Nouveaux sorts ultimes">
+                                    <strong id="magicAliceControleUltimate">0</strong> sorts ultimes
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     <div class="magic-scroll-meter" id="magicMeisterSoulsMeter" aria-label="Âmes Meister" style="display: none;">
                         <span class="magic-scroll-pill">Âmes de progression: <strong id="magicMeisterProgSouls">0</strong>%</span>

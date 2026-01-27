@@ -28,7 +28,8 @@
       "Bash(else)",
       "Bash(fi)",
       "Bash(done)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(gh issue edit:*)"
     ],
     "deny": [],
     "ask": []

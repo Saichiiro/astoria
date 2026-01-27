@@ -44,9 +44,11 @@
     const scrollAscensionCountEl = document.getElementById("magicAscensionCount");
     const aliceStatsMeterEl = document.getElementById("magicAliceStatsMeter");
     const alicePuissanceEl = document.getElementById("magicAlicePuissance");
-    const alicePuissanceUpgradesEl = document.getElementById("magicAlicePuissanceUpgrades");
+    const alicePuissanceMinorEl = document.getElementById("magicAlicePuissanceMinor");
+    const alicePuissanceUltimateEl = document.getElementById("magicAlicePuissanceUltimate");
     const aliceControleEl = document.getElementById("magicAliceControle");
-    const aliceControleUpgradesEl = document.getElementById("magicAliceControleUpgrades");
+    const aliceControleMinorEl = document.getElementById("magicAliceControleMinor");
+    const aliceControleUltimateEl = document.getElementById("magicAliceControleUltimate");
     const meisterSoulsMeterEl = document.getElementById("magicMeisterSoulsMeter");
     const meisterProgSoulsEl = document.getElementById("magicMeisterProgSouls");
     const meisterConsoSoulsEl = document.getElementById("magicMeisterConsoSouls");
@@ -533,13 +535,11 @@
                 aliceStatsMeterEl.style.display = "";
                 const stats = getAliceStats();
                 if (alicePuissanceEl) alicePuissanceEl.textContent = String(stats.puissance);
-                if (alicePuissanceUpgradesEl) {
-                    alicePuissanceUpgradesEl.textContent = `${stats.puissanceMinor}M + ${stats.puissanceUltimate}U`;
-                }
+                if (alicePuissanceMinorEl) alicePuissanceMinorEl.textContent = String(stats.puissanceMinor);
+                if (alicePuissanceUltimateEl) alicePuissanceUltimateEl.textContent = String(stats.puissanceUltimate);
                 if (aliceControleEl) aliceControleEl.textContent = String(stats.controle);
-                if (aliceControleUpgradesEl) {
-                    aliceControleUpgradesEl.textContent = `${stats.controleMinor}M + ${stats.controleUltimate}U`;
-                }
+                if (aliceControleMinorEl) aliceControleMinorEl.textContent = String(stats.controleMinor);
+                if (aliceControleUltimateEl) aliceControleUltimateEl.textContent = String(stats.controleUltimate);
             }
             return;
         }
