@@ -738,11 +738,67 @@
         return true;
     }
 
+    function checkAliceUpgradesAvailable(rank) {
+        const stats = getAliceStats();
+        const isMinor = rank === "mineur";
+        const availableUpgrades = isMinor ? stats.puissanceMinor : stats.puissanceUltimate;
+        return availableUpgrades > 0;
+    }
+
+    function checkAliceSpellsAvailable(rank) {
+        const stats = getAliceStats();
+        const isMinor = rank === "mineur";
+        const availableSpells = isMinor ? stats.controleMinor : stats.controleUltimate;
+        return availableSpells > 0;
+    }
+
+    function getMeisterFragmentsAvailable(rank) {
+        const souls = getMeisterSouls();
+        const progPercent = souls.progSouls;
+
+        if (rank === "ultime") {
+            // Check if any ultimate is unlocked
+            if (progPercent >= 475) return true; // Ultime III
+            if (progPercent >= 325) return true; // Ultime II
+            if (progPercent >= 150) return true; // Ultime I
+            return false;
+        }
+
+        // Minor fragments unlock at: 40%, 80%, 120%, 200%, 250%, 375%, 425%
+        const minorMilestones = [40, 80, 120, 200, 250, 375, 425];
+        const unlockedMinors = minorMilestones.filter(m => progPercent >= m).length;
+        return unlockedMinors > 0;
+    }
+
     async function consumeAscensionForRank(page, rank, nextLevel) {
         const specialization = page?.fields?.magicSpecialization;
-        if (specialization && specialization !== "sorcellerie") {
+
+        // Alice validation
+        if (specialization === "alice") {
+            // For Alice: check if they have available upgrades OR spells
+            const hasUpgrades = checkAliceUpgradesAvailable(rank);
+            const hasSpells = checkAliceSpellsAvailable(rank);
+
+            if (!hasUpgrades && !hasSpells) {
+                const rankLabel = rank === "mineur" ? "mineur" : "ultime";
+                alert(`Vous n'avez pas de points disponibles pour ajouter un sort ${rankLabel}.\n\nAugmentez votre Puissance Alice ou Contrôle Alice dans la fiche de compétences.`);
+                return false;
+            }
             return true;
         }
+
+        // Meister validation
+        if (specialization === "meister") {
+            const hasFragments = getMeisterFragmentsAvailable(rank);
+            if (!hasFragments) {
+                const rankLabel = rank === "mineur" ? "mineur" : "ultime";
+                alert(`Vous n'avez pas de fragments disponibles pour ajouter une capacité ${rankLabel}.\n\nConsommez plus d'âmes de progression pour débloquer des fragments.`);
+                return false;
+            }
+            return true;
+        }
+
+        // Sorcerer validation (scrolls)
         if (rank !== "ultime") {
             return consumeAscensionForTechnique(page);
         }
