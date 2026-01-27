@@ -906,6 +906,7 @@
 
 /* Alice Stats Meter */
 .magic-alice-stats {
+    position: static !important;
     flex-direction: column;
     gap: var(--space-3);
     align-items: stretch;
@@ -914,6 +915,8 @@
     border: 2px solid rgba(216, 27, 96, 0.2);
     border-radius: var(--radius-lg);
     box-shadow: 0 8px 20px rgba(216, 27, 96, 0.15);
+    margin-bottom: var(--space-4);
+    max-width: 400px;
 }
 
 .alice-stat-group {
