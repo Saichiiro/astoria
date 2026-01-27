@@ -13,35 +13,38 @@
 </head>
 <body class="min-h-screen">
     <main class="wrapper" aria-labelledby="pageTitle">
-        <div class="top-bar tw-panel">
-            <!-- Navigation placeholder -->
-            <nav aria-label="Navigation principale" class="top-nav">
-                <a href="inventaire.html" class="page-back" title="Retour à l'inventaire">← Retour</a>
-            </nav>
-            <h1 class="title" id="pageTitle">Liste d'objets</h1>
-            <div class="character-summary" aria-label="Résumé du personnage">
-                <div class="character-avatar-wrapper">
-                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
-                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
-                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
-                    </div>
-                    <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+        <header class="page-header">
+            <a href="inventaire.html" class="page-back" title="Retour à l'inventaire">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="pageTitle">Liste d'objets</h1>
                 </div>
-                <div class="character-summary-text">
-                    <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
-                    <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
-                    <div class="character-summary-meta">
-                        <span class="stats-badge tw-pill" id="characterKaelsBadge" hidden>0 kaels</span>
-                        <div class="character-souls" id="characterSouls" hidden>
-                            <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
-                            <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="Âmes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="Âmes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <span class="stats-badge tw-pill" id="statsBadge">0 objet</span>
+        </header>
+
+        <div class="codex-toolbar">
+            <span class="stats-badge" id="statsBadge">0 objet</span>
             <button type="button" class="admin-add-btn tw-press tw-btn" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
-            <!-- Dropdown catégories -->
             <select id="categoryFilter" class="category-dropdown tw-input">
                 <option value="">Toutes catégories</option>
                 <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
