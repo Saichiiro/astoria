@@ -86,32 +86,34 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s ease, color 0.15s ease;
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.18);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
-    will-change: transform;
 }
 
 .magic-page-tab:hover {
-    box-shadow: 0 7px 12px rgba(0, 0, 0, 0.22), 0 0 10px rgba(255, 106, 162, 0.45);
+    transform: translateY(-2px) scale(1.05);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.25));
     color: var(--color-primary);
-    transform: translateX(-2px);
+}
+
+.magic-page-tab:active {
+    transform: translateY(0) scale(0.98);
+    transition: all 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .magic-page-tab--active {
     background-image: url("../assets/images/Bouton_Competences.png");
     color: var(--color-white);
-    box-shadow: 0 8px 14px rgba(216, 27, 96, 0.4);
+    transform: scale(1.1);
+    filter: drop-shadow(0 8px 16px rgba(216, 27, 96, 0.4));
     text-shadow: 0 2px 6px rgba(216, 27, 96, 0.35);
 }
 
 .magic-page-tab--add {
     background-image: url("../assets/images/Bouton_Competences.png");
     color: var(--color-primary);
-}
-
-.magic-page-tab--add:hover {
-    filter: brightness(1.05);
 }
 
 .magic-nav-btn {
