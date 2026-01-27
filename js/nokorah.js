@@ -432,10 +432,39 @@ function buildBonusChips() {
         return (a.name || "").localeCompare(b.name || "");
     });
 
-    // Show all bonuses in a flowing line
-    return sorted
+    // Show first 5 bonuses
+    const MAX_DISPLAY = 5;
+    const displayBonuses = sorted.slice(0, MAX_DISPLAY);
+    const hasMore = sorted.length > MAX_DISPLAY;
+
+    const chips = displayBonuses
         .map((bonus) => `<span class="bonus-chip">+${bonus.points} ${bonus.name}</span>`)
         .join("");
+
+    const moreButton = hasMore
+        ? `<span class="bonus-chip bonus-chip--more" role="button" tabindex="0" data-action="show-all-bonuses">...</span>`
+        : '';
+
+    return chips + moreButton;
+}
+
+function showAllBonuses() {
+    if (!state.bonuses.length) return;
+
+    // Sort by points descending, then alphabetically
+    const sorted = [...state.bonuses].sort((a, b) => {
+        const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+        if (pointsDiff !== 0) return pointsDiff;
+        return (a.name || "").localeCompare(b.name || "");
+    });
+
+    const bonusList = sorted
+        .map((bonus) => `+${bonus.points} ${bonus.name}`)
+        .join('\n');
+
+    const totalPoints = sorted.reduce((sum, bonus) => sum + (Number(bonus.points) || 0), 0);
+
+    alert(`Tous les bonus (${sorted.length})\nTotal: ${totalPoints} points\n\n${bonusList}`);
 }
 
 function buildAccessoryTag(active) {
@@ -540,11 +569,21 @@ function renderActive(root) {
     const appearanceBtn = root.querySelector("[data-action='appearance']");
     const abandonBtn = root.querySelector("[data-action='abandon']");
     const rainbowToggle = root.querySelector("#legendaryRainbowToggle");
+    const showAllBonusesBtn = root.querySelector("[data-action='show-all-bonuses']");
 
     if (rarityBtn) rarityBtn.addEventListener("click", handleRarityUpgrade);
     if (statsBtn) statsBtn.addEventListener("click", handleStatsUpgrade);
     if (appearanceBtn) appearanceBtn.addEventListener("click", openAppearanceModal);
     if (abandonBtn) abandonBtn.addEventListener("click", openFarewellModal);
+    if (showAllBonusesBtn) {
+        showAllBonusesBtn.addEventListener("click", showAllBonuses);
+        showAllBonusesBtn.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                showAllBonuses();
+            }
+        });
+    }
     if (rainbowToggle) {
         rainbowToggle.addEventListener("change", async (event) => {
             state.active.rainbowFrame = event.target.checked;

@@ -1,95 +1,95 @@
 @charset "UTF-8";
-/* =====================================================================
-   NOKORAH - Cute fantasy UI
-   ===================================================================== */
-:root {
-    --nokorah-cream: #fff6ef;
-    --nokorah-blush: #ffd7c9;
-    --nokorah-sky: #d7f2ff;
-    --nokorah-mint: #dff8e9;
-    --nokorah-cocoa: #5b3b33;
-    --nokorah-ink: #3f2a25;
-    --nokorah-shadow: 0 18px 40px rgba(63, 42, 37, 0.14);
-    --nokorah-glow: 0 0 0 3px rgba(255, 255, 255, 0.6), 0 10px 24px rgba(255, 140, 120, 0.25);
-}
-
-body.nokorah-theme {
-    background-color: var(--color-white);
-    background-image: url('../assets/images/general_background.png');
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-    color: var(--nokorah-ink);
-}
-
-.nokorah-page {
-    max-width: var(--wrapper-max-width);
-    margin: 0 auto;
-    padding: 0 var(--space-6) var(--space-14);
-}
-
-.nokorah-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-6);
-    margin-bottom: var(--space-8);
-    flex-wrap: wrap;
-}
-
-.nokorah-title {
-    margin: 0;
-    font-size: clamp(2rem, 2.8vw, 2.6rem);
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    color: var(--nokorah-cocoa);
-}
-
-.nokorah-subtitle {
-    margin: var(--space-2) 0 0;
-    color: rgba(63, 42, 37, 0.7);
-    max-width: 520px;
-}
-
-.nokorah-back {
-    text-decoration: none;
-    font-weight: 700;
-    background: #fff;
-    border-radius: 999px;
-    padding: 0.65rem 1.2rem;
-    border: 2px solid rgba(216, 27, 96, 0.2);
-    box-shadow: var(--shadow-sm);
-    color: var(--color-primary-dark);
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
-
-.nokorah-back:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
+/* =====================================================================
+   NOKORAH - Cute fantasy UI
+   ===================================================================== */
+:root {
+    --nokorah-cream: #fff6ef;
+    --nokorah-blush: #ffd7c9;
+    --nokorah-sky: #d7f2ff;
+    --nokorah-mint: #dff8e9;
+    --nokorah-cocoa: #5b3b33;
+    --nokorah-ink: #3f2a25;
+    --nokorah-shadow: 0 18px 40px rgba(63, 42, 37, 0.14);
+    --nokorah-glow: 0 0 0 3px rgba(255, 255, 255, 0.6), 0 10px 24px rgba(255, 140, 120, 0.25);
+}
+
+body.nokorah-theme {
+    background-color: var(--color-white);
+    background-image: url('../assets/images/general_background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--nokorah-ink);
+}
+
+.nokorah-page {
+    max-width: var(--wrapper-max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-6) var(--space-14);
+}
+
+.nokorah-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+    flex-wrap: wrap;
+}
+
+.nokorah-title {
+    margin: 0;
+    font-size: clamp(2rem, 2.8vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--nokorah-cocoa);
+}
+
+.nokorah-subtitle {
+    margin: var(--space-2) 0 0;
+    color: rgba(63, 42, 37, 0.7);
+    max-width: 520px;
+}
+
+.nokorah-back {
+    text-decoration: none;
+    font-weight: 700;
+    background: #fff;
+    border-radius: 999px;
+    padding: 0.65rem 1.2rem;
+    border: 2px solid rgba(216, 27, 96, 0.2);
+    box-shadow: var(--shadow-sm);
+    color: var(--color-primary-dark);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.nokorah-back:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
 .nokorah-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-    gap: var(--space-10);
-    align-items: center;
-    background: linear-gradient(135deg, rgba(255, 222, 204, 0.9), rgba(224, 245, 255, 0.9));
-    border-radius: 32px;
-    padding: clamp(1.5rem, 3vw, 2.5rem);
-    box-shadow: var(--nokorah-shadow);
-    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: var(--space-10);
+    align-items: center;
+    background: linear-gradient(135deg, rgba(255, 222, 204, 0.9), rgba(224, 245, 255, 0.9));
+    border-radius: 32px;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    box-shadow: var(--nokorah-shadow);
+    position: relative;
     overflow: hidden;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .nokorah-hero::after {
-    content: "";
-    position: absolute;
-    inset: auto -15% -30% auto;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 70%);
+    content: "";
+    position: absolute;
+    inset: auto -15% -30% auto;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 70%);
     opacity: 0.7;
 }
 
@@ -97,61 +97,61 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 22px 46px rgba(63, 42, 37, 0.18);
 }
-
-.nokorah-hero-card {
-    display: grid;
-    gap: var(--space-5);
-}
-
-.nokorah-hero-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-3);
-    padding: 0.35rem 0.75rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.7);
-    font-weight: 700;
-    color: var(--color-primary-dark);
-    width: fit-content;
-    box-shadow: 0 6px 14px rgba(255, 144, 122, 0.25);
-}
-
-.nokorah-lore {
-    font-size: 1rem;
-    line-height: 1.7;
-    color: rgba(63, 42, 37, 0.85);
-}
-
-.nokorah-hero-art {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.35));
-    border-radius: 28px;
-    padding: 1.2rem;
-    border: 2px dashed rgba(255, 169, 135, 0.6);
-    text-align: center;
-    position: relative;
-}
-
-.nokorah-hero-art img {
-    width: min(240px, 70%);
-    max-width: 100%;
-    filter: drop-shadow(0 12px 18px rgba(63, 42, 37, 0.2));
-}
-
-.nokorah-section {
-    margin-top: var(--space-10);
-}
-
-.nokorah-section-title {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: var(--nokorah-cocoa);
-    margin: 0 0 var(--space-5);
-}
-
+
+.nokorah-hero-card {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.nokorah-hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.7);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    width: fit-content;
+    box-shadow: 0 6px 14px rgba(255, 144, 122, 0.25);
+}
+
+.nokorah-lore {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: rgba(63, 42, 37, 0.85);
+}
+
+.nokorah-hero-art {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.35));
+    border-radius: 28px;
+    padding: 1.2rem;
+    border: 2px dashed rgba(255, 169, 135, 0.6);
+    text-align: center;
+    position: relative;
+}
+
+.nokorah-hero-art img {
+    width: min(240px, 70%);
+    max-width: 100%;
+    filter: drop-shadow(0 12px 18px rgba(63, 42, 37, 0.2));
+}
+
+.nokorah-section {
+    margin-top: var(--space-10);
+}
+
+.nokorah-section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--nokorah-cocoa);
+    margin: 0 0 var(--space-5);
+}
+
 .nokorah-manager {
-    background: #fff;
-    border-radius: 24px;
-    padding: var(--space-8);
+    background: #fff;
+    border-radius: 24px;
+    padding: var(--space-8);
     box-shadow: var(--nokorah-shadow);
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -160,50 +160,50 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 22px 46px rgba(63, 42, 37, 0.18);
 }
-
-.nokorah-card {
-    display: grid;
-    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
-    gap: var(--space-7);
-}
-
-/* Sidebar panel compact layout */
-.panel-drawer .nokorah-card {
-    grid-template-columns: 140px minmax(0, 1fr);
-    gap: var(--space-4);
-}
-
-.panel-drawer .nokorah-card-media {
-    width: 140px;
-    height: 140px;
-}
-
-.panel-drawer .nokorah-card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-2);
-}
-
-.panel-drawer .lucky-soul-meter {
-    align-self: flex-start;
-    margin-top: 0;
-}
-
-.panel-drawer .bonus-chips {
-    gap: 6px;
-}
-
-.panel-drawer .nokorah-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-2);
-}
-
-.panel-drawer .nokorah-actions .action-buttons {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-}
-
+
+.nokorah-card {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    gap: var(--space-7);
+}
+
+/* Sidebar panel compact layout */
+.panel-drawer .nokorah-card {
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: var(--space-4);
+}
+
+.panel-drawer .nokorah-card-media {
+    width: 140px;
+    height: 140px;
+}
+
+.panel-drawer .nokorah-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+}
+
+.panel-drawer .lucky-soul-meter {
+    align-self: flex-start;
+    margin-top: 0;
+}
+
+.panel-drawer .bonus-chips {
+    gap: 6px;
+}
+
+.panel-drawer .nokorah-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+}
+
+.panel-drawer .nokorah-actions .action-buttons {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+}
+
 .panel-drawer .nokorah-roulette {
     margin-top: var(--space-6);
     background: linear-gradient(135deg, #fff7fb, #fef1f7);
@@ -211,12 +211,12 @@ body.nokorah-theme {
     padding: var(--space-4);
     border: 1px solid rgba(255, 165, 200, 0.55);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-}
-
+}
+
 .nokorah-card-media {
-    position: relative;
-    padding: var(--space-4);
-    background: linear-gradient(160deg, #fff6f0, #f7f7ff);
+    position: relative;
+    padding: var(--space-4);
+    background: linear-gradient(160deg, #fff6f0, #f7f7ff);
     align-self: start;
     justify-self: start;
     border-radius: 24px;
@@ -227,21 +227,21 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 14px 28px rgba(63, 42, 37, 0.16);
 }
-
+
 .rarity-frame {
-    border-radius: 22px;
-    border: 4px solid var(--rarity-color, #fff);
+    border-radius: 22px;
+    border: 4px solid var(--rarity-color, #fff);
     box-shadow: var(--nokorah-glow);
     position: relative;
     transition: box-shadow var(--transition-fast), transform var(--transition-fast);
 }
-
+
 .rarity-frame::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.55);
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
     pointer-events: none;
 }
 
@@ -249,110 +249,110 @@ body.nokorah-theme {
     transform: translateY(-1px);
     box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.75), 0 14px 30px rgba(255, 140, 120, 0.32);
 }
-
-.rarity-frame img {
-    width: 100%;
-    height: auto;
-    display: block;
-    border-radius: 16px;
-    background: #fff;
-}
-
-.rarity-commun {
-    --rarity-color: #fefefe;
-}
-
-.rarity-rare {
-    --rarity-color: #45a3ff;
-}
-
-.rarity-epique {
-    --rarity-color: #8b5bff;
-}
-
-.rarity-mythique {
-    --rarity-color: #ff9a3d;
-}
-
-.rarity-legendaire {
-    --rarity-color: #ffd349;
-}
-
-.rarity-legendaire.rainbow {
-    border: 4px solid transparent;
-    background:
-        linear-gradient(160deg, #fff6f0, #f7f7ff) padding-box,
-        linear-gradient(90deg, #ffb3b3, #ffd8a6, #fff6a6, #b8ffcc, #a7e3ff, #c9b1ff) border-box;
-    background-clip: padding-box, border-box;
-    padding: 4px;
-}
-
-.rarity-legendaire.rainbow > img {
-    border-radius: 14px;
-}
-
-.rarity-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 0.35rem 0.8rem;
-    border-radius: 999px;
-    background: #fff;
-    border: 2px solid var(--rarity-color, #ddd);
-    font-weight: 800;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--nokorah-cocoa);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-}
-
-.rarity-badge.rainbow {
-    background: linear-gradient(90deg, #ffb3b3, #ffd8a6, #fff6a6, #b8ffcc, #a7e3ff, #c9b1ff);
-    border-color: transparent;
-    color: #5b3b33;
-}
-
-.rarity-mini {
-    font-size: 0.7rem;
-    padding: 0.2rem 0.55rem;
-}
-
-.nokorah-card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--space-6);
-    flex-wrap: wrap;
-}
-
-.nokorah-name {
-    margin: 0 0 var(--space-2);
-    font-size: 1.6rem;
-    font-weight: 800;
-}
-
-.nokorah-meta {
-    display: flex;
-    gap: var(--space-3);
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.status-badge {
-    padding: 0.3rem 0.7rem;
-    border-radius: 999px;
-    background: #fdf1e9;
-    color: #a1512f;
-    font-weight: 700;
-    font-size: 0.8rem;
-}
-
-.status-badge.accessory {
-    background: #e9f4ff;
-    color: #1d5b8f;
-}
-
+
+.rarity-frame img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 16px;
+    background: #fff;
+}
+
+.rarity-commun {
+    --rarity-color: #fefefe;
+}
+
+.rarity-rare {
+    --rarity-color: #45a3ff;
+}
+
+.rarity-epique {
+    --rarity-color: #8b5bff;
+}
+
+.rarity-mythique {
+    --rarity-color: #ff9a3d;
+}
+
+.rarity-legendaire {
+    --rarity-color: #ffd349;
+}
+
+.rarity-legendaire.rainbow {
+    border: 4px solid transparent;
+    background:
+        linear-gradient(160deg, #fff6f0, #f7f7ff) padding-box,
+        linear-gradient(90deg, #ffb3b3, #ffd8a6, #fff6a6, #b8ffcc, #a7e3ff, #c9b1ff) border-box;
+    background-clip: padding-box, border-box;
+    padding: 4px;
+}
+
+.rarity-legendaire.rainbow > img {
+    border-radius: 14px;
+}
+
+.rarity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 2px solid var(--rarity-color, #ddd);
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--nokorah-cocoa);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.rarity-badge.rainbow {
+    background: linear-gradient(90deg, #ffb3b3, #ffd8a6, #fff6a6, #b8ffcc, #a7e3ff, #c9b1ff);
+    border-color: transparent;
+    color: #5b3b33;
+}
+
+.rarity-mini {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.55rem;
+}
+
+.nokorah-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.nokorah-name {
+    margin: 0 0 var(--space-2);
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.nokorah-meta {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: #fdf1e9;
+    color: #a1512f;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.status-badge.accessory {
+    background: #e9f4ff;
+    color: #1d5b8f;
+}
+
 .lucky-soul-meter {
     background: #fff6e7;
     border-radius: 16px;
@@ -378,101 +378,122 @@ body.nokorah-theme {
     border: 1px solid rgba(120, 150, 255, 0.4);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
-
-.nokorah-section-block {
-    margin-top: var(--space-6);
-}
-
-.nokorah-section-block h4 {
-    margin: 0 0 var(--space-3);
-    font-size: 1rem;
-    font-weight: 800;
-    color: var(--nokorah-cocoa);
-}
-
-.bonus-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-}
-
-.bonus-chip {
-    background: #f2f9ff;
-    border: 1px solid rgba(69, 163, 255, 0.35);
-    color: #215f92;
-    padding: 0.3rem 0.65rem;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.8rem;
-}
-
-.bonus-total {
-    margin-top: var(--space-2);
-    font-size: 0.85rem;
-    color: rgba(63, 42, 37, 0.75);
-}
-
-.admin-effects {
-    background: #fffaf3;
-    border-radius: 14px;
-    padding: var(--space-4);
-    border: 1px dashed rgba(255, 165, 92, 0.6);
-    color: rgba(63, 42, 37, 0.8);
-}
-
-.nokorah-actions {
-    margin-top: var(--space-6);
-    display: grid;
-    gap: var(--space-3);
-}
-
-.action-buttons {
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 16px;
-    border: none;
-    font-weight: 800;
-    cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-    background: linear-gradient(135deg, #ffd3b5, #ffe9d4);
-    color: #7a3b1b;
-    box-shadow: 0 10px 20px rgba(255, 146, 96, 0.25);
-}
-
-.action-buttons span {
-    font-size: 0.85rem;
-    font-weight: 700;
-    background: rgba(255, 255, 255, 0.7);
-    padding: 0.3rem 0.55rem;
-    border-radius: 999px;
-}
-
-.action-buttons:hover {
-    transform: translateY(-1px);
-}
-
-.action-buttons.secondary {
-    background: linear-gradient(135deg, #d8f1ff, #f2fbff);
-    color: #1f5d87;
-}
-
-.action-buttons.danger {
-    background: linear-gradient(135deg, #ffb3ad, #ffe0d6);
-    color: #8f2a1e;
-    box-shadow: 0 10px 20px rgba(255, 134, 120, 0.28);
-}
-
-.action-buttons:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
+
+.nokorah-section-block {
+    margin-top: var(--space-6);
+}
+
+.nokorah-section-block h4 {
+    margin: 0 0 var(--space-3);
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--nokorah-cocoa);
+}
+
+.bonus-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.bonus-chip {
+    background: #f2f9ff;
+    border: 1px solid rgba(69, 163, 255, 0.35);
+    color: #215f92;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+n.bonus-chip--more {
+    cursor: pointer;
+    background: linear-gradient(135deg, #e8f5ff, #f0f9ff);
+    border: 2px solid rgba(69, 163, 255, 0.5);
+    color: #1a4d7a;
+    font-weight: 800;
+    transition: all 0.2s ease;
+    padding: 0.3rem 0.8rem;
+}
+
+.bonus-chip--more:hover {
+    background: linear-gradient(135deg, #d5edff, #e0f3ff);
+    border-color: rgba(69, 163, 255, 0.7);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(69, 163, 255, 0.2);
+}
+
+.bonus-chip--more:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(69, 163, 255, 0.15);
+}
+
+.bonus-total {
+    margin-top: var(--space-2);
+    font-size: 0.85rem;
+    color: rgba(63, 42, 37, 0.75);
+}
+
+.admin-effects {
+    background: #fffaf3;
+    border-radius: 14px;
+    padding: var(--space-4);
+    border: 1px dashed rgba(255, 165, 92, 0.6);
+    color: rgba(63, 42, 37, 0.8);
+}
+
+.nokorah-actions {
+    margin-top: var(--space-6);
+    display: grid;
+    gap: var(--space-3);
+}
+
+.action-buttons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 16px;
+    border: none;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    background: linear-gradient(135deg, #ffd3b5, #ffe9d4);
+    color: #7a3b1b;
+    box-shadow: 0 10px 20px rgba(255, 146, 96, 0.25);
+}
+
+.action-buttons span {
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0.3rem 0.55rem;
+    border-radius: 999px;
+}
+
+.action-buttons:hover {
+    transform: translateY(-1px);
+}
+
+.action-buttons.secondary {
+    background: linear-gradient(135deg, #d8f1ff, #f2fbff);
+    color: #1f5d87;
+}
+
+.action-buttons.danger {
+    background: linear-gradient(135deg, #ffb3ad, #ffe0d6);
+    color: #8f2a1e;
+    box-shadow: 0 10px 20px rgba(255, 134, 120, 0.28);
+}
+
+.action-buttons:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .nokorah-roulette {
     margin-top: var(--space-6);
     background: linear-gradient(135deg, #fff7fb, #fff1e3);
@@ -492,7 +513,7 @@ body.nokorah-theme {
     opacity: 0.65;
     pointer-events: none;
 }
-
+
 .roulette-track {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -564,39 +585,39 @@ body.nokorah-theme {
     font-size: 0.9rem;
     color: rgba(63, 42, 37, 0.85);
 }
-.nokorah-empty {
-    text-align: center;
-    padding: var(--space-10);
-    background: linear-gradient(135deg, #fff8f1, #f4fbff);
-    border-radius: 24px;
-    border: 2px dashed rgba(255, 177, 136, 0.7);
-}
-
-.nokorah-empty img {
-    width: 120px;
-    margin-bottom: var(--space-4);
-}
-
-.nokorah-empty h3 {
-    margin: 0 0 var(--space-2);
-    font-size: 1.4rem;
-}
-
-.nokorah-empty p {
-    color: rgba(63, 42, 37, 0.75);
-    margin-bottom: var(--space-4);
-}
-
-.rules-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: var(--space-4);
-}
-
+.nokorah-empty {
+    text-align: center;
+    padding: var(--space-10);
+    background: linear-gradient(135deg, #fff8f1, #f4fbff);
+    border-radius: 24px;
+    border: 2px dashed rgba(255, 177, 136, 0.7);
+}
+
+.nokorah-empty img {
+    width: 120px;
+    margin-bottom: var(--space-4);
+}
+
+.nokorah-empty h3 {
+    margin: 0 0 var(--space-2);
+    font-size: 1.4rem;
+}
+
+.nokorah-empty p {
+    color: rgba(63, 42, 37, 0.75);
+    margin-bottom: var(--space-4);
+}
+
+.rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+}
+
 .rule-card {
-    background: #fff;
-    border-radius: 18px;
-    padding: var(--space-5);
+    background: #fff;
+    border-radius: 18px;
+    padding: var(--space-5);
     box-shadow: var(--shadow-md);
     border: 1px solid rgba(255, 210, 175, 0.5);
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -606,54 +627,54 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 16px 32px rgba(63, 42, 37, 0.16);
 }
-
-.rule-card h4 {
-    margin: 0 0 var(--space-2);
-    font-size: 1rem;
-    color: var(--nokorah-cocoa);
-}
-
-.rule-card p {
-    margin: 0;
-    color: rgba(63, 42, 37, 0.75);
-    font-size: 0.9rem;
-}
-
-.cost-table {
-    width: 100%;
-    border-collapse: collapse;
-    overflow: hidden;
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: var(--shadow-md);
-}
-
-.cost-table th,
-.cost-table td {
-    padding: 0.8rem 1rem;
-    text-align: left;
-    font-size: 0.9rem;
-}
-
-.cost-table th {
-    background: #ffe5d6;
-    color: #7b3b1e;
-}
-
-.cost-table tr:nth-child(even) td {
-    background: #fff9f4;
-}
-
-.rarity-preview-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: var(--space-4);
-}
-
+
+.rule-card h4 {
+    margin: 0 0 var(--space-2);
+    font-size: 1rem;
+    color: var(--nokorah-cocoa);
+}
+
+.rule-card p {
+    margin: 0;
+    color: rgba(63, 42, 37, 0.75);
+    font-size: 0.9rem;
+}
+
+.cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: var(--shadow-md);
+}
+
+.cost-table th,
+.cost-table td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.cost-table th {
+    background: #ffe5d6;
+    color: #7b3b1e;
+}
+
+.cost-table tr:nth-child(even) td {
+    background: #fff9f4;
+}
+
+.rarity-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-4);
+}
+
 .rarity-preview-card {
-    background: #fff;
-    border-radius: 18px;
-    padding: var(--space-4);
+    background: #fff;
+    border-radius: 18px;
+    padding: var(--space-4);
     text-align: center;
     box-shadow: var(--shadow-md);
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -663,87 +684,87 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 16px 32px rgba(63, 42, 37, 0.16);
 }
-
-.rarity-preview-card img {
-    width: 100%;
-    border-radius: 16px;
-}
-
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(32, 18, 18, 0.65);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    padding: 1rem;
-}
-
-.modal.open {
-    display: flex;
-}
-
-.modal-content {
-    background: #fff;
-    border-radius: 18px;
-    padding: var(--space-6);
-    max-width: 520px;
-    width: 100%;
-    box-shadow: var(--shadow-2xl);
-    border: 2px solid rgba(255, 186, 148, 0.6);
-}
-
-.modal-content h3 {
-    margin-top: 0;
-}
-
-.modal-content input,
-.modal-content textarea {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-    border-radius: 12px;
-    border: 1px solid #e3c6b4;
-    margin-top: var(--space-2);
-    font-family: var(--font-family);
-    font-size: 0.95rem;
-}
-
-.modal-content textarea {
-    min-height: 110px;
-    resize: vertical;
-}
-
-.helper {
-    font-size: 0.8rem;
-    color: rgba(63, 42, 37, 0.7);
-}
-
-.appearance-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: var(--space-3);
-    margin-top: var(--space-3);
-}
-
+
+.rarity-preview-card img {
+    width: 100%;
+    border-radius: 16px;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(32, 18, 18, 0.65);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal.open {
+    display: flex;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 18px;
+    padding: var(--space-6);
+    max-width: 520px;
+    width: 100%;
+    box-shadow: var(--shadow-2xl);
+    border: 2px solid rgba(255, 186, 148, 0.6);
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.modal-content input,
+.modal-content textarea {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border-radius: 12px;
+    border: 1px solid #e3c6b4;
+    margin-top: var(--space-2);
+    font-family: var(--font-family);
+    font-size: 0.95rem;
+}
+
+.modal-content textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.helper {
+    font-size: 0.8rem;
+    color: rgba(63, 42, 37, 0.7);
+}
+
+.appearance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+}
+
 .appearance-option {
-    border-radius: 14px;
-    padding: var(--space-3);
-    background: #fff6f0;
-    border: 2px solid transparent;
-    text-align: center;
+    border-radius: 14px;
+    padding: var(--space-3);
+    background: #fff6f0;
+    border: 2px solid transparent;
+    text-align: center;
     cursor: pointer;
     transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
-
-.appearance-option img {
-    width: 80px;
-    height: 80px;
-}
-
+
+.appearance-option img {
+    width: 80px;
+    height: 80px;
+}
+
 .appearance-option.selected {
-    border-color: #ffb18b;
-    transform: translateY(-2px);
+    border-color: #ffb18b;
+    transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(255, 172, 120, 0.2);
 }
 
@@ -752,45 +773,45 @@ body.nokorah-theme {
     transform: translateY(-2px);
     box-shadow: 0 10px 18px rgba(255, 177, 136, 0.2);
 }
-
-.focus-outline:focus-visible {
-    outline: 3px solid rgba(255, 169, 120, 0.8);
-    outline-offset: 2px;
-}
-
-@media (max-width: 960px) {
-    .nokorah-hero {
-        grid-template-columns: 1fr;
-    }
-
-    .nokorah-card {
-        grid-template-columns: 1fr;
-    }
-}
-
+
+.focus-outline:focus-visible {
+    outline: 3px solid rgba(255, 169, 120, 0.8);
+    outline-offset: 2px;
+}
+
+@media (max-width: 960px) {
+    .nokorah-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .nokorah-card {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 720px) {
-    .nokorah-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .nokorah-manager {
-        padding: var(--space-6);
-    }
-
-    .nokorah-hero-art img {
-        width: 160px;
-    }
-
-    .panel-drawer .nokorah-card {
-        grid-template-columns: 1fr;
-    }
-
-    .panel-drawer .nokorah-card-media {
-        width: 120px;
-        height: 120px;
-    }
-
+    .nokorah-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .nokorah-manager {
+        padding: var(--space-6);
+    }
+
+    .nokorah-hero-art img {
+        width: 160px;
+    }
+
+    .panel-drawer .nokorah-card {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-drawer .nokorah-card-media {
+        width: 120px;
+        height: 120px;
+    }
+
     .panel-drawer .nokorah-actions {
         grid-template-columns: 1fr;
     }
