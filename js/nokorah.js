@@ -432,16 +432,10 @@ function buildBonusChips() {
         return (a.name || "").localeCompare(b.name || "");
     });
 
-    // Show only first 5, add "..." if more
-    const MAX_DISPLAY = 5;
-    const displayBonuses = sorted.slice(0, MAX_DISPLAY);
-    const hasMore = sorted.length > MAX_DISPLAY;
-
-    const chips = displayBonuses
+    // Show all bonuses in a flowing line
+    return sorted
         .map((bonus) => `<span class="bonus-chip">+${bonus.points} ${bonus.name}</span>`)
         .join("");
-
-    return chips + (hasMore ? '<span class="bonus-chip bonus-chip--more">...</span>' : '');
 }
 
 function buildAccessoryTag(active) {
