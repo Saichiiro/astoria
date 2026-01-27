@@ -424,9 +424,24 @@ function buildBonusChips() {
     if (!state.bonuses.length) {
         return "<span class=\"helper\">Aucun bonus pour le moment.</span>";
     }
-    return state.bonuses
+
+    // Sort by points descending, then alphabetically
+    const sorted = [...state.bonuses].sort((a, b) => {
+        const pointsDiff = (Number(b.points) || 0) - (Number(a.points) || 0);
+        if (pointsDiff !== 0) return pointsDiff;
+        return (a.name || "").localeCompare(b.name || "");
+    });
+
+    // Show only first 5, add "..." if more
+    const MAX_DISPLAY = 5;
+    const displayBonuses = sorted.slice(0, MAX_DISPLAY);
+    const hasMore = sorted.length > MAX_DISPLAY;
+
+    const chips = displayBonuses
         .map((bonus) => `<span class="bonus-chip">+${bonus.points} ${bonus.name}</span>`)
         .join("");
+
+    return chips + (hasMore ? '<span class="bonus-chip bonus-chip--more">...</span>' : '');
 }
 
 function buildAccessoryTag(active) {

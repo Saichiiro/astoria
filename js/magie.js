@@ -809,35 +809,32 @@
 
         // Alice validation and consumption
         if (specialization === "alice") {
-            const isMinor = rank === "mineur";
             const isNewSpell = nextLevel === 1;
             const stats = getAliceStats();
             const progress = loadMagicProgress();
 
             if (isNewSpell) {
-                // Creating new spell - consume Contrôle
-                const availableSpells = isMinor ? stats.controleMinor : stats.controleUltimate;
-                if (availableSpells <= 0) {
-                    const rankLabel = isMinor ? "mineur" : "ultime";
-                    alert(`Vous n'avez pas de sorts ${rankLabel} disponibles.\n\nAugmentez votre Contrôle Alice dans la fiche de compétences.`);
+                // Creating new spell - consume Contrôle (any rank)
+                const totalAvailable = stats.controleMinor + stats.controleUltimate;
+                if (totalAvailable <= 0) {
+                    alert(`Vous n'avez pas de sorts disponibles.\n\nAugmentez votre Contrôle Alice dans la fiche de compétences.`);
                     return false;
                 }
-                // Consume one spell point
-                if (isMinor) {
+                // Consume from minor first, then ultimate
+                if (stats.controleMinor > 0) {
                     progress.aliceStats.controleMinorUsed = (progress.aliceStats.controleMinorUsed || 0) + 1;
                 } else {
                     progress.aliceStats.controleUltimateUsed = (progress.aliceStats.controleUltimateUsed || 0) + 1;
                 }
             } else {
-                // Upgrading existing spell - consume Puissance
-                const availableUpgrades = isMinor ? stats.puissanceMinor : stats.puissanceUltimate;
-                if (availableUpgrades <= 0) {
-                    const rankLabel = isMinor ? "mineure" : "ultime";
-                    alert(`Vous n'avez pas d'améliorations ${rankLabel} disponibles.\n\nAugmentez votre Puissance Alice dans la fiche de compétences.`);
+                // Upgrading existing spell - consume Puissance (any rank)
+                const totalAvailable = stats.puissanceMinor + stats.puissanceUltimate;
+                if (totalAvailable <= 0) {
+                    alert(`Vous n'avez pas d'améliorations disponibles.\n\nAugmentez votre Puissance Alice dans la fiche de compétences.`);
                     return false;
                 }
-                // Consume one upgrade point
-                if (isMinor) {
+                // Consume from minor first, then ultimate
+                if (stats.puissanceMinor > 0) {
                     progress.aliceStats.puissanceMinorUsed = (progress.aliceStats.puissanceMinorUsed || 0) + 1;
                 } else {
                     progress.aliceStats.puissanceUltimateUsed = (progress.aliceStats.puissanceUltimateUsed || 0) + 1;
