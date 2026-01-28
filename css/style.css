@@ -136,13 +136,17 @@ body {
     position: relative;
 }
 
-body:not(.nokorah-theme) {
+html:not(.nokorah-theme) {
     background-color: var(--color-white);
     background-image: url('../assets/images/general_background.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
+}
+
+body:not(.nokorah-theme) {
+    background: transparent;
 }
 
 body:not(.nokorah-theme)::before {
@@ -168,8 +172,8 @@ body:not(.nokorah-theme) > *:not(.panel-backdrop):not(.panel-drawer):not(.modal)
         padding: var(--space-6);
     }
 
-    body:not(.nokorah-theme) {
-        background-attachment: scroll;
+    html:not(.nokorah-theme) {
+        background-attachment: fixed;
     }
 }
 
