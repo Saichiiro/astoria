@@ -325,14 +325,15 @@ body.quest-board {
     position: relative;
     border-radius: 26px;
     background:
-        linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(255, 232, 245, 0.9)),
-        radial-gradient(circle at 15% 0%, rgba(255, 198, 224, 0.32), transparent 55%),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.12));
-    border: 2px solid rgba(255, 106, 162, 0.95);
+        linear-gradient(150deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 220, 239, 0.7) 60%, rgba(255, 188, 224, 0.55) 100%),
+        radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 45%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0 10px, rgba(255, 255, 255, 0) 10px 20px);
+    border: 2px solid rgba(255, 106, 162, 0.9);
     padding: 0;
     box-shadow:
         0 20px 34px rgba(96, 58, 125, 0.22),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+        0 0 36px rgba(106, 167, 255, 0.38),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.75);
     overflow: visible;
     isolation: isolate;
     animation: questCardIn 0.6s ease both;
@@ -351,11 +352,13 @@ body.quest-board {
     inset: 0;
     border-radius: 26px;
     background:
-        radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 35%),
-        radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 45%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+        radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 35%),
+        radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 45%),
+        linear-gradient(180deg, rgba(255, 190, 226, 0.35), rgba(255, 255, 255, 0)),
+        radial-gradient(circle at 50% 50%, var(--status-color, rgba(106, 167, 255, 0.42)), rgba(106, 167, 255, 0) 62%);
     mix-blend-mode: screen;
-    opacity: 0.38;
+    opacity: 0.48;
+    filter: blur(12px);
     z-index: -1;
     pointer-events: none;
     transition: opacity 0.45s ease;
@@ -405,11 +408,23 @@ body.quest-board {
     padding: 18px 18px 16px;
     border-radius: 22px;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(255, 244, 251, 0.7)),
-        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 6px, rgba(255, 255, 255, 0) 6px 12px);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(3px);
+        linear-gradient(160deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 222, 239, 0.62) 100%),
+        radial-gradient(circle at 12% 12%, rgba(255, 165, 210, 0.35), rgba(255, 255, 255, 0) 45%),
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0 8px, rgba(255, 255, 255, 0) 8px 16px);
+    border: 1px solid rgba(255, 190, 220, 0.8);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(2px);
     overflow: hidden;
+}
+
+.quest-card-content::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255, 126, 186, 0.18), rgba(255, 255, 255, 0) 45%);
+    pointer-events: none;
+    opacity: 0.7;
 }
 
 .quest-card-header {
