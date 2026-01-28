@@ -510,13 +510,17 @@
         return Number(counts[affinityKey]) || 0;
     }
 
-    function getAliceStats() {
+    function getAliceStats(aliceNumber = 1) {
         const competencesData = getFicheTabData("competences");
-        const puissance = Number(competencesData?.alicePuissance) || 0;
-        const controle = Number(competencesData?.aliceControle) || 0;
+        const puissanceKey = aliceNumber === 1 ? "alicePuissance" : "alicePuissance2";
+        const controleKey = aliceNumber === 1 ? "aliceControle" : "aliceControle2";
+
+        const puissance = Number(competencesData?.[puissanceKey]) || 0;
+        const controle = Number(competencesData?.[controleKey]) || 0;
 
         const progress = loadMagicProgress();
-        const used = progress.aliceStats || {
+        const statsKey = aliceNumber === 1 ? "aliceStats" : "alice2Stats";
+        const used = progress[statsKey] || {
             puissanceMinorUsed: 0,
             puissanceUltimateUsed: 0,
             controleMinorUsed: 0,
@@ -541,7 +545,8 @@
             controleMinor,
             controleUltimate,
             totalPuissanceUpgrades: puissanceMinor + puissanceUltimate,
-            totalControleUpgrades: controleMinor + controleUltimate
+            totalControleUpgrades: controleMinor + controleUltimate,
+            aliceNumber
         };
     }
 
@@ -610,16 +615,32 @@
         if (armeSoulsMeterEl) armeSoulsMeterEl.style.display = "none";
         if (meterContainer) meterContainer.style.display = "none";
 
-        if (specialization === "alice") {
+        if (specialization === "alice" || specialization === "alice-double") {
             if (aliceStatsMeterEl) {
                 aliceStatsMeterEl.style.display = "";
-                const stats = getAliceStats();
-                if (alicePuissanceEl) alicePuissanceEl.textContent = String(stats.puissance);
-                if (alicePuissanceMinorEl) alicePuissanceMinorEl.textContent = String(stats.puissanceMinor);
-                if (alicePuissanceUltimateEl) alicePuissanceUltimateEl.textContent = String(stats.puissanceUltimate);
-                if (aliceControleEl) aliceControleEl.textContent = String(stats.controle);
-                if (aliceControleMinorEl) aliceControleMinorEl.textContent = String(stats.controleMinor);
-                if (aliceControleUltimateEl) aliceControleUltimateEl.textContent = String(stats.controleUltimate);
+
+                if (specialization === "alice-double") {
+                    // Pour Alice Double, afficher les stats de l'Alice actif (déterminé par aliceType)
+                    const aliceNumber = currentPage?.fields?.aliceType === 2 ? 2 : 1;
+                    const stats = getAliceStats(aliceNumber);
+                    const aliceLabel = `Alice ${aliceNumber}`;
+
+                    if (alicePuissanceEl) alicePuissanceEl.textContent = `${aliceLabel} P: ${stats.puissance}`;
+                    if (alicePuissanceMinorEl) alicePuissanceMinorEl.textContent = String(stats.puissanceMinor);
+                    if (alicePuissanceUltimateEl) alicePuissanceUltimateEl.textContent = String(stats.puissanceUltimate);
+                    if (aliceControleEl) aliceControleEl.textContent = `${aliceLabel} C: ${stats.controle}`;
+                    if (aliceControleMinorEl) aliceControleMinorEl.textContent = String(stats.controleMinor);
+                    if (aliceControleUltimateEl) aliceControleUltimateEl.textContent = String(stats.controleUltimate);
+                } else {
+                    // Alice Simple
+                    const stats = getAliceStats(1);
+                    if (alicePuissanceEl) alicePuissanceEl.textContent = String(stats.puissance);
+                    if (alicePuissanceMinorEl) alicePuissanceMinorEl.textContent = String(stats.puissanceMinor);
+                    if (alicePuissanceUltimateEl) alicePuissanceUltimateEl.textContent = String(stats.puissanceUltimate);
+                    if (aliceControleEl) aliceControleEl.textContent = String(stats.controle);
+                    if (aliceControleMinorEl) aliceControleMinorEl.textContent = String(stats.controleMinor);
+                    if (aliceControleUltimateEl) aliceControleUltimateEl.textContent = String(stats.controleUltimate);
+                }
             }
             return;
         }
@@ -855,39 +876,54 @@
         const specialization = page?.fields?.magicSpecialization;
 
         // Alice validation and consumption
-        if (specialization === "alice") {
+        if (specialization === "alice" || specialization === "alice-double") {
             const isMinor = rank === "mineur";
             const isNewSpell = nextLevel === 1;
-            const stats = getAliceStats();
+
+            // Pour alice-double, déterminer quel Alice utiliser (défaut: Alice 1)
+            const aliceNumber = (specialization === "alice-double" && page?.fields?.aliceType === 2) ? 2 : 1;
+            const stats = getAliceStats(aliceNumber);
             const progress = loadMagicProgress();
+
+            const statsKey = aliceNumber === 1 ? "aliceStats" : "alice2Stats";
+            if (!progress[statsKey]) {
+                progress[statsKey] = {
+                    puissanceMinorUsed: 0,
+                    puissanceUltimateUsed: 0,
+                    controleMinorUsed: 0,
+                    controleUltimateUsed: 0
+                };
+            }
 
             if (isNewSpell) {
                 // Creating new spell - consume Contrôle (rank must match)
                 const availableSpells = isMinor ? stats.controleMinor : stats.controleUltimate;
                 if (availableSpells <= 0) {
                     const rankLabel = isMinor ? "mineur" : "ultime";
-                    alert(`Vous n'avez pas de sorts ${rankLabel} disponibles.\n\nAugmentez votre Contrôle Alice dans la fiche de compétences.`);
+                    const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
+                    alert(`Vous n'avez pas de sorts ${rankLabel} disponibles${aliceLabel}.\n\nAugmentez votre Contrôle Alice ${aliceNumber} dans la fiche de compétences.`);
                     return false;
                 }
                 // Consume spell point matching rank
                 if (isMinor) {
-                    progress.aliceStats.controleMinorUsed = (progress.aliceStats.controleMinorUsed || 0) + 1;
+                    progress[statsKey].controleMinorUsed = (progress[statsKey].controleMinorUsed || 0) + 1;
                 } else {
-                    progress.aliceStats.controleUltimateUsed = (progress.aliceStats.controleUltimateUsed || 0) + 1;
+                    progress[statsKey].controleUltimateUsed = (progress[statsKey].controleUltimateUsed || 0) + 1;
                 }
             } else {
                 // Upgrading existing spell - consume Puissance (rank must match)
                 const availableUpgrades = isMinor ? stats.puissanceMinor : stats.puissanceUltimate;
                 if (availableUpgrades <= 0) {
                     const rankLabel = isMinor ? "mineure" : "ultime";
-                    alert(`Vous n'avez pas d'améliorations ${rankLabel} disponibles.\n\nAugmentez votre Puissance Alice dans la fiche de compétences.`);
+                    const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
+                    alert(`Vous n'avez pas d'améliorations ${rankLabel} disponibles${aliceLabel}.\n\nAugmentez votre Puissance Alice ${aliceNumber} dans la fiche de compétences.`);
                     return false;
                 }
                 // Consume upgrade point matching rank
                 if (isMinor) {
-                    progress.aliceStats.puissanceMinorUsed = (progress.aliceStats.puissanceMinorUsed || 0) + 1;
+                    progress[statsKey].puissanceMinorUsed = (progress[statsKey].puissanceMinorUsed || 0) + 1;
                 } else {
-                    progress.aliceStats.puissanceUltimateUsed = (progress.aliceStats.puissanceUltimateUsed || 0) + 1;
+                    progress[statsKey].puissanceUltimateUsed = (progress[statsKey].puissanceUltimateUsed || 0) + 1;
                 }
             }
 
@@ -2044,6 +2080,25 @@
             renderCapacities(capacityFilter ? capacityFilter.value : "");
         });
     });
+
+    // Alice Double: afficher/cacher le sélecteur Alice Type
+    const magicSpecializationSelect = document.getElementById("magicSpecialization");
+    const aliceTypeField = document.getElementById("aliceTypeField");
+    const magicAliceTypeSelect = document.getElementById("magicAliceType");
+
+    if (magicSpecializationSelect && aliceTypeField) {
+        magicSpecializationSelect.addEventListener("change", () => {
+            const isAliceDouble = magicSpecializationSelect.value === "alice-double";
+            aliceTypeField.style.display = isAliceDouble ? "" : "none";
+            renderScrollMeter();
+        });
+    }
+
+    if (magicAliceTypeSelect) {
+        magicAliceTypeSelect.addEventListener("change", () => {
+            renderScrollMeter();
+        });
+    }
 
     if (addCapacityBtn) {
         addCapacityBtn.addEventListener("click", () => {
