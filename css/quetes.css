@@ -1074,11 +1074,14 @@ body.quest-board {
 }
 
 #questEditBtn {
-    visibility: visible;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     opacity: 1;
+}
+
+#questEditBtn[hidden] {
+    display: none !important;
 }
 
 #questEditBtn:disabled {

@@ -39,7 +39,7 @@
                         </div>
                     </div>
                 </div>
-                <button class="quest-add-btn tw-btn tw-press" id="questAddBtn" type="button" data-admin-only>+ Ajouter</button>
+                <button class="quest-add-btn tw-press" id="questAddBtn" type="button" data-admin-only>+ Ajouter</button>
             </div>
         </header>
         <section class="quest-search" aria-label="Recherche de qu&#234;tes">
@@ -70,14 +70,14 @@
             </div>
         </section>
         <div class="quest-quickbar">
-            <a class="quest-quick-btn tw-btn-ghost" href="#questHistory">Historique</a>
+            <a class="quest-quick-btn" href="#questHistory">Historique</a>
         </div>
         <section class="quest-carousel" aria-label="Liste des qu&#234;tes">
-            <button class="quest-arrow quest-arrow--left tw-btn-ghost tw-press" id="questPrevBtn" type="button" aria-label="Qu&#234;tes pr&#233;c&#233;dentes">&#10094;</button>
+            <button class="quest-arrow quest-arrow--left tw-press" id="questPrevBtn" type="button" aria-label="Qu&#234;tes pr&#233;c&#233;dentes">&#10094;</button>
             <div class="quest-carousel-viewport" id="questViewport">
                 <div class="quest-track" id="questTrack" aria-live="polite" tabindex="0"></div>
             </div>
-            <button class="quest-arrow quest-arrow--right tw-btn-ghost tw-press" id="questNextBtn" type="button" aria-label="Qu&#234;tes suivantes">&#10095;</button>
+            <button class="quest-arrow quest-arrow--right tw-press" id="questNextBtn" type="button" aria-label="Qu&#234;tes suivantes">&#10095;</button>
         </section>
         <section class="quest-history" id="questHistory" aria-label="Historique des qu&#234;tes">
             <div class="quest-history-tabs" role="tablist" aria-label="Navigation qu&#234;tes">
@@ -112,21 +112,21 @@
             </div>
         </section>
     </main>
-    <div class="quest-modal tw-surface" id="questDetailModal" aria-hidden="true">
-        <div class="quest-modal-scrim tw-surface" data-close="true"></div>
+    <div class="quest-modal" id="questDetailModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
         <div class="quest-modal-card" role="dialog" aria-modal="true" aria-labelledby="questDetailTitle">
             <button class="quest-modal-close tw-press" type="button" data-close="true" aria-label="Fermer">&times;</button>
-            <div class="quest-modal-nav tw-surface">
+            <div class="quest-modal-nav">
                 <button class="quest-modal-arrow tw-press" id="questDetailPrev" type="button" aria-label="Qu&#234;te pr&#233;c&#233;dente">&#10094;</button>
                 <button class="quest-modal-arrow tw-press" id="questDetailNext" type="button" aria-label="Qu&#234;te suivante">&#10095;</button>
             </div>
-            <div class="quest-modal-content tw-surface">
+            <div class="quest-modal-content">
                 <aside class="quest-modal-panel quest-modal-panel--rewards">
                     <h4>R&#233;compenses :</h4>
                     <ul id="questDetailRewards"></ul>
                 </aside>
                 <div class="quest-modal-center">
-                    <div class="quest-modal-top tw-surface">
+                    <div class="quest-modal-top">
                         <span class="quest-modal-type" id="questDetailType"></span>
                         <h3 class="quest-modal-title" id="questDetailTitle">Qu&#234;te</h3>
                         <span class="quest-rank-badge" id="questDetailRank">F</span>
@@ -140,17 +140,17 @@
                         </div>
                         <div class="quest-media-dots" id="questMediaDots"></div>
                     </div>
-                    <div class="quest-info-block tw-surface">
+                    <div class="quest-info-block">
                         <h4>Description :</h4>
                         <p id="questDetailDescription"></p>
                     </div>
                 </div>
                 <aside class="quest-modal-panel quest-modal-panel--side">
-                    <div class="quest-info-block tw-surface">
+                    <div class="quest-info-block">
                         <h4>Lieu(x) :</h4>
                         <ul id="questDetailLocations"></ul>
                     </div>
-                    <div class="quest-modal-participants tw-surface">
+                    <div class="quest-modal-participants">
                         <div class="quest-participants-header">
                             <h4>Participants :</h4>
                             <span id="questDetailParticipantsCount">(0/0)</span>
@@ -161,13 +161,13 @@
                 </aside>
             </div>
             <div class="quest-modal-actions">
-                <button class="quest-action-btn tw-btn tw-press" id="questJoinBtn" type="button">Participer</button>
-                <button class="quest-action-btn quest-action-btn--ghost tw-press tw-btn-ghost" id="questEditBtn" type="button" data-admin-only>Modifier</button>
+                <button class="quest-action-btn tw-press" id="questJoinBtn" type="button">Participer</button>
+                <button class="quest-action-btn quest-action-btn--ghost tw-press" id="questEditBtn" type="button" data-admin-only>Modifier</button>
             </div>
         </div>
     </div>
-    <div class="quest-modal quest-modal--editor tw-surface" id="questEditorModal" aria-hidden="true">
-        <div class="quest-modal-scrim tw-surface" data-close="true"></div>
+    <div class="quest-modal quest-modal--editor" id="questEditorModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
         <div class="quest-modal-card quest-editor-card" role="dialog" aria-modal="true" aria-labelledby="questEditorTitle">
             <button class="quest-modal-close tw-press" type="button" data-close="true" aria-label="Fermer">&times;</button>
             <h3 class="quest-modal-title" id="questEditorTitle">Cr&#233;ation de Qu&#234;tes</h3>
@@ -248,8 +248,8 @@
                     </div>
                 </div>
                 <div class="quest-editor-actions">
-                    <button class="quest-action-btn quest-action-btn--ghost tw-press tw-btn-ghost" type="button" data-close="true">Annuler</button>
-                    <button class="quest-action-btn tw-btn tw-press" type="submit">Enregistrer</button>
+                    <button class="quest-action-btn quest-action-btn--ghost tw-press" type="button" data-close="true">Annuler</button>
+                    <button class="quest-action-btn tw-press" type="submit">Enregistrer</button>
                 </div>
             </form>
             <div class="quest-editor-side" aria-label="Contr&#244;le d'&#233;tat de qu&#234;te">
@@ -265,7 +265,7 @@
         </div>
     </div>
     <div class="quest-cropper-backdrop" id="questCropperBackdrop" aria-hidden="true">
-        <div class="quest-cropper-modal tw-surface" role="dialog" aria-modal="true" aria-labelledby="questCropperTitle">
+        <div class="quest-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="questCropperTitle">
             <div class="quest-cropper-header">
                 <h2 class="quest-cropper-title" id="questCropperTitle">Recadrer l'image</h2>
                 <button type="button" class="quest-cropper-close tw-press" id="questCropperClose" aria-label="Fermer">x</button>
