@@ -11,6 +11,8 @@
     const pagesOverview = document.getElementById("magicPagesOverview");
     const capacityList = document.getElementById("magicCapacityList");
     const capacityFilter = document.getElementById("magicCapacityFilter");
+    const viewToggleButtons = Array.from(document.querySelectorAll(".magic-view-btn"));
+    let currentView = "card"; // "card" or "list"
     const addCapacityBtn = document.getElementById("magicAddCapacityBtn");
     const capacityForm = document.getElementById("magicCapacityForm");
     const capNameInput = document.getElementById("magicNewCapName");
@@ -1179,6 +1181,99 @@
 
         capacityList.innerHTML = "";
 
+        // Card view rendering
+        if (currentView === "card") {
+            const filtered = capacities.filter((cap) => !filterType || cap.type === filterType);
+
+            // Group by rank
+            const groups = { signature: [], mineur: [], ultime: [] };
+            filtered.forEach(cap => {
+                const rank = cap.rank || "mineur";
+                if (groups[rank]) groups[rank].push(cap);
+            });
+
+            const rankLabels = {
+                signature: "Sorts Signature",
+                mineur: "Sorts Mineurs",
+                ultime: "Sorts Ultimes"
+            };
+
+            const showUpgrades = isSorcelleriePage ||
+                currentPage?.fields?.magicSpecialization === "alice" ||
+                currentPage?.fields?.magicSpecialization === "meister" ||
+                currentPage?.fields?.magicSpecialization === "eater";
+
+            // Render each section
+            ["signature", "mineur", "ultime"].forEach(rank => {
+                const spells = groups[rank];
+                if (!spells.length) return;
+
+                const section = document.createElement("section");
+                section.className = "spell-section";
+                section.dataset.rank = rank;
+
+                const title = document.createElement("h3");
+                title.className = "spell-section-title";
+                title.textContent = rankLabels[rank];
+                section.appendChild(title);
+
+                const grid = document.createElement("div");
+                grid.className = "spell-card-grid";
+
+                spells.forEach(cap => {
+                    const level = cap.level || 1;
+                    const rankLabel = cap.rank === "mineur" ? "Mineur" :
+                                     cap.rank === "ultime" ? "Ultime" : "Signature";
+                    const typeLabel = cap.type === "offensif" ? "Offensif" :
+                                     cap.type === "defensif" ? "Défensif" :
+                                     cap.type === "soutien" ? "Soutien" : "Utilitaire";
+
+                    const tags = [];
+                    if (cap.target) tags.push(`<span class="spell-pill spell-pill--target">${cap.target}</span>`);
+                    if (cap.distance) tags.push(`<span class="spell-pill spell-pill--distance">${cap.distance}</span>`);
+                    if (cap.cost) tags.push(`<span class="spell-pill spell-pill--cost">${cap.cost}</span>`);
+
+                    const card = document.createElement("article");
+                    card.className = "spell-card";
+                    card.dataset.spellId = cap.id;
+                    card.dataset.rank = cap.rank;
+                    card.innerHTML = `
+                        <div class="spell-card-header">
+                            <div class="spell-card-title-row">
+                                <h4 class="spell-card-name">${cap.name || "Sans nom"}</h4>
+                                <span class="spell-card-level">Niv. ${level}</span>
+                            </div>
+                            <div class="spell-card-meta">
+                                <span class="spell-badge spell-badge--type">${typeLabel}</span>
+                                <span class="spell-badge spell-badge--rank">${rankLabel}</span>
+                            </div>
+                        </div>
+                        <div class="spell-card-summary">${cap.summary || "Aucune description"}</div>
+                        ${tags.length ? `<div class="spell-card-tags">${tags.join('')}</div>` : ''}
+                    `;
+
+                    // Make card clickable to expand details
+                    card.style.cursor = "pointer";
+                    card.addEventListener("click", () => {
+                        // Switch to list view and expand this capacity
+                        currentView = "list";
+                        viewToggleButtons.forEach(b => b.classList.remove("magic-view-btn--active"));
+                        viewToggleButtons.find(b => b.dataset.view === "list")?.classList.add("magic-view-btn--active");
+                        renderCapacities(filterType);
+                        // TODO: auto-expand the clicked capacity
+                    });
+
+                    grid.appendChild(card);
+                });
+
+                section.appendChild(grid);
+                capacityList.appendChild(section);
+            });
+
+            return; // Exit early, don't run list rendering
+        }
+
+        // List view rendering (existing logic)
         capacities
             .filter((cap) => !filterType || cap.type === filterType)
             .forEach((cap) => {
@@ -1817,6 +1912,20 @@
             saveToStorage();
         });
     }
+
+    // View toggle buttons
+    viewToggleButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const view = btn.dataset.view;
+            if (view === currentView) return;
+
+            currentView = view;
+            viewToggleButtons.forEach(b => b.classList.remove("magic-view-btn--active"));
+            btn.classList.add("magic-view-btn--active");
+
+            renderCapacities(capacityFilter ? capacityFilter.value : "");
+        });
+    });
 
     if (addCapacityBtn) {
         addCapacityBtn.addEventListener("click", () => {
