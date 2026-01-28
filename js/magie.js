@@ -545,7 +545,7 @@
         };
     }
 
-    function getMeisterSouls() {
+    function getArmeSouls() {
         const eaterData = getFicheTabData("eater");
         const progSouls = Number(eaterData?.eaterAmesProgression) || 0;
         const consoSouls = Number(eaterData?.eaterAmesConso) || 0;
@@ -559,6 +559,44 @@
             minorUpgrades,
             ultimateUpgrades,
             totalUpgrades: minorUpgrades + ultimateUpgrades
+        };
+    }
+
+    function getMeisterSkills() {
+        const competencesData = getFicheTabData("competences");
+        const resonanceAmes = Number(competencesData?.meisterResonanceAmes) || 0;
+        const puissanceCapacite = Number(competencesData?.meisterPuissanceCapacite) || 0;
+        const maitriseCapacite = Number(competencesData?.meisterMaitriseCapacite) || 0;
+
+        const progress = loadMagicProgress();
+        const used = progress.meisterSkills || {
+            resonanceUsed: 0,
+            puissanceUsed: 0,
+            maitriseUsed: 0
+        };
+
+        // Résonnance des Âmes: tous les 10 pts = 1 amélioration ultime
+        const resonanceTotal = Math.floor(resonanceAmes / 10);
+        const resonanceAvailable = Math.max(0, resonanceTotal - used.resonanceUsed);
+
+        // Puissance de la capacité unique: tous les 5 pts = 1 amélioration mineur
+        const puissanceTotal = Math.floor(puissanceCapacite / 5);
+        const puissanceAvailable = Math.max(0, puissanceTotal - used.puissanceUsed);
+
+        // Maîtrise de la capacité unique: tous les 5 pts = 1 ajout OU amélioration mineur
+        const maitriseTotal = Math.floor(maitriseCapacite / 5);
+        const maitriseAvailable = Math.max(0, maitriseTotal - used.maitriseUsed);
+
+        return {
+            resonanceAmes,
+            puissanceCapacite,
+            maitriseCapacite,
+            resonanceAvailable,
+            puissanceAvailable,
+            maitriseAvailable,
+            // Pour l'affichage: minorUpgrades = puissance + maîtrise, ultimateUpgrades = résonnance
+            minorFragments: puissanceAvailable + maitriseAvailable,
+            ultimateFragments: resonanceAvailable
         };
     }
 
@@ -589,16 +627,11 @@
         if (specialization === "meister") {
             if (meisterSoulsMeterEl) {
                 meisterSoulsMeterEl.style.display = "";
-                const souls = getMeisterSouls();
-                const progress = loadMagicProgress();
-                const minorUsed = progress.meisterFragments?.minorUsed || 0;
-                const ultimateUsed = progress.meisterFragments?.ultimateUsed || 0;
-                const minorAvailable = souls.minorUpgrades - minorUsed;
-                const ultimateAvailable = souls.ultimateUpgrades - ultimateUsed;
+                const skills = getMeisterSkills();
 
-                if (meisterMinorFragmentsEl) meisterMinorFragmentsEl.textContent = String(minorAvailable);
-                if (meisterUltimateFragmentsEl) meisterUltimateFragmentsEl.textContent = String(ultimateAvailable);
-                if (meisterProgSoulsEl) meisterProgSoulsEl.textContent = String(souls.progSouls);
+                if (meisterMinorFragmentsEl) meisterMinorFragmentsEl.textContent = String(skills.minorFragments);
+                if (meisterUltimateFragmentsEl) meisterUltimateFragmentsEl.textContent = String(skills.ultimateFragments);
+                if (meisterProgSoulsEl) meisterProgSoulsEl.textContent = `P:${skills.puissanceCapacite} M:${skills.maitriseCapacite} R:${skills.resonanceAmes}`;
             }
             return;
         }
@@ -606,7 +639,7 @@
         if (specialization === "arme") {
             if (armeSoulsMeterEl) {
                 armeSoulsMeterEl.style.display = "";
-                const souls = getMeisterSouls(); // Same logic as Meister
+                const souls = getArmeSouls();
                 const progress = loadMagicProgress();
                 const minorUsed = progress.armeFragments?.minorUsed || 0;
                 const ultimateUsed = progress.armeFragments?.ultimateUsed || 0;
@@ -865,28 +898,50 @@
 
         // Meister validation and consumption
         if (specialization === "meister") {
-            const souls = getMeisterSouls();
+            const skills = getMeisterSkills();
             const isMinor = rank === "mineur";
+            const isNewFragment = nextLevel === 1;
             const progress = loadMagicProgress();
 
-            if (!progress.meisterFragments) {
-                progress.meisterFragments = { minorUsed: 0, ultimateUsed: 0 };
+            if (!progress.meisterSkills) {
+                progress.meisterSkills = {
+                    resonanceUsed: 0,
+                    puissanceUsed: 0,
+                    maitriseUsed: 0
+                };
             }
 
-            const available = isMinor ? souls.minorUpgrades : souls.ultimateUpgrades;
-            const used = isMinor ? progress.meisterFragments.minorUsed : progress.meisterFragments.ultimateUsed;
-
-            if (available <= used) {
-                const rankLabel = rank === "mineur" ? "mineur" : "ultime";
-                alert(`Vous n'avez pas de fragments ${rankLabel} disponibles.\n\nConsommez plus d'âmes de progression pour débloquer des fragments.`);
-                return false;
-            }
-
-            // Consume fragment
             if (isMinor) {
-                progress.meisterFragments.minorUsed += 1;
+                if (isNewFragment) {
+                    // Ajouter un fragment mineur: consommer Maîtrise
+                    if (skills.maitriseAvailable <= 0) {
+                        alert(`Vous n'avez pas de points Maîtrise disponibles.\n\nAugmentez "Maîtrise de la capacité unique" dans les compétences.`);
+                        return false;
+                    }
+                    progress.meisterSkills.maitriseUsed += 1;
+                } else {
+                    // Améliorer un fragment mineur: consommer Puissance (priorité) ou Maîtrise
+                    if (skills.puissanceAvailable > 0) {
+                        progress.meisterSkills.puissanceUsed += 1;
+                    } else if (skills.maitriseAvailable > 0) {
+                        progress.meisterSkills.maitriseUsed += 1;
+                    } else {
+                        alert(`Vous n'avez pas de points Puissance ou Maîtrise disponibles.\n\nAugmentez vos compétences.`);
+                        return false;
+                    }
+                }
             } else {
-                progress.meisterFragments.ultimateUsed += 1;
+                // Fragment ultime
+                if (isNewFragment) {
+                    alert(`Les fragments ultimes ne peuvent pas être ajoutés pour Meister.\n\nSeules les améliorations sont possibles.`);
+                    return false;
+                }
+                // Améliorer un fragment ultime: consommer Résonnance
+                if (skills.resonanceAvailable <= 0) {
+                    alert(`Vous n'avez pas de points Résonnance disponibles.\n\nAugmentez "Résonnance des Âmes" dans les compétences.`);
+                    return false;
+                }
+                progress.meisterSkills.resonanceUsed += 1;
             }
 
             persistMagicProgress(progress, { persistProfile: true });
@@ -894,9 +949,9 @@
             return true;
         }
 
-        // Arme validation and consumption (same as Meister)
+        // Arme validation and consumption (uses soul thresholds)
         if (specialization === "arme") {
-            const souls = getMeisterSouls(); // Uses same soul thresholds
+            const souls = getArmeSouls();
             const isMinor = rank === "mineur";
             const progress = loadMagicProgress();
 
