@@ -746,7 +746,8 @@ body.quest-board {
     position: absolute;
     inset: 0;
     background: rgba(74, 40, 102, 0.35);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
 }
 
 .quest-modal-card {
@@ -798,6 +799,8 @@ body.quest-board {
     font-size: 1.2rem;
     cursor: pointer;
     pointer-events: auto;
+    box-shadow: 0 10px 18px rgba(96, 58, 125, 0.18);
+    opacity: 1;
 }
 
 .quest-modal-arrow:first-child {
@@ -1060,6 +1063,29 @@ body.quest-board {
 
 #questJoinBtn {
     min-width: 320px;
+}
+
+#questEditBtn[data-admin-only] {
+    background: #fff;
+    border-color: var(--quest-pink);
+    color: var(--quest-pink);
+    box-shadow: 0 10px 18px rgba(255, 106, 162, 0.22);
+    opacity: 1;
+}
+
+#questEditBtn {
+    visibility: visible;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+}
+
+#questEditBtn:disabled {
+    opacity: 1;
+    color: var(--quest-pink);
+    background: #fff;
+    border-color: var(--quest-pink);
 }
 
 .quest-action-btn {
