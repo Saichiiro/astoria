@@ -83,6 +83,11 @@
                         <span class="magic-scroll-pill">Fragments ultimes: <strong id="magicMeisterUltimateFragments">0</strong></span>
                         <span class="magic-scroll-pill magic-scroll-pill--dim">Âmes prog: <strong id="magicMeisterProgSouls">0</strong></span>
                     </div>
+                    <div class="magic-scroll-meter" id="magicArmeSoulsMeter" aria-label="Âmes Arme" style="display: none;">
+                        <span class="magic-scroll-pill">Fragments mineurs: <strong id="magicArmeMinorFragments">0</strong></span>
+                        <span class="magic-scroll-pill">Fragments ultimes: <strong id="magicArmeUltimateFragments">0</strong></span>
+                        <span class="magic-scroll-pill magic-scroll-pill--dim">Âmes prog: <strong id="magicArmeProgSouls">0</strong></span>
+                    </div>
                     <div class="magic-top-nav" aria-label="Sections de la fiche" role="navigation">
                         <button class="magic-nav-btn magic-nav-btn--active tw-press tw-btn-ghost" data-target="magic-summary">
                             Résumé &amp; spécialisation
@@ -122,9 +127,11 @@
                                             <label class="magic-label" for="magicSpecialization">Spécialisation</label>
                                             <select id="magicSpecialization" class="magic-input tw-input">
                                                 <option value="">Sélectionner...</option>
-                                                <option value="meister">Meister Arme</option>
+                                                <option value="arme">Arme</option>
+                                                <option value="meister">Meister</option>
                                                 <option value="sorcellerie">Sorcellerie</option>
-                                                <option value="alice">Alice (Alice Academy)</option>
+                                                <option value="alice">Alice Simple</option>
+                                                <option value="alice-double">Alice Double</option>
                                             </select>
                                         </div>
                                         <div class="magic-form-field">

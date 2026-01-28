@@ -55,6 +55,10 @@
     const meisterProgSoulsEl = document.getElementById("magicMeisterProgSouls");
     const meisterMinorFragmentsEl = document.getElementById("magicMeisterMinorFragments");
     const meisterUltimateFragmentsEl = document.getElementById("magicMeisterUltimateFragments");
+    const armeSoulsMeterEl = document.getElementById("magicArmeSoulsMeter");
+    const armeProgSoulsEl = document.getElementById("magicArmeProgSouls");
+    const armeMinorFragmentsEl = document.getElementById("magicArmeMinorFragments");
+    const armeUltimateFragmentsEl = document.getElementById("magicArmeUltimateFragments");
     const formFields = Array.from(
         document.querySelectorAll(".magic-content input[id], .magic-content textarea[id], .magic-content select[id]")
     );
@@ -565,6 +569,7 @@
 
         if (aliceStatsMeterEl) aliceStatsMeterEl.style.display = "none";
         if (meisterSoulsMeterEl) meisterSoulsMeterEl.style.display = "none";
+        if (armeSoulsMeterEl) armeSoulsMeterEl.style.display = "none";
         if (meterContainer) meterContainer.style.display = "none";
 
         if (specialization === "alice") {
@@ -594,6 +599,23 @@
                 if (meisterMinorFragmentsEl) meisterMinorFragmentsEl.textContent = String(minorAvailable);
                 if (meisterUltimateFragmentsEl) meisterUltimateFragmentsEl.textContent = String(ultimateAvailable);
                 if (meisterProgSoulsEl) meisterProgSoulsEl.textContent = String(souls.progSouls);
+            }
+            return;
+        }
+
+        if (specialization === "arme") {
+            if (armeSoulsMeterEl) {
+                armeSoulsMeterEl.style.display = "";
+                const souls = getMeisterSouls(); // Same logic as Meister
+                const progress = loadMagicProgress();
+                const minorUsed = progress.armeFragments?.minorUsed || 0;
+                const ultimateUsed = progress.armeFragments?.ultimateUsed || 0;
+                const minorAvailable = souls.minorUpgrades - minorUsed;
+                const ultimateAvailable = souls.ultimateUpgrades - ultimateUsed;
+
+                if (armeMinorFragmentsEl) armeMinorFragmentsEl.textContent = String(minorAvailable);
+                if (armeUltimateFragmentsEl) armeUltimateFragmentsEl.textContent = String(ultimateAvailable);
+                if (armeProgSoulsEl) armeProgSoulsEl.textContent = String(souls.progSouls);
             }
             return;
         }
@@ -865,6 +887,37 @@
                 progress.meisterFragments.minorUsed += 1;
             } else {
                 progress.meisterFragments.ultimateUsed += 1;
+            }
+
+            persistMagicProgress(progress, { persistProfile: true });
+            renderScrollMeter();
+            return true;
+        }
+
+        // Arme validation and consumption (same as Meister)
+        if (specialization === "arme") {
+            const souls = getMeisterSouls(); // Uses same soul thresholds
+            const isMinor = rank === "mineur";
+            const progress = loadMagicProgress();
+
+            if (!progress.armeFragments) {
+                progress.armeFragments = { minorUsed: 0, ultimateUsed: 0 };
+            }
+
+            const available = isMinor ? souls.minorUpgrades : souls.ultimateUpgrades;
+            const used = isMinor ? progress.armeFragments.minorUsed : progress.armeFragments.ultimateUsed;
+
+            if (available <= used) {
+                const rankLabel = rank === "mineur" ? "mineur" : "ultime";
+                alert(`Vous n'avez pas de fragments ${rankLabel} disponibles.\n\nConsommez plus d'âmes de progression pour débloquer des fragments.`);
+                return false;
+            }
+
+            // Consume fragment
+            if (isMinor) {
+                progress.armeFragments.minorUsed += 1;
+            } else {
+                progress.armeFragments.ultimateUsed += 1;
             }
 
             persistMagicProgress(progress, { persistProfile: true });
