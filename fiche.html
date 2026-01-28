@@ -1794,28 +1794,68 @@
                     syncProfileFromFiche();
                     syncProfileTags(); // Sync profile tags when saving identity or appartenance sections
                 }
+                // Sync alice and eater data to profile_data for backend persistence
+                if (tabName === 'alice' || tabName === 'eater') {
+                    syncTabToProfile(tabName, data);
+                }
                 // Visual feedback
                 btn.textContent = 'Sauvegardé ✓';
                 setTimeout(() => {
                     btn.textContent = 'Sauvegarder';
                 }, 2000);
             }
+
+            async function syncTabToProfile(tabName, tabData) {
+                if (!authApi || !authApi.getActiveCharacter || !authApi.updateCharacter) return;
+                const character = authApi.getActiveCharacter();
+                if (!character || !character.id) return;
+
+                const profileData = character.profile_data || {};
+                const nextProfileData = {
+                    ...profileData,
+                    [tabName]: tabData
+                };
+
+                try {
+                    await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
+                    console.log(`Synced ${tabName} to profile_data`);
+                } catch (error) {
+                    console.warn(`Failed to sync ${tabName} to profile_data:`, error);
+                }
+            }
             function loadTab(tabName) {
                 const panel = document.getElementById('tab-' + tabName);
                 if (!panel) return;
-                const storageKey = getTabStorageKey(tabName);
-                let savedData = localStorage.getItem(storageKey);
-                if (!savedData) {
-                    const legacyKey = getLegacyTabStorageKey(tabName);
-                    const legacyData = localStorage.getItem(legacyKey);
-                    if (legacyData) {
-                        savedData = legacyData;
-                        localStorage.setItem(storageKey, legacyData);
+
+                // For alice and eater, prioritize profile_data from backend
+                let data = null;
+                if ((tabName === 'alice' || tabName === 'eater') && authApi?.getActiveCharacter) {
+                    const character = authApi.getActiveCharacter();
+                    if (character?.profile_data?.[tabName]) {
+                        data = character.profile_data[tabName];
+                        console.log(`Loaded ${tabName} from profile_data`);
                     }
                 }
+
+                // Fallback to localStorage
+                if (!data) {
+                    const storageKey = getTabStorageKey(tabName);
+                    let savedData = localStorage.getItem(storageKey);
+                    if (!savedData) {
+                        const legacyKey = getLegacyTabStorageKey(tabName);
+                        const legacyData = localStorage.getItem(legacyKey);
+                        if (legacyData) {
+                            savedData = legacyData;
+                            localStorage.setItem(storageKey, legacyData);
+                        }
+                    }
+                    if (savedData) {
+                        data = JSON.parse(savedData);
+                    }
+                }
+
                 resetTab(tabName);
-                if (!savedData) return;
-                const data = JSON.parse(savedData);
+                if (!data) return;
                 // Migrate old appNiveauScolaire values to new format
                 if (tabName === 'appartenance' && data.appNiveauScolaire) {
                     const oldToNewMapping = {

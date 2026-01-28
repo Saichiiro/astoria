@@ -213,6 +213,37 @@
 
     function getFicheTabData(tabName) {
         if (!currentCharacterKey) return null;
+
+        // Pour les compétences, lire depuis profile_data.competences si disponible
+        if (tabName === "competences" && currentCharacter?.profile_data?.competences) {
+            const competences = currentCharacter.profile_data.competences;
+            const pouvoirs = competences.allocationsByCategory?.pouvoirs || {};
+
+            // Mapper les noms de compétences vers les clés utilisées dans magie.js
+            const mapped = {
+                // Alice 1
+                alicePuissance: pouvoirs["Puissance Alice 1"] || 0,
+                aliceControle: pouvoirs["Contrôle Alice 1"] || 0,
+                // Alice 2
+                alicePuissance2: pouvoirs["Puissance Alice 2"] || 0,
+                aliceControle2: pouvoirs["Contrôle Alice 2"] || 0,
+                // Meister
+                meisterResonanceAmes: pouvoirs["Résonnance des Âmes"] || 0,
+                meisterPuissanceCapacite: pouvoirs["Puissance de la capacité unique"] || 0,
+                meisterMaitriseCapacite: pouvoirs["Maîtrise de la capacité unique"] || 0,
+                // Weapon (Arme)
+                weaponPuissanceCapacite: pouvoirs["Puissance de la capacité unique"] || 0,
+                weaponMaitriseCapacite: pouvoirs["Maîtrise de la capacité unique"] || 0,
+            };
+
+            return mapped;
+        }
+
+        // Pour alice et eater, lire depuis profile_data si disponible
+        if ((tabName === "alice" || tabName === "eater") && currentCharacter?.profile_data?.[tabName]) {
+            return currentCharacter.profile_data[tabName];
+        }
+
         const key = `${FICHE_STORAGE_PREFIX}-${currentCharacterKey}-${tabName}`;
         try {
             const raw = localStorage.getItem(key);
