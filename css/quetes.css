@@ -536,17 +536,17 @@ body.quest-board {
 
 
 .quest-history {
-    background: rgba(255, 255, 255, 0.78);
+    background: transparent;
     border-radius: 28px;
-    border: 2px solid rgba(255, 106, 162, 0.25);
+    border: none;
     padding: 20px 24px 26px;
-    box-shadow: var(--quest-shadow);
+    box-shadow: none;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .quest-history:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 18px 34px rgba(96, 58, 125, 0.18);
+    transform: none;
+    box-shadow: none;
 }
 
 .quest-history-tabs {
