@@ -47,6 +47,47 @@ export async function getAllCharacters() {
     }
 }
 
+/**
+ * Crée la structure de compétences par défaut pour un nouveau personnage
+ */
+function createDefaultCompetences() {
+    const DEFAULT_CATEGORY_POINTS = {
+        arts: 75,
+        connaissances: 75,
+        combat: 25,
+        pouvoirs: 5,
+        social: 75,
+        artisanat: 10,
+        nature: 60,
+        physique: 55,
+        reputation: 25,
+    };
+
+    const pointsByCategory = {};
+    const allocationsByCategory = {};
+    const baseValuesByCategory = {};
+    const locksByCategory = {};
+    const customSkillsByCategory = {};
+
+    // Initialiser pour chaque catégorie
+    Object.keys(DEFAULT_CATEGORY_POINTS).forEach((categoryId) => {
+        pointsByCategory[categoryId] = DEFAULT_CATEGORY_POINTS[categoryId];
+        allocationsByCategory[categoryId] = {};
+        baseValuesByCategory[categoryId] = {};
+        locksByCategory[categoryId] = false;
+        customSkillsByCategory[categoryId] = [];
+    });
+
+    return {
+        version: 1,
+        pointsByCategory,
+        allocationsByCategory,
+        baseValuesByCategory,
+        locksByCategory,
+        customSkillsByCategory
+    };
+}
+
 export async function createCharacter(userId, characterData) {
     try {
         const supabase = await getSupabaseClient();
@@ -56,6 +97,13 @@ export async function createCharacter(userId, characterData) {
             return { success: false, error: 'Limite de 5 personnages atteinte' };
         }
 
+        // Initialiser profile_data avec les compétences par défaut
+        const defaultProfileData = {
+            competences: createDefaultCompetences(),
+            inventory: {},
+            ...characterData.profileData
+        };
+
         const { data, error } = await supabase
             .from('characters')
             .insert([{
@@ -63,8 +111,8 @@ export async function createCharacter(userId, characterData) {
                 name: characterData.name,
                 race: characterData.race,
                 class: characterData.class,
-                profile_data: characterData.profileData || {},
-                kaels: 0
+                profile_data: defaultProfileData,
+                kaels: 5000  // Kaels de départ (corrigé de 0 à 5000)
             }])
             .select();
 

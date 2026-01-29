@@ -31,7 +31,8 @@
       "Bash(start:*)",
       "Bash(gh issue edit:*)",
       "Bash(gh issue close:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

@@ -52,40 +52,26 @@ CREATE TRIGGER trigger_update_nokorah_timestamp
     EXECUTE FUNCTION update_nokorah_timestamp();
 
 -- RLS (Row Level Security) Policies
+-- NOTE: This project uses custom auth (users table + localStorage), not Supabase Auth
+-- Policies are intentionally permissive to work with the anon key
 ALTER TABLE nokorahs ENABLE ROW LEVEL SECURITY;
 
--- Users can only see Nokorahs for their own characters
-CREATE POLICY nokorahs_select_own ON nokorahs
+-- Anyone can read nokorahs (custom auth handles client-side filtering)
+CREATE POLICY nokorahs_select_public ON nokorahs
     FOR SELECT
-    USING (
-        character_id IN (
-            SELECT id FROM characters WHERE user_id = auth.uid()
-        )
-    );
+    USING (true);
 
--- Users can insert Nokorahs for their own characters
-CREATE POLICY nokorahs_insert_own ON nokorahs
+-- Anyone can insert nokorahs (custom auth validates on client)
+CREATE POLICY nokorahs_insert_public ON nokorahs
     FOR INSERT
-    WITH CHECK (
-        character_id IN (
-            SELECT id FROM characters WHERE user_id = auth.uid()
-        )
-    );
+    WITH CHECK (true);
 
--- Users can update their own Nokorahs
-CREATE POLICY nokorahs_update_own ON nokorahs
+-- Anyone can update nokorahs (custom auth validates on client)
+CREATE POLICY nokorahs_update_public ON nokorahs
     FOR UPDATE
-    USING (
-        character_id IN (
-            SELECT id FROM characters WHERE user_id = auth.uid()
-        )
-    );
+    USING (true);
 
--- Users can delete their own Nokorahs
-CREATE POLICY nokorahs_delete_own ON nokorahs
+-- Anyone can delete nokorahs (custom auth validates on client)
+CREATE POLICY nokorahs_delete_public ON nokorahs
     FOR DELETE
-    USING (
-        character_id IN (
-            SELECT id FROM characters WHERE user_id = auth.uid()
-        )
-    );
+    USING (true);

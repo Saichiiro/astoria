@@ -345,6 +345,32 @@
             border-radius: 999px;
             background: linear-gradient(90deg, rgba(216, 27, 96, 0.45), rgba(216, 27, 96, 0));
         }
+        .skills-points-summary {
+            display: flex;
+            gap: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            background: linear-gradient(135deg, #E8EAF6 0%, #F3E5F5 100%);
+            border-radius: var(--radius-md);
+            border: 1px solid #B39DDB;
+            font-size: var(--text-xs);
+            margin-bottom: var(--space-2);
+        }
+        .skills-points-stat {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        .skills-points-stat-label {
+            font-weight: var(--font-medium);
+            color: #4A148C;
+        }
+        .skills-points-stat-value {
+            font-weight: var(--font-bold);
+            color: #6A1B9A;
+            font-variant-numeric: tabular-nums;
+            min-width: 24px;
+            text-align: right;
+        }
         .skills-points-box {
             display: inline-flex;
             align-items: center;
@@ -812,8 +838,22 @@
                         <h2 class="skills-panel-title" id="skillsCategoryTitle">Catégorie</h2>
                     </div>
                     <div class="skills-panel-controls tw-surface">
+                        <div class="skills-points-summary" id="skillsPointsSummary" aria-label="Résumé des points" role="status">
+                            <div class="skills-points-stat">
+                                <span class="skills-points-stat-label">Total :</span>
+                                <span class="skills-points-stat-value" id="skillsTotalPoints">0</span>
+                            </div>
+                            <div class="skills-points-stat">
+                                <span class="skills-points-stat-label">Alloués :</span>
+                                <span class="skills-points-stat-value" id="skillsAllocatedPoints">0</span>
+                            </div>
+                            <div class="skills-points-stat">
+                                <span class="skills-points-stat-label">Restants :</span>
+                                <span class="skills-points-stat-value" id="skillsRemainingPoints">0</span>
+                            </div>
+                        </div>
                         <div class="skills-points-box tw-surface" aria-label="Points à répartir" role="status" aria-live="polite">
-                            <span class="skills-points-label">Points à répartir :</span>
+                            <span class="skills-points-label">Points disponibles :</span>
                             <button type="button" class="skills-points-btn tw-press" id="skillsPointsMinus" aria-label="Retirer un point">
                                 −
                             </button>
@@ -834,7 +874,7 @@
                                 ↺
                             </button>
                         </div>
-                        <button class="quest-add-btn tw-btn tw-press" id="skillsAddBtn" type="button" data-admin-only>+ Ajouter</button>
+                        <button class="quest-add-btn tw-press" id="skillsAddBtn" type="button" data-admin-only>+ Ajouter</button>
                         <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
                     </div>
                 </div>
