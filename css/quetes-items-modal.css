@@ -110,17 +110,16 @@
     border: 2px solid rgba(255, 106, 162, 0.25);
     border-radius: 14px;
     padding: 12px;
-    cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     gap: 12px;
     background: #fff;
+    align-items: flex-start;
 }
 
 .quest-items-modal-item:hover {
     border-color: var(--quest-pink);
     box-shadow: 0 4px 12px rgba(255, 106, 162, 0.2);
-    transform: translateY(-2px);
 }
 
 .quest-items-modal-item.selected {
@@ -128,32 +127,57 @@
     background: rgba(255, 106, 162, 0.08);
 }
 
-.quest-items-modal-item-checkbox {
+/* Contrôles de quantité (style compétences) */
+.quest-items-modal-item-qty {
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    border: 2px solid rgba(255, 106, 162, 0.5);
-    border-radius: 6px;
-    margin-top: 2px;
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.quest-items-modal-qty-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 106, 162, 0.4);
+    background: #fff;
+    color: var(--quest-pink);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
     transition: all 0.2s ease;
-}
-
-.quest-items-modal-item.selected .quest-items-modal-item-checkbox {
-    background: var(--quest-pink);
-    border-color: var(--quest-pink);
-}
-
-.quest-items-modal-item.selected .quest-items-modal-item-checkbox::after {
-    content: "✓";
-    position: absolute;
-    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.quest-items-modal-qty-btn:hover:not(:disabled) {
+    background: rgba(255, 106, 162, 0.1);
+    border-color: var(--quest-pink);
+    transform: scale(1.05);
+}
+
+.quest-items-modal-qty-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.quest-items-modal-qty-input {
+    width: 50px;
+    height: 30px;
+    text-align: center;
+    border: 2px solid rgba(255, 106, 162, 0.3);
+    border-radius: 8px;
     font-weight: 700;
+    color: #4c3a63;
+    font-size: 0.95rem;
+}
+
+.quest-items-modal-qty-input:focus {
+    outline: none;
+    border-color: var(--quest-pink);
 }
 
 .quest-items-modal-item-thumb {

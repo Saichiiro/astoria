@@ -21,7 +21,7 @@ function safeJson(value) {
 // Cette fonction doit être appelée depuis quetes.js après l'initialisation du dom
 export function initItemsModal(questesModule) {
     console.log("[Items Modal] Initializing items modal...");
-    const { dom, resolveItemByName } = questesModule;
+    const { dom, resolveItemByName, addReward } = questesModule;
 
     // Éléments du modal
     const modalDom = {
@@ -38,7 +38,7 @@ export function initItemsModal(questesModule) {
 
     // État du modal
     const state = {
-        selectedItems: new Set(),
+        selectedItems: new Map(), // Map<itemName, quantity>
         allItems: []
     };
 
@@ -116,15 +116,13 @@ export function initItemsModal(questesModule) {
 
     // Rendre un item dans le modal
     function renderItem(item) {
-        const isSelected = state.selectedItems.has(item.name);
+        const quantity = state.selectedItems.get(item.name) || 0;
+        const isSelected = quantity > 0;
         const firstLetter = item.name ? item.name[0].toUpperCase() : "?";
 
         const itemEl = document.createElement("div");
         itemEl.className = `quest-items-modal-item${isSelected ? " selected" : ""}`;
         itemEl.dataset.itemName = item.name;
-
-        const checkbox = document.createElement("div");
-        checkbox.className = "quest-items-modal-item-checkbox";
 
         const thumb = document.createElement("div");
         thumb.className = "quest-items-modal-item-thumb";
@@ -170,20 +168,71 @@ export function initItemsModal(questesModule) {
             info.appendChild(price);
         }
 
-        itemEl.appendChild(checkbox);
+        // Contrôles de quantité (style compétences)
+        const qtyControls = document.createElement("div");
+        qtyControls.className = "quest-items-modal-item-qty";
+
+        const minusBtn = document.createElement("button");
+        minusBtn.type = "button";
+        minusBtn.className = "quest-items-modal-qty-btn";
+        minusBtn.textContent = "-";
+        minusBtn.disabled = quantity <= 0;
+
+        const qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.className = "quest-items-modal-qty-input";
+        qtyInput.min = "0";
+        qtyInput.max = "999";
+        qtyInput.value = quantity;
+
+        const plusBtn = document.createElement("button");
+        plusBtn.type = "button";
+        plusBtn.className = "quest-items-modal-qty-btn";
+        plusBtn.textContent = "+";
+
+        qtyControls.appendChild(minusBtn);
+        qtyControls.appendChild(qtyInput);
+        qtyControls.appendChild(plusBtn);
+
         itemEl.appendChild(thumb);
         itemEl.appendChild(info);
+        itemEl.appendChild(qtyControls);
 
-        // Click pour sélectionner/désélectionner
-        itemEl.addEventListener("click", () => {
-            if (state.selectedItems.has(item.name)) {
+        // Fonction pour mettre à jour la quantité
+        function updateQuantity(newQty) {
+            const qty = Math.max(0, Math.min(999, newQty));
+            qtyInput.value = qty;
+            minusBtn.disabled = qty <= 0;
+
+            if (qty > 0) {
+                state.selectedItems.set(item.name, qty);
+                itemEl.classList.add("selected");
+            } else {
                 state.selectedItems.delete(item.name);
                 itemEl.classList.remove("selected");
-            } else {
-                state.selectedItems.add(item.name);
-                itemEl.classList.add("selected");
             }
             updateSelectedCount();
+        }
+
+        // Event listeners
+        minusBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(qtyInput.value || 0) - 1);
+        });
+
+        plusBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(qtyInput.value || 0) + 1);
+        });
+
+        qtyInput.addEventListener("input", (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(e.target.value || 0));
+        });
+
+        qtyInput.addEventListener("change", (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(e.target.value || 0));
         });
 
         return itemEl;
@@ -244,7 +293,8 @@ export function initItemsModal(questesModule) {
         console.log("[Items Modal] Loading items...");
         await loadItems();
         console.log("[Items Modal] Items loaded:", state.allItems.length);
-        state.selectedItems.clear();
+
+        // Ne PAS clear les selectedItems ici - persistence des quantités entre ouvertures
         renderItems();
         updateSelectedCount();
 
@@ -264,27 +314,20 @@ export function initItemsModal(questesModule) {
         modalDom.backdrop.hidden = true;
         modalDom.backdrop.setAttribute("aria-hidden", "true");
         document.body.style.overflow = "";
-        state.selectedItems.clear();
+        // Ne PAS clear - persistence des quantités entre ouvertures
     }
 
     // Confirmer et ajouter les récompenses
     function confirmSelection() {
-        const selected = Array.from(state.selectedItems);
-
-        // Pour chaque item sélectionné, l'ajouter comme récompense
-        selected.forEach(itemName => {
-            // Simuler un clic sur le bouton d'ajout de récompense
-            // en remplissant d'abord le champ de sélection
-            if (dom.rewardSelect) {
-                dom.rewardSelect.value = itemName;
-            }
-
-            // Déclencher l'ajout de la récompense
-            if (dom.addRewardBtn) {
-                dom.addRewardBtn.click();
+        // Pour chaque item sélectionné avec sa quantité
+        state.selectedItems.forEach((qty, itemName) => {
+            if (qty > 0) {
+                addReward(itemName, qty);
             }
         });
 
+        // Clear les sélections après ajout
+        state.selectedItems.clear();
         closeModal();
     }
 
@@ -322,26 +365,18 @@ export function initItemsModal(questesModule) {
         }
     });
 
-    // Remplacer le comportement du bouton trigger
-    if (dom.rewardTrigger) {
-        console.log("[Items Modal] Initializing trigger button");
-
-        // Supprimer l'ancien listener en clonant
-        const newTrigger = dom.rewardTrigger.cloneNode(true);
-        dom.rewardTrigger.parentNode.replaceChild(newTrigger, dom.rewardTrigger);
-
-        // Ajouter le nouveau listener qui ouvre le modal
-        newTrigger.addEventListener("click", (e) => {
+    // Connecter le bouton d'ouverture du modal
+    const openModalBtn = document.getElementById("questOpenItemsModalBtn");
+    if (openModalBtn) {
+        console.log("[Items Modal] Initializing open modal button");
+        openModalBtn.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
             console.log("[Items Modal] Opening modal");
             openModal();
         });
-
-        // Mettre à jour la référence dans dom (important!)
-        dom.rewardTrigger = newTrigger;
     } else {
-        console.error("[Items Modal] Trigger button not found!");
+        console.error("[Items Modal] Open modal button not found!");
     }
 
     // Retourner l'API publique

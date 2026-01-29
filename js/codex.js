@@ -218,6 +218,12 @@ const rowCache = new Map();
 
 function replaceItems(nextItems) {
     allItems = Array.isArray(nextItems) ? nextItems.slice() : [];
+    // Trier par ordre alphabétique du nom
+    allItems.sort((a, b) => {
+        const nameA = (a.name || a.nom || "").toLowerCase();
+        const nameB = (b.name || b.nom || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
     currentData = allItems.slice();
     rowCache.clear();
     allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));

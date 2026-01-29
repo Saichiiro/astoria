@@ -197,22 +197,12 @@
                         </label>
                         <div class="quest-editor-block quest-editor-block--rewards tw-panel tw-surface">
     <h4>R&#233;compenses</h4>
-    <div class="quest-editor-row">
-        <!-- DEPRECATED - Old dropdown system replaced by modal -->
-        <!-- <div class="quest-reward-picker" id="questRewardPicker">
-            <button class="quest-reward-trigger tw-press" id="questRewardTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
-                S&#233;lectionner un objet
-            </button>
-            <div class="quest-reward-popover" id="questRewardPopover" role="listbox" aria-label="Objets de r&#233;compense" hidden>
-                <div class="quest-reward-options" id="questRewardOptions"></div>
-                <div class="quest-reward-tooltip" id="questRewardTooltip" aria-live="polite"></div>
-            </div>
-            <input type="hidden" id="questRewardSelect" value="">
-        </div> -->
-        <input id="questRewardQtyInput" type="number" min="1" value="1" aria-label="Quantit&#233; de r&#233;compense">
-        <button id="questAddRewardBtn" type="button" class="tw-press">+</button>
+    <div class="quest-editor-row quest-rewards-actions">
+        <button id="questOpenItemsModalBtn" type="button" class="tw-press tw-press--primary">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des objets
+        </button>
     </div>
-    <div class="quest-reward-preview" id="questRewardPreview"></div>
     <div class="quest-editor-list" id="questRewardsList"></div>
     <div class="quest-editor-hint">Relier &#224; l'inventaire au moment de l'int&#233;gration.</div>
 </div>

@@ -1286,6 +1286,39 @@ body.quest-board {
     border: 2px solid rgba(255, 106, 162, 0.25);
 }
 
+.quest-rewards-actions {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+#questOpenItemsModalBtn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--quest-pink);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(255, 106, 162, 0.3);
+}
+
+#questOpenItemsModalBtn:hover {
+    background: #d81b60;
+    box-shadow: 0 4px 16px rgba(255, 106, 162, 0.4);
+    transform: translateY(-1px);
+}
+
+#questOpenItemsModalBtn .tw-press-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
 .quest-editor-row {
     display: flex;
     gap: 10px;

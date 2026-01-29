@@ -2106,9 +2106,9 @@ function handleImageFile(event) {
     openCropper(file);
 }
 
-function handleAddReward() {
-    const name = dom.rewardSelect?.value || "";
-    const qty = Math.max(1, Number(dom.rewardQtyInput.value) || 1);
+function handleAddReward(itemName = null, itemQty = null) {
+    const name = itemName || dom.rewardSelect?.value || "";
+    const qty = itemQty !== null ? Math.max(1, Number(itemQty)) : Math.max(1, Number(dom.rewardQtyInput?.value) || 1);
     if (!name) return;
     const existing = state.editor.rewards.find((reward) => normalizeText(reward.name) === normalizeText(name));
     if (existing) {
@@ -2116,13 +2116,15 @@ function handleAddReward() {
     } else {
         state.editor.rewards.push({ name, qty });
     }
-    if (dom.rewardSelect) {
+    if (!itemName && dom.rewardSelect) {
         dom.rewardSelect.value = "";
         setRewardTriggerLabel("");
         updateRewardPreview();
         renderRewardTooltip(null);
     }
-    dom.rewardQtyInput.value = "1";
+    if (!itemQty && dom.rewardQtyInput) {
+        dom.rewardQtyInput.value = "1";
+    }
     renderEditorLists();
 }
 
@@ -2392,7 +2394,7 @@ async function init() {
     syncAdminUI();
     // Initialiser le modal de sélection des récompenses AVANT bindEvents
     // pour que le modal remplace le bouton trigger avant que l'ancien listener soit attaché
-    initItemsModal({ dom, resolveItemByName });
+    initItemsModal({ dom, resolveItemByName, addReward: handleAddReward });
 
     bindEvents();
     await initQuestPanelShortcuts();
