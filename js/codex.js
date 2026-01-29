@@ -437,11 +437,6 @@ function buildRow(item, globalIndex) {
                 <div class="desc-container">
                     <span class="desc-text">${highlightedDesc}</span>
                     <button class="more-link" type="button">Plus</button>
-                    <div class="tooltip-box tooltip">
-                        <span class="tooltip-title">${escapeHtml(name)}</span>
-                        ${description ? `<span>${escapeHtml(getFirstSentence(description))}</span>` : ""}
-                        ${priceText ? `<span class="tooltip-price">${escapeHtml(priceText)}</span>` : ""}
-                    </div>
                 </div>
             </td>
             <td class="price-cell commerce-cell" data-label="Commerce">
@@ -460,75 +455,8 @@ function buildRow(item, globalIndex) {
     return rowHtml;
 }
 
-function setupTooltipHandlers() {
-    const container = document.querySelector(".table-container");
-    const rows = document.querySelectorAll("#inventoryTable tbody tr");
-
-    rows.forEach((row) => {
-        if (row.dataset.tooltipBound === "1") return;
-        const tooltip = row.querySelector(".tooltip");
-        if (!tooltip) return;
-
-        const showTooltip = () => {
-            if (!tooltip._originalParent) {
-                tooltip._originalParent = tooltip.parentElement;
-            }
-            if (tooltip.parentElement !== document.body) {
-                document.body.appendChild(tooltip);
-            }
-
-            const anchor = row.querySelector(".desc-container") || row;
-            const anchorRect = anchor.getBoundingClientRect();
-
-            tooltip.style.display = "block";
-            tooltip.style.visibility = "hidden";
-            const tooltipRect = tooltip.getBoundingClientRect();
-
-            const containerRect = container?.getBoundingClientRect();
-            const limitBottom = containerRect
-                ? Math.min(window.innerHeight, containerRect.bottom)
-                : window.innerHeight;
-
-            const useAbove = (limitBottom - anchorRect.bottom) < tooltipRect.height;
-            let top = useAbove
-                ? anchorRect.top - tooltipRect.height - 6
-                : anchorRect.bottom + 6;
-
-            // S'assurer que le tooltip reste dans le viewport
-            const maxTop = window.innerHeight - tooltipRect.height - 8;
-            if (top > maxTop) {
-                top = maxTop;
-            }
-
-            const left = Math.max(8, Math.min(
-                window.innerWidth - tooltipRect.width - 8,
-                anchorRect.left
-            ));
-
-            tooltip.style.left = `${left}px`;
-            tooltip.style.top = `${Math.max(8, top)}px`;
-            tooltip.style.visibility = "visible";
-            tooltip.classList.toggle("tooltip--above", useAbove);
-        };
-
-        const hideTooltip = () => {
-            tooltip.style.display = "none";
-            tooltip.style.left = "-9999px";
-            tooltip.style.top = "-9999px";
-            tooltip.classList.remove("tooltip--above");
-            if (tooltip._originalParent && tooltip.parentElement !== tooltip._originalParent) {
-                tooltip._originalParent.appendChild(tooltip);
-            }
-        };
-
-        row.addEventListener("mouseenter", showTooltip);
-        row.addEventListener("mouseleave", hideTooltip);
-        tooltip.addEventListener("mouseenter", showTooltip);
-        tooltip.addEventListener("mouseleave", hideTooltip);
-
-        row.dataset.tooltipBound = "1";
-    });
-}
+// DEPRECATED - Tooltip supprimé, on utilise seulement le bouton "Plus"
+// function setupTooltipHandlers() { ... }
 
 function getOrCreateRowElement(item, globalIndex) {
     const meta = getOrCreateItemMeta(item, globalIndex);
@@ -595,7 +523,7 @@ function loadTable(data, searchQuery) {
         fragment.appendChild(row);
     });
     tableBody.replaceChildren(fragment);
-    setupTooltipHandlers();
+    // setupTooltipHandlers(); // DEPRECATED - Tooltip supprimé
 }
 
 // Modal : ouverture / fermeture

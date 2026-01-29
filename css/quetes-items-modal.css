@@ -99,6 +99,7 @@
 .quest-items-modal-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
     padding: 20px 24px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
