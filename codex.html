@@ -44,7 +44,7 @@
 
         <div class="codex-toolbar">
             <span class="stats-badge" id="statsBadge">0 objet</span>
-            <button type="button" class="admin-add-btn tw-press tw-btn" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
+            <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
             <select id="categoryFilter" class="category-dropdown tw-input">
                 <option value="">Toutes catégories</option>
                 <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
@@ -52,7 +52,7 @@
                 <option value="agricole">&#x1F33E; Agricole</option>
             </select>
             <div class="inventory-search" id="codexSearch">
-                <button type="button" class="inventory-search-toggle tw-press tw-btn-ghost" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
                     <span class="inventory-search-icon">&#x1F50D;</span>
                 </button>
                 <input
@@ -63,7 +63,7 @@
                     aria-label="Rechercher un objet">
                 <button
                     id="clearSearchBtn"
-                    class="inventory-search-clear tw-press tw-btn-ghost"
+                    class="inventory-search-clear tw-press"
                     type="button"
                     aria-label="Effacer la recherche"
                     hidden>x</button>
@@ -100,16 +100,16 @@
             <div class="modal-header">
                 <h2 class="modal-title" id="modalName"></h2>
                 <div class="modal-admin-actions" id="modalAdminActions" hidden>
-                    <button type="button" class="admin-edit-btn tw-press tw-btn-ghost" id="adminEditBtn">Modifier</button>
+                    <button type="button" class="admin-edit-btn tw-press" id="adminEditBtn">Modifier</button>
                 </div>
                 <button class="modal-close tw-press" aria-label="Fermer la fenêtre">×</button>
             </div>
             <div class="modal-body">
                 <div class="modal-media">
                     <div class="modal-carousel" id="modalCarousel">
-                        <button class="carousel-btn prev tw-press tw-btn-ghost" id="carouselPrev" aria-label="Image précédente">‹</button>
+                        <button class="carousel-btn prev tw-press" id="carouselPrev" aria-label="Image précédente">‹</button>
                         <img id="modalImage" alt="">
-                        <button class="carousel-btn next tw-press tw-btn-ghost" id="carouselNext" aria-label="Image suivante">›</button>
+                        <button class="carousel-btn next tw-press" id="carouselNext" aria-label="Image suivante">›</button>
                     </div>
                     <div class="carousel-dots" id="carouselDots"></div>
                 </div>
@@ -125,7 +125,7 @@
         <div class="codex-admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminItemTitle">
             <div class="codex-admin-header">
                 <h2 class="codex-admin-title" id="adminItemTitle">Ajouter un objet</h2>
-                <button type="button" class="codex-admin-close tw-press tw-btn-ghost" id="adminItemClose" aria-label="Fermer">x</button>
+                <button type="button" class="codex-admin-close tw-press" id="adminItemClose" aria-label="Fermer">x</button>
             </div>
             <div class="codex-admin-error" id="adminItemError" role="alert"></div>
             <div class="codex-admin-note" id="adminItemNote"></div>

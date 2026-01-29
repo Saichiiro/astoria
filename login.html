@@ -197,15 +197,15 @@
             <h1 class="auth-title">Astoria</h1>
             <p class="auth-subtitle" id="authSubtitle">Connectez-vous</p>
             <div class="auth-tabs" role="tablist" aria-label="Connexion ou inscription">
-                <button type="button" class="auth-tab tw-btn-ghost active tw-press" id="tabLogin" role="tab" aria-selected="true">Connexion</button>
-                <button type="button" class="auth-tab tw-btn-ghost tw-press" id="tabRegister" role="tab" aria-selected="false">Inscription</button>
+                <button type="button" class="auth-tab active tw-press" id="tabLogin" role="tab" aria-selected="true">Connexion</button>
+                <button type="button" class="auth-tab tw-press" id="tabRegister" role="tab" aria-selected="false">Inscription</button>
             </div>
             <div id="errorMessage" class="error-message" role="alert"></div>
             <div id="sessionNotice" class="session-notice" hidden>
                 <div id="sessionNoticeText"></div>
                 <div class="session-notice-actions">
-                    <button type="button" class="session-notice-btn tw-btn tw-press" id="sessionContinue">Continuer</button>
-                    <button type="button" class="session-notice-btn secondary tw-btn-ghost tw-press" id="sessionLogout">Se déconnecter</button>
+                    <button type="button" class="session-notice-btn tw-press" id="sessionContinue">Continuer</button>
+                    <button type="button" class="session-notice-btn secondary tw-press" id="sessionLogout">Se déconnecter</button>
                 </div>
             </div>
             <form id="loginForm">
@@ -217,8 +217,8 @@
                     <label for="loginPassword" class="form-label">Mot de passe</label>
                     <input type="password" id="loginPassword" class="form-input tw-input" required autocomplete="current-password" placeholder="Votre mot de passe">
                 </div>
-                <button type="button" class="auth-link tw-btn-ghost tw-press" id="forgotPasswordLink">Mot de passe oublié ?</button>
-                <button type="submit" class="auth-button tw-btn tw-press" id="loginButton">Se connecter</button>
+                <button type="button" class="auth-link tw-press" id="forgotPasswordLink">Mot de passe oublié ?</button>
+                <button type="submit" class="auth-button tw-press" id="loginButton">Se connecter</button>
             </form>
             <form id="resetForm" style="display:none;">
                 <div class="form-group">
@@ -233,8 +233,8 @@
                     <label for="resetPasswordConfirm" class="form-label">Confirmer le mot de passe</label>
                     <input type="password" id="resetPasswordConfirm" class="form-input tw-input" required autocomplete="new-password" placeholder="Confirmer le mot de passe">
                 </div>
-                <button type="submit" class="auth-button tw-btn tw-press" id="resetButton">Reinitialiser le mot de passe</button>
-                <button type="button" class="auth-link tw-btn-ghost tw-press" id="backToLoginLink">Retour à la connexion</button>
+                <button type="submit" class="auth-button tw-press" id="resetButton">Reinitialiser le mot de passe</button>
+                <button type="button" class="auth-link tw-press" id="backToLoginLink">Retour à la connexion</button>
             </form>
             <form id="registerForm" style="display:none;">
                 <div class="form-group">
@@ -249,7 +249,7 @@
                     <label for="registerPasswordConfirm" class="form-label">Confirmer le mot de passe</label>
                     <input type="password" id="registerPasswordConfirm" class="form-input tw-input" required autocomplete="new-password" placeholder="Répéter le mot de passe">
                 </div>
-                <button type="submit" class="auth-button tw-btn tw-press" id="registerButton">Créer le compte</button>
+                <button type="submit" class="auth-button tw-press" id="registerButton">Créer le compte</button>
             </form>
             <div class="auth-footer">Astoria - Prototype (Supabase)</div>
         </div>

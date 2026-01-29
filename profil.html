@@ -180,7 +180,7 @@
                     <div class="profile-tags" id="profileTags" aria-label="Tags de profil">
                         <div class="profile-tags-header">
                             <span class="profile-tags-title">Tags</span>
-                            <button type="button" class="profile-tags-toggle tw-press tw-btn-ghost" id="tagToggle" aria-expanded="false" aria-haspopup="true">+</button>
+                            <button type="button" class="profile-tags-toggle tw-press" id="tagToggle" aria-expanded="false" aria-haspopup="true">+</button>
                         </div>
                         <div class="profile-tags-selected" id="selectedTags" aria-label="Tags sélectionnés"></div>
                         <div class="profile-tags-dropdown" id="tagDropdown" hidden></div>
@@ -196,7 +196,7 @@
                             <h2 class="profile-section-title">Presentation</h2>
                         </div>
                         <div class="profile-section-actions">
-                            <button type="button" class="profile-edit-btn tw-press tw-btn-ghost" id="presentationEditBtn" hidden>Modifier</button>
+                            <button type="button" class="profile-edit-btn tw-press" id="presentationEditBtn" hidden>Modifier</button>
                         </div>
                     </header>
                     <div class="profile-presentation-shell tw-panel">
@@ -220,10 +220,10 @@
                                 <div class="profile-editor-main">
                                     <div class="profile-editor-toolbar" id="presentationToolbar" role="toolbar" aria-label="Barre d'outils">
                                         <div class="profile-toolbar-group">
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="bold" aria-label="Gras"><strong>B</strong></button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="italic" aria-label="Italique"><em>I</em></button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="underline" aria-label="Souligne"><span class="profile-toolbar-underline">U</span></button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="strike" aria-label="Barre"><span class="profile-toolbar-strike">S</span></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="bold" aria-label="Gras"><strong>B</strong></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="italic" aria-label="Italique"><em>I</em></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="underline" aria-label="Souligne"><span class="profile-toolbar-underline">U</span></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="strike" aria-label="Barre"><span class="profile-toolbar-strike">S</span></button>
                                         </div>
                                         <div class="profile-toolbar-group">
                                             <select class="profile-toolbar-select tw-input" data-action="align" aria-label="Alignement">
@@ -233,8 +233,8 @@
                                                 <option value="right">Droite</option>
                                                 <option value="justify">Justifie</option>
                                             </select>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="list-bullet" aria-label="Liste a puces">•</button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="list-ordered" aria-label="Liste numerotee">1.</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="list-bullet" aria-label="Liste a puces">•</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="list-ordered" aria-label="Liste numerotee">1.</button>
                                         </div>
                                         <div class="profile-toolbar-group">
                                             <label class="profile-toolbar-color">
@@ -247,9 +247,9 @@
                                             </label>
                                         </div>
                                         <div class="profile-toolbar-group">
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="image" aria-label="Inserer une image">IMG</button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="link" aria-label="Inserer un lien">Lien</button>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="emoji" aria-label="Inserer un emoji">:-)</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="image" aria-label="Inserer une image">IMG</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="link" aria-label="Inserer un lien">Lien</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="emoji" aria-label="Inserer un emoji">:-)</button>
                                         </div>
                                         <div class="profile-toolbar-group">
                                             <select class="profile-toolbar-select tw-input" data-action="header" aria-label="Styles de texte">
@@ -259,7 +259,7 @@
                                                 <option value="3">Titre 3</option>
                                                 <option value="blockquote">Citation</option>
                                             </select>
-                                            <button type="button" class="profile-toolbar-button tw-press tw-btn-ghost" data-action="html" aria-label="Basculer HTML source">&lt;&gt;</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="html" aria-label="Basculer HTML source">&lt;&gt;</button>
                                         </div>
                                     </div>
                                     <div class="profile-editor-surface">
@@ -321,8 +321,8 @@
                     <input class="profile-modal-input tw-input" id="characterClassInput" name="class" autocomplete="off">
                 </div>
                 <div class="profile-modal-actions">
-                    <button type="button" class="profile-modal-button secondary tw-btn-ghost tw-press" id="createCharacterCancel">Annuler</button>
-                    <button type="submit" class="profile-modal-button tw-press tw-btn" id="createCharacterSubmit">Créer</button>
+                    <button type="button" class="profile-modal-button secondary tw-press" id="createCharacterCancel">Annuler</button>
+                    <button type="submit" class="profile-modal-button tw-press" id="createCharacterSubmit">Créer</button>
                 </div>
             </form>
         </div>
@@ -344,8 +344,8 @@
                 </div>
             </div>
             <div class="profile-cropper-actions">
-                <button type="button" class="profile-modal-button secondary tw-btn-ghost tw-press" id="avatarCropperCancel">Annuler</button>
-                <button type="button" class="profile-modal-button tw-press tw-btn" id="avatarCropperConfirm">Enregistrer</button>
+                <button type="button" class="profile-modal-button secondary tw-press" id="avatarCropperCancel">Annuler</button>
+                <button type="button" class="profile-modal-button tw-press" id="avatarCropperConfirm">Enregistrer</button>
             </div>
         </div>
     </div>
@@ -376,8 +376,8 @@
                     <span class="profile-image-preview-text">Apercu</span>
                 </div>
                 <div class="profile-modal-actions">
-                    <button type="button" class="profile-modal-button secondary tw-btn-ghost tw-press" id="imageInsertCancel">Annuler</button>
-                    <button type="button" class="profile-modal-button tw-press tw-btn" id="imageInsertConfirm">Inserer</button>
+                    <button type="button" class="profile-modal-button secondary tw-press" id="imageInsertCancel">Annuler</button>
+                    <button type="button" class="profile-modal-button tw-press" id="imageInsertConfirm">Inserer</button>
                 </div>
             </div>
         </div>

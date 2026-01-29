@@ -39,13 +39,13 @@
             </div>
         </header>
         <nav class="hdv-tabs tw-panel" role="tablist" aria-label="Onglets Hôtel de vente">
-            <button class="hdv-tab active tw-press tw-btn-ghost" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
+            <button class="hdv-tab active tw-press" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
                 Rechercher
             </button>
-            <button class="hdv-tab tw-press tw-btn-ghost" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
+            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
                 Mes offres
             </button>
-            <button class="hdv-tab tw-press tw-btn-ghost" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
+            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
                 Historique
             </button>
         </nav>
@@ -58,7 +58,7 @@
                 <div class="hdv-panel active tw-surface tw-panel" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
                     <section class="hdv-filterbar" aria-label="Filtres">
                         <div class="inventory-search" id="hdvSearch">
-                            <button type="button" class="inventory-search-toggle tw-press tw-btn-ghost" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                            <button type="button" class="inventory-search-toggle tw-press" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
                                 <span class="inventory-search-icon">&#x1F50D;</span>
                             </button>
                             <input
@@ -68,7 +68,7 @@
                                 placeholder="Rechercher un item..."
                                 autocomplete="off"
                                 aria-label="Rechercher un item">
-                            <button type="button" class="inventory-search-clear tw-press tw-btn-ghost" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <button type="button" class="inventory-search-clear tw-press" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
                             <div class="recent-searches-dropdown inventory-search-history" id="hdvSearchHistory"></div>
                         </div>
                         <div class="hdv-filter-group">
@@ -91,7 +91,7 @@
                             <div class="hdv-scroll-panel tw-surface tw-panel" id="hdvScrollTypesPanel" aria-hidden="true">
                                 <div class="hdv-scroll-panel-title">Types de parchemins</div>
                                 <div class="hdv-scroll-panel-list" id="hdvScrollTypesList"></div>
-                                <button class="hdv-scroll-clear tw-press tw-btn-ghost" type="button" id="hdvScrollTypesClear">Tous les types</button>
+                                <button class="hdv-scroll-clear tw-press" type="button" id="hdvScrollTypesClear">Tous les types</button>
                             </div>
                         </div>
                         <select class="category-dropdown tw-input" id="hdvSortSelect" aria-label="Tri">

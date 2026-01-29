@@ -19,9 +19,6 @@
     const skillsAddCap = document.getElementById("skillsAddCap");
     const skillsAddCancel = document.getElementById("skillsAddCancel");
     const skillsAddSubmit = document.getElementById("skillsAddSubmit");
-    const skillsTotalPointsEl = document.getElementById("skillsTotalPoints");
-    const skillsAllocatedPointsEl = document.getElementById("skillsAllocatedPoints");
-    const skillsRemainingPointsEl = document.getElementById("skillsRemainingPoints");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
 
@@ -774,21 +771,6 @@
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(currentPoints);
         }
-
-        // Calculer les stats pour le résumé
-        const activeCategory = getActiveCategory();
-        if (activeCategory) {
-            const allocations = getCategoryAllocations(activeCategory.id);
-            const totalAllocated = Object.values(allocations).reduce((sum, val) => sum + Number(val || 0), 0);
-            const totalPoints = (DEFAULT_CATEGORY_POINTS[activeCategory.id] || 0);
-            const remainingPoints = totalPoints - totalAllocated;
-
-            // Mettre à jour l'affichage du résumé
-            if (skillsTotalPointsEl) skillsTotalPointsEl.textContent = String(totalPoints);
-            if (skillsAllocatedPointsEl) skillsAllocatedPointsEl.textContent = String(totalAllocated);
-            if (skillsRemainingPointsEl) skillsRemainingPointsEl.textContent = String(Math.max(0, remainingPoints));
-        }
-
         const hasPoints = currentPoints > 0;
         const isLocked = skillsState.locksByCategory[skillsState.activeCategoryId];
         const bonusBySkill = getNokorahBonuses();

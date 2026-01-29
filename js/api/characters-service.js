@@ -112,7 +112,7 @@ export async function createCharacter(userId, characterData) {
                 race: characterData.race,
                 class: characterData.class,
                 profile_data: defaultProfileData,
-                kaels: 5000  // Kaels de départ (corrigé de 0 à 5000)
+                kaels: 0  // Les admins donnent les kaels de départ
             }])
             .select();
 
