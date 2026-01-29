@@ -2,6 +2,7 @@
 import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
+import { initItemsModal } from "./quetes-items-modal.js";
 
 const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation"];
 const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
@@ -2386,6 +2387,9 @@ async function init() {
     renderQuestList();
     renderHistory();
     syncLocalItemsToDb();
+
+    // Initialiser le modal de sélection des récompenses
+    initItemsModal({ dom, resolveItemByName });
 }
 
 init();

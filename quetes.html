@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Yeseva+One&display=swap">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/quetes.css">
+    <link rel="stylesheet" href="css/quetes-items-modal.css">
 </head>
 <body class="quest-board min-h-screen">
     <main class="quest-page">
@@ -283,6 +284,28 @@
             <div class="quest-cropper-actions">
                 <button type="button" class="quest-cropper-button secondary tw-press" id="questCropperCancel">Annuler</button>
                 <button type="button" class="quest-cropper-button tw-press" id="questCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de sélection des récompenses -->
+    <div class="quest-items-modal-backdrop" id="questItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Sélectionner des récompenses</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items générés dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Ajouter les récompenses</button>
+                </div>
             </div>
         </div>
     </div>
