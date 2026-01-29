@@ -4,6 +4,20 @@
 
 import { getSupabaseClient } from "./api/supabase-client.js";
 
+// Helper pour parser JSON de façon safe
+function safeJson(value) {
+    if (!value) return {};
+    if (typeof value === "object") return value;
+    if (typeof value === "string") {
+        try {
+            return JSON.parse(value);
+        } catch {
+            return {};
+        }
+    }
+    return {};
+}
+
 // Cette fonction doit être appelée depuis quetes.js après l'initialisation du dom
 export function initItemsModal(questesModule) {
     console.log("[Items Modal] Initializing items modal...");
@@ -56,8 +70,8 @@ export function initItemsModal(questesModule) {
 
             // Mapper les items de la DB
             state.allItems = (dbItems || []).map(item => {
-                const images = item.images || {};
-                const image = images.primary || images.url || "";
+                const images = safeJson(item.images);
+                const image = images.primary || images.url || item.image || item.image_url || "";
                 return {
                     name: item.name || "",
                     category: item.category || "autre",
