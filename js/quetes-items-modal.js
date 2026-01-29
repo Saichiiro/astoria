@@ -2,6 +2,8 @@
 // Modal de sélection des récompenses - Extension pour quetes.js
 // ============================================================================
 
+import { getSupabaseClient } from "./api/supabase-client.js";
+
 // Cette fonction doit être appelée depuis quetes.js après l'initialisation du dom
 export function initItemsModal(questesModule) {
     console.log("[Items Modal] Initializing items modal...");
@@ -26,17 +28,76 @@ export function initItemsModal(questesModule) {
         allItems: []
     };
 
-    // Initialiser les items depuis le codex
-    function loadItems() {
-        // Récupérer tous les items depuis inventoryData (codex)
-        const items = window.inventoryData || [];
-        state.allItems = items.map(item => ({
-            name: item.name || "",
-            category: item.category || "autre",
-            description: item.description || "",
-            image: item.image || "",
-            price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
-        }));
+    // Charger les items depuis Supabase
+    async function loadItems() {
+        try {
+            const supabase = await getSupabaseClient();
+
+            // Récupérer tous les items de la DB
+            const { data: dbItems, error } = await supabase
+                .from('items')
+                .select('id, name, description, effect, category, price_kaels, price_po, images, enabled')
+                .eq('enabled', true)
+                .order('name', { ascending: true });
+
+            if (error) {
+                console.error('[Items Modal] Error loading items from DB:', error);
+                // Fallback sur les items locaux
+                const items = window.inventoryData || [];
+                state.allItems = items.map(item => ({
+                    name: item.name || "",
+                    category: item.category || "autre",
+                    description: item.description || "",
+                    image: item.image || "",
+                    price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
+                }));
+                return;
+            }
+
+            // Mapper les items de la DB
+            state.allItems = (dbItems || []).map(item => {
+                const images = item.images || {};
+                const image = images.primary || images.url || "";
+                return {
+                    name: item.name || "",
+                    category: item.category || "autre",
+                    description: item.description || item.effect || "",
+                    image: image,
+                    price: item.price_kaels || item.price_po || 0
+                };
+            });
+
+            // Fusionner avec les items locaux (ceux qui ne sont pas dans la DB)
+            const localItems = window.inventoryData || [];
+            const dbItemNames = new Set(state.allItems.map(i => i.name.toLowerCase()));
+
+            localItems.forEach(item => {
+                const nameKey = (item.name || "").toLowerCase();
+                if (nameKey && !dbItemNames.has(nameKey)) {
+                    state.allItems.push({
+                        name: item.name || "",
+                        category: item.category || "autre",
+                        description: item.description || "",
+                        image: item.image || "",
+                        price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
+                    });
+                }
+            });
+
+            console.log(`[Items Modal] Loaded ${state.allItems.length} items (${dbItems?.length || 0} from DB, ${state.allItems.length - (dbItems?.length || 0)} from local)`);
+
+        } catch (err) {
+            console.error('[Items Modal] Exception loading items:', err);
+            // Fallback sur les items locaux
+            const items = window.inventoryData || [];
+            state.allItems = items.map(item => ({
+                name: item.name || "",
+                category: item.category || "autre",
+                description: item.description || "",
+                image: item.image || "",
+                price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
+            }));
+        }
     }
 
     // Rendre un item dans le modal
@@ -159,7 +220,7 @@ export function initItemsModal(questesModule) {
     }
 
     // Ouvrir le modal
-    function openModal() {
+    async function openModal() {
         console.log("[Items Modal] openModal called");
         if (!modalDom.backdrop) {
             console.error("[Items Modal] Backdrop not found!");
@@ -167,7 +228,7 @@ export function initItemsModal(questesModule) {
         }
 
         console.log("[Items Modal] Loading items...");
-        loadItems();
+        await loadItems();
         console.log("[Items Modal] Items loaded:", state.allItems.length);
         state.selectedItems.clear();
         renderItems();
