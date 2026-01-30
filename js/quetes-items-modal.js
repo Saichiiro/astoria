@@ -57,15 +57,7 @@ export function initItemsModal(questesModule) {
 
             if (error) {
                 console.error('[Items Modal] Error loading items from DB:', error);
-                // Fallback sur les items locaux
-                const items = window.inventoryData || [];
-                state.allItems = items.map(item => ({
-                    name: item.name || "",
-                    category: item.category || "autre",
-                    description: item.description || "",
-                    image: item.image || "",
-                    price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
-                }));
+                state.allItems = [];
                 return;
             }
 
@@ -78,40 +70,16 @@ export function initItemsModal(questesModule) {
                     category: item.category || "autre",
                     description: item.description || item.effect || "",
                     image: image,
-                    price: item.price_kaels || item.price_po || 0
+                    price: item.price_kaels || item.price_po || 0,
+                    effect: item.effect || ""
                 };
             });
 
-            // Fusionner avec les items locaux (ceux qui ne sont pas dans la DB)
-            const localItems = window.inventoryData || [];
-            const dbItemNames = new Set(state.allItems.map(i => i.name.toLowerCase()));
-
-            localItems.forEach(item => {
-                const nameKey = (item.name || "").toLowerCase();
-                if (nameKey && !dbItemNames.has(nameKey)) {
-                    state.allItems.push({
-                        name: item.name || "",
-                        category: item.category || "autre",
-                        description: item.description || "",
-                        image: item.image || "",
-                        price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
-                    });
-                }
-            });
-
-            console.log(`[Items Modal] Loaded ${state.allItems.length} items (${dbItems?.length || 0} from DB, ${state.allItems.length - (dbItems?.length || 0)} from local)`);
+            console.log(`[Items Modal] Loaded ${state.allItems.length} items from DB`);
 
         } catch (err) {
             console.error('[Items Modal] Exception loading items:', err);
-            // Fallback sur les items locaux
-            const items = window.inventoryData || [];
-            state.allItems = items.map(item => ({
-                name: item.name || "",
-                category: item.category || "autre",
-                description: item.description || "",
-                image: item.image || "",
-                price: item.price_kaels || item.price_po || item.sellPrice || item.buyPrice || 0
-            }));
+            state.allItems = [];
         }
     }
 
