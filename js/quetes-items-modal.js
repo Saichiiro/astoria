@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { getSupabaseClient } from "./api/supabase-client.js";
+import { showItemDetailsPopover } from "./item-details-popover.js";
 
 // Helper pour parser JSON de façon safe
 function safeJson(value) {
@@ -182,8 +183,7 @@ export function initItemsModal(questesModule) {
         // Click sur Plus pour voir détails complets
         moreBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            // TODO: Ouvrir modal détails item (réutiliser modal codex?)
-            alert(`${item.name}\n\n${item.description}\n\nPrix: ${item.price} kaels`);
+            showItemDetailsPopover(item, moreBtn);
         });
 
         // Contrôles de quantité (style compétences)

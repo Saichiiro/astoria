@@ -1,1 +1,7 @@
 tmp
+
+# Scripts de migration (local seulement)
+START-SERVER.bat
+migrate-items.html
+MIGRATION-INSTRUCTIONS.md
+scripts/migrate-items-to-supabase.js
