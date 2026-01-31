@@ -34,9 +34,14 @@
 
     <style>
         /* Overrides pour aligner les slots symétriquement - FORCÉ */
+        .inventory2 .inventory-layout {
+            align-items: start !important;
+        }
+
         .inventory2 .inventory-sidebar {
-            align-self: flex-start !important;
+            align-self: start !important;
             margin-top: 0 !important;
+            position: static !important;
         }
 
         .inventory2 .character-card {
