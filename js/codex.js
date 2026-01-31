@@ -48,6 +48,7 @@ const tableBody = document.getElementById("tableBody");
 const modal = document.getElementById("itemModal");
 const modalName = document.getElementById("modalName");
 const modalImage = document.getElementById("modalImage");
+const modalCategory = document.getElementById("modalCategory");
 const modalDescription = document.getElementById("modalDescription");
 const modalPrice = document.getElementById("modalPrice");
 const modalEffect = document.getElementById("modalEffect");
@@ -61,7 +62,7 @@ const searchRoot = document.getElementById("codexSearch");
 const searchToggle = document.getElementById("codexSearchToggle");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
-const clearSearchBtn = document.getElementById("clearSearchBtn");
+// const clearSearchBtn = document.getElementById("clearSearchBtn"); // Removed: using native search input clear
 const filterChips = document.getElementById("filterChips");
 const recentSearchesDropdown = document.getElementById("recentSearchesDropdown");
 const statsBadge = document.getElementById("statsBadge");
@@ -539,6 +540,7 @@ function openItemModal(index) {
     const name = item.name || item.nom || "";
     const description = item.description || item.desc || "";
     const effect = item.effect || item.effet || "";
+    const category = item.category || item.categorie || "";
     const priceText = formatPrice(item);
     const resolvedImages = resolveImages(item);
 
@@ -551,6 +553,9 @@ function openItemModal(index) {
     currentCarouselTitle = name || "Illustration";
     updateCarouselView(name);
 
+    modalCategory.innerHTML = category
+        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${escapeHtml(category)}</span>`
+        : "";
     modalDescription.innerHTML = description
         ? `<span class="modal-label">Description :</span> ${escapeHtml(description)}`
         : "";
@@ -900,14 +905,14 @@ function applyFilters() {
 
     loadTable(filtered, searchQuery);
 
-    // Afficher/masquer le bouton clear
-    if (clearSearchBtn) {
-        if ('hidden' in clearSearchBtn) {
-            clearSearchBtn.hidden = !searchQuery;
-        } else {
-            clearSearchBtn.style.display = searchQuery ? 'inline' : 'none';
-        }
-    }
+    // Afficher/masquer le bouton clear - REMOVED: using native search input clear
+    // if (clearSearchBtn) {
+    //     if ('hidden' in clearSearchBtn) {
+    //         clearSearchBtn.hidden = !searchQuery;
+    //     } else {
+    //         clearSearchBtn.style.display = searchQuery ? 'inline' : 'none';
+    //     }
+    // }
 
     updateFilterChips(searchQuery);
 }
@@ -973,7 +978,7 @@ function bindPageEvents() {
             root: searchRoot,
             input: searchInput,
             toggle: searchToggle,
-            clearButton: clearSearchBtn,
+            clearButton: null, // Removed: using native search input clear
             dropdown: recentSearchesDropdown,
             history: searchHistory,
             debounceWait: 200,
@@ -991,9 +996,10 @@ function bindPageEvents() {
             searchInput.addEventListener('blur', () => hideRecentSearches());
         }
 
-        if (clearSearchBtn) {
-            clearSearchBtn.addEventListener('click', () => clearSearch());
-        }
+        // Removed: using native search input clear
+        // if (clearSearchBtn) {
+        //     clearSearchBtn.addEventListener('click', () => clearSearch());
+        // }
     }
 
     if (filterChips && filterChips.dataset.chipsBound !== "1") {

@@ -136,21 +136,41 @@
             </div>
         </header>
 
-        <div class="inventory-actions">
-            <span id="itemCount" class="inventory-info">0 objets</span>
-            <button class="add-item-btn tw-press" id="openAddPanel" title="Ajouter un objet">
-                <span class="add-icon">+</span>
-                <span class="add-label">Ajouter</span>
-            </button>
-        </div>
+        <div class="inventory-layout">
+            <aside class="inventory-sidebar" aria-label="Equipement du personnage">
+                <div class="equipment-card">
+                    <h2 class="equipment-title">Equipement</h2>
+                    <div class="equipment-doll">
+                        <div class="equipment-silhouette" aria-hidden="true"></div>
+                        <div class="equipment-slot equipment-slot--head">Casque</div>
+                        <div class="equipment-slot equipment-slot--neck">Collier</div>
+                        <div class="equipment-slot equipment-slot--shoulders">Epaulettes</div>
+                        <div class="equipment-slot equipment-slot--chest">Plastron</div>
+                        <div class="equipment-slot equipment-slot--cloak">Cape</div>
+                        <div class="equipment-slot equipment-slot--gloves">Gants</div>
+                        <div class="equipment-slot equipment-slot--boots">Bottes</div>
+                        <div class="equipment-slot equipment-slot--ring-left">Anneau 1</div>
+                        <div class="equipment-slot equipment-slot--ring-right">Anneau 2</div>
+                        <div class="equipment-slot equipment-slot--weapon-left">Arme 1</div>
+                        <div class="equipment-slot equipment-slot--weapon-right">Arme 2</div>
+                        <div class="equipment-slot equipment-slot--pet">Familier</div>
+                        <div class="equipment-slot equipment-slot--artifact">Artefact</div>
+                        <div class="equipment-slot equipment-slot--mount">Monture</div>
+                    </div>
+                </div>
+            </aside>
 
+            <section class="inventory-main">
+                <div class="inventory-actions">
+                    <span id="itemCount" class="inventory-info">0 objets</span>
+                    <button class="add-item-btn tw-press" id="openAddPanel" title="Ajouter un objet">
+                        <span class="add-icon">+</span>
+                        <span class="add-label">Ajouter</span>
+                    </button>
+                </div>
 
-
-        <!-- Category filter bar + search -->
-
-
-
-        <div class="inventory-toolbar">
+                <!-- Category filter bar + search -->
+                <div class="inventory-toolbar">
 
 
 
@@ -282,15 +302,10 @@
 
 
 
-        </div>
+                </div>
 
-
-
-        <!-- Main content area: grid + details -->
-
-
-
-        <div class="inventory-content">
+                <!-- Main content area: grid + details -->
+                <div class="inventory-content">
 
 
 
@@ -438,6 +453,8 @@
 
 
 
+                </div>
+            </section>
         </div>
 
 

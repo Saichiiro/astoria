@@ -415,6 +415,18 @@
     border-color: #bd2130;
 }
 
+/* Badge de catégorie dans le modal */
+.modal-category-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: rgba(255, 106, 162, 0.15);
+    color: #ff6aa2;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+}
+
 @media (max-width: 700px) {
     .codex-admin-grid {
         grid-template-columns: 1fr;

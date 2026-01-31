@@ -96,6 +96,53 @@
     border-color: var(--quest-pink);
 }
 
+.quest-items-modal-categories {
+    padding: 12px 24px;
+    border-bottom: 1px solid rgba(255, 106, 162, 0.15);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+}
+
+.quest-items-category-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 2px solid rgba(255, 106, 162, 0.25);
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.quest-items-category-btn:hover {
+    border-color: var(--quest-pink);
+    background: rgba(255, 106, 162, 0.05);
+}
+
+.quest-items-category-btn.active {
+    background: var(--quest-pink);
+    border-color: var(--quest-pink);
+}
+
+.quest-items-category-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.quest-items-category-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #4c3a63;
+}
+
+.quest-items-category-btn.active .quest-items-category-label {
+    color: #fff;
+}
+
 .quest-items-modal-body {
     flex: 1;
     overflow-y: auto;

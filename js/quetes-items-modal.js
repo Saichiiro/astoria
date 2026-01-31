@@ -34,13 +34,15 @@ export function initItemsModal(questesModule) {
         body: document.getElementById("questItemsModalBody"),
         selectedCount: document.getElementById("questItemsSelectedCount"),
         cancel: document.getElementById("questItemsModalCancel"),
-        confirm: document.getElementById("questItemsModalConfirm")
+        confirm: document.getElementById("questItemsModalConfirm"),
+        categoryButtons: document.querySelectorAll(".quest-items-category-btn")
     };
 
     // État du modal
     const state = {
         selectedItems: new Map(), // Map<itemName, quantity>
-        allItems: []
+        allItems: [],
+        currentCategory: 'all'
     };
 
     // Charger les items depuis Supabase
@@ -242,14 +244,20 @@ export function initItemsModal(questesModule) {
         modalDom.body.innerHTML = "";
         const query = searchQuery.toLowerCase().trim();
 
-        const filtered = query
-            ? state.allItems.filter(item => {
+        // Filtrer par catégorie d'abord
+        let filtered = state.currentCategory === 'all'
+            ? state.allItems
+            : state.allItems.filter(item => item.category === state.currentCategory);
+
+        // Puis filtrer par recherche si nécessaire
+        if (query) {
+            filtered = filtered.filter(item => {
                 const name = item.name.toLowerCase();
                 const category = item.category.toLowerCase();
                 const desc = item.description.toLowerCase();
                 return name.includes(query) || category.includes(query) || desc.includes(query);
-            })
-            : state.allItems;
+            });
+        }
 
         if (filtered.length === 0) {
             const empty = document.createElement("div");
@@ -279,6 +287,14 @@ export function initItemsModal(questesModule) {
         console.log("[Items Modal] Loading items...");
         await loadItems();
         console.log("[Items Modal] Items loaded:", state.allItems.length);
+
+        // Réinitialiser la catégorie à "Tous"
+        state.currentCategory = 'all';
+        if (modalDom.categoryButtons) {
+            modalDom.categoryButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.category === 'all');
+            });
+        }
 
         // Ne PAS clear les selectedItems ici - persistence des quantités entre ouvertures
         renderItems();
@@ -333,6 +349,23 @@ export function initItemsModal(questesModule) {
     if (modalDom.search) {
         modalDom.search.addEventListener("input", (e) => {
             renderItems(e.target.value);
+        });
+    }
+
+    // Event listeners pour les boutons de catégories
+    if (modalDom.categoryButtons) {
+        modalDom.categoryButtons.forEach(btn => {
+            btn.addEventListener("click", () => {
+                const category = btn.dataset.category;
+                state.currentCategory = category;
+
+                // Mettre à jour l'état actif des boutons
+                modalDom.categoryButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Re-rendre avec le filtre de catégorie
+                renderItems(modalDom.search?.value || "");
+            });
         });
     }
 

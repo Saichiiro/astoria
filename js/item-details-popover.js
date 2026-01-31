@@ -200,6 +200,18 @@ function positionPopover(popover, anchorElement) {
     const maxPopoverHeight = viewportHeight - 40;
     const popoverHeight = Math.min(popover.offsetHeight || maxPopoverHeight, maxPopoverHeight);
 
+    // Détecter si le panneau de détails de l'inventaire est visible
+    const itemDetailPanel = document.getElementById('itemDetail');
+    const scrollTypesPanel = document.getElementById('scrollTypesPanel');
+    let detailPanelWidth = 0;
+
+    if (itemDetailPanel && window.getComputedStyle(itemDetailPanel).display !== 'none') {
+        detailPanelWidth = Math.max(detailPanelWidth, itemDetailPanel.offsetWidth);
+    }
+    if (scrollTypesPanel && scrollTypesPanel.getAttribute('aria-hidden') !== 'true') {
+        detailPanelWidth = Math.max(detailPanelWidth, scrollTypesPanel.offsetWidth);
+    }
+
     console.log('[Popover] Position debug:', {
         anchorRect,
         popoverWidth,
@@ -207,15 +219,19 @@ function positionPopover(popover, anchorElement) {
         viewportWidth,
         viewportHeight,
         scrollX,
-        scrollY
+        scrollY,
+        detailPanelWidth
     });
 
     let placement = 'right'; // Par défaut
     let top = 0;
     let left = 0;
 
-    // Essayer de placer à droite
-    if (anchorRect.right + gap + popoverWidth <= viewportWidth) {
+    // Réserver l'espace du panneau de détails à droite (+ marge de 20px)
+    const availableRightSpace = viewportWidth - detailPanelWidth - 20;
+
+    // Essayer de placer à droite (en tenant compte du panneau de détails)
+    if (anchorRect.right + gap + popoverWidth <= availableRightSpace) {
         placement = 'right';
         left = anchorRect.right + gap + scrollX;
         top = anchorRect.top + anchorRect.height / 2 - popoverHeight / 2 + scrollY;
