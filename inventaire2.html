@@ -1,0 +1,8841 @@
+<!DOCTYPE html>
+
+
+
+<html lang="fr">
+
+
+
+<head>
+
+
+
+    <meta charset="UTF-8">
+
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+    <title>Inventaire - Astoria</title>
+
+
+
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+
+
+
+    <link rel="stylesheet" href="css/style.css">
+
+
+
+    <link rel="stylesheet" href="css/inventaire.css">
+
+    <style>
+        /* Overrides pour aligner les slots symétriquement */
+        .character-card {
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .character-showcase {
+            position: relative;
+            display: grid;
+            place-items: center;
+            height: 100%;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(237, 226, 238, 0.9));
+            border: 2px dashed rgba(228, 132, 184, 0.35);
+            flex: 1;
+        }
+
+        .character-sprite {
+            width: 170px;
+            height: 240px;
+            border-radius: 110px;
+            background:
+                radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 65%),
+                linear-gradient(180deg, rgba(255, 214, 238, 0.7), rgba(255, 188, 224, 0.75));
+            border: 2px solid rgba(216, 27, 96, 0.2);
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .character-rank {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-weight: 600;
+            color: var(--inv-text);
+            font-size: 1rem;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .character-slot {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(238, 162, 201, 0.8);
+            box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08);
+        }
+
+        .character-slot--tl { top: 20px; left: 20px; }
+        .character-slot--tr { top: 20px; right: 20px; }
+        .character-slot--ml { top: 50%; left: 10px; transform: translateY(-50%); }
+        .character-slot--mr { top: 50%; right: 10px; transform: translateY(-50%); }
+        .character-slot--bl { bottom: 56px; left: 20px; }
+        .character-slot--br { bottom: 56px; right: 20px; }
+    </style>
+
+</head>
+
+
+
+<body class="min-h-screen inventory2">
+
+
+
+            <!-- Main inventory wrapper -->
+
+
+
+    <main class="inventory-wrapper" aria-labelledby="inventoryTitle">
+
+
+
+                <!-- Header with title and back button -->
+
+
+
+        <header class="page-header">
+            <a href="codex.html" class="page-back" title="Retour au codex">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="inventoryTitle">Inventaire</h1>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+
+
+
+                <div class="character-avatar-wrapper">
+
+
+
+                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+
+
+
+                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+
+
+
+                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+
+
+
+                    </div>
+
+
+
+                    <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+
+
+
+                </div>
+
+
+
+                <div class="character-summary-text">
+
+
+
+                    <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+
+
+
+                    <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+
+
+
+                    <div class="character-summary-meta">
+
+
+
+                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+
+
+
+                        <div class="character-souls" id="characterSouls" hidden>
+
+
+
+                            <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+
+
+
+                            <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+            </div>
+        </header>
+
+        <div class="inventory-layout">
+            <aside class="inventory-sidebar" aria-label="Equipement du personnage">
+                <div class="character-card" aria-label="Personnage">
+                    <div class="character-showcase">
+                        <div class="character-sprite" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--tl" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--tr" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--ml" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--mr" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--bl" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--br" aria-hidden="true"></div>
+                        <div class="character-rank">Rang : 3</div>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="inventory-main">
+                <div class="inventory-actions">
+                    <span id="itemCount" class="inventory-info">0 objets</span>
+                    <button class="add-item-btn tw-press" id="openAddPanel" title="Ajouter un objet">
+                        <span class="add-icon">+</span>
+                        <span class="add-label">Ajouter</span>
+                    </button>
+                </div>
+
+                <!-- Category filter bar + search -->
+                <div class="inventory-toolbar">
+
+
+
+            <nav class="inventory-categories" aria-label="Cat&eacute;gories d'inventaire">
+
+
+
+                <button class="category-btn active tw-press" data-category="all">
+
+
+
+                    <span class="category-icon">&#x1F4E6;</span>
+
+
+
+                    <span class="category-label">Tous</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="equipement">
+
+
+
+                    <span class="category-icon">&#x2694;&#xFE0F;</span>
+
+
+
+                    <span class="category-label">&Eacute;quipements</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="consommable">
+
+
+
+                    <span class="category-icon">&#x1F9EA;</span>
+
+
+
+                    <span class="category-label">Consommables</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="agricole">
+
+
+
+                    <span class="category-icon">&#x1F33E;</span>
+
+
+
+                    <span class="category-label">Agricole</span>
+
+
+
+                </button>
+
+
+
+            </nav>
+
+
+
+            <div class="inventory-search" id="inventorySearch">
+
+
+
+                <button type="button" class="inventory-search-toggle tw-press" id="inventorySearchToggle" aria-label="Rechercher" aria-expanded="false">
+
+
+
+                    <span class="inventory-search-icon">&#x1F50D;</span>
+
+
+
+                </button>
+
+
+
+                <input
+
+
+
+                    type="search"
+
+
+
+                    id="inventorySearchInput"
+
+
+
+                    class="inventory-search-input tw-input"
+
+
+
+                    placeholder="Rechercher un objet..."
+
+
+
+                    aria-label="Rechercher un objet"
+
+
+
+                >
+
+
+
+                <button type="button" class="inventory-search-clear tw-press" id="inventorySearchClear" aria-label="Effacer la recherche" hidden>x</button>
+
+
+
+                <div class="recent-searches-dropdown inventory-search-history" id="inventorySearchHistory"></div>
+
+
+
+            </div>
+
+
+
+                </div>
+
+                <!-- Main content area: grid + details -->
+                <div class="inventory-content">
+
+
+
+            <!-- Items grid (left side) -->
+
+
+
+                        <div class="inventory-grid-container">
+
+
+
+                <div class="inventory-grid" id="inventoryGrid">
+
+
+
+                    <!-- Items will be rendered here by JS -->
+
+
+
+                </div>
+
+
+
+                <div class="empty-inventory is-hidden" id="emptyState">
+
+
+
+                    <div class="empty-state-icon">&#x1F4E6;</div>
+
+
+
+                    <div class="empty-state-title">Aucun objet</div>
+
+
+
+                    <div class="empty-state-message">Votre inventaire est vide dans cette catégorie</div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <!-- Item detail panel (right side) -->
+
+
+
+                        <div class="inventory-detail" id="itemDetail">
+
+
+
+                <div class="detail-placeholder">
+
+
+
+                    <div class="placeholder-icon">&#x1F446;</div>
+
+
+
+                    <p>Sélectionnez un objet pour voir ses détails</p>
+
+
+
+                </div>
+
+
+
+                <!-- Details will be rendered here when item is selected -->
+
+
+
+            </div>
+
+
+
+            <!-- Scroll types panel (right-most side) -->
+
+
+
+            <aside class="scroll-types-panel" id="scrollTypesPanel" aria-hidden="true">
+
+
+
+                <div class="scroll-panel-header">
+
+
+
+                    <h3 id="scrollPanelTitle">Types de parchemins</h3>
+
+
+
+                    <button class="scroll-panel-add-btn tw-press" id="scrollPanelAddBtn" type="button" title="Ajouter des parchemins" aria-label="Ajouter des parchemins" aria-expanded="false" aria-controls="scrollPanelAdd" disabled>+</button>
+
+
+
+                </div>
+
+
+
+                <div class="scroll-panel-body" id="scrollPanelBody">
+
+
+
+                    <div class="scroll-panel-add" id="scrollPanelAdd" aria-hidden="true">
+
+
+
+                        <div class="scroll-add-search">
+
+
+
+                            <input type="text" id="scrollTypeSearch" class="tw-input" placeholder="Rechercher un type">
+
+
+
+                        </div>
+
+
+
+                        <div class="scroll-suggestions" id="scrollTypeSuggestions"></div>
+
+
+
+                    </div>
+
+
+
+                    <p class="scroll-panel-empty" id="scrollPanelEmpty">Aucun type de parchemin disponible.</p>
+
+
+
+                    <div class="scroll-panel-list" id="scrollPanelList"></div>
+
+
+
+                </div>
+
+
+
+            </aside>
+
+
+
+                </div>
+            </section>
+        </div>
+
+
+
+    </main>
+
+
+
+    <!-- Add item panel (slide-in from right) -->
+
+
+
+    <div class="add-panel" id="addPanel">
+
+
+
+        <div class="add-panel-inner">
+
+
+
+            <div class="add-panel-header">
+
+
+
+                <h2>Ajouter un objet</h2>
+
+
+
+                <button class="panel-close-btn tw-press" id="closeAddPanel">&times;</button>
+
+
+
+            </div>
+
+
+
+            <div class="add-panel-body">
+
+
+
+                <!-- Item selector (from existing database) -->
+
+
+
+                <div class="form-group">
+
+
+
+                    <label for="itemSelect">Objet *</label>
+
+
+
+                    <select id="itemSelect" class="tw-input" required>
+
+
+
+                        <option value="">-- Sélectionner un objet --</option>
+
+
+
+                        <!-- Options populated by JS from inventoryData -->
+
+
+
+                    </select>
+
+
+
+                </div>
+
+
+
+                                <!-- Category selector -->
+
+
+
+                <div class="form-group">
+
+
+
+                    <label for="categorySelect">Catégorie *</label>
+
+
+
+                    <select id="categorySelect" class="tw-input" required>
+
+
+
+                        <option value="all">&#x1F4E6; Toutes catégories</option>
+
+
+
+                        <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipement</option>
+
+
+
+                        <option value="consommable">&#x1F9EA; Consommable</option>
+
+
+
+                        <option value="agricole">&#x1F33E; Agricole</option>
+
+
+
+                    </select>
+
+
+
+                </div>
+
+
+
+                <!-- Quantity selector -->
+
+
+
+                <div class="form-group">
+
+
+
+                    <label for="quantityInput">Quantité *</label>
+
+
+
+                    <div class="quantity-control">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="qtyMinus">-</button>
+
+
+
+                        <input type="number" id="quantityInput" class="tw-input" min="1" value="1">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="qtyPlus">+</button>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+                <!-- Item preview (shows selected item details) -->
+
+
+
+                <div id="itemPreview" class="item-preview">
+
+
+
+                    <div class="form-group">
+
+
+
+                        <label>Aperçu</label>
+
+
+
+                        <div class="item-preview-card">
+
+
+
+                            <img id="previewImage" class="item-preview-image" src="" alt="" decoding="async">
+
+
+
+                            <div>
+
+
+
+                                <div class="item-preview-name" id="previewName"></div>
+
+
+
+                                <div class="item-preview-description" id="previewDescription"></div>
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="add-panel-footer">
+
+
+
+                <button type="button" class="btn-secondary tw-press" id="cancelAdd">Annuler</button>
+
+
+
+                <button type="button" class="btn-primary tw-press" id="confirmAdd">Ajouter</button>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+    </div>
+
+
+
+    <!-- Delete confirmation modal -->
+
+
+
+    <div class="delete-modal-overlay" id="deleteModal">
+
+
+
+        <div class="delete-modal">
+
+
+
+            <div class="delete-modal-header">
+
+
+
+                <h3>Supprimer l'objet</h3>
+
+
+
+            </div>
+
+
+
+            <div class="delete-modal-body">
+
+
+
+                <p>Combien d'unités de <span class="delete-modal-item-name" id="deleteItemName"></span> voulez-vous supprimer ?</p>
+
+
+
+                <div class="form-group">
+
+
+
+                    <label for="deleteQuantityInput">Quantité à supprimer</label>
+
+
+
+                    <div class="quantity-control">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="deleteQtyMinus">-</button>
+
+
+
+                        <input type="number" id="deleteQuantityInput" class="tw-input" min="1" value="1">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="deleteQtyPlus">+</button>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="delete-modal-footer">
+
+
+
+                <button type="button" class="btn-secondary tw-press" id="cancelDelete">Annuler</button>
+
+
+
+                <button type="button" class="btn-danger tw-press" id="confirmDelete">Supprimer</button>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+    </div>
+
+
+
+    <!-- Load shared data -->
+
+
+
+    <script src="js/image-helpers.js"></script>
+
+
+
+    <script src="js/data.js"></script>
+
+
+
+    <script src="js/ui/list-helpers.js"></script>
+
+
+
+    <script src="js/ui/search-history.js"></script>
+
+
+
+    <script src="js/ui/searchbar.js"></script>
+
+
+
+    <script type="module" src="js/ui/app-shell.js"></script>
+
+
+
+    <script type="module">
+
+
+
+        import { initCharacterSummary } from './js/ui/character-summary.js';
+
+
+
+        // Initialize character summary with kaels and dropdown
+
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+
+
+            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+
+
+
+        });
+
+
+
+    </script>
+
+
+
+    <!-- Inventory-specific JS -->
+
+
+
+    <script>
+
+
+
+        (function () {
+
+
+
+        /**
+
+
+
+         * ========================================================================
+
+
+
+         * INVENTORY MODULE - EMPTY BY DEFAULT WITH ADD PANEL
+
+
+
+         * ========================================================================
+
+
+
+         *
+
+
+
+         * TEMPORARY IMPLEMENTATION FOR TESTING:
+
+
+
+         * - Inventory starts EMPTY on first load
+
+
+
+         * - Items stored in localStorage for persistence (testing only)
+
+
+
+         * - Items are added via "+" panel which selects from existing database
+
+
+
+         * - All item data (name, description, image) comes from data.js
+
+
+
+         *
+
+
+
+         * FUTURE INTEGRATION:
+
+
+
+         * - Replace localStorage with real backend API
+
+
+
+         * - Load inventory from server instead of localStorage
+
+
+
+         * - Connect to global item management system
+
+
+
+         * ========================================================================
+
+
+
+         */
+
+
+
+        // =================================================================
+
+
+
+        // CONFIGURATION
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * IMAGE CONFIGURATION & PLACEHOLDER
+
+
+
+         * Délégués au helper global image-helpers.js
+
+
+
+         */
+
+
+
+        const INVENTORY_IMAGE_HELPERS = window.astoriaImageHelpers || {};
+
+
+
+        const PLACEHOLDER_IMAGE = INVENTORY_IMAGE_HELPERS.smallPlaceholder;
+
+
+
+        const DEFAULT_SCROLL_TYPES = [
+            { key: 'feu', emoji: String.fromCodePoint(0x1F525), label: 'Feu', matchers: ['feu'] },
+            { key: 'eau', emoji: String.fromCodePoint(0x1F4A7), label: 'Eau', matchers: ['eau'] },
+            { key: 'vent', emoji: String.fromCodePoint(0x1F32C), label: 'Vent', matchers: ['vent'] },
+            { key: 'terre', emoji: String.fromCodePoint(0x1FAA8), label: 'Terre', matchers: ['terre'] },
+            { key: 'nature', emoji: String.fromCodePoint(0x1F331), label: 'Nature', matchers: ['nature'] },
+            { key: 'roche', emoji: String.fromCodePoint(0x1FAA8), label: 'Roche', matchers: ['roche'] },
+            { key: 'metaux', emoji: String.fromCodePoint(0x1F9F2), label: 'M\u00e9taux', matchers: ['metaux', 'm\u00e9taux'] },
+            { key: 'cryo', emoji: String.fromCodePoint(0x1F9CA), label: 'Cryo (glace)', matchers: ['cryo', 'glace'] },
+            { key: 'foudre', emoji: String.fromCodePoint(0x26A1), label: 'Foudre', matchers: ['foudre'] },
+            { key: 'lumiere', emoji: String.fromCodePoint(0x1F31F), label: 'Lumi\u00e8re', matchers: ['lumiere', 'lumi\u00e8re'] },
+            { key: 'tenebres', emoji: String.fromCodePoint(0x1F319), label: 'T\u00e9n\u00e8bres', matchers: ['tenebres', 't\u00e9n\u00e8bres'] },
+            { key: 'cristal', emoji: String.fromCodePoint(0x1F48E), label: 'Cristal', matchers: ['cristal'] }
+        ];
+
+
+
+        const SCROLL_TYPES = Array.isArray(window.astoriaScrollTypes) && window.astoriaScrollTypes.length
+
+
+
+            ? window.astoriaScrollTypes
+
+
+
+            : DEFAULT_SCROLL_TYPES;
+
+
+
+        if (!Array.isArray(window.astoriaScrollTypes) || window.astoriaScrollTypes.length < DEFAULT_SCROLL_TYPES.length) {
+
+
+
+            window.astoriaScrollTypes = DEFAULT_SCROLL_TYPES;
+
+
+
+        }
+
+
+
+        const SCROLL_TYPES_META_KEY = 'astoria_scroll_types_meta';
+
+
+
+        const SCROLL_TYPE_FALLBACK_EMOJI = String.fromCodePoint(0x2728);
+
+
+
+        function formatScrollTypeLabel(key) {
+
+
+
+            const raw = String(key || '').replace(/[-_]+/g, ' ').trim();
+
+
+
+            if (!raw) return '';
+
+
+
+            return raw.charAt(0).toUpperCase() + raw.slice(1);
+
+
+
+        }
+
+
+
+        function getScrollTypeMetaByKey(key) {
+
+
+
+            if (!key) return null;
+
+
+
+            if (typeof window.astoriaGetScrollTypeMeta === 'function') {
+
+
+
+                const entry = window.astoriaGetScrollTypeMeta(key);
+
+
+
+                if (entry) return entry;
+
+
+
+            }
+
+
+
+            const normalized = normalizeText(key);
+
+
+
+            const existing = SCROLL_TYPES.find((type) => normalizeText(type.key) === normalized);
+
+
+
+            if (existing) return existing;
+
+
+
+            return {
+
+
+
+                key: String(key),
+
+
+
+                label: formatScrollTypeLabel(key),
+
+
+
+                emoji: SCROLL_TYPE_FALLBACK_EMOJI,
+
+
+
+                matchers: []
+
+
+
+            };
+
+
+
+        }
+
+
+
+        function persistScrollTypeMeta() {
+
+
+
+            try {
+
+
+
+                const payload = SCROLL_TYPES.map((type) => ({
+
+
+
+                    key: type.key,
+
+
+
+                    label: type.label,
+
+
+
+                    emoji: type.emoji,
+
+
+
+                    matchers: Array.isArray(type.matchers) ? type.matchers : []
+
+
+
+                }));
+
+
+
+                const next = JSON.stringify(payload);
+
+
+
+                const current = localStorage.getItem(SCROLL_TYPES_META_KEY);
+
+
+
+                if (current !== next) {
+
+
+
+                    localStorage.setItem(SCROLL_TYPES_META_KEY, next);
+
+
+
+                }
+
+
+
+                window.astoriaScrollTypes = payload;
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Failed to persist scroll type metadata:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        persistScrollTypeMeta();
+
+
+
+        // =================================================================
+
+
+
+        // =================================================================
+
+
+
+        // STATE
+
+
+
+        // =================================================================
+
+
+
+        let currentCategory = 'all';
+
+
+
+        let currentSearchQuery = '';
+
+
+
+        let selectedItemIndex = null;
+
+
+
+        let inventoryItems = []; // Starts EMPTY
+
+
+
+        let nextItemId = 1; // Auto-increment ID for new items
+
+
+
+        let inventoryStorageMode = 'local'; // 'local' | 'character'
+
+
+
+        let authApi = null;
+
+
+
+        let inventoryApi = null;
+
+
+
+        let pendingProfileSaveTimer = null;
+
+
+
+        let scrollPanelOpen = false;
+
+
+
+        let scrollPanelCategory = null;
+
+
+
+        let scrollPanelToggleBtn = null;
+
+
+
+        let scrollAddOpen = false;
+
+
+
+        let currentScrollItem = null;
+
+
+
+        let selectedScrollTypeKey = null;
+
+
+
+        let lastScrollItemId = null;
+
+
+
+        let scrollTypeStore = {};
+
+
+
+        let inventoryMigrated = false;
+
+
+
+        // DOM REFERENCES
+
+
+
+        // =================================================================
+
+
+
+        const grid = document.getElementById('inventoryGrid');
+
+
+
+        const detailPanel = document.getElementById('itemDetail');
+
+
+
+        const emptyState = document.getElementById('emptyState');
+
+
+
+        const emptyStateMessage = emptyState ? emptyState.querySelector('.empty-state-message') : null;
+
+
+
+        const itemCountEl = document.getElementById('itemCount');
+
+
+
+        const categoryButtons = document.querySelectorAll('.category-btn');
+
+
+
+        const searchRoot = document.getElementById('inventorySearch');
+
+
+
+        const searchInput = document.getElementById('inventorySearchInput');
+
+
+
+        const searchToggle = document.getElementById('inventorySearchToggle');
+
+
+
+        const searchClear = document.getElementById('inventorySearchClear');
+
+
+
+        const searchHistoryDropdown = document.getElementById('inventorySearchHistory');
+
+
+
+        const inventoryContent = document.querySelector('.inventory-content');
+
+
+
+        const scrollTypesPanel = document.getElementById('scrollTypesPanel');
+
+
+
+        const scrollPanelTitle = document.getElementById('scrollPanelTitle');
+
+
+
+        const scrollPanelBody = document.getElementById('scrollPanelBody');
+
+
+
+        const scrollPanelHeader = document.querySelector('.scroll-panel-header');
+
+
+
+        const scrollPanelAddBtn = document.getElementById('scrollPanelAddBtn');
+
+
+
+        const scrollPanelEmpty = document.getElementById('scrollPanelEmpty');
+
+
+
+        const scrollPanelList = document.getElementById('scrollPanelList');
+
+
+
+        const scrollPanelAdd = document.getElementById('scrollPanelAdd');
+
+
+
+        const scrollTypeSearch = document.getElementById('scrollTypeSearch');
+
+
+
+        const scrollTypeSuggestions = document.getElementById('scrollTypeSuggestions');
+
+
+
+        // Add panel elements
+
+
+
+        const addPanel = document.getElementById('addPanel');
+
+
+
+        const openAddBtn = document.getElementById('openAddPanel');
+
+
+
+        const closeAddBtn = document.getElementById('closeAddPanel');
+
+
+
+        const cancelAddBtn = document.getElementById('cancelAdd');
+
+
+
+        const confirmAddBtn = document.getElementById('confirmAdd');
+
+
+
+        const itemSelect = document.getElementById('itemSelect');
+
+
+
+        const categorySelect = document.getElementById('categorySelect');
+
+
+
+        const quantityInput = document.getElementById('quantityInput');
+
+
+
+        const qtyMinusBtn = document.getElementById('qtyMinus');
+
+
+
+        const qtyPlusBtn = document.getElementById('qtyPlus');
+
+
+
+        const itemPreview = document.getElementById('itemPreview');
+
+
+
+        const previewImage = document.getElementById('previewImage');
+
+
+
+        const previewName = document.getElementById('previewName');
+
+
+
+        const previewDescription = document.getElementById('previewDescription');
+
+
+
+        const inventoryWrapper = document.querySelector('.inventory-wrapper');
+
+
+
+        let inventoryAccessAllowed = true;
+
+
+
+        const listHelpers = window.astoriaListHelpers || {};
+
+
+
+        const filterItems = listHelpers.filterItems;
+
+
+
+        const searchFields = [
+
+
+
+            (item) => item?.name,
+
+
+
+            (item) => item?.description,
+
+
+
+            (item) => item?.effect
+
+
+
+        ];
+
+
+
+        const searchHistory = window.astoriaSearchHistory
+
+
+
+            ? window.astoriaSearchHistory.createSearchHistory({
+
+
+
+                storageKey: 'astoriaInventoryRecentSearches',
+
+
+
+                maxItems: 4
+
+
+
+            })
+
+
+
+            : null;
+
+
+
+        const INVENTORY_SYNC_KEY = 'astoria_inventory_sync';
+
+
+
+        function broadcastInventorySync(reason = 'update') {
+
+
+
+            try {
+
+
+
+                const character = authApi?.getActiveCharacter?.();
+
+
+
+                if (!character?.id) return;
+
+
+
+                const payload = {
+
+
+
+                    characterId: String(character.id),
+
+
+
+                    reason,
+
+
+
+                    ts: Date.now()
+
+
+
+                };
+
+
+
+                localStorage.setItem(INVENTORY_SYNC_KEY, JSON.stringify(payload));
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Inventory sync broadcast failed:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function handleInventorySync(payload) {
+
+
+
+            if (!payload) return;
+
+
+
+            if (inventoryStorageMode !== 'character' || !authApi) return;
+
+
+
+            const character = authApi.getActiveCharacter?.();
+
+
+
+            if (!character?.id) return;
+
+
+
+            if (String(payload.characterId) !== String(character.id)) return;
+
+
+
+            await loadInventory();
+
+
+
+            syncCurrencyItem();
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        window.addEventListener('storage', (event) => {
+
+
+
+            if (event.key !== INVENTORY_SYNC_KEY || !event.newValue) return;
+
+
+
+            try {
+
+
+
+                const payload = JSON.parse(event.newValue);
+
+
+
+                void handleInventorySync(payload);
+
+
+
+            } catch {
+
+
+
+                // ignore invalid payloads
+
+
+
+            }
+
+
+
+        });
+
+
+
+        // =================================================================
+
+
+
+        // INITIALIZATION
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Initialize inventory - EMPTY BY DEFAULT
+
+
+
+         * - Loads from localStorage ONLY (if present)
+
+
+
+         * - Otherwise displays empty inventory
+
+
+
+         * - Renders the UI
+
+
+
+         */
+
+
+
+        async function initInventory() {
+
+
+
+            console.log('Initializing inventory...');
+
+
+
+            await hydrateItemsFromDb();
+
+
+
+            await initInventoryStorage();
+
+
+
+            if (!inventoryAccessAllowed) {
+
+
+
+                renderInventoryAccessDenied();
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            await loadInventory();
+
+
+
+            syncCurrencyItem();
+
+
+
+            // Render
+
+
+
+            renderInventory();
+
+
+
+            // Note: Item selector is populated when add panel opens
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // ITEM DATABASE ACCESS
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * TEMPORARY FUNCTION: Get all available items from data.js
+
+
+
+         *
+
+
+
+         * This function accesses our existing central item database (inventoryData).
+
+
+
+         * In production, this would query the real backend database.
+
+
+
+         *
+
+
+
+         * @returns {Array} All available items from the game database
+
+
+
+         */
+
+
+
+        function getAllItems() {
+
+
+
+            if (typeof inventoryData === 'undefined' || !inventoryData) {
+
+
+
+                console.warn('inventoryData not found in data.js');
+
+
+
+                return [];
+
+
+
+            }
+
+
+
+            return inventoryData.filter((item) =>
+
+
+
+                !isLocalItemTombstoned(item) && !isItemDisabled(item)
+
+
+
+            );
+
+
+
+        }
+
+
+
+        function safeJson(value) {
+
+
+
+            if (!value) return {};
+
+
+
+            if (typeof value === 'object') return value;
+
+
+
+            if (typeof value === 'string') {
+
+
+
+                try {
+
+
+
+                    return JSON.parse(value);
+
+
+
+                } catch {
+
+
+
+                    return {};
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return {};
+
+
+
+        }
+
+
+
+        function normalizeItemName(name) {
+
+
+
+            return String(name || '')
+
+
+
+                .normalize('NFD')
+
+
+
+                .replace(/[\u0300-\u036f]/g, '')
+
+
+
+                .replace(/[^a-zA-Z0-9]+/g, '')
+
+
+
+                .toLowerCase();
+
+
+
+        }
+
+
+
+        const ITEM_TOMBSTONES_KEY = 'astoriaItemTombstones';
+
+
+
+        let disabledItemNames = new Set();
+
+
+
+        function getItemTombstones() {
+
+
+
+            try {
+
+
+
+                const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
+
+
+
+                const parsed = raw ? JSON.parse(raw) : [];
+
+
+
+                return Array.isArray(parsed) ? parsed : [];
+
+
+
+            } catch {
+
+
+
+                return [];
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function isLocalItemTombstoned(item) {
+
+
+
+            if (!item || item._dbId || item.source === 'db') return false;
+
+
+
+            const key = normalizeItemName(item.name || item.nom || '');
+
+
+
+            if (!key) return false;
+
+
+
+            const tombstones = getItemTombstones();
+
+
+
+            return tombstones.includes(key);
+
+
+
+        }
+
+
+
+        function isItemDisabled(item) {
+
+
+
+            const key = normalizeItemName(item?.name || item?.nom || '');
+
+
+
+            if (!key) return false;
+
+
+
+            return disabledItemNames.has(key);
+
+
+
+        }
+
+
+
+        function resolveItemByKey(itemKey, itemIndex) {
+
+
+
+            const allItems = getAllItems();
+
+
+
+            const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
+
+
+
+            if (numericIndex != null && numericIndex >= 0 && allItems[numericIndex]) {
+
+
+
+                return { item: allItems[numericIndex], index: numericIndex };
+
+
+
+            }
+
+
+
+            const numericKey = Number.isFinite(Number(itemKey)) ? Number(itemKey) : null;
+
+
+
+            if (numericKey != null && numericKey >= 0 && allItems[numericKey]) {
+
+
+
+                return { item: allItems[numericKey], index: numericKey };
+
+
+
+            }
+
+
+
+            const normalizedKey = normalizeItemName(itemKey);
+
+
+
+            if (normalizedKey) {
+
+
+
+                const byName = allItems.findIndex((entry) =>
+
+
+
+                    normalizeItemName(entry?.name || entry?.nom || '') === normalizedKey
+
+
+
+                );
+
+
+
+                if (byName >= 0) {
+
+
+
+                    return { item: allItems[byName], index: byName };
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return { item: null, index: -1 };
+
+
+
+        }
+
+
+
+        async function reconcileInventoryRows(characterId, rows) {
+
+
+
+            if (!characterId || !inventoryApi?.setInventoryItem || !Array.isArray(rows)) return rows;
+
+
+
+            const canonicalByName = new Map();
+
+
+
+            rows.forEach((row) => {
+
+
+
+                const key = normalizeItemName(row?.item_key);
+
+
+
+                if (!key) return;
+
+
+
+                if (!canonicalByName.has(key)) canonicalByName.set(key, row);
+
+
+
+            });
+
+
+
+            const updates = [];
+
+
+
+            const nextRows = [];
+
+
+
+            rows.forEach((row) => {
+
+
+
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+
+
+
+                const canonicalKey = resolved?.item?.name ? String(resolved.item.name) : '';
+
+
+
+                const canonicalNorm = normalizeItemName(canonicalKey);
+
+
+
+                const rowNorm = normalizeItemName(row?.item_key);
+
+
+
+                if (!canonicalKey || !canonicalNorm || !rowNorm || canonicalNorm === rowNorm) {
+
+
+
+                    nextRows.push(row);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                const canonicalRow = canonicalByName.get(canonicalNorm);
+
+
+
+                if (canonicalRow) {
+
+
+
+                    // Canonical row already exists, drop the legacy key row.
+
+
+
+                    updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                // Migrate legacy key to canonical name.
+
+
+
+                updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+
+
+
+                updates.push(inventoryApi.setInventoryItem(characterId, canonicalKey, resolved.index, row?.qty));
+
+
+
+                nextRows.push({
+
+
+
+                    ...row,
+
+
+
+                    item_key: canonicalKey,
+
+
+
+                    item_index: Number.isFinite(resolved.index) && resolved.index >= 0 ? resolved.index : row?.item_index
+
+
+
+                });
+
+
+
+            });
+
+
+
+            if (updates.length) {
+
+
+
+                try {
+
+
+
+                    await Promise.allSettled(updates);
+
+
+
+                } catch (error) {
+
+
+
+                    console.warn('Inventory reconcile failed:', error);
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return nextRows;
+
+
+
+        }
+
+
+
+        function mapDbItem(row) {
+
+
+
+            const images = safeJson(row.images);
+
+
+
+            const primary = images.primary || images.url || row.image || row.image_url || '';
+
+
+
+            const priceText = row.price_kaels ? `${row.price_kaels} kaels` : '';
+
+
+
+            return {
+
+
+
+                _dbId: row.id,
+
+
+
+                source: 'db',
+
+
+
+                name: row.name || '',
+
+
+
+                description: row.description || '',
+
+
+
+                effect: row.effect || '',
+
+
+
+                category: row.category || '',
+
+
+
+                buyPrice: buyText,
+
+
+
+                sellPrice: sellText,
+
+
+
+                image: primary,
+
+
+
+                images: images
+
+
+
+            };
+
+
+
+        }
+
+
+
+        async function hydrateItemsFromDb() {
+
+
+
+            if (!Array.isArray(window.inventoryData)) return;
+
+
+
+            try {
+
+
+
+                const itemsApi = await import('./js/api/items-service.js');
+
+
+
+                if (!itemsApi?.getAllItems) return;
+
+
+
+                const rows = await itemsApi.getAllItems();
+
+
+
+                if (!Array.isArray(rows) || rows.length === 0) return;
+
+
+
+                disabledItemNames = new Set(
+
+
+
+                    rows
+
+
+
+                        .filter((row) => row && row.enabled === false)
+
+
+
+                        .map((row) => normalizeItemName(row.name || row.nom || ''))
+
+
+
+                        .filter(Boolean)
+
+
+
+                );
+
+
+
+                const mapped = rows
+
+
+
+                    .filter((row) => row && row.enabled !== false)
+
+
+
+                    .map(mapDbItem);
+
+
+
+                const nameToIndex = new Map();
+
+
+
+                window.inventoryData.forEach((item, idx) => {
+
+
+
+                    const key = normalizeItemName(item?.name || item?.nom || '');
+
+
+
+                    if (key) nameToIndex.set(key, idx);
+
+
+
+                });
+
+
+
+                mapped.forEach((item) => {
+
+
+
+                    if (!item || !item.name) return;
+
+
+
+                    const key = normalizeItemName(item.name);
+
+
+
+                    const existingIndex = nameToIndex.get(key);
+
+
+
+                    if (existingIndex != null) {
+
+
+
+                        window.inventoryData[existingIndex] = {
+
+
+
+                            ...window.inventoryData[existingIndex],
+
+
+
+                            ...item
+
+
+
+                        };
+
+
+
+                        return;
+
+
+
+                    }
+
+
+
+                    window.inventoryData.push(item);
+
+
+
+                    nameToIndex.set(key, window.inventoryData.length - 1);
+
+
+
+                });
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Inventory DB items load failed:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Populate the item selector dropdown with items from database
+
+
+
+         * Filters by selected category for clarity
+
+
+
+         */
+
+
+
+        function populateItemSelector() {
+
+
+
+            const allItems = getAllItems();
+
+
+
+            const selectedCategory = categorySelect.value;
+
+
+
+            // Clear existing options (except the first placeholder)
+
+
+
+            itemSelect.innerHTML = '<option value="">-- Sélectionner un objet --</option>';
+
+
+
+            // Filter items by category if not "all"
+
+
+
+            const filteredItems = selectedCategory === 'all'
+
+
+
+                ? allItems
+
+
+
+                : allItems.filter(item => item.category === selectedCategory);
+
+
+
+            // Add filtered items as options
+
+
+
+            filteredItems.forEach((item, index) => {
+
+
+
+                // Use the original index from allItems for referencing
+
+
+
+                const originalIndex = allItems.indexOf(item);
+
+
+
+                const option = document.createElement('option');
+
+
+
+                option.value = originalIndex; // Use original index to reference the item
+
+
+
+                option.textContent = item.name;
+
+
+
+                option.dataset.category = item.category;
+
+
+
+                itemSelect.appendChild(option);
+
+
+
+            });
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // PERSISTENCE - LocalStorage (TEMPORARY)
+
+
+
+        // =================================================================
+
+
+
+        function hydrateInventoryFromCompact(items) {
+
+
+
+            const allItems = getAllItems();
+
+
+
+            inventoryItems = [];
+
+
+
+            nextItemId = 1;
+
+
+
+            if (!Array.isArray(items)) return;
+
+
+
+            items.forEach((entry) => {
+
+
+
+                const idx = Number(entry?.idx);
+
+
+
+                const qty = Number(entry?.qty);
+
+
+
+                if (!Number.isFinite(idx) || !Number.isFinite(qty) || qty <= 0) return;
+
+
+
+                const sourceItem = allItems[idx];
+
+
+
+                if (!sourceItem) return;
+
+
+
+                inventoryItems.push({
+
+
+
+                    id: nextItemId++,
+
+
+
+                    sourceIndex: idx,
+
+
+
+                    name: sourceItem.name,
+
+
+
+                    category: sourceItem.category,
+
+
+
+                    image: sourceItem.image,
+
+
+
+                    description: sourceItem.description,
+
+
+
+                    effect: sourceItem.effect,
+
+
+
+                    buyPrice: sourceItem.buyPrice,
+
+
+
+                    sellPrice: sourceItem.sellPrice,
+
+
+
+                    quantity: Math.floor(qty)
+
+
+
+                });
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function hydrateInventoryFromRows(rows) {
+
+
+
+            const allItems = getAllItems();
+
+
+
+            inventoryItems = [];
+
+
+
+            nextItemId = 1;
+
+
+
+            const missingRows = [];
+
+
+
+            if (!Array.isArray(rows)) return;
+
+
+
+            rows.forEach((row) => {
+
+
+
+                const qty = Number(row?.qty);
+
+
+
+                if (!Number.isFinite(qty) || qty <= 0) return;
+
+
+
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+
+
+
+                const sourceItem = resolved.item;
+
+
+
+                if (!sourceItem) {
+
+
+
+                    missingRows.push(row);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                inventoryItems.push({
+
+
+
+                    id: nextItemId++,
+
+
+
+                    sourceIndex: resolved.index,
+
+
+
+                    ...sourceItem,
+
+
+
+                    quantity: Math.floor(qty)
+
+
+
+                });
+
+
+
+            });
+
+
+
+            return missingRows;
+
+
+
+        }
+
+
+
+        function buildInventoryRows(characterId) {
+
+
+
+            return inventoryItems
+
+
+
+                .map((item) => {
+
+
+
+                    if (item?.isCurrency) return null;
+
+
+
+                    const qty = Math.floor(Number(item?.quantity) || 0);
+
+
+
+                    if (qty <= 0) return null;
+
+
+
+                    const resolved = resolveItemByKey(item?.name, item?.sourceIndex);
+
+
+
+                    const idx = resolved.index;
+
+
+
+                    const itemKey = item?.name || resolved.item?.name;
+
+
+
+                    if (!itemKey) return null;
+
+
+
+                    return {
+
+
+
+                        character_id: characterId,
+
+
+
+                        item_key: String(itemKey),
+
+
+
+                        item_index: Number.isFinite(idx) && idx >= 0 ? idx : null,
+
+
+
+                        qty
+
+
+
+                    };
+
+
+
+                })
+
+
+
+                .filter(Boolean);
+
+
+
+        }
+
+
+
+        function serializeInventoryForProfile() {
+
+
+
+            const totalQty = inventoryItems.reduce((sum, item) => {
+
+
+
+                if (item?.isCurrency) return sum;
+
+
+
+                const qty = Math.floor(Number(item?.quantity) || 0);
+
+
+
+                return sum + (Number.isFinite(qty) ? qty : 0);
+
+
+
+            }, 0);
+
+
+
+            return {
+
+
+
+                version: 1,
+
+
+
+                migrated: true,
+
+
+
+                itemCount: inventoryItems.filter((item) => !item?.isCurrency).length,
+
+
+
+                totalQty,
+
+
+
+                scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
+
+
+
+            };
+
+
+
+        }
+
+
+
+        function syncCurrencyItem() {
+
+
+
+            if (!authApi || typeof authApi.getActiveCharacter !== 'function') return;
+
+
+
+            const character = authApi.getActiveCharacter();
+
+
+
+            const rawKaels = Number(character?.kaels ?? 0);
+
+
+
+            if (!Number.isFinite(rawKaels)) return;
+
+
+
+            const kaels = Math.max(0, Math.floor(rawKaels));
+
+
+
+            const existing = inventoryItems.find((item) => item?.isCurrency);
+
+
+
+            if (existing) {
+
+
+
+                existing.quantity = kaels;
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            inventoryItems.unshift({
+
+
+
+                id: 0,
+
+
+
+                name: 'Kaels',
+
+
+
+                category: 'consommable',
+
+
+
+                description: "Monnaie officielle d'Astoria.",
+
+
+
+                effect: 'Utilisee pour acheter et vendre.',
+
+
+
+                quantity: kaels,
+
+
+
+                isCurrency: true
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function renderInventoryAccessDenied() {
+
+
+
+            if (!inventoryWrapper) return;
+
+
+
+            inventoryWrapper.innerHTML = `
+
+
+
+                <div class="empty-state">
+
+
+
+                    <div class="empty-state-icon">LOCK</div>
+
+
+
+                    <div class="empty-state-title">Acces restreint</div>
+
+
+
+                    <div class="empty-state-message">
+
+
+
+                        Seul le proprietaire du personnage ou un administrateur peut consulter cet inventaire.
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            `;
+
+
+
+        }
+
+
+
+        async function initInventoryStorage() {
+
+
+
+            inventoryStorageMode = 'local';
+
+
+
+            authApi = null;
+
+
+
+            inventoryApi = null;
+
+
+
+            try {
+
+
+
+                authApi = await import('./js/auth.js');
+
+
+
+                inventoryApi = await import('./js/api/inventory-service.js');
+
+
+
+                const user = authApi.getCurrentUser?.();
+
+
+
+                const character = authApi.getActiveCharacter?.();
+
+
+
+                const isAdmin = authApi.isAdmin?.() || false;
+
+
+
+                if (user && character && character.id) {
+
+
+
+                    inventoryStorageMode = 'character';
+
+
+
+                    if (character.user_id && !isAdmin && character.user_id !== user.id) {
+
+
+
+                        inventoryAccessAllowed = false;
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            } catch (error) {
+
+
+
+                // No server / module blocked / auth module unavailable => stay in local mode
+
+
+
+                inventoryStorageMode = 'local';
+
+
+
+                authApi = null;
+
+
+
+                inventoryApi = null;
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function loadInventory() {
+
+
+
+            if (inventoryStorageMode !== 'character' || !authApi || !inventoryApi) {
+
+
+
+                loadFromLocalStorage();
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const character = authApi.getActiveCharacter?.();
+
+
+
+            const payload = character?.profile_data?.inventory;
+
+
+
+            const hasMigrated = payload?.migrated === true;
+
+
+
+            inventoryMigrated = hasMigrated;
+
+
+
+            if (payload && payload.scrollTypes && typeof payload.scrollTypes === 'object') {
+
+
+
+                scrollTypeStore = payload.scrollTypes;
+
+
+
+            } else {
+
+
+
+                scrollTypeStore = {};
+
+
+
+            }
+
+
+
+            try {
+
+
+
+                const rows = await inventoryApi.getInventoryRows?.(character?.id);
+
+
+
+                if (Array.isArray(rows)) {
+
+
+
+                    if (rows.length > 0) {
+
+
+
+                        const normalizedRows = await reconcileInventoryRows(character?.id, rows);
+
+
+
+                        const missingRows = hydrateInventoryFromRows(normalizedRows) || [];
+
+
+
+                        console.log(`Loaded ${inventoryItems.length} items from character_inventory`);
+
+
+
+                        if (missingRows.length) {
+
+
+
+                            await cleanupMissingInventoryRows(character?.id, missingRows);
+
+
+
+                        }
+
+
+
+                        return;
+
+
+
+                    }
+
+
+
+                    if (!hasMigrated) {
+
+
+
+                        loadFromLocalStorage();
+
+
+
+                        if (inventoryItems.length > 0) {
+
+
+
+                            console.log('Migrating local inventory to character_inventory...');
+
+
+
+                            await saveInventoryToBackend();
+
+
+
+                            return;
+
+
+
+                        }
+
+
+
+                    } else {
+
+
+
+                        try {
+
+
+
+                            localStorage.removeItem('astoriaInventory');
+
+
+
+                        } catch {
+
+
+
+                            // ignore cleanup failures
+
+
+
+                        }
+
+
+
+                    }
+
+
+
+                    hydrateInventoryFromRows([]);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Inventory load error (character_inventory):', error);
+
+
+
+            }
+
+
+
+            hydrateInventoryFromRows([]);
+
+
+
+        }
+
+
+
+        async function cleanupMissingInventoryRows(characterId, rows) {
+
+
+
+            if (!characterId || !inventoryApi?.setInventoryItem) return;
+
+
+
+            const deletions = rows.map((row) => {
+
+
+
+                const key = row?.item_key ?? row?.item_index;
+
+
+
+                if (key == null) return null;
+
+
+
+                return inventoryApi.setInventoryItem(characterId, String(key), row?.item_index, 0);
+
+
+
+            }).filter(Boolean);
+
+
+
+            if (!deletions.length) return;
+
+
+
+            try {
+
+
+
+                await Promise.allSettled(deletions);
+
+
+
+                console.log(`Removed ${deletions.length} missing inventory items.`);
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Failed to cleanup missing inventory items:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function saveInventoryToCharacterProfile() {
+
+
+
+            if (inventoryStorageMode !== 'character' || !authApi) return;
+
+
+
+            const character = authApi.getActiveCharacter?.();
+
+
+
+            if (!character || !character.id) return;
+
+
+
+            const currentProfileData = character.profile_data || {};
+
+
+
+            const nextProfileData = {
+
+
+
+                ...currentProfileData,
+
+
+
+                inventory: serializeInventoryForProfile(),
+
+
+
+            };
+
+
+
+            try {
+
+
+
+                const res = await authApi.updateCharacter?.(character.id, { profile_data: nextProfileData });
+
+
+
+                if (!res || !res.success) {
+
+
+
+                    console.warn('Inventory save failed (profile_data).');
+
+
+
+                }
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Inventory save error (profile_data):', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function saveInventoryToBackend() {
+
+
+
+            if (inventoryStorageMode !== 'character' || !authApi || !inventoryApi) return;
+
+
+
+            const character = authApi.getActiveCharacter?.();
+
+
+
+            if (!character || !character.id) return;
+
+
+
+            const rows = buildInventoryRows(character.id);
+
+
+
+            let saved = false;
+
+
+
+            try {
+
+
+
+                await inventoryApi.replaceInventoryRows?.(character.id, rows);
+
+
+
+                saved = true;
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Inventory save error (character_inventory):', error);
+
+
+
+            }
+
+
+
+            await saveInventoryToCharacterProfile();
+
+
+
+            if (saved) {
+
+
+
+                broadcastInventorySync('save');
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function persistInventory() {
+
+
+
+            // Always keep local backup (handy for offline testing)
+
+
+
+            saveToLocalStorage();
+
+
+
+            if (inventoryStorageMode !== 'character') return;
+
+
+
+            if (pendingProfileSaveTimer) {
+
+
+
+                clearTimeout(pendingProfileSaveTimer);
+
+
+
+                pendingProfileSaveTimer = null;
+
+
+
+            }
+
+
+
+            pendingProfileSaveTimer = setTimeout(() => {
+
+
+
+                pendingProfileSaveTimer = null;
+
+
+
+                void saveInventoryToBackend();
+
+
+
+            }, 500);
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * TEMPORARY: Load inventory from localStorage
+
+
+
+         *
+
+
+
+         * For testing purposes only. In production, this will be replaced
+
+
+
+         * with a proper API call to load the user's inventory from the server.
+
+
+
+         *
+
+
+
+         * Storage key: 'astoriaInventory'
+
+
+
+         * Format: JSON array of inventory items with quantities
+
+
+
+         */
+
+
+
+        function loadFromLocalStorage() {
+
+
+
+            try {
+
+
+
+                const stored = localStorage.getItem('astoriaInventory');
+
+
+
+                if (stored) {
+
+
+
+                    const parsed = JSON.parse(stored);
+
+
+
+                    if (Array.isArray(parsed)) {
+
+
+
+                        inventoryItems = parsed;
+
+
+
+                    } else if (parsed && Array.isArray(parsed.items)) {
+
+
+
+                        // Allow reading compact format if we ever store it locally too
+
+
+
+                        hydrateInventoryFromCompact(parsed.items);
+
+
+
+                    } else {
+
+
+
+                        inventoryItems = [];
+
+
+
+                    }
+
+
+
+                    nextItemId = Math.max(...inventoryItems.map(i => i.id), 0) + 1;
+
+
+
+                    console.log(`Loaded ${inventoryItems.length} items from localStorage`);
+
+
+
+                } else {
+
+
+
+                    inventoryItems = [];
+
+
+
+                    console.log('No inventory found in localStorage - starting empty');
+
+
+
+                }
+
+
+
+            } catch (error) {
+
+
+
+                console.error('Error loading from localStorage:', error);
+
+
+
+                inventoryItems = [];
+
+
+
+            }
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * TEMPORARY: Save inventory to localStorage
+
+
+
+         *
+
+
+
+         * For testing purposes only. In production, this will be replaced
+
+
+
+         * with API calls to persist changes to the server.
+
+
+
+         */
+
+
+
+        function saveToLocalStorage() {
+
+
+
+            try {
+
+
+
+                localStorage.setItem('astoriaInventory', JSON.stringify(inventoryItems));
+
+
+
+                console.log('Inventory saved to localStorage');
+
+
+
+            } catch (error) {
+
+
+
+                console.error('Error saving to localStorage:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // ADD ITEM PANEL
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Open the add item panel
+
+
+
+         * Pre-selects the current category filter for convenience
+
+
+
+         */
+
+
+
+        function openAddPanel() {
+
+
+
+            addPanel.classList.add('open');
+
+
+
+            // Pre-select current category (or "all" if viewing all)
+
+
+
+            categorySelect.value = currentCategory;
+
+
+
+            // Populate items based on pre-selected category
+
+
+
+            populateItemSelector();
+
+
+
+            // Reset other form fields
+
+
+
+            itemSelect.value = '';
+
+
+
+            quantityInput.value = 1;
+
+
+
+            itemPreview.style.display = 'none';
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Close the add item panel
+
+
+
+         */
+
+
+
+        function closeAddPanel() {
+
+
+
+            addPanel.classList.remove('open');
+
+
+
+            resetAddForm();
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Reset the add form to defaults
+
+
+
+         */
+
+
+
+        function resetAddForm() {
+
+
+
+            itemSelect.value = '';
+
+
+
+            categorySelect.value = 'all';
+
+
+
+            quantityInput.value = 1;
+
+
+
+            itemPreview.style.display = 'none';
+
+
+
+            populateItemSelector(); // Refresh item list
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Handle category change - refresh item dropdown
+
+
+
+         */
+
+
+
+        function handleCategoryChange() {
+
+
+
+            // Refresh item dropdown with filtered items
+
+
+
+            populateItemSelector();
+
+
+
+            // Clear item selection since list changed
+
+
+
+            itemSelect.value = '';
+
+
+
+            itemPreview.style.display = 'none';
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Handle item selection - show preview
+
+
+
+         */
+
+
+
+        function handleItemSelection() {
+
+
+
+            const selectedIndex = itemSelect.value;
+
+
+
+            if (!selectedIndex) {
+
+
+
+                itemPreview.style.display = 'none';
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const allItems = getAllItems();
+
+
+
+            const selectedItem = allItems[parseInt(selectedIndex)];
+
+
+
+            if (selectedItem) {
+
+
+
+                // Show preview
+
+
+
+                const imageSrc = resolveImage(selectedItem);
+
+
+
+                previewImage.src = imageSrc;
+
+
+
+                previewImage.onerror = () => { previewImage.src = PLACEHOLDER_IMAGE; };
+
+
+
+                previewName.textContent = selectedItem.name;
+
+
+
+                previewDescription.textContent = selectedItem.description || 'Aucune description disponible.';
+
+
+
+                itemPreview.style.display = 'block';
+
+
+
+            }
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Add selected item to inventory
+
+
+
+         */
+
+
+
+        function addItemToInventory() {
+
+
+
+            const selectedIndex = itemSelect.value;
+
+
+
+            const quantity = parseInt(quantityInput.value) || 1;
+
+
+
+            if (!selectedIndex) {
+
+
+
+                alert('Veuillez sélectionner un objet');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            if (quantity < 1) {
+
+
+
+                alert('La quantité doit être au moins 1');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const allItems = getAllItems();
+
+
+
+            const sourceItem = allItems[parseInt(selectedIndex)];
+
+
+
+            const sourceIndex = parseInt(selectedIndex);
+
+
+
+            if (!sourceItem) {
+
+
+
+                alert('Objet invalide');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            // Check if item already exists in inventory
+
+
+
+            const existingItem = inventoryItems.find(i => i.sourceIndex === sourceIndex || i.name === sourceItem.name);
+
+
+
+            if (existingItem) {
+
+
+
+                // Update quantity if already exists
+
+
+
+                existingItem.quantity += quantity;
+
+
+
+                if (!Number.isFinite(Number(existingItem.sourceIndex))) {
+
+
+
+                    existingItem.sourceIndex = sourceIndex;
+
+
+
+                }
+
+
+
+                console.log(`Updated ${existingItem.name}: quantity now ${existingItem.quantity}`);
+
+
+
+            } else {
+
+
+
+                // Add new item with all data from source (use original category from data)
+
+
+
+                const newItem = {
+
+
+
+                    id: nextItemId++,
+
+
+
+                    sourceIndex,
+
+
+
+                    name: sourceItem.name,
+
+
+
+                    category: sourceItem.category, // Use original category from data
+
+
+
+                    image: sourceItem.image,
+
+
+
+                    description: sourceItem.description,
+
+
+
+                    effect: sourceItem.effect,
+
+
+
+                    buyPrice: sourceItem.buyPrice,
+
+
+
+                    sellPrice: sourceItem.sellPrice,
+
+
+
+                    quantity: quantity
+
+
+
+                };
+
+
+
+                inventoryItems.push(newItem);
+
+
+
+                console.log(`Added ${newItem.name} x${quantity} to inventory`);
+
+
+
+            }
+
+
+
+            persistInventory();
+
+
+
+            // Close panel and refresh display
+
+
+
+            closeAddPanel();
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Quantity control buttons
+
+
+
+         */
+
+
+
+        function decreaseQuantity() {
+
+
+
+            const current = parseInt(quantityInput.value) || 1;
+
+
+
+            quantityInput.value = Math.max(1, current - 1);
+
+
+
+        }
+
+
+
+        function increaseQuantity() {
+
+
+
+            const current = parseInt(quantityInput.value) || 1;
+
+
+
+            quantityInput.value = current + 1;
+
+
+
+        }
+
+
+
+        // Attach event listeners for add panel
+
+
+
+        openAddBtn.addEventListener('click', openAddPanel);
+
+
+
+        closeAddBtn.addEventListener('click', closeAddPanel);
+
+
+
+        cancelAddBtn.addEventListener('click', closeAddPanel);
+
+
+
+        confirmAddBtn.addEventListener('click', addItemToInventory);
+
+
+
+        categorySelect.addEventListener('change', handleCategoryChange);
+
+
+
+        itemSelect.addEventListener('change', handleItemSelection);
+
+
+
+        qtyMinusBtn.addEventListener('click', decreaseQuantity);
+
+
+
+        qtyPlusBtn.addEventListener('click', increaseQuantity);
+
+
+
+        document.addEventListener('keydown', (event) => {
+
+
+
+            if (event.key !== 'Escape') return;
+
+
+
+            if (addPanel.classList.contains('open')) {
+
+
+
+                closeAddPanel();
+
+
+
+            }
+
+
+
+        });
+
+
+
+        if (scrollPanelAddBtn) {
+
+
+
+            scrollPanelAddBtn.addEventListener('click', () => {
+
+
+
+                if (scrollPanelAddBtn.disabled) return;
+
+
+
+                setScrollAddOpen(!scrollAddOpen);
+
+
+
+                renderScrollSuggestions(scrollTypeSearch?.value || '');
+
+
+
+                syncScrollPanelHeights();
+
+
+
+            });
+
+
+
+        }
+
+
+
+        if (scrollTypeSearch) {
+
+
+
+            scrollTypeSearch.addEventListener('input', (event) => {
+
+
+
+                renderScrollSuggestions(event.target.value);
+
+
+
+                syncScrollPanelHeights();
+
+
+
+            });
+
+
+
+        }
+
+
+
+        if (scrollTypeSuggestions) {
+
+
+
+            scrollTypeSuggestions.addEventListener('click', (event) => {
+
+
+
+                const addButton = event.target.closest('.scroll-suggestion-add');
+
+
+
+                if (!addButton) return;
+
+
+
+                const row = addButton.closest('.scroll-suggestion-row');
+
+
+
+                if (!row) return;
+
+
+
+                const qtyInput = row.querySelector('.scroll-suggestion-qty');
+
+
+
+                addScrollTypeCount(row.dataset.typeKey, qtyInput?.value);
+
+
+
+                if (qtyInput) qtyInput.value = 1;
+
+
+
+            });
+
+
+
+        }
+
+
+
+        if (scrollPanelList) {
+
+
+
+            scrollPanelList.addEventListener('click', (event) => {
+
+
+
+                const addButton = event.target.closest('.scroll-type-add');
+
+
+
+                const removeButton = event.target.closest('.scroll-type-remove');
+
+
+
+                const qtyButton = event.target.closest('.scroll-type-qty-btn');
+
+
+
+                const item = event.target.closest('.scroll-type-item');
+
+
+
+                if (!item) return;
+
+
+
+                const typeKey = item.dataset.typeKey;
+
+
+
+                if (addButton) {
+
+
+
+                    const qtyInput = item.querySelector('.scroll-type-qty-input');
+
+
+
+                    addScrollTypeCount(typeKey, qtyInput?.value);
+
+
+
+                    if (qtyInput) qtyInput.value = 1;
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                if (removeButton) {
+
+
+
+                    const qtyInput = item.querySelector('.scroll-type-qty-input');
+
+
+
+                    removeScrollTypeCount(typeKey, qtyInput?.value);
+
+
+
+                    if (qtyInput) qtyInput.value = 1;
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                if (qtyButton) {
+
+
+
+                    const qtyInput = item.querySelector('.scroll-type-qty-input');
+
+
+
+                    if (!qtyInput) return;
+
+
+
+                    const current = parseInt(qtyInput.value, 10) || 1;
+
+
+
+                    const action = qtyButton.dataset.action;
+
+
+
+                    qtyInput.value = Math.max(1, action === 'minus' ? current - 1 : current + 1);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                const row = event.target.closest('.scroll-type-row');
+
+
+
+                if (row) {
+
+
+
+                    selectedScrollTypeKey = typeKey;
+
+
+
+                    if (currentScrollItem && scrollPanelCategory) {
+
+
+
+                        const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+
+
+
+                        renderScrollPanelList(scrollPanelCategory, counts);
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            });
+
+
+
+            scrollPanelList.addEventListener('keydown', (event) => {
+
+
+
+                if (event.key !== 'Enter') return;
+
+
+
+                const input = event.target.closest('.scroll-type-qty-input');
+
+
+
+                if (!input) return;
+
+
+
+                const item = input.closest('.scroll-type-item');
+
+
+
+                if (!item) return;
+
+
+
+                addScrollTypeCount(item.dataset.typeKey, input.value);
+
+
+
+                input.value = 1;
+
+
+
+            });
+
+
+
+        }
+
+
+
+        window.addEventListener('resize', syncScrollPanelHeights);
+
+
+
+        // =================================================================
+
+
+
+        // CATEGORY FILTERING
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Filter inventory by category
+
+
+
+         * - Updates active button
+
+
+
+         * - Clears selection
+
+
+
+         * - Re-renders grid
+
+
+
+         */
+
+
+
+        function filterByCategory(category) {
+
+
+
+            currentCategory = category;
+
+
+
+            selectedItemIndex = null;
+
+
+
+            // Update active button
+
+
+
+            categoryButtons.forEach(btn => {
+
+
+
+                if (btn.dataset.category === category) {
+
+
+
+                    btn.classList.add('active');
+
+
+
+                } else {
+
+
+
+                    btn.classList.remove('active');
+
+
+
+                }
+
+
+
+            });
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        // Attach click handlers to category buttons
+
+
+
+        categoryButtons.forEach(btn => {
+
+
+
+            btn.addEventListener('click', () => {
+
+
+
+                filterByCategory(btn.dataset.category);
+
+
+
+            });
+
+
+
+        });
+
+
+
+        if (searchRoot && searchInput && window.astoriaSearchBar) {
+
+
+
+            window.astoriaSearchBar.bind({
+
+
+
+                root: searchRoot,
+
+
+
+                input: searchInput,
+
+
+
+                toggle: searchToggle,
+
+
+
+                clearButton: searchClear,
+
+
+
+                dropdown: searchHistoryDropdown,
+
+
+
+                history: searchHistory,
+
+
+
+                hotkey: ' ',
+
+
+
+                debounceWait: 200,
+
+
+
+                onSearch: (value) => {
+
+
+
+                    currentSearchQuery = String(value || '').trim().toLowerCase();
+
+
+
+                    renderInventory();
+
+
+
+                }
+
+
+
+            });
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // IMAGE RESOLUTION
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Resolve image path from item data
+
+
+
+         * - Checks IMAGE_CONFIG mappings
+
+
+
+         * - Supports direct URLs
+
+
+
+         * - Falls back to placeholder
+
+
+
+         */
+
+
+
+        function resolveImage(item) {
+
+
+
+            const helpers = window.astoriaImageHelpers || {};
+
+
+
+            if (helpers.resolveItemImages) {
+
+
+
+                const resolved = helpers.resolveItemImages(item);
+
+
+
+                if (resolved && resolved.primary) {
+
+
+
+                    return resolved.primary;
+
+
+
+                }
+
+
+
+            }
+
+
+
+            // Fallback local (au cas où le helper n'est pas disponible)
+
+
+
+            if (item) {
+
+
+
+                const raw = item.image || item.img || item?.images?.primary || item?.images?.url || '';
+
+
+
+                if (typeof raw === 'string' && raw.trim()) {
+
+
+
+                    return raw;
+
+
+
+                }
+
+
+
+                const name = String(item.name || '').trim().toLowerCase();
+
+
+
+                if (name === 'lucky soul') {
+
+
+
+                    return 'assets/nokorah/lucky-soul.svg';
+
+
+
+                }
+
+
+
+            }
+
+
+
+            // No match found, use placeholder
+
+
+
+            return PLACEHOLDER_IMAGE;
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // SCROLL TYPES PANEL
+
+
+
+        // =================================================================
+
+
+
+        const normalizeText = window.astoriaListHelpers.normalizeText;
+
+
+
+        function getScrollCategory(item) {
+
+
+
+            const helper = window.astoriaItemTags;
+
+
+
+            if (helper?.getScrollCategory) {
+
+
+
+                return helper.getScrollCategory(item);
+
+
+
+            }
+
+
+
+            if (!item || !item.name) return null;
+
+
+
+            const name = normalizeText(item.name);
+
+
+
+            if (!name.includes('parchemin') && !name.includes('scroll')) return null;
+
+
+
+            if (name.includes('eveil') || name.includes('eveille') || (name.includes('veil') && name.includes('parchemin'))) return 'eveil';
+
+
+
+            if (name.includes('ascension')) return 'ascension';
+
+
+
+            return null;
+
+
+
+        }
+
+
+
+        function getScrollTypeKey(item) {
+
+
+
+            const taggedKey = window.astoriaItemTags?.getScrollTypeKeyFromTags?.(item);
+
+
+
+            if (taggedKey) return taggedKey;
+
+
+
+            const haystack = normalizeText(
+
+
+
+                [item?.name, item?.description, item?.effect]
+
+
+
+                    .filter(Boolean)
+
+
+
+                    .join(' ')
+
+
+
+            );
+
+
+
+            for (const type of SCROLL_TYPES) {
+
+
+
+                for (const matcher of type.matchers) {
+
+
+
+                    if (haystack.includes(normalizeText(matcher))) {
+
+
+
+                        return type.key;
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return null;
+
+
+
+        }
+
+
+
+        const SCROLL_STORAGE_PREFIX = 'astoriaScrollTypes:v1';
+
+
+
+        function getEmptyScrollCounts() {
+
+
+
+            const counts = {};
+
+
+
+            SCROLL_TYPES.forEach((type) => {
+
+
+
+                counts[type.key] = 0;
+
+
+
+            });
+
+
+
+            return counts;
+
+
+
+        }
+
+
+
+        function getScrollItemKey(item) {
+
+
+
+            const sourceIndex = Number(item?.sourceIndex);
+
+
+
+            if (Number.isFinite(sourceIndex)) {
+
+
+
+                return `idx:${sourceIndex}`;
+
+
+
+            }
+
+
+
+            const name = item?.name ? normalizeText(item.name) : '';
+
+
+
+            if (name) {
+
+
+
+                return `name:${name}`;
+
+
+
+            }
+
+
+
+            const id = Number(item?.id);
+
+
+
+            if (Number.isFinite(id)) {
+
+
+
+                return `id:${id}`;
+
+
+
+            }
+
+
+
+            return 'unknown';
+
+
+
+        }
+
+
+
+        function getScrollStorageKey(category, item, useLegacy = false) {
+
+
+
+            const idPart = useLegacy ? (item?.id ?? item?.name ?? 'unknown') : getScrollItemKey(item);
+
+
+
+            return `${SCROLL_STORAGE_PREFIX}:${category}:${idPart}`;
+
+
+
+        }
+
+
+
+        function clearScrollCountsForItem(item) {
+
+
+
+            const category = getScrollCategory(item);
+
+
+
+            if (!category || !item) return;
+
+
+
+            const itemKey = getScrollItemKey(item);
+
+
+
+            if (scrollTypeStore?.[category]) {
+
+
+
+                delete scrollTypeStore[category][itemKey];
+
+
+
+                if (Object.keys(scrollTypeStore[category]).length === 0) {
+
+
+
+                    delete scrollTypeStore[category];
+
+
+
+                }
+
+
+
+            }
+
+
+
+            const key = getScrollStorageKey(category, item, false);
+
+
+
+            const legacyKey = getScrollStorageKey(category, item, true);
+
+
+
+            try {
+
+
+
+                localStorage.removeItem(key);
+
+
+
+                if (legacyKey !== key) {
+
+
+
+                    localStorage.removeItem(legacyKey);
+
+
+
+                }
+
+
+
+            } catch {
+
+
+
+                // ignore storage cleanup failures
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function resetScrollCountsAfterQtyChange(item) {
+
+
+
+            const category = getScrollCategory(item);
+
+
+
+            if (!category) return;
+
+
+
+            clearScrollCountsForItem(item);
+
+
+
+            const nextQty = Math.max(0, Math.floor(Number(item?.quantity) || 0));
+
+
+
+            const seededTypeKey = getScrollTypeKey(item);
+
+
+
+            if (seededTypeKey && nextQty > 0) {
+
+
+
+                const counts = getEmptyScrollCounts();
+
+
+
+                if (counts[seededTypeKey] === undefined) {
+
+
+
+                    counts[seededTypeKey] = 0;
+
+
+
+                }
+
+
+
+                counts[seededTypeKey] = nextQty;
+
+
+
+                saveScrollCounts(category, item, counts);
+
+
+
+            } else {
+
+
+
+                persistInventory();
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function normalizeScrollCounts(rawCounts) {
+
+
+
+            const counts = getEmptyScrollCounts();
+
+
+
+            if (!rawCounts) return counts;
+
+
+
+            Object.keys(rawCounts).forEach((typeKey) => {
+
+
+
+                if (counts[typeKey] === undefined) {
+
+
+
+                    counts[typeKey] = 0;
+
+
+
+                }
+
+
+
+            });
+
+
+
+            Object.keys(counts).forEach((typeKey) => {
+
+
+
+                const value = Number(rawCounts[typeKey]);
+
+
+
+                counts[typeKey] = Number.isFinite(value) && value > 0 ? value : 0;
+
+
+
+            });
+
+
+
+            return counts;
+
+
+
+        }
+
+
+
+        function buildScrollItemKeyMap() {
+
+
+
+            const map = {};
+
+
+
+            inventoryItems.forEach((item) => {
+
+
+
+                const category = getScrollCategory(item);
+
+
+
+                if (!category) return;
+
+
+
+                if (!map[category]) {
+
+
+
+                    map[category] = new Set();
+
+
+
+                }
+
+
+
+                map[category].add(getScrollItemKey(item));
+
+
+
+            });
+
+
+
+            return map;
+
+
+
+        }
+
+
+
+        function normalizeScrollTypeStore(rawStore) {
+
+
+
+            if (!rawStore || typeof rawStore !== 'object') return {};
+
+
+
+            const allowedKeys = buildScrollItemKeyMap();
+
+
+
+            const cleaned = {};
+
+
+
+            Object.entries(rawStore).forEach(([category, items]) => {
+
+
+
+                if (!items || typeof items !== 'object') return;
+
+
+
+                if (!allowedKeys[category]) return;
+
+
+
+                const cleanedItems = {};
+
+
+
+                Object.entries(items).forEach(([itemKey, entry]) => {
+
+
+
+                    if (!allowedKeys[category].has(itemKey)) return;
+
+
+
+                    const counts = normalizeScrollCounts(entry?.counts);
+
+
+
+                    const hasAny = Object.values(counts).some((value) => value > 0);
+
+
+
+                    if (!hasAny) return;
+
+
+
+                    cleanedItems[itemKey] = {
+
+
+
+                        counts,
+
+
+
+                        updatedAt: entry?.updatedAt || Date.now()
+
+
+
+                    };
+
+
+
+                });
+
+
+
+                if (Object.keys(cleanedItems).length) {
+
+
+
+                    cleaned[category] = cleanedItems;
+
+
+
+                }
+
+
+
+            });
+
+
+
+            return cleaned;
+
+
+
+        }
+
+
+
+        function getScrollStoreEntry(category, item) {
+
+
+
+            if (!scrollTypeStore || typeof scrollTypeStore !== 'object') return null;
+
+
+
+            const itemKey = getScrollItemKey(item);
+
+
+
+            const bucket = scrollTypeStore[category];
+
+
+
+            if (!bucket || typeof bucket !== 'object') return null;
+
+
+
+            return bucket[itemKey] || null;
+
+
+
+        }
+
+
+
+        function setScrollStoreEntry(category, item, counts) {
+
+
+
+            if (!scrollTypeStore || typeof scrollTypeStore !== 'object') {
+
+
+
+                scrollTypeStore = {};
+
+
+
+            }
+
+
+
+            const itemKey = getScrollItemKey(item);
+
+
+
+            if (!scrollTypeStore[category]) {
+
+
+
+                scrollTypeStore[category] = {};
+
+
+
+            }
+
+
+
+            scrollTypeStore[category][itemKey] = {
+
+
+
+                counts: normalizeScrollCounts(counts),
+
+
+
+                updatedAt: Date.now()
+
+
+
+            };
+
+
+
+        }
+
+
+
+        function loadScrollCountsFromLocalStorage(category, item) {
+
+
+
+            const counts = getEmptyScrollCounts();
+
+
+
+            const key = getScrollStorageKey(category, item, false);
+
+
+
+            const legacyKey = getScrollStorageKey(category, item, true);
+
+
+
+            const raw = localStorage.getItem(key) || (legacyKey !== key ? localStorage.getItem(legacyKey) : null);
+
+
+
+            if (raw) {
+
+
+
+                try {
+
+
+
+                    const parsed = JSON.parse(raw);
+
+
+
+                    if (parsed && typeof parsed === 'object' && parsed.counts) {
+
+
+
+                        return { counts: normalizeScrollCounts(parsed.counts), hasStored: true };
+
+
+
+                    }
+
+
+
+                } catch (error) {
+
+
+
+                    console.warn('Scroll counts parse failed:', error);
+
+
+
+                }
+
+
+
+            }
+
+
+
+            return { counts, hasStored: false };
+
+
+
+        }
+
+
+
+        function loadScrollCountsFromProfile(category, item) {
+
+
+
+            const entry = getScrollStoreEntry(category, item);
+
+
+
+            if (entry && entry.counts) {
+
+
+
+                return { counts: normalizeScrollCounts(entry.counts), hasStored: true };
+
+
+
+            }
+
+
+
+            return { counts: getEmptyScrollCounts(), hasStored: false };
+
+
+
+        }
+
+
+
+        function loadScrollCounts(category, item) {
+
+
+
+            if (!category || !item) {
+
+
+
+                return { counts: getEmptyScrollCounts(), hasStored: false };
+
+
+
+            }
+
+
+
+            if (inventoryStorageMode === 'character' && authApi) {
+
+
+
+                const fromProfile = loadScrollCountsFromProfile(category, item);
+
+
+
+                if (fromProfile.hasStored) return fromProfile;
+
+
+
+                if (!inventoryMigrated) {
+
+
+
+                    const legacy = loadScrollCountsFromLocalStorage(category, item);
+
+
+
+                    if (legacy.hasStored) {
+
+
+
+                        setScrollStoreEntry(category, item, legacy.counts);
+
+
+
+                        return legacy;
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            }
+
+
+
+            const local = loadScrollCountsFromLocalStorage(category, item);
+
+
+
+            if (local.hasStored) return local;
+
+
+
+            const seededTypeKey = getScrollTypeKey(item);
+
+
+
+            const seededQty = Math.max(0, Number(item.quantity) || 0);
+
+
+
+            if (seededTypeKey && seededQty > 0) {
+
+
+
+                const counts = getEmptyScrollCounts();
+
+
+
+                if (counts[seededTypeKey] === undefined) {
+
+
+
+                    counts[seededTypeKey] = 0;
+
+
+
+                }
+
+
+
+                counts[seededTypeKey] = seededQty;
+
+
+
+                saveScrollCounts(category, item, counts);
+
+
+
+                return { counts, hasStored: true };
+
+
+
+            }
+
+
+
+            return { counts: getEmptyScrollCounts(), hasStored: false };
+
+
+
+        }
+
+
+
+        function saveScrollCounts(category, item, counts) {
+
+
+
+            if (!category || !item) return;
+
+
+
+            const payload = {
+
+
+
+                counts: normalizeScrollCounts(counts),
+
+
+
+                updatedAt: Date.now()
+
+
+
+            };
+
+
+
+            const key = getScrollStorageKey(category, item, false);
+
+
+
+            localStorage.setItem(key, JSON.stringify(payload));
+
+
+
+            if (inventoryStorageMode === 'character' && authApi) {
+
+
+
+                setScrollStoreEntry(category, item, payload.counts);
+
+
+
+                persistInventory();
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function sumScrollCounts(counts) {
+
+
+
+            return Object.values(counts).reduce((sum, value) => sum + (Number(value) || 0), 0);
+
+
+
+        }
+
+
+
+        function syncScrollPanelHeights() {
+
+
+
+            if (!scrollTypesPanel || !detailPanel || !scrollPanelHeader || !scrollPanelBody) return;
+
+
+
+            const detailHeight = detailPanel.offsetHeight;
+
+
+
+            if (!detailHeight) return;
+
+
+
+            scrollTypesPanel.style.maxHeight = `${detailHeight}px`;
+
+
+
+            const panelStyles = window.getComputedStyle(scrollTypesPanel);
+
+
+
+            const paddingTop = parseFloat(panelStyles.paddingTop) || 0;
+
+
+
+            const paddingBottom = parseFloat(panelStyles.paddingBottom) || 0;
+
+
+
+            const headerHeight = scrollPanelHeader.offsetHeight;
+
+
+
+            const maxBodyHeight = Math.max(160, detailHeight - headerHeight - paddingTop - paddingBottom);
+
+
+
+            scrollPanelBody.style.maxHeight = `${maxBodyHeight}px`;
+
+
+
+        }
+
+
+
+        function setScrollPanelOpen(isOpen) {
+
+
+
+            scrollPanelOpen = isOpen;
+
+
+
+            if (inventoryContent) {
+
+
+
+                inventoryContent.classList.toggle('scroll-panel-open', isOpen);
+
+
+
+            }
+
+
+
+            if (scrollTypesPanel) {
+
+
+
+                scrollTypesPanel.classList.toggle('open', isOpen);
+
+
+
+                scrollTypesPanel.setAttribute('aria-hidden', String(!isOpen));
+
+
+
+            }
+
+
+
+            if (scrollPanelToggleBtn) {
+
+
+
+                scrollPanelToggleBtn.setAttribute('aria-expanded', String(isOpen));
+
+
+
+            }
+
+
+
+            if (!isOpen) {
+
+
+
+                setScrollAddOpen(false);
+
+
+
+            }
+
+
+
+            syncScrollPanelHeights();
+
+
+
+        }
+
+
+
+        function setScrollPanelEmpty(message) {
+
+
+
+            if (!scrollPanelTitle || !scrollPanelEmpty || !scrollPanelList) return;
+
+
+
+            scrollPanelTitle.textContent = 'Types de parchemins';
+
+
+
+            scrollPanelEmpty.textContent = message;
+
+
+
+            scrollPanelEmpty.style.display = 'block';
+
+
+
+            scrollPanelList.innerHTML = '';
+
+
+
+            scrollPanelList.style.display = 'none';
+
+
+
+        }
+
+
+
+        function renderScrollPanelList(category, counts) {
+
+
+
+            if (!scrollPanelTitle || !scrollPanelList || !scrollPanelEmpty) return;
+
+
+
+            const titleText = category === 'eveil' ? '\u00c9veil' : 'Ascension';
+
+
+
+            const visibleKeys = Object.keys(counts).filter((key) => (counts[key] || 0) > 0);
+
+
+
+            const visibleTypes = visibleKeys
+
+
+
+                .map((key) => getScrollTypeMetaByKey(key))
+
+
+
+                .filter(Boolean);
+
+
+
+            scrollPanelTitle.textContent = titleText;
+
+
+
+            if (visibleTypes.length === 0) {
+
+
+
+                scrollPanelEmpty.textContent = 'Aucun type enregistré pour ce parchemin.';
+
+
+
+                scrollPanelEmpty.style.display = 'block';
+
+
+
+                scrollPanelList.innerHTML = '';
+
+
+
+                scrollPanelList.style.display = 'none';
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            scrollPanelEmpty.style.display = 'none';
+
+
+
+            scrollPanelList.style.display = 'grid';
+
+
+
+            const rows = visibleTypes.map((type) => {
+
+
+
+                const count = counts[type.key] || 0;
+
+
+
+                const isSelected = type.key === selectedScrollTypeKey;
+
+
+
+                return `
+
+
+
+                    <div class="scroll-type-item${isSelected ? ' selected' : ''}" data-type-key="${type.key}">
+
+
+
+                        <div class="scroll-type-row">
+
+
+
+                            <span class="scroll-type-label">${escapeHtml(type.emoji)} ${escapeHtml(type.label)}</span>
+
+
+
+                            <span class="scroll-type-count">x${count}</span>
+
+
+
+                        </div>
+
+
+
+                        ${isSelected ? `
+
+
+
+                        <div class="scroll-type-controls">
+
+
+
+                            <button type="button" class="scroll-type-qty-btn tw-press" data-action="minus">-</button>
+
+
+
+                            <input type="number" min="1" value="1" class="scroll-type-qty-input">
+
+
+
+                            <button type="button" class="scroll-type-qty-btn tw-press" data-action="plus">+</button>
+
+
+
+                            <button type="button" class="scroll-type-add tw-press">Ajouter</button>
+
+
+
+                            <button type="button" class="scroll-type-remove tw-press">Retirer</button>
+
+
+
+                        </div>
+
+
+
+                        ` : ''}
+
+
+
+                    </div>
+
+
+
+                `;
+
+
+
+            }).join('');
+
+
+
+            scrollPanelList.innerHTML = rows;
+
+
+
+        }
+
+
+
+        function setScrollAddOpen(isOpen) {
+
+
+
+            scrollAddOpen = isOpen;
+
+
+
+            if (!scrollPanelAdd || !scrollPanelAddBtn) return;
+
+
+
+            scrollPanelAdd.classList.toggle('open', isOpen);
+
+
+
+            scrollPanelAdd.setAttribute('aria-hidden', String(!isOpen));
+
+
+
+            scrollPanelAddBtn.setAttribute('aria-expanded', String(isOpen));
+
+
+
+            if (!isOpen && scrollTypeSearch) {
+
+
+
+                scrollTypeSearch.value = '';
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function renderScrollSuggestions(filterText) {
+
+
+
+            if (!scrollTypeSuggestions) return;
+
+
+
+            const term = normalizeText(filterText);
+
+
+
+            const filtered = SCROLL_TYPES.filter((type) => {
+
+
+
+                if (!term) return true;
+
+
+
+                if (normalizeText(type.label).includes(term)) return true;
+
+
+
+                if (normalizeText(type.key).includes(term)) return true;
+
+
+
+                return type.matchers?.some((matcher) => normalizeText(matcher).includes(term));
+
+
+
+            });
+
+
+
+            if (filtered.length === 0) {
+
+
+
+                scrollTypeSuggestions.innerHTML = '<div class="scroll-suggestion-empty">Aucun type trouvé.</div>';
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            scrollTypeSuggestions.innerHTML = filtered.map((type) => {
+
+
+
+                return `
+
+
+
+                    <div class="scroll-suggestion-row" data-type-key="${type.key}">
+
+
+
+                        <span class="scroll-suggestion-label">${escapeHtml(type.emoji)} ${escapeHtml(type.label)}</span>
+
+
+
+                        <div class="scroll-suggestion-controls">
+
+
+
+                            <input type="number" min="1" value="1" class="scroll-suggestion-qty">
+
+
+
+                            <button type="button" class="scroll-suggestion-add tw-press">Ajouter</button>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                `;
+
+
+
+            }).join('');
+
+
+
+        }
+
+
+
+        function addScrollTypeCount(typeKey, qty) {
+
+
+
+            if (!currentScrollItem || !scrollPanelCategory) return;
+
+
+
+            const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
+
+
+
+            if (safeQty < 1) return;
+
+
+
+            const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+
+
+
+            if (counts[typeKey] === undefined) counts[typeKey] = 0;
+
+
+
+            counts[typeKey] = (counts[typeKey] || 0) + safeQty;
+
+
+
+            saveScrollCounts(scrollPanelCategory, currentScrollItem, counts);
+
+
+
+            const total = sumScrollCounts(counts);
+
+
+
+            currentScrollItem.quantity = total;
+
+
+
+            persistInventory();
+
+
+
+            renderInventory();
+
+
+
+            showItemDetail(currentScrollItem);
+
+
+
+        }
+
+
+
+        function removeScrollTypeCount(typeKey, qty) {
+
+
+
+            if (!currentScrollItem || !scrollPanelCategory) return;
+
+
+
+            const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
+
+
+
+            if (safeQty < 1) return;
+
+
+
+            const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+
+
+
+            if (counts[typeKey] === undefined) counts[typeKey] = 0;
+
+
+
+            const current = Number(counts[typeKey]) || 0;
+
+
+
+            const next = Math.max(0, current - safeQty);
+
+
+
+            counts[typeKey] = next;
+
+
+
+            const total = sumScrollCounts(counts);
+
+
+
+            if (total <= 0) {
+
+
+
+                clearScrollCountsForItem(currentScrollItem);
+
+
+
+                currentScrollItem.quantity = 0;
+
+
+
+                const index = inventoryItems.findIndex((entry) => entry?.id === currentScrollItem?.id);
+
+
+
+                if (index >= 0) {
+
+
+
+                    inventoryItems.splice(index, 1);
+
+
+
+                    if (selectedItemIndex === currentScrollItem?.id) {
+
+
+
+                        selectedItemIndex = null;
+
+
+
+                        showDetailPlaceholder();
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            } else {
+
+
+
+                saveScrollCounts(scrollPanelCategory, currentScrollItem, counts);
+
+
+
+                currentScrollItem.quantity = total;
+
+
+
+            }
+
+
+
+            persistInventory();
+
+
+
+            renderInventory();
+
+
+
+            if (selectedItemIndex === currentScrollItem?.id && total > 0) {
+
+
+
+                showItemDetail(currentScrollItem);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function updateScrollPanelForItem(item) {
+
+
+
+            const category = getScrollCategory(item);
+
+
+
+            scrollPanelCategory = category;
+
+
+
+            currentScrollItem = item || null;
+
+
+
+            const nextItemId = item?.id ?? null;
+
+
+
+            if (nextItemId !== lastScrollItemId) {
+
+
+
+                selectedScrollTypeKey = null;
+
+
+
+                scrollAddOpen = true;
+
+
+
+                lastScrollItemId = nextItemId;
+
+
+
+            }
+
+
+
+            if (!category) {
+
+
+
+                if (scrollPanelToggleBtn) {
+
+
+
+                    scrollPanelToggleBtn.disabled = true;
+
+
+
+                    scrollPanelToggleBtn.setAttribute('aria-expanded', 'false');
+
+
+
+                }
+
+
+
+                if (scrollPanelAddBtn) {
+
+
+
+                    scrollPanelAddBtn.disabled = true;
+
+
+
+                }
+
+
+
+                setScrollPanelOpen(false);
+
+
+
+                setScrollPanelEmpty('Aucun type de parchemin disponible.');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            if (scrollPanelToggleBtn) {
+
+
+
+                scrollPanelToggleBtn.disabled = false;
+
+
+
+            }
+
+
+
+            if (scrollPanelAddBtn) {
+
+
+
+                scrollPanelAddBtn.disabled = false;
+
+
+
+            }
+
+
+
+            const { counts, hasStored } = loadScrollCounts(category, item);
+
+
+
+            if (hasStored) {
+
+
+
+                const total = sumScrollCounts(counts);
+
+
+
+                if (Number.isFinite(total) && item.quantity !== total) {
+
+
+
+                    item.quantity = total;
+
+
+
+                    persistInventory();
+
+
+
+                }
+
+
+
+            }
+
+
+
+            renderScrollPanelList(category, counts);
+
+
+
+            setScrollAddOpen(scrollAddOpen);
+
+
+
+            renderScrollSuggestions(scrollTypeSearch?.value || '');
+
+
+
+            syncScrollPanelHeights();
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // RENDERING
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Render the entire inventory grid
+
+
+
+         * - Filters by current category
+
+
+
+         * - Updates item count
+
+
+
+         * - Shows empty state if needed
+
+
+
+         * - Creates item cards
+
+
+
+         */
+
+
+
+        function renderInventory() {
+
+
+
+            // Filter items by category + search
+
+
+
+            let filtered = inventoryItems;
+
+
+
+            const activeCategory = currentCategory === 'all' ? '' : currentCategory;
+
+
+
+            if (filterItems) {
+
+
+
+                filtered = filterItems(inventoryItems, {
+
+
+
+                    category: activeCategory,
+
+
+
+                    getCategory: (item) => item?.category,
+
+
+
+                    query: currentSearchQuery,
+
+
+
+                    fields: searchFields
+
+
+
+                });
+
+
+
+            } else {
+
+
+
+                if (activeCategory) {
+
+
+
+                    filtered = inventoryItems.filter(item => item.category === activeCategory);
+
+
+
+                }
+
+
+
+                if (currentSearchQuery) {
+
+
+
+                    filtered = filtered.filter(item => {
+
+
+
+                        const name = String(item?.name || '').toLowerCase();
+
+
+
+                        const description = String(item?.description || '').toLowerCase();
+
+
+
+                        const effect = String(item?.effect || '').toLowerCase();
+
+
+
+                        return name.includes(currentSearchQuery) || description.includes(currentSearchQuery) || effect.includes(currentSearchQuery);
+
+
+
+                    });
+
+
+
+                }
+
+
+
+            }
+
+
+
+            if (selectedItemIndex !== null && !filtered.some(item => item.id === selectedItemIndex)) {
+
+
+
+                selectedItemIndex = null;
+
+
+
+                showDetailPlaceholder();
+
+
+
+            }
+
+
+
+            // Update count (shows currently filtered count)
+
+
+
+            itemCountEl.textContent = `${filtered.length} objet${filtered.length > 1 ? 's' : ''}`;
+
+
+
+            // Clear grid
+
+
+
+            grid.innerHTML = '';
+
+
+
+            // Show empty state if no items
+
+
+
+            if (filtered.length === 0) {
+
+
+
+                if (emptyStateMessage) {
+
+
+
+                    emptyStateMessage.textContent = currentSearchQuery
+
+
+
+                        ? 'Aucun objet trouv\u00e9 pour cette recherche.'
+
+
+
+                        : 'Votre inventaire est vide dans cette cat\u00e9gorie';
+
+
+
+                }
+
+
+
+                grid.style.display = 'none';
+
+
+
+                emptyState.style.display = 'flex';
+
+
+
+                showDetailPlaceholder();
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            // Show grid
+
+
+
+            grid.style.display = 'grid';
+
+
+
+            emptyState.style.display = 'none';
+
+
+
+            // Render each item
+
+
+
+            filtered.forEach((item) => {
+
+
+
+                const card = createItemCard(item);
+
+
+
+                grid.appendChild(card);
+
+
+
+            });
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Create an item card element
+
+
+
+         * - Resolves image
+
+
+
+         * - Shows quantity if > 1
+
+
+
+         * - Attaches click handler
+
+
+
+         */
+
+
+
+        function createItemCard(item) {
+
+
+
+            const card = document.createElement('div');
+
+
+
+            card.className = 'inventory-item';
+
+
+
+            card.dataset.itemId = item.id;
+
+
+
+            if (item.id === selectedItemIndex) {
+
+
+
+                card.classList.add('selected');
+
+
+
+            }
+
+
+
+            // Resolve image
+
+
+
+            const imageSrc = resolveImage(item);
+
+
+
+            const isCurrency = item?.isCurrency === true;
+
+
+
+            const actionHtml = isCurrency
+
+
+
+                ? ''
+
+
+
+                : `
+
+
+
+                    <div class="detail-actions">
+
+
+
+                        <button class="item-action-use tw-press"
+
+
+
+                                onclick="useItem(${item.id})"
+
+
+
+                                title="Utiliser l'objet"
+
+
+
+                                ${item.quantity < 1 ? 'disabled' : ''}
+
+
+
+                                aria-label="Utiliser l'objet">
+
+
+
+                            &#x2728;
+
+
+
+                        </button>
+
+
+
+                        <div class="action-stack">
+
+
+
+                            <button class="item-action-delete tw-press"
+
+
+
+                                    onclick="openDeleteModal(${item.id})"
+
+
+
+                                    title="Supprimer l'objet"
+
+
+
+                                    aria-label="Supprimer l'objet">
+
+
+
+                                &#x1F5D1;&#xFE0F;
+
+
+
+                            </button>
+
+
+
+                            <button class="item-action-scroll-toggle tw-press"
+
+
+
+                                    type="button"
+
+
+
+                                    id="scrollTypesToggle"
+
+
+
+                                    title="Types de parchemins"
+
+
+
+                                    aria-label="Afficher les types de parchemins"
+
+
+
+                                    aria-expanded="false"
+
+
+
+                                    aria-controls="scrollTypesPanel">
+
+
+
+                                &#x25BE;
+
+
+
+                            </button>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                `;
+
+
+
+            card.innerHTML = `
+
+
+
+                <div class="item-image">
+
+
+
+                    <img src="${escapeHtml(imageSrc)}"
+
+
+
+                         alt="${escapeHtml(item.name)}"
+
+
+
+                         decoding="async"
+
+
+
+                         onerror="this.src='${PLACEHOLDER_IMAGE}'">
+
+
+
+                </div>
+
+
+
+                <div class="item-info">
+
+
+
+                    <div class="item-name">${escapeHtml(item.name)}</div>
+
+
+
+                    ${item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
+
+
+
+                </div>
+
+
+
+            `;
+
+
+
+            // Click to select
+
+
+
+            card.addEventListener('click', () => selectItem(item, card));
+
+
+
+            return card;
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // ITEM SELECTION & DETAILS
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Select an item and show its details
+
+
+
+         * - Removes previous selection
+
+
+
+         * - Marks new selection
+
+
+
+         * - Updates detail panel
+
+
+
+         */
+
+
+
+        function selectItem(item, cardElement) {
+
+
+
+            // Remove previous selection
+
+
+
+            document.querySelectorAll('.inventory-item').forEach(el => {
+
+
+
+                el.classList.remove('selected');
+
+
+
+            });
+
+
+
+            // Mark as selected
+
+
+
+            cardElement.classList.add('selected');
+
+
+
+            selectedItemIndex = item.id;
+
+
+
+            // Show details
+
+
+
+            showItemDetail(item);
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Show item details in right panel
+
+
+
+         * - Resolves image
+
+
+
+         * - Shows all item properties
+
+
+
+         */
+
+
+
+        function showItemDetail(item) {
+
+
+
+            const categoryLabels = {
+
+
+
+                equipement: '&#x2694;&#xFE0F; &Eacute;quipement',
+
+
+
+                consommable: '&#x1F9EA; Consommable',
+
+
+
+                agricole: '&#x1F33E; Agricole'
+
+
+
+            };
+
+
+
+            const scrollCategory = getScrollCategory(item);
+
+
+
+            const isCurrency = item?.isCurrency === true;
+
+
+
+            if (scrollCategory) {
+
+
+
+                const { counts, hasStored } = loadScrollCounts(scrollCategory, item);
+
+
+
+                if (hasStored) {
+
+
+
+                    const total = sumScrollCounts(counts);
+
+
+
+                    if (Number.isFinite(total) && item.quantity !== total) {
+
+
+
+                        item.quantity = total;
+
+
+
+                        persistInventory();
+
+
+
+                    }
+
+
+
+                }
+
+
+
+            }
+
+
+
+            const actionHtml = isCurrency
+
+
+
+                ? ''
+
+
+
+                : `
+
+
+
+                    <div class="detail-actions">
+
+
+
+                        <button class="item-action-use tw-press"
+
+
+
+                                onclick="useItem(${item.id})"
+
+
+
+                                title="Utiliser l'objet"
+
+
+
+                                ${item.quantity < 1 ? 'disabled' : ''}
+
+
+
+                                aria-label="Utiliser l'objet">
+
+
+
+                            &#x2728;
+
+
+
+                        </button>
+
+
+
+                        <div class="action-stack">
+
+
+
+                            <button class="item-action-delete tw-press"
+
+
+
+                                    onclick="openDeleteModal(${item.id})"
+
+
+
+                                    title="Supprimer l'objet"
+
+
+
+                                    aria-label="Supprimer l'objet">
+
+
+
+                                &#x1F5D1;&#xFE0F;
+
+
+
+                            </button>
+
+
+
+                            <button class="item-action-scroll-toggle tw-press"
+
+
+
+                                    type="button"
+
+
+
+                                    id="scrollTypesToggle"
+
+
+
+                                    title="Types de parchemins"
+
+
+
+                                    aria-label="Afficher les types de parchemins"
+
+
+
+                                    aria-expanded="false"
+
+
+
+                                    aria-controls="scrollTypesPanel">
+
+
+
+                                &#x25BE;
+
+
+
+                            </button>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                `;
+
+
+
+            const priceInfo = [];
+
+
+
+            if (item.buyPrice) priceInfo.push(`Achat: ${item.buyPrice}`);
+
+
+
+            if (item.sellPrice) priceInfo.push(`Vente: ${item.sellPrice}`);
+
+
+
+            const priceText = priceInfo.length > 0 ? priceInfo.join(' | ') : 'Prix non défini';
+
+
+
+            // Resolve image
+
+
+
+            const imageSrc = resolveImage(item);
+
+
+
+            detailPanel.innerHTML = `
+
+
+
+                <div class="detail-header">
+
+
+
+                    <div class="detail-title-wrapper">
+
+
+
+                        <h2 class="detail-title">${escapeHtml(item.name)}</h2>
+
+
+
+                        <span class="detail-category">${categoryLabels[item.category] || 'Autre'}</span>
+
+
+
+                    </div>
+
+
+
+                    ${actionHtml}
+
+
+
+                </div>
+
+
+
+                <div class="detail-image">
+
+
+
+                    <img src="${escapeHtml(imageSrc)}"
+
+
+
+                         alt="${escapeHtml(item.name)}"
+
+
+
+                         decoding="async"
+
+
+
+                         onerror="this.src='${PLACEHOLDER_IMAGE}'">
+
+
+
+                </div>
+
+
+
+                <div class="detail-body">
+
+
+
+                    <div class="detail-section">
+
+
+
+                        <span class="detail-label">Description</span>
+
+
+
+                        <p class="detail-text">${escapeHtml(item.description || 'Aucune description disponible.')}</p>
+
+
+
+                    </div>
+
+
+
+                    ${item.effect ? `
+
+
+
+                    <div class="detail-section">
+
+
+
+                        <span class="detail-label">Effet</span>
+
+
+
+                        <p class="detail-text detail-effect">${escapeHtml(item.effect)}</p>
+
+
+
+                    </div>
+
+
+
+                    ` : ''}
+
+
+
+                    <div class="detail-section">
+
+
+
+                        <span class="detail-label">Commerce</span>
+
+
+
+                        <p class="detail-text">${escapeHtml(priceText)}</p>
+
+
+
+                    </div>
+
+
+
+                    ${(item.quantity > 1 || isCurrency) ? `
+
+
+
+                    <div class="detail-section">
+
+
+
+                        <span class="detail-label">Quantité</span>
+
+
+
+                        <p class="detail-text">x${item.quantity}</p>
+
+
+
+                    </div>
+
+
+
+                    ` : ''}
+
+
+
+                </div>
+
+
+
+            `;
+
+
+
+            scrollPanelToggleBtn = detailPanel.querySelector("#scrollTypesToggle");
+
+
+
+            if (scrollPanelToggleBtn) {
+
+
+
+                scrollPanelToggleBtn.addEventListener("click", () => {
+
+
+
+                    if (scrollPanelToggleBtn.disabled) return;
+
+
+
+                    setScrollPanelOpen(!scrollPanelOpen);
+
+
+
+                    if (scrollPanelOpen && scrollPanelCategory && currentScrollItem) {
+
+
+
+                        const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+
+
+
+                        renderScrollPanelList(scrollPanelCategory, counts);
+
+
+
+                    }
+
+
+
+                });
+
+
+
+            }
+
+
+
+            setScrollPanelOpen(scrollPanelOpen);
+
+
+
+            updateScrollPanelForItem(item);
+
+
+
+        }
+
+
+
+        function showDetailPlaceholder() {
+
+
+
+            detailPanel.innerHTML = `
+
+
+
+                <div class="detail-placeholder">
+
+
+
+                    <div class="placeholder-icon">&#x1F446;</div>
+
+
+
+                    <p>Sélectionnez un objet pour voir ses détails</p>
+
+
+
+                </div>
+
+
+
+            `;
+
+
+
+            scrollPanelToggleBtn = null;
+
+
+
+            scrollPanelCategory = null;
+
+
+
+            selectedScrollTypeKey = null;
+
+
+
+            lastScrollItemId = null;
+
+
+
+            currentScrollItem = null;
+
+
+
+            scrollAddOpen = false;
+
+
+
+            if (scrollPanelAddBtn) {
+
+
+
+                scrollPanelAddBtn.disabled = true;
+
+
+
+            }
+
+
+
+            setScrollAddOpen(false);
+
+
+
+            setScrollPanelOpen(false);
+
+
+
+            setScrollPanelEmpty("Aucun type de parchemin disponible.");
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // ITEM ACTIONS (USE & DELETE)
+
+
+
+        // =================================================================
+
+
+
+        // Delete modal elements
+
+
+
+        const deleteModal = document.getElementById('deleteModal');
+
+
+
+        const deleteItemNameEl = document.getElementById('deleteItemName');
+
+
+
+        const deleteQuantityInput = document.getElementById('deleteQuantityInput');
+
+
+
+        const deleteQtyMinusBtn = document.getElementById('deleteQtyMinus');
+
+
+
+        const deleteQtyPlusBtn = document.getElementById('deleteQtyPlus');
+
+
+
+        const cancelDeleteBtn = document.getElementById('cancelDelete');
+
+
+
+        const confirmDeleteBtn = document.getElementById('confirmDelete');
+
+
+
+        let currentDeleteItemId = null;
+
+
+
+        let currentDeleteItemMaxQty = 0;
+
+
+
+        /**
+
+
+
+         * Use an item - decreases quantity by 1
+
+
+
+         * - Finds item by ID
+
+
+
+         * - Decreases quantity by 1
+
+
+
+         * - If quantity reaches 0, removes item
+
+
+
+         * - Saves to localStorage
+
+
+
+         * - Re-renders grid and details
+
+
+
+         */
+
+
+
+        function useItem(itemId) {
+
+
+
+            const itemIndex = inventoryItems.findIndex(i => i.id === itemId);
+
+
+
+            if (itemIndex === -1) return;
+
+
+
+            const item = inventoryItems[itemIndex];
+
+
+
+            if (item?.isCurrency) return;
+
+
+
+            if (item.quantity < 1) {
+
+
+
+                alert('Quantité insuffisante pour utiliser cet objet');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            // Decrease quantity
+
+
+
+            item.quantity -= 1;
+
+
+
+            console.log(`Used ${item.name}. Quantity now: ${item.quantity}`);
+
+
+
+            // If quantity reaches 0, remove item
+
+
+
+            if (item.quantity <= 0) {
+
+
+
+                resetScrollCountsAfterQtyChange(item);
+
+
+
+                inventoryItems.splice(itemIndex, 1);
+
+
+
+                selectedItemIndex = null;
+
+
+
+                showDetailPlaceholder();
+
+
+
+            } else {
+
+
+
+                resetScrollCountsAfterQtyChange(item);
+
+
+
+                // Refresh the detail view to update quantity display
+
+
+
+                showItemDetail(item);
+
+
+
+            }
+
+
+
+            // Save to localStorage
+
+
+
+            persistInventory();
+
+
+
+            // Re-render grid
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Open delete confirmation modal
+
+
+
+         * - Sets current item ID
+
+
+
+         * - Shows item name
+
+
+
+         * - Resets quantity input to 1
+
+
+
+         * - Sets max quantity
+
+
+
+         * - Opens modal
+
+
+
+         */
+
+
+
+        function openDeleteModal(itemId) {
+
+
+
+            const item = inventoryItems.find(i => i.id === itemId);
+
+
+
+            if (!item) return;
+
+
+
+            if (item.isCurrency) return;
+
+
+
+            currentDeleteItemId = itemId;
+
+
+
+            currentDeleteItemMaxQty = item.quantity;
+
+
+
+            // Update modal content
+
+
+
+            deleteItemNameEl.textContent = item.name;
+
+
+
+            deleteQuantityInput.value = 1;
+
+
+
+            deleteQuantityInput.max = item.quantity;
+
+
+
+            // Open modal
+
+
+
+            deleteModal.classList.add('open');
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Close delete modal
+
+
+
+         */
+
+
+
+        function closeDeleteModal() {
+
+
+
+            deleteModal.classList.remove('open');
+
+
+
+            currentDeleteItemId = null;
+
+
+
+            currentDeleteItemMaxQty = 0;
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Confirm deletion from modal
+
+
+
+         * - Gets quantity to delete
+
+
+
+         * - Updates item quantity or removes item
+
+
+
+         * - Saves to localStorage
+
+
+
+         * - Re-renders grid
+
+
+
+         */
+
+
+
+        function confirmDeletion() {
+
+
+
+            if (!currentDeleteItemId) return;
+
+
+
+            const qtyToDelete = parseInt(deleteQuantityInput.value) || 1;
+
+
+
+            if (qtyToDelete < 1) {
+
+
+
+                alert('La quantité doit être au moins 1');
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            if (qtyToDelete > currentDeleteItemMaxQty) {
+
+
+
+                alert(`La quantité maximum est ${currentDeleteItemMaxQty}`);
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const itemIndex = inventoryItems.findIndex(i => i.id === currentDeleteItemId);
+
+
+
+            if (itemIndex === -1) return;
+
+
+
+            const item = inventoryItems[itemIndex];
+
+
+
+            // Update quantity or remove item
+
+
+
+            if (qtyToDelete >= item.quantity) {
+
+
+
+                // Remove item entirely
+
+
+
+                resetScrollCountsAfterQtyChange(item);
+
+
+
+                inventoryItems.splice(itemIndex, 1);
+
+
+
+                selectedItemIndex = null;
+
+
+
+                showDetailPlaceholder();
+
+
+
+                console.log(`Deleted ${item.name} completely`);
+
+
+
+            } else {
+
+
+
+                // Decrease quantity
+
+
+
+                item.quantity -= qtyToDelete;
+
+
+
+                resetScrollCountsAfterQtyChange(item);
+
+
+
+                showItemDetail(item);
+
+
+
+                console.log(`Deleted ${qtyToDelete} of ${item.name}. Remaining: ${item.quantity}`);
+
+
+
+            }
+
+
+
+            // Save to localStorage
+
+
+
+            persistInventory();
+
+
+
+            // Close modal and re-render
+
+
+
+            closeDeleteModal();
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Decrease delete quantity
+
+
+
+         */
+
+
+
+        function decreaseDeleteQuantity() {
+
+
+
+            const current = parseInt(deleteQuantityInput.value) || 1;
+
+
+
+            deleteQuantityInput.value = Math.max(1, current - 1);
+
+
+
+        }
+
+
+
+        /**
+
+
+
+         * Increase delete quantity
+
+
+
+         */
+
+
+
+        function increaseDeleteQuantity() {
+
+
+
+            const current = parseInt(deleteQuantityInput.value) || 1;
+
+
+
+            const max = currentDeleteItemMaxQty;
+
+
+
+            deleteQuantityInput.value = Math.min(max, current + 1);
+
+
+
+        }
+
+
+
+        // Attach event listeners for delete modal
+
+
+
+        deleteQtyMinusBtn.addEventListener('click', decreaseDeleteQuantity);
+
+
+
+        deleteQtyPlusBtn.addEventListener('click', increaseDeleteQuantity);
+
+
+
+        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+
+
+
+        confirmDeleteBtn.addEventListener('click', confirmDeletion);
+
+
+
+        // Close modal when clicking outside
+
+
+
+        deleteModal.addEventListener('click', (e) => {
+
+
+
+            if (e.target === deleteModal) {
+
+
+
+                closeDeleteModal();
+
+
+
+            }
+
+
+
+        });
+
+
+
+        // Make functions globally accessible for onclick handlers
+
+
+
+        window.useItem = useItem;
+
+
+
+        window.openDeleteModal = openDeleteModal;
+
+
+
+        // =================================================================
+
+
+
+        // ITEM DELETION (OLD - KEPT FOR COMPATIBILITY)
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Delete an item from inventory
+
+
+
+         * - Removes from array
+
+
+
+         * - Saves to localStorage
+
+
+
+         * - Clears selection
+
+
+
+         * - Re-renders grid
+
+
+
+         */
+
+
+
+        function deleteItem(itemId) {
+
+
+
+            const itemIndex = inventoryItems.findIndex(i => i.id === itemId);
+
+
+
+            if (itemIndex === -1) return;
+
+
+
+            const itemName = inventoryItems[itemIndex].name;
+
+
+
+            if (inventoryItems[itemIndex].isCurrency) return;
+
+
+
+            // Confirm deletion
+
+
+
+            if (!confirm(`Supprimer "${itemName}" de l'inventaire ?`)) {
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            // Remove from array
+
+
+
+            resetScrollCountsAfterQtyChange(inventoryItems[itemIndex]);
+
+
+
+            inventoryItems.splice(itemIndex, 1);
+
+
+
+            // Save to localStorage
+
+
+
+            persistInventory();
+
+
+
+            // Clear selection
+
+
+
+            selectedItemIndex = null;
+
+
+
+            showDetailPlaceholder();
+
+
+
+            // Re-render
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        // Make deleteItem globally accessible for onclick
+
+
+
+        window.deleteItem = deleteItem;
+
+
+
+        // =================================================================
+
+
+
+        // UTILITIES
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Escape HTML to prevent XSS
+
+
+
+         */
+
+
+
+        function escapeHtml(str) {
+
+
+
+            if (!str) return '';
+
+
+
+            return String(str)
+
+
+
+                .replace(/&/g, '&amp;')
+
+
+
+                .replace(/</g, '&lt;')
+
+
+
+                .replace(/>/g, '&gt;')
+
+
+
+                .replace(/"/g, '&quot;')
+
+
+
+                .replace(/'/g, '&#039;');
+
+
+
+        }
+
+
+
+        // =================================================================
+
+
+
+        // ENTRY POINT
+
+
+
+        // =================================================================
+
+
+
+        /**
+
+
+
+         * Initialize on page load
+
+
+
+         */
+
+
+
+        window.addEventListener('DOMContentLoaded', initInventory);
+
+
+
+        window.addEventListener('astoria:character-updated', (event) => {
+
+
+
+            const next = Number(event?.detail?.kaels);
+
+
+
+            if (!Number.isFinite(next)) return;
+
+
+
+            const currency = inventoryItems.find((item) => item?.isCurrency);
+
+
+
+            if (!currency) return;
+
+
+
+            currency.quantity = Math.max(0, Math.floor(next));
+
+
+
+            renderInventory();
+
+
+
+            if (selectedItemIndex === currency.id) {
+
+
+
+                showItemDetail(currency);
+
+
+
+            }
+
+
+
+        });
+
+
+
+        /**
+
+
+
+         * Expose API for external use
+
+
+
+         * - Can be called from codex.html or other pages
+
+
+
+         */
+
+
+
+        window.InventoryModule = {
+
+
+
+            // Current state
+
+
+
+            items: () => inventoryItems,
+
+
+
+            // Core functions
+
+
+
+            renderInventory,
+
+
+
+            filterByCategory,
+
+
+
+            // Add item from external page (e.g., codex.html)
+
+
+
+            addItemFromExternal: (itemName, quantity = 1) => {
+
+
+
+                const allItems = getAllItems();
+
+
+
+                const sourceItem = allItems.find(i => i.name === itemName);
+
+
+
+                const sourceIndex = allItems.indexOf(sourceItem);
+
+
+
+                if (!sourceItem) {
+
+
+
+                    console.error(`Item not found: ${itemName}`);
+
+
+
+                    return false;
+
+
+
+                }
+
+
+
+                const existingItem = inventoryItems.find(i => i.sourceIndex === sourceIndex || i.name === itemName);
+
+
+
+                if (existingItem) {
+
+
+
+                    existingItem.quantity += quantity;
+
+
+
+                    if (!Number.isFinite(Number(existingItem.sourceIndex)) && Number.isFinite(sourceIndex)) {
+
+
+
+                        existingItem.sourceIndex = sourceIndex;
+
+
+
+                    }
+
+
+
+                } else {
+
+
+
+                    inventoryItems.push({
+
+
+
+                        id: nextItemId++,
+
+
+
+                        sourceIndex,
+
+
+
+                        ...sourceItem,
+
+
+
+                        quantity: quantity
+
+
+
+                    });
+
+
+
+                }
+
+
+
+                persistInventory();
+
+
+
+                renderInventory();
+
+
+
+                return true;
+
+
+
+            },
+
+
+
+            // Clear entire inventory (for testing)
+
+
+
+            clearAll: () => {
+
+
+
+                if (confirm('Effacer tout l\'inventaire ?')) {
+
+
+
+                    inventoryItems = [];
+
+
+
+                    nextItemId = 1;
+
+
+
+                    persistInventory();
+
+
+
+                    renderInventory();
+
+
+
+                    console.log('Inventory cleared');
+
+
+
+                }
+
+
+
+            }
+
+
+
+        };
+
+
+
+        })();
+
+
+
+    </script>
+
+
+
+    <script src="js/sidebar.js"></script>
+
+
+
+</body>
+
+
+
+</html>
+
+
+
