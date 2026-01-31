@@ -32,7 +32,86 @@
 
     <link rel="stylesheet" href="css/inventaire.css">
 
+    <style>
+        /* Overrides pour aligner les slots symétriquement - FORCÉ */
+        .inventory-layout {
+            align-items: stretch !important;
+        }
 
+        .inventory-sidebar {
+            align-self: stretch !important;
+            margin-top: 40px !important;
+            position: static !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .inventory-main {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .character-card {
+            flex: 1 !important;
+            display: flex;
+            flex-direction: column;
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            min-height: 0 !important;
+        }
+
+        .character-showcase {
+            position: relative;
+            display: grid;
+            place-items: center;
+            height: 100%;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(237, 226, 238, 0.9));
+            border: 2px dashed rgba(228, 132, 184, 0.35);
+            flex: 1;
+        }
+
+        .character-sprite {
+            width: 170px;
+            height: 240px;
+            border-radius: 110px;
+            background:
+                radial-gradient(circle at 50% 25%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 65%),
+                linear-gradient(180deg, rgba(255, 214, 238, 0.7), rgba(255, 188, 224, 0.75));
+            border: 2px solid rgba(216, 27, 96, 0.2);
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .character-rank {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            font-weight: 600;
+            color: var(--inv-text);
+            font-size: 1rem;
+            white-space: nowrap;
+            z-index: 1;
+        }
+
+        .character-slot {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(238, 162, 201, 0.8);
+            box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08);
+        }
+
+        .character-slot--tl { top: 20px; left: 20px; }
+        .character-slot--tr { top: 20px; right: 20px; }
+        .character-slot--ml { top: 50%; left: 10px; transform: translateY(-50%); }
+        .character-slot--mr { top: 50%; right: 10px; transform: translateY(-50%); }
+        .character-slot--bl { bottom: 56px; left: 20px; }
+        .character-slot--br { bottom: 56px; right: 20px; }
+    </style>
 
 </head>
 
@@ -138,24 +217,16 @@
 
         <div class="inventory-layout">
             <aside class="inventory-sidebar" aria-label="Equipement du personnage">
-                <div class="equipment-card">
-                    <h2 class="equipment-title">Equipement</h2>
-                    <div class="equipment-doll">
-                        <div class="equipment-silhouette" aria-hidden="true"></div>
-                        <div class="equipment-slot equipment-slot--head">Casque</div>
-                        <div class="equipment-slot equipment-slot--neck">Collier</div>
-                        <div class="equipment-slot equipment-slot--shoulders">Epaulettes</div>
-                        <div class="equipment-slot equipment-slot--chest">Plastron</div>
-                        <div class="equipment-slot equipment-slot--cloak">Cape</div>
-                        <div class="equipment-slot equipment-slot--gloves">Gants</div>
-                        <div class="equipment-slot equipment-slot--boots">Bottes</div>
-                        <div class="equipment-slot equipment-slot--ring-left">Anneau 1</div>
-                        <div class="equipment-slot equipment-slot--ring-right">Anneau 2</div>
-                        <div class="equipment-slot equipment-slot--weapon-left">Arme 1</div>
-                        <div class="equipment-slot equipment-slot--weapon-right">Arme 2</div>
-                        <div class="equipment-slot equipment-slot--pet">Familier</div>
-                        <div class="equipment-slot equipment-slot--artifact">Artefact</div>
-                        <div class="equipment-slot equipment-slot--mount">Monture</div>
+                <div class="character-card" aria-label="Personnage">
+                    <div class="character-showcase">
+                        <div class="character-sprite" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--tl" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--tr" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--ml" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--mr" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--bl" aria-hidden="true"></div>
+                        <div class="character-slot character-slot--br" aria-hidden="true"></div>
+                        <div class="character-rank">Rang : 3</div>
                     </div>
                 </div>
             </aside>
@@ -194,15 +265,15 @@
 
 
 
-                <button class="category-btn tw-press" data-category="equipement">
+                <button class="category-btn tw-press" data-category="agricole">
 
 
 
-                    <span class="category-icon">&#x2694;&#xFE0F;</span>
+                    <span class="category-icon">&#x1F33E;</span>
 
 
 
-                    <span class="category-label">&Eacute;quipements</span>
+                    <span class="category-label">Agricole</span>
 
 
 
@@ -226,15 +297,47 @@
 
 
 
-                <button class="category-btn tw-press" data-category="agricole">
+                <button class="category-btn tw-press" data-category="equipement">
 
 
 
-                    <span class="category-icon">&#x1F33E;</span>
+                    <span class="category-icon">&#x2694;&#xFE0F;</span>
 
 
 
-                    <span class="category-label">Agricole</span>
+                    <span class="category-label">&Eacute;quipements</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="materiau">
+
+
+
+                    <span class="category-icon">&#x2692;&#xFE0F;</span>
+
+
+
+                    <span class="category-label">Matériaux</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="quete">
+
+
+
+                    <span class="category-icon">&#x2728;</span>
+
+
+
+                    <span class="category-label">Quêtes</span>
 
 
 
