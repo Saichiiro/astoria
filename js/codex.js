@@ -51,6 +51,7 @@ const modalImage = document.getElementById("modalImage");
 const modalCategory = document.getElementById("modalCategory");
 const modalDescription = document.getElementById("modalDescription");
 const modalPrice = document.getElementById("modalPrice");
+const modalModifiers = document.getElementById("modalModifiers");
 const modalEffect = document.getElementById("modalEffect");
 const carouselPrev = document.getElementById("carouselPrev");
 const carouselNext = document.getElementById("carouselNext");
@@ -144,6 +145,7 @@ function safeJson(value) {
 
 function mapDbItem(row) {
     const images = safeJson(row.images);
+    const modifiers = safeJson(row.modifiers);
     const primary = images.primary || images.url || row.image || row.image_url || "";
     const priceText = row.price_kaels ? `${row.price_kaels} kaels` : "";
     return {
@@ -156,9 +158,54 @@ function mapDbItem(row) {
         category: row.category || "",
         buyPrice: priceText,
         sellPrice: priceText,
+        modifiers: Array.isArray(modifiers) ? modifiers : [],
         image: primary,
         images: images
     };
+}
+
+function getItemModifiers(item) {
+    const tools = window.astoriaItemModifiers;
+    if (!tools?.getModifiers) return [];
+    return tools.getModifiers(item);
+}
+
+function getModifierBadgesHtml(item, max = 3) {
+    const tools = window.astoriaItemModifiers;
+    if (!tools?.toBadgeModel) return "";
+    const badges = tools.toBadgeModel(getItemModifiers(item));
+    if (!badges.length) return "";
+    const visible = badges.slice(0, Math.max(1, max));
+    const html = visible
+        .map((badge) => {
+            const cls = badge.positive ? "is-positive" : "is-negative";
+            return `<span class="codex-mod-badge ${cls}">${escapeHtml(badge.label)}</span>`;
+        })
+        .join("");
+    const remaining = badges.length - visible.length;
+    const extra = remaining > 0 ? `<span class="codex-mod-more">+${remaining}</span>` : "";
+    return `<div class="codex-mod-badges">${html}${extra}</div>`;
+}
+
+function getModifierListHtml(item) {
+    const tools = window.astoriaItemModifiers;
+    if (!tools?.toBadgeModel) return "";
+    const badges = tools.toBadgeModel(getItemModifiers(item));
+    if (!badges.length) return "";
+    const rows = badges
+        .map((badge) => {
+            const cls = badge.positive ? "is-positive" : "is-negative";
+            return `<li class="codex-mod-line ${cls}">${escapeHtml(badge.label)}</li>`;
+        })
+        .join("");
+    return `<span class="modal-label">Modificateurs :</span><ul class="codex-mod-list">${rows}</ul>`;
+}
+
+function getModifierSearchText(item) {
+    const tools = window.astoriaItemModifiers;
+    if (!tools?.toBadgeModel) return "";
+    const badges = tools.toBadgeModel(getItemModifiers(item));
+    return badges.map((badge) => badge.label).join(" ");
 }
 
 function mergeLocalItems(dbItems, disabledNames) {
@@ -401,6 +448,7 @@ function buildRow(item, globalIndex) {
     const buyLine = buy ? `${buy} (achat)` : "-";
     const sellLine = sell ? `${sell} (vente)` : "-";
     const effectSummary = summarizeEffect(effect);
+    const modifiersHtml = getModifierBadgesHtml(item, 2);
     const images = resolveImages(item);
     const meta = getOrCreateItemMeta(item, globalIndex);
     const keyAttr = escapeHtml(meta.key);
@@ -416,6 +464,7 @@ function buildRow(item, globalIndex) {
     const copyText =
         `${name} - ${description}` +
         (priceText ? ` (${priceText})` : "") +
+        (getModifierSearchText(item) ? ` | Bonus : ${getModifierSearchText(item)}` : "") +
         (effect ? ` | Effet : ${effect}` : "");
 
     const highlightedName = escapeHtml(displayName);
@@ -458,7 +507,7 @@ function buildRow(item, globalIndex) {
                 <span class="commerce-line">${highlightedBuyLine}</span>
                 <span class="commerce-line">${highlightedSellLine}</span>
             </td>
-            <td class="effect-cell" data-label="Effet">${highlightedEffect}</td>
+            <td class="effect-cell" data-label="Effet">${modifiersHtml}${highlightedEffect ? `<div class="effect-summary">${highlightedEffect}</div>` : ""}</td>
             <td class="action-cell" data-label="Action">
                 ${window.astoriaIsAdmin
                     ? `<button class="edit-btn" type="button" data-edit-index="${globalIndex}" title="Modifier l'objet">Modifier</button>`
@@ -557,6 +606,7 @@ function openItemModal(index) {
     const category = item.category || item.categorie || "";
     const priceText = formatPrice(item);
     const resolvedImages = resolveImages(item);
+    const modifiersHtml = getModifierListHtml(item);
 
     modalName.textContent = name;
     currentCarouselImages =
@@ -576,6 +626,10 @@ function openItemModal(index) {
     modalPrice.innerHTML = priceText
         ? `<span class="modal-label">Prix :</span> ${escapeHtml(priceText)}`
         : "";
+    if (modalModifiers) {
+        modalModifiers.innerHTML = modifiersHtml;
+        modalModifiers.style.display = modifiersHtml ? "" : "none";
+    }
     modalEffect.innerHTML = effect
         ? `<span class="modal-label">Effet :</span> ${escapeHtml(effect)}`
         : "";
@@ -813,6 +867,7 @@ const filterFields = [
     (item) => item?.name,
     (item) => item?.description,
     (item) => item?.effect,
+    (item) => getModifierSearchText(item),
     (item) => item?.buyPrice,
     (item) => item?.sellPrice
 ];

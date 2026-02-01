@@ -543,7 +543,7 @@
         skillsTitleEl.textContent = category.label;
         skillsListEl.innerHTML = "";
         const allocations = getCategoryAllocations(category.id);
-        const bonusBySkill = getNokorahBonuses();
+        const bonusBySkill = getTotalBonuses();
         const isLocked = Boolean(skillsState.locksByCategory[category.id]);
 
         if (!category.skills || !category.skills.length) {
@@ -638,7 +638,7 @@
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
 
-        const bonusBySkill = getNokorahBonuses();
+        const bonusBySkill = getTotalBonuses();
         const nextAlloc = allocations[skill.name] || 0;
         const bonus = bonusBySkill[skill.name] || 0;
         const newTotal = base + nextAlloc + bonus;
@@ -728,6 +728,113 @@
         }
     }
 
+    function normalizeStatKey(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9]+/g, "")
+            .toLowerCase();
+    }
+
+    function resolveCatalogItem(itemKey, itemIndex) {
+        const allItems = Array.isArray(window.inventoryData) ? window.inventoryData : [];
+        const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
+        if (numericIndex != null && numericIndex >= 0 && allItems[numericIndex]) {
+            return allItems[numericIndex];
+        }
+        const targetKey = normalizeStatKey(itemKey);
+        if (!targetKey) return null;
+        return allItems.find((item) => normalizeStatKey(item?.name || item?.nom || "") === targetKey) || null;
+    }
+
+    function getItemBonuses() {
+        const tools = window.astoriaItemModifiers;
+        if (!tools?.getModifiers) return {};
+
+        const character = persistState.auth?.getActiveCharacter?.();
+        const inventory = character?.profile_data?.inventory || {};
+        const equippedSlots = inventory?.equippedSlots && typeof inventory.equippedSlots === "object"
+            ? inventory.equippedSlots
+            : {};
+        const activeConsumables = Array.isArray(inventory?.activeConsumableEffects)
+            ? inventory.activeConsumableEffects
+            : [];
+
+        const skillNameMap = new Map();
+        skillsCategories.forEach((category) => {
+            (category?.skills || []).forEach((skill) => {
+                const key = normalizeStatKey(skill?.name);
+                if (!key) return;
+                if (!skillNameMap.has(key)) {
+                    skillNameMap.set(key, new Set());
+                }
+                skillNameMap.get(key).add(skill.name);
+            });
+        });
+
+        const aliases = {
+            force: ["force"],
+            endurance: ["endurance"],
+            agilite: ["agilite"],
+            vitesse: ["vitesse"],
+            precision: ["precision"],
+            resistance: ["resistance"],
+            observation: ["observation"],
+            charisme: ["charisme"],
+            strategie: ["strategiemilitaireavancee"]
+        };
+
+        const acc = {};
+        const applyModifiers = (modifiers) => {
+            (Array.isArray(modifiers) ? modifiers : []).forEach((modifier) => {
+                if (!modifier || modifier.type === "percent") return;
+                const statKey = normalizeStatKey(modifier.stat);
+                const value = Number(modifier.value);
+                if (!statKey || !Number.isFinite(value) || value === 0) return;
+                const candidateKeys = aliases[statKey] || [statKey];
+                const touched = new Set();
+                candidateKeys.forEach((candidate) => {
+                    const skills = skillNameMap.get(candidate);
+                    if (!skills) return;
+                    skills.forEach((skillName) => touched.add(skillName));
+                });
+                touched.forEach((skillName) => {
+                    acc[skillName] = (acc[skillName] || 0) + value;
+                });
+            });
+        };
+
+        Object.values(equippedSlots).forEach((entry) => {
+            if (!entry) return;
+            const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
+            if (!item) return;
+            applyModifiers(tools.getModifiers(item));
+        });
+
+        activeConsumables.forEach((entry) => {
+            if (!entry) return;
+            if (Array.isArray(entry.modifiers)) {
+                applyModifiers(tools.dedupeModifiers ? tools.dedupeModifiers(entry.modifiers) : entry.modifiers);
+                return;
+            }
+            const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
+            if (!item) return;
+            applyModifiers(tools.getModifiers(item));
+        });
+
+        return acc;
+    }
+
+    function getTotalBonuses() {
+        const nokorah = getNokorahBonuses();
+        const items = getItemBonuses();
+        const merged = { ...nokorah };
+        Object.entries(items).forEach(([skill, value]) => {
+            merged[skill] = (merged[skill] || 0) + value;
+        });
+        return merged;
+    }
+
     function getNokorahStorageKey() {
         const suffix = persistState.characterId || resolveCharacterIdFallback();
         return `nokorahBonuses:${suffix}`;
@@ -788,7 +895,7 @@
         }
         const hasPoints = currentPoints > 0;
         const isLocked = skillsState.locksByCategory[skillsState.activeCategoryId];
-        const bonusBySkill = getNokorahBonuses();
+        const bonusBySkill = getTotalBonuses();
 
         if (skillsPointsMinusEl) {
             skillsPointsMinusEl.disabled = !skillsState.isAdmin || !hasPoints || isLocked;

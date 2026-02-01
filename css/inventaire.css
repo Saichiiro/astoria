@@ -334,6 +334,11 @@
     box-shadow: var(--inv-shadow);
 }
 
+.inventory-grid-container.is-slot-drop-target {
+    border-color: rgba(216, 27, 96, 0.95);
+    box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.2), var(--inv-shadow);
+}
+
 /* Items grid */
 .inventory-grid {
     display: grid;
@@ -408,6 +413,45 @@
     color: var(--inv-accent);
     font-weight: var(--font-bold);
     margin-top: var(--space-1);
+}
+
+.item-modifiers-inline {
+    margin-top: var(--space-2);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-1);
+}
+
+.item-modifier-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: var(--font-semibold);
+    border: 1px solid rgba(106, 43, 90, 0.2);
+    background: rgba(106, 43, 90, 0.06);
+    color: var(--inv-text);
+    line-height: 1;
+}
+
+.item-modifier-badge.is-positive {
+    color: #1f7a38;
+    border-color: rgba(36, 133, 69, 0.35);
+    background: rgba(36, 133, 69, 0.12);
+}
+
+.item-modifier-badge.is-negative {
+    color: #a33a2c;
+    border-color: rgba(171, 70, 54, 0.35);
+    background: rgba(171, 70, 54, 0.12);
+}
+
+.item-modifier-more {
+    font-size: 0.65rem;
+    font-weight: var(--font-semibold);
+    color: var(--inv-muted);
 }
 
 /* Empty inventory state */
@@ -627,6 +671,36 @@
 
 .item-preview-name {
     font-weight: var(--font-semibold);
+}
+
+.item-modifiers-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-2);
+}
+
+.item-modifier-line {
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    color: var(--inv-text);
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(106, 43, 90, 0.15);
+    background: rgba(106, 43, 90, 0.05);
+}
+
+.item-modifier-line.is-positive {
+    color: #1f7a38;
+    border-color: rgba(36, 133, 69, 0.35);
+    background: rgba(36, 133, 69, 0.1);
+}
+
+.item-modifier-line.is-negative {
+    color: #a33a2c;
+    border-color: rgba(171, 70, 54, 0.35);
+    background: rgba(171, 70, 54, 0.1);
 }
 
 .item-preview-description {

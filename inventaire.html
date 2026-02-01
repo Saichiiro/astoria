@@ -35,15 +35,15 @@
     <style>
         /* Overrides pour aligner les slots symétriquement - FORCÉ */
         .inventory-layout {
-            align-items: stretch !important;
+            align-items: start !important;
         }
 
         .inventory-sidebar {
-            align-self: stretch !important;
+            align-self: start !important;
             margin-top: 40px !important;
-            position: static !important;
-            display: flex !important;
-            flex-direction: column !important;
+            position: sticky !important;
+            top: 24px !important;
+            display: block !important;
         }
 
         .inventory-main {
@@ -52,9 +52,6 @@
         }
 
         .character-card {
-            flex: 1 !important;
-            display: flex;
-            flex-direction: column;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
             min-height: 0 !important;
@@ -64,11 +61,10 @@
             position: relative;
             display: grid;
             place-items: center;
-            height: 100%;
+            min-height: 460px;
             border-radius: var(--radius-xl);
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(237, 226, 238, 0.9));
             border: 2px dashed rgba(228, 132, 184, 0.35);
-            flex: 1;
         }
 
         .character-sprite {
@@ -103,6 +99,12 @@
             background: rgba(255, 255, 255, 0.95);
             border: 2px solid rgba(238, 162, 201, 0.8);
             box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
         }
 
         .character-slot--tl { top: 20px; left: 20px; }
@@ -111,6 +113,52 @@
         .character-slot--mr { top: 50%; right: 10px; transform: translateY(-50%); }
         .character-slot--bl { bottom: 56px; left: 20px; }
         .character-slot--br { bottom: 56px; right: 20px; }
+
+        .character-slot:focus-visible {
+            outline: 2px solid rgba(216, 27, 96, 0.65);
+            outline-offset: 2px;
+        }
+
+        .character-slot.is-drop-target {
+            border-color: rgba(216, 27, 96, 0.9);
+            box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.2);
+            transform: scale(1.04);
+        }
+
+        .character-slot.has-item {
+            border-color: rgba(216, 27, 96, 0.55);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12);
+        }
+
+        .character-slot-label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: rgba(106, 43, 90, 0.72);
+            text-align: center;
+            line-height: 1.1;
+            padding: 0 4px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .character-slot-item-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        .inventory-item--draggable {
+            cursor: grab;
+        }
+
+        .inventory-item--draggable:active,
+        .inventory-item--draggable.is-dragging {
+            cursor: grabbing;
+            opacity: 0.72;
+        }
     </style>
 
 </head>
@@ -220,12 +268,26 @@
                 <div class="character-card" aria-label="Personnage">
                     <div class="character-showcase">
                         <div class="character-sprite" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--tl" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--tr" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--ml" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--mr" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--bl" aria-hidden="true"></div>
-                        <div class="character-slot character-slot--br" aria-hidden="true"></div>
+                        
+                        <div class="character-slot character-slot--tl" data-slot-key="head" data-slot-label="Tete" role="button" tabindex="0" aria-label="Slot Tete">
+                            <span class="character-slot-label">Tete</span>
+                        </div>
+                        <div class="character-slot character-slot--tr" data-slot-key="weapon" data-slot-label="Arme" role="button" tabindex="0" aria-label="Slot Arme">
+                            <span class="character-slot-label">Arme</span>
+                        </div>
+                        <div class="character-slot character-slot--ml" data-slot-key="amulet" data-slot-label="Amulette" role="button" tabindex="0" aria-label="Slot Amulette">
+                            <span class="character-slot-label">Amulette</span>
+                        </div>
+                        <div class="character-slot character-slot--mr" data-slot-key="offhand" data-slot-label="Secondaire" role="button" tabindex="0" aria-label="Slot Secondaire">
+                            <span class="character-slot-label">Secondaire</span>
+                        </div>
+                        <div class="character-slot character-slot--bl" data-slot-key="boots" data-slot-label="Bottes" role="button" tabindex="0" aria-label="Slot Bottes">
+                            <span class="character-slot-label">Bottes</span>
+                        </div>
+                        <div class="character-slot character-slot--br" data-slot-key="relic" data-slot-label="Relique" role="button" tabindex="0" aria-label="Slot Relique">
+                            <span class="character-slot-label">Relique</span>
+                        </div>
+
                         <div class="character-rank">Rang : 3</div>
                     </div>
                 </div>
@@ -898,6 +960,10 @@
 
 
 
+    <script src="js/item-modifiers.js"></script>
+
+
+
     <script src="js/ui/list-helpers.js"></script>
 
 
@@ -1353,6 +1419,22 @@
 
         let inventoryMigrated = false;
 
+        const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
+        const EQUIPMENT_SLOT_DEFS = [
+            { key: 'head', label: 'Tete' },
+            { key: 'weapon', label: 'Arme' },
+            { key: 'amulet', label: 'Amulette' },
+            { key: 'offhand', label: 'Secondaire' },
+            { key: 'boots', label: 'Bottes' },
+            { key: 'relic', label: 'Relique' }
+        ];
+
+        let equippedSlots = {};
+        let equipmentSlotsBound = false;
+        let draggedEquipmentItemId = null;
+
+        let draggedEquipmentSlotKey = null;
+
 
 
         // DOM REFERENCES
@@ -1539,7 +1621,27 @@
 
 
 
-            (item) => item?.effect
+            (item) => item?.effect,
+
+
+
+            (item) => {
+
+
+
+                const tools = window.astoriaItemModifiers;
+
+
+
+                if (!tools?.toBadgeModel || !tools?.getModifiers) return '';
+
+
+
+                return tools.toBadgeModel(tools.getModifiers(item)).map((badge) => badge.label).join(' ');
+
+
+
+            }
 
 
 
@@ -1780,6 +1882,10 @@
 
 
             syncCurrencyItem();
+
+
+
+            initEquipmentSlots();
 
 
 
@@ -2311,6 +2417,10 @@
 
 
 
+            const modifiers = safeJson(row.modifiers);
+
+
+
             const primary = images.primary || images.url || row.image || row.image_url || '';
 
 
@@ -2352,6 +2462,10 @@
 
 
                 sellPrice: priceText,
+
+
+
+                modifiers: Array.isArray(modifiers) ? modifiers : [],
 
 
 
@@ -2955,7 +3069,11 @@
 
 
 
-                scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
+                scrollTypes: normalizeScrollTypeStore(scrollTypeStore),
+
+
+
+                equippedSlots: serializeEquippedSlots()
 
 
 
@@ -3264,6 +3382,10 @@
 
 
             }
+
+
+
+            equippedSlots = normalizeEquippedSlots(payload?.equippedSlots || payload?.equipped || {});
 
 
 
@@ -3730,6 +3852,10 @@
 
 
 
+            equippedSlots = loadEquippedSlotsFromLocalStorage();
+
+
+
             try {
 
 
@@ -3763,6 +3889,18 @@
 
 
                         hydrateInventoryFromCompact(parsed.items);
+
+
+
+                        if (parsed.equippedSlots || parsed.equipped) {
+
+
+
+                            equippedSlots = normalizeEquippedSlots(parsed.equippedSlots || parsed.equipped);
+
+
+
+                        }
 
 
 
@@ -3855,6 +3993,10 @@
 
 
                 localStorage.setItem('astoriaInventory', JSON.stringify(inventoryItems));
+
+
+
+                localStorage.setItem(EQUIPPED_SLOTS_STORAGE_KEY, JSON.stringify(serializeEquippedSlots()));
 
 
 
@@ -6802,6 +6944,1098 @@
 
 
 
+        function getItemModifierTools() {
+
+
+
+            return window.astoriaItemModifiers || null;
+
+
+
+        }
+
+
+
+        function getItemModifiers(item) {
+
+
+
+            const tools = getItemModifierTools();
+
+
+
+            if (tools?.getModifiers) {
+
+
+
+                return tools.getModifiers(item);
+
+
+
+            }
+
+
+
+            return [];
+
+
+
+        }
+
+
+
+        function renderModifierBadges(modifiers, limit = 3) {
+
+
+
+            const tools = getItemModifierTools();
+
+
+
+            const badgeModels = tools?.toBadgeModel ? tools.toBadgeModel(modifiers) : [];
+
+
+
+            if (!badgeModels.length) return '';
+
+
+
+            const shown = badgeModels.slice(0, Math.max(1, limit));
+
+
+
+            const badges = shown.map((badge) => {
+
+
+
+                const stateClass = badge.positive ? 'is-positive' : 'is-negative';
+
+
+
+                return `<span class="item-modifier-badge ${stateClass}">${escapeHtml(badge.label)}</span>`;
+
+
+
+            }).join('');
+
+
+
+            const remaining = badgeModels.length - shown.length;
+
+
+
+            const more = remaining > 0 ? `<span class="item-modifier-more">+${remaining}</span>` : '';
+
+
+
+            return `<div class="item-modifiers-inline">${badges}${more}</div>`;
+
+
+
+        }
+
+
+
+        function renderModifierLines(modifiers) {
+
+
+
+            const tools = getItemModifierTools();
+
+
+
+            const badgeModels = tools?.toBadgeModel ? tools.toBadgeModel(modifiers) : [];
+
+
+
+            if (!badgeModels.length) return '';
+
+
+
+            const rows = badgeModels.map((badge) => {
+
+
+
+                const stateClass = badge.positive ? 'is-positive' : 'is-negative';
+
+
+
+                return `<li class="item-modifier-line ${stateClass}">${escapeHtml(badge.label)}</li>`;
+
+
+
+            }).join('');
+
+
+
+            return `<div class="detail-section"><span class="detail-label">Modificateurs</span><ul class="item-modifiers-list">${rows}</ul></div>`;
+
+
+
+        }
+
+
+
+        function isItemEquippable(item) {
+
+
+
+            return Boolean(item && !item.isCurrency && item.category === 'equipement');
+
+
+
+        }
+
+
+
+        function buildEquippedItem(itemKey, itemIndex) {
+
+
+
+            const resolved = resolveItemByKey(itemKey, itemIndex);
+
+
+
+            const sourceItem = resolved?.item;
+
+
+
+            if (!sourceItem) return null;
+
+
+
+            return {
+
+
+
+                sourceIndex: Number.isFinite(resolved.index) ? resolved.index : null,
+
+
+
+                name: sourceItem.name,
+
+
+
+                category: sourceItem.category,
+
+
+
+                image: sourceItem.image,
+
+
+
+                images: sourceItem.images,
+
+
+
+                description: sourceItem.description,
+
+
+
+                effect: sourceItem.effect,
+
+
+
+                modifiers: Array.isArray(sourceItem.modifiers) ? sourceItem.modifiers : [],
+
+
+
+                buyPrice: sourceItem.buyPrice,
+
+
+
+                sellPrice: sourceItem.sellPrice,
+
+
+
+                quantity: 1
+
+
+
+            };
+
+
+
+        }
+
+
+
+        function normalizeEquippedSlots(rawSlots) {
+
+
+
+            if (!rawSlots || typeof rawSlots !== 'object') return {};
+
+
+
+            const normalized = {};
+
+
+
+            EQUIPMENT_SLOT_DEFS.forEach((slot) => {
+
+
+
+                const entry = rawSlots[slot.key];
+
+
+
+                if (!entry) return;
+
+
+
+                const equippedItem = buildEquippedItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
+
+
+
+                if (!equippedItem || !isItemEquippable(equippedItem)) return;
+
+
+
+                normalized[slot.key] = equippedItem;
+
+
+
+            });
+
+
+
+            return normalized;
+
+
+
+        }
+
+
+
+        function serializeEquippedSlots() {
+
+
+
+            const serialized = {};
+
+
+
+            Object.entries(equippedSlots || {}).forEach(([slotKey, item]) => {
+
+
+
+                if (!item?.name) return;
+
+
+
+                serialized[slotKey] = {
+
+
+
+                    item_key: item.name,
+
+
+
+                    item_index: Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null
+
+
+
+                };
+
+
+
+            });
+
+
+
+            return serialized;
+
+
+
+        }
+
+
+
+        function loadEquippedSlotsFromLocalStorage() {
+
+
+
+            try {
+
+
+
+                const raw = localStorage.getItem(EQUIPPED_SLOTS_STORAGE_KEY);
+
+
+
+                if (!raw) return {};
+
+
+
+                return normalizeEquippedSlots(JSON.parse(raw));
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Failed to load equipped slots from localStorage:', error);
+
+
+
+                return {};
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function ensureInventoryCopy(item, quantity = 1) {
+
+
+
+            if (!item?.name) return;
+
+
+
+            const sourceIndex = Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null;
+
+
+
+            const existing = inventoryItems.find((entry) => {
+
+
+
+                if (entry?.isCurrency) return false;
+
+
+
+                if (sourceIndex != null && Number(entry.sourceIndex) === sourceIndex) return true;
+
+
+
+                return normalizeItemName(entry?.name) === normalizeItemName(item.name);
+
+
+
+            });
+
+
+
+            if (existing) {
+
+
+
+                existing.quantity = Math.max(0, Math.floor(Number(existing.quantity) || 0)) + quantity;
+
+
+
+                if (!Number.isFinite(Number(existing.sourceIndex)) && sourceIndex != null) {
+
+
+
+                    existing.sourceIndex = sourceIndex;
+
+
+
+                }
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const resolved = buildEquippedItem(item.name, sourceIndex);
+
+
+
+            if (!resolved) return;
+
+
+
+            inventoryItems.push({
+
+
+
+                id: nextItemId++,
+
+
+
+                ...resolved,
+
+
+
+                quantity
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function unequipSlot(slotKey, shouldPersist = true) {
+
+
+
+            const equippedItem = equippedSlots?.[slotKey];
+
+
+
+            if (!equippedItem) return false;
+
+
+
+            ensureInventoryCopy(equippedItem, 1);
+
+
+
+            delete equippedSlots[slotKey];
+
+
+
+            if (shouldPersist) {
+
+
+
+                persistInventory();
+
+
+
+                renderInventory();
+
+
+
+            }
+
+
+
+            return true;
+
+
+
+        }
+
+
+
+        function equipItemToSlot(itemId, slotKey) {
+
+
+
+            const inventoryIndex = inventoryItems.findIndex((entry) => entry.id === itemId);
+
+
+
+            if (inventoryIndex < 0) return;
+
+
+
+            const item = inventoryItems[inventoryIndex];
+
+
+
+            if (!isItemEquippable(item)) return;
+
+
+
+            const occupied = equippedSlots?.[slotKey];
+
+
+
+            if (occupied) {
+
+
+
+                unequipSlot(slotKey, false);
+
+
+
+            }
+
+
+
+            item.quantity = Math.max(0, Math.floor(Number(item.quantity) || 0) - 1);
+
+
+
+            if (item.quantity <= 0) {
+
+
+
+                inventoryItems.splice(inventoryIndex, 1);
+
+
+
+                if (selectedItemIndex === item.id) {
+
+
+
+                    selectedItemIndex = null;
+
+
+
+                    showDetailPlaceholder();
+
+
+
+                }
+
+
+
+            }
+
+
+
+            equippedSlots[slotKey] = {
+
+
+
+                sourceIndex: Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null,
+
+
+
+                name: item.name,
+
+
+
+                category: item.category,
+
+
+
+                image: item.image,
+
+
+
+                images: item.images,
+
+
+
+                description: item.description,
+
+
+
+                effect: item.effect,
+
+
+
+                modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+
+
+
+                buyPrice: item.buyPrice,
+
+
+
+                sellPrice: item.sellPrice,
+
+
+
+                quantity: 1
+
+
+
+            };
+
+
+
+            persistInventory();
+
+
+
+            renderInventory();
+
+
+
+        }
+
+
+
+        function clearSlotDropTargets() {
+
+
+
+            document.querySelectorAll('.character-slot.is-drop-target').forEach((slotEl) => {
+
+
+
+                slotEl.classList.remove('is-drop-target');
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function renderEquipmentSlots() {
+
+
+
+            EQUIPMENT_SLOT_DEFS.forEach((slot) => {
+
+
+
+                const slotEl = document.querySelector(`.character-slot[data-slot-key="${slot.key}"]`);
+
+
+
+                if (!slotEl) return;
+
+
+
+                const equippedItem = equippedSlots?.[slot.key];
+
+
+
+                slotEl.classList.toggle('has-item', Boolean(equippedItem));
+
+
+
+                slotEl.innerHTML = '';
+
+
+
+                if (equippedItem) {
+
+
+
+                    const img = document.createElement('img');
+
+
+
+                    img.className = 'character-slot-item-image';
+
+
+
+                    img.src = resolveImage(equippedItem);
+
+
+
+                    img.alt = equippedItem.name;
+
+
+
+                    img.decoding = 'async';
+
+
+
+                    img.onerror = () => {
+
+
+
+                        img.src = PLACEHOLDER_IMAGE;
+
+
+
+                    };
+
+
+
+                    slotEl.appendChild(img);
+
+
+
+                    slotEl.draggable = true;
+
+
+
+                    slotEl.ondragstart = (event) => {
+
+
+
+                        draggedEquipmentSlotKey = slot.key;
+
+
+
+                        slotEl.classList.add('is-dragging');
+
+
+
+                        if (event.dataTransfer) {
+
+
+
+                            event.dataTransfer.effectAllowed = 'move';
+
+
+
+                            event.dataTransfer.setData('text/plain', `slot:${slot.key}`);
+
+
+
+                        }
+
+
+
+                    };
+
+
+
+                    slotEl.ondragend = () => {
+
+
+
+                        draggedEquipmentSlotKey = null;
+
+
+
+                        slotEl.classList.remove('is-dragging');
+
+
+
+                        const container = document.querySelector('.inventory-grid-container');
+
+
+
+                        if (container) container.classList.remove('is-slot-drop-target');
+
+
+
+                    };
+
+
+
+                    slotEl.title = `${slot.label}: ${equippedItem.name} (cliquer pour desequiper)`;
+
+
+
+                    slotEl.setAttribute('aria-label', `${slot.label}: ${equippedItem.name}. Cliquer pour desequiper.`);
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                slotEl.draggable = false;
+
+
+
+                slotEl.ondragstart = null;
+
+
+
+                slotEl.ondragend = null;
+
+
+
+                const label = document.createElement('span');
+
+
+
+                label.className = 'character-slot-label';
+
+
+
+                label.textContent = slot.label;
+
+
+
+                slotEl.appendChild(label);
+
+
+
+                slotEl.title = `${slot.label}: vide (depose un equipement)`;
+
+
+
+                slotEl.setAttribute('aria-label', `${slot.label}: vide. Depose un equipement ici.`);
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function initEquipmentSlots() {
+
+
+
+            if (equipmentSlotsBound) {
+
+
+
+                renderEquipmentSlots();
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const slotElements = document.querySelectorAll('.character-slot[data-slot-key]');
+
+
+
+            slotElements.forEach((slotEl) => {
+
+
+
+                const slotKey = slotEl.dataset.slotKey;
+
+
+
+                if (!slotKey) return;
+
+
+
+                slotEl.addEventListener('dragover', (event) => {
+
+
+
+                    if (!draggedEquipmentItemId) return;
+
+
+
+                    event.preventDefault();
+
+
+
+                    if (event.dataTransfer) {
+
+
+
+                        event.dataTransfer.dropEffect = 'move';
+
+
+
+                    }
+
+
+
+                    slotEl.classList.add('is-drop-target');
+
+
+
+                });
+
+
+
+                slotEl.addEventListener('dragleave', () => {
+
+
+
+                    slotEl.classList.remove('is-drop-target');
+
+
+
+                });
+
+
+
+                slotEl.addEventListener('drop', (event) => {
+
+
+
+                    event.preventDefault();
+
+
+
+                    const transferId = Number(event.dataTransfer?.getData('text/plain'));
+
+
+
+                    const itemId = Number.isFinite(transferId) ? transferId : draggedEquipmentItemId;
+
+
+
+                    slotEl.classList.remove('is-drop-target');
+
+
+
+                    if (!Number.isFinite(itemId) || itemId <= 0) return;
+
+
+
+                    equipItemToSlot(itemId, slotKey);
+
+
+
+                });
+
+
+
+                slotEl.addEventListener('click', () => {
+
+
+
+                    if (equippedSlots?.[slotKey]) {
+
+
+
+                        unequipSlot(slotKey);
+
+
+
+                    }
+
+
+
+                });
+
+
+
+                slotEl.addEventListener('keydown', (event) => {
+
+
+
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+
+
+                    event.preventDefault();
+
+
+
+                    if (equippedSlots?.[slotKey]) {
+
+
+
+                        unequipSlot(slotKey);
+
+
+
+                    }
+
+
+
+                });
+
+
+
+            });
+
+
+
+            if (grid && grid.dataset.slotDropBound !== '1') {
+
+
+
+                grid.dataset.slotDropBound = '1';
+
+
+
+                const gridContainer = document.querySelector('.inventory-grid-container');
+
+
+
+                const getDropContainer = () => gridContainer || grid;
+
+
+
+                grid.addEventListener('dragover', (event) => {
+
+
+
+                    if (!draggedEquipmentSlotKey) return;
+
+
+
+                    event.preventDefault();
+
+
+
+                    if (event.dataTransfer) {
+
+
+
+                        event.dataTransfer.dropEffect = 'move';
+
+
+
+                    }
+
+
+
+                    getDropContainer()?.classList.add('is-slot-drop-target');
+
+
+
+                });
+
+
+
+                grid.addEventListener('dragleave', () => {
+
+
+
+                    getDropContainer()?.classList.remove('is-slot-drop-target');
+
+
+
+                });
+
+
+
+                grid.addEventListener('drop', (event) => {
+
+
+
+                    if (!draggedEquipmentSlotKey) return;
+
+
+
+                    event.preventDefault();
+
+
+
+                    getDropContainer()?.classList.remove('is-slot-drop-target');
+
+
+
+                    unequipSlot(draggedEquipmentSlotKey);
+
+
+
+                    draggedEquipmentSlotKey = null;
+
+
+
+                });
+
+
+
+            }
+
+
+
+            equipmentSlotsBound = true;
+
+
+
+            renderEquipmentSlots();
+
+
+
+        }
+
+
+
         /**
 
 
@@ -6831,6 +8065,10 @@
 
 
         function renderInventory() {
+
+
+
+            renderEquipmentSlots();
 
 
 
@@ -7094,11 +8332,83 @@
 
 
 
+            if (isItemEquippable(item)) {
+
+
+
+                card.classList.add('inventory-item--draggable');
+
+
+
+                card.draggable = true;
+
+
+
+                card.addEventListener('dragstart', (event) => {
+
+
+
+                    draggedEquipmentItemId = item.id;
+
+
+
+                    card.classList.add('is-dragging');
+
+
+
+                    if (event.dataTransfer) {
+
+
+
+                        event.dataTransfer.effectAllowed = 'move';
+
+
+
+                        event.dataTransfer.setData('text/plain', String(item.id));
+
+
+
+                    }
+
+
+
+                });
+
+
+
+                card.addEventListener('dragend', () => {
+
+
+
+                    draggedEquipmentItemId = null;
+
+
+
+                    card.classList.remove('is-dragging');
+
+
+
+                    clearSlotDropTargets();
+
+
+
+                });
+
+
+
+            }
+
+
+
             // Resolve image
 
 
 
             const imageSrc = resolveImage(item);
+
+
+
+            const modifiersHtml = renderModifierBadges(getItemModifiers(item), 2);
 
 
 
@@ -7263,6 +8573,10 @@
 
 
                     ${item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
+
+
+
+                    ${modifiersHtml}
 
 
 
@@ -7583,6 +8897,10 @@
 
 
             const priceInfo = [];
+
+
+
+            const modifiersSectionHtml = renderModifierLines(getItemModifiers(item));
 
 
 
@@ -8912,6 +10230,10 @@
 
 
                     inventoryItems = [];
+
+
+
+                    equippedSlots = {};
 
 
 

@@ -42,7 +42,10 @@ const inventoryData = [
         description: "[Description de l'objet, utilité, durabilité de l'effet, ...]",
         buyPrice: "",
         sellPrice: "",
-        effect: ""
+        effect: "",
+        modifiers: [
+            { stat: "Endurance", value: 1, type: "flat", durationTurns: 3 }
+        ]
     },
     {
         name: "Parchemin d'Éveil",
@@ -89,7 +92,11 @@ const inventoryData = [
         sellPrice: "",
         effect:
             "Effet : Aura d'Honneur — lorsqu'un ennemi porte une attaque déloyale (dans le dos, hors duel, coup bas), la force de l'assaillant est réduite de 10 points pendant 2 tours. " +
-            "L'effet ne se déclenche que si le code d'honneur de Vexarion est bafoué et n'accorde aucun avantage lors d'un combat loyal."
+            "L'effet ne se déclenche que si le code d'honneur de Vexarion est bafoué et n'accorde aucun avantage lors d'un combat loyal.",
+        modifiers: [
+            { stat: "Force", value: 1, type: "flat" },
+            { stat: "Resistance", value: 1, type: "flat" }
+        ]
     },
     {
         name: "Sceptre de Krythus",
@@ -104,7 +111,11 @@ const inventoryData = [
         effect:
             "Effet : Ajustement Givré — le sceptre adapte automatiquement la longueur de son manche à la morphologie du porteur, devenant une extension naturelle de son bras. " +
             "Effet : Faveur Glaciale — augmente la puissance des sorts de glace (+5 points de Glace, +5 points de Magie). " +
-            "Effet : Cœur de Givre — libère une onde glaciale qui fige le sol et l'air dans un rayon de 10 mètres autour du porteur (durée : 3 tours, recharge : 5 tours, 1 tour de charge)."
+            "Effet : Cœur de Givre — libère une onde glaciale qui fige le sol et l'air dans un rayon de 10 mètres autour du porteur (durée : 3 tours, recharge : 5 tours, 1 tour de charge).",
+        modifiers: [
+            { stat: "Puissance Magie 1", value: 2, type: "flat" },
+            { stat: "Maitrise Magie 1", value: 1, type: "flat" }
+        ]
     },
     {
         name: "Cape de l'Aube Vermeille [Exclu saison]",
@@ -182,7 +193,10 @@ const inventoryData = [
         effect:
             "Effet : Lumière Aveuglante — illumine les consommateurs (maximum 2). " +
             "Durée : 10 tours pour 1 utilisateur, 5 tours pour 2 utilisateurs. " +
-            "Permet d'éclairer la nuit, le brouillard et d'être visible à distance pour les alliés."
+            "Permet d'éclairer la nuit, le brouillard et d'être visible à distance pour les alliés.",
+        modifiers: [
+            { stat: "Observation", value: 1, type: "flat", durationTurns: 2 }
+        ]
     },
     {
         name: "Lucky Soul",
