@@ -509,7 +509,147 @@
     color: #a33a2c;
 }
 
+/* Soft overhaul */
+.codex-shell {
+    position: relative;
+    padding: clamp(14px, 2vw, 26px);
+    border-radius: 24px;
+    border: 1px solid rgba(216, 27, 96, 0.2);
+    background:
+        radial-gradient(circle at 12% 10%, rgba(255, 221, 194, 0.45), transparent 35%),
+        radial-gradient(circle at 86% 16%, rgba(255, 214, 233, 0.45), transparent 42%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 247, 252, 0.92));
+    box-shadow: 0 24px 52px rgba(136, 14, 79, 0.14);
+    overflow: hidden;
+}
+
+.codex-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(120deg, rgba(216, 27, 96, 0.04) 0 40%, transparent 40% 100%);
+}
+
+.codex-shell > * {
+    position: relative;
+    z-index: 1;
+}
+
+.codex-subtitle {
+    margin: 4px 0 0;
+    color: rgba(106, 43, 90, 0.85);
+    font-size: 0.88rem;
+    letter-spacing: 0.03em;
+}
+
+.codex-control-panel {
+    margin-bottom: var(--space-6);
+    padding: var(--space-5);
+    border-radius: 18px;
+    border: 1px solid rgba(216, 27, 96, 0.16);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 24px rgba(216, 27, 96, 0.08);
+}
+
+.codex-toolbar {
+    display: grid;
+    grid-template-columns: auto auto minmax(170px, 220px) minmax(220px, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.codex-toolbar .stats-badge {
+    margin-right: 0;
+    margin-left: 0;
+    background: linear-gradient(135deg, #c43b7f, #e5629f);
+}
+
+.codex-toolbar .inventory-search {
+    margin-left: 0;
+    justify-self: end;
+}
+
+.filter-chips {
+    margin-top: var(--space-4);
+    min-height: 30px;
+}
+
+.table-container {
+    border: 1px solid rgba(216, 27, 96, 0.22);
+    border-radius: 16px;
+    border-top: 1px solid rgba(216, 27, 96, 0.22);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 16px 34px rgba(216, 27, 96, 0.1);
+}
+
+#inventoryTable thead {
+    background: linear-gradient(180deg, rgba(245, 193, 215, 0.95), rgba(248, 223, 234, 0.95));
+}
+
+#inventoryTable th {
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+}
+
+.item-row {
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.item-row:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 4px 0 0 rgba(216, 27, 96, 0.24);
+}
+
+.item-row[data-category="equipement"] .name-cell {
+    color: #7b2e52;
+}
+
+.item-row[data-category="consommable"] .name-cell {
+    color: #6f2f6f;
+}
+
+.item-row[data-category="agricole"] .name-cell {
+    color: #2d6f53;
+}
+
+.name-cell {
+    gap: 10px;
+}
+
+.desc-text {
+    font-size: 0.84rem;
+}
+
+.effect-cell {
+    font-size: 0.8rem;
+}
+
+.modal-inner {
+    border-radius: 18px;
+    border: 1px solid rgba(216, 27, 96, 0.18);
+}
+
 @media (max-width: 700px) {
+    .codex-control-panel {
+        padding: var(--space-4);
+    }
+
+    .codex-toolbar {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .codex-toolbar .inventory-search {
+        justify-self: stretch;
+    }
+
+    .codex-toolbar .category-dropdown {
+        width: 100%;
+        min-width: 0;
+    }
+
     .codex-admin-grid {
         grid-template-columns: 1fr;
     }

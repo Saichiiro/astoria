@@ -12,12 +12,13 @@
     <!-- Preload handled dynamically once data.js is available -->
 </head>
 <body class="min-h-screen">
-    <main class="wrapper" aria-labelledby="pageTitle">
+    <main class="wrapper codex-shell" aria-labelledby="pageTitle">
         <header class="page-header">
             <a href="inventaire.html" class="page-back" title="Retour à l'inventaire">← Retour</a>
             <div class="page-header-main">
                 <div class="page-title-block">
-                    <h1 class="page-title" id="pageTitle">Liste d'objets</h1>
+                    <h1 class="page-title" id="pageTitle">Codex d'Astoria</h1>
+                    <p class="codex-subtitle">Atlas des objets, bonus et effets de jeu.</p>
                 </div>
                 <div class="character-summary" aria-label="Résumé du personnage">
                     <div class="character-avatar-wrapper">
@@ -42,31 +43,33 @@
             </div>
         </header>
 
-        <div class="codex-toolbar">
-            <span class="stats-badge" id="statsBadge">0 objet</span>
-            <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
-            <select id="categoryFilter" class="category-dropdown tw-input">
-                <option value="">Toutes catégories</option>
-                <option value="agricole">&#x1F33E; Agricole</option>
-                <option value="consommable">&#x1F9EA; Consommables</option>
-                <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
-                <option value="materiau">&#x2692;&#xFE0F; Matériaux</option>
-                <option value="quete">&#x2728; Quêtes</option>
-            </select>
-            <div class="inventory-search" id="codexSearch">
-                <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
-                    <span class="inventory-search-icon">&#x1F50D;</span>
-                </button>
-                <input
-                    type="search"
-                    id="searchInput"
-                    class="inventory-search-input tw-input"
-                    placeholder="Rechercher un objet..."
-                    aria-label="Rechercher un objet">
-                <div class="recent-searches-dropdown inventory-search-history" id="recentSearchesDropdown"></div>
+        <section class="codex-control-panel tw-surface" aria-label="Filtres du codex">
+            <div class="codex-toolbar">
+                <span class="stats-badge" id="statsBadge">0 objet</span>
+                <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
+                <select id="categoryFilter" class="category-dropdown tw-input">
+                    <option value="">Toutes cat&eacute;gories</option>
+                    <option value="agricole">&#x1F33E; Agricole</option>
+                    <option value="consommable">&#x1F9EA; Consommables</option>
+                    <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
+                    <option value="materiau">&#x2692;&#xFE0F; Mat&eacute;riaux</option>
+                    <option value="quete">&#x2728; Qu&ecirc;tes</option>
+                </select>
+                <div class="inventory-search" id="codexSearch">
+                    <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                        <span class="inventory-search-icon">&#x1F50D;</span>
+                    </button>
+                    <input
+                        type="search"
+                        id="searchInput"
+                        class="inventory-search-input tw-input"
+                        placeholder="Rechercher un objet..."
+                        aria-label="Rechercher un objet">
+                    <div class="recent-searches-dropdown inventory-search-history" id="recentSearchesDropdown"></div>
+                </div>
             </div>
-        </div>
-        <div class="filter-chips" id="filterChips"></div>
+            <div class="filter-chips" id="filterChips"></div>
+        </section>
         <div class="table-container tw-panel">
             <table id="inventoryTable">
                 <thead>
@@ -75,7 +78,7 @@
                         <th scope="col" class="sortable name-column" aria-sort="none" data-sort="name">Nom <span class="sort-indicator"></span></th>
                         <th scope="col">Description</th>
                         <th scope="col" class="sortable" aria-sort="none" data-sort="price">Commerce <span class="sort-indicator"></span></th>
-                        <th scope="col">Effet (consommation)</th>
+                        <th scope="col">Effets &amp; bonus</th>
                         <th scope="col">Action</th>
                     </tr>
                 </thead>

@@ -488,7 +488,7 @@ function buildRow(item, globalIndex) {
         : "";
 
     const rowHtml = `
-        <tr class="item-row" data-key="${keyAttr}" data-global-index="${globalIndex}">
+        <tr class="item-row" data-key="${keyAttr}" data-global-index="${globalIndex}" data-category="${escapeHtml(category || "")}">
             <td class="img-cell" data-label="Illustration">
                 <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" width="86" height="86" decoding="async" fetchpriority="low">
             </td>
@@ -884,7 +884,7 @@ function filterByCategory() {
 
     // Mise à jour du titre
     const titles = {
-        '': 'Liste d\'objets',
+        '': 'Codex d\'Astoria',
         'agricole': 'Agricole',
         'consommable': 'Consommables',
         'equipement': '\u00c9quipements',
@@ -892,7 +892,7 @@ function filterByCategory() {
         'quete': 'Quêtes'
     };
     if (pageTitle) {
-        pageTitle.textContent = titles[currentCategory] || 'Liste d\'objets';
+        pageTitle.textContent = titles[currentCategory] || 'Codex d\'Astoria';
     }
 
     // Application du filtre
@@ -906,7 +906,7 @@ function clearCategoryFilter() {
     }
     currentCategory = '';
     if (pageTitle) {
-        pageTitle.textContent = 'Liste d\'objets';
+        pageTitle.textContent = 'Codex d\'Astoria';
     }
     applyFilters();
     updateFilterChips();
