@@ -21,6 +21,8 @@
     const skillsAddSubmit = document.getElementById("skillsAddSubmit");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
+    let bonusTooltipEl = null;
+    let bonusTooltipTimer = null;
 
     // Abort initialization gracefully if core DOM nodes are missing
     if (!skillsTabsContainer || !skillsTitleEl || !skillsListEl) {
@@ -543,7 +545,7 @@
         skillsTitleEl.textContent = category.label;
         skillsListEl.innerHTML = "";
         const allocations = getCategoryAllocations(category.id);
-        const bonusBySkill = getTotalBonuses();
+        const bonusBySkill = getBonusBreakdownBySkill();
         const isLocked = Boolean(skillsState.locksByCategory[category.id]);
 
         if (!category.skills || !category.skills.length) {
@@ -555,7 +557,8 @@
             const allocation = allocations[skill.name] || 0;
             const savedBase = skillsState.baseValuesByCategory[category.id]?.[skill.name];
             const base = savedBase ?? 0;
-            const bonus = bonusBySkill[skill.name] || 0;
+            const bonusEntry = bonusBySkill[skill.name] || { total: 0, items: 0, nokorah: 0 };
+            const bonus = bonusEntry.total || 0;
             const totalValue = base + allocation + bonus;
             const cap = getSkillCap(skill);
             const isMaxed = base + allocation >= cap;
@@ -601,6 +604,11 @@
 
             controls.append(decBtn, value, incBtn);
             li.append(icon, name, controls);
+            bindBonusTooltip(li, {
+                natif: base + allocation,
+                objets: bonusEntry.items || 0,
+                nokorah: bonusEntry.nokorah || 0
+            });
             skillsListEl.appendChild(li);
         });
 
@@ -638,9 +646,9 @@
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
 
-        const bonusBySkill = getTotalBonuses();
+        const bonusBySkill = getBonusBreakdownBySkill();
         const nextAlloc = allocations[skill.name] || 0;
-        const bonus = bonusBySkill[skill.name] || 0;
+        const bonus = bonusBySkill[skill.name]?.total || 0;
         const newTotal = base + nextAlloc + bonus;
         valueEl.textContent = `${newTotal} / ${cap}`;
         const isLocked = skillsState.locksByCategory[categoryId];
@@ -711,6 +719,10 @@
     }
 
     function getNokorahBonuses() {
+        const fromProfile = getNokorahBonusesFromProfile();
+        if (Object.keys(fromProfile).length) {
+            return fromProfile;
+        }
         const key = getNokorahStorageKey();
         try {
             const raw = localStorage.getItem(key);
@@ -726,6 +738,19 @@
         } catch {
             return {};
         }
+    }
+
+    function getNokorahBonusesFromProfile() {
+        const character = persistState.auth?.getActiveCharacter?.();
+        const list = character?.profile_data?.nokorahBonuses;
+        if (!Array.isArray(list)) return {};
+        return list.reduce((acc, bonus) => {
+            const name = bonus?.name;
+            const points = Number(bonus?.points) || 0;
+            if (!name || points <= 0) return acc;
+            acc[name] = (acc[name] || 0) + points;
+            return acc;
+        }, {});
     }
 
     function normalizeStatKey(value) {
@@ -825,15 +850,82 @@
         return acc;
     }
 
-    function getTotalBonuses() {
+    function getBonusBreakdownBySkill() {
         const nokorah = getNokorahBonuses();
         const items = getItemBonuses();
-        const merged = { ...nokorah };
-        Object.entries(items).forEach(([skill, value]) => {
-            merged[skill] = (merged[skill] || 0) + value;
+        const keys = new Set([...Object.keys(nokorah), ...Object.keys(items)]);
+        const map = {};
+        keys.forEach((skill) => {
+            const nokorahValue = Number(nokorah[skill]) || 0;
+            const itemValue = Number(items[skill]) || 0;
+            map[skill] = {
+                nokorah: nokorahValue,
+                items: itemValue,
+                total: nokorahValue + itemValue
+            };
         });
-        return merged;
+        return map;
     }
+
+    function getTotalBonuses() {
+        const breakdown = getBonusBreakdownBySkill();
+        return Object.keys(breakdown).reduce((acc, skill) => {
+            acc[skill] = breakdown[skill].total;
+            return acc;
+        }, {});
+    }
+
+    function ensureBonusTooltip() {
+        if (bonusTooltipEl) return bonusTooltipEl;
+        bonusTooltipEl = document.createElement("div");
+        bonusTooltipEl.className = "skills-bonus-tooltip";
+        bonusTooltipEl.hidden = true;
+        document.body.appendChild(bonusTooltipEl);
+        return bonusTooltipEl;
+    }
+
+    function hideBonusTooltip() {
+        if (bonusTooltipTimer) {
+            clearTimeout(bonusTooltipTimer);
+            bonusTooltipTimer = null;
+        }
+        if (bonusTooltipEl) {
+            bonusTooltipEl.hidden = true;
+        }
+    }
+
+    function showBonusTooltip(target, payload) {
+        const tooltip = ensureBonusTooltip();
+        const natif = Number(payload?.natif) || 0;
+        const objets = Number(payload?.objets) || 0;
+        const nokorah = Number(payload?.nokorah) || 0;
+        tooltip.innerHTML = `
+            <div><strong>Natif:</strong> ${natif}</div>
+            <div><strong>Objets:</strong> ${objets >= 0 ? "+" : ""}${objets}</div>
+            <div><strong>Nokorah:</strong> ${nokorah >= 0 ? "+" : ""}${nokorah}</div>
+        `;
+        const rect = target.getBoundingClientRect();
+        tooltip.style.left = `${Math.min(window.innerWidth - 240, Math.max(8, rect.left + rect.width / 2 - 110))}px`;
+        tooltip.style.top = `${Math.max(8, rect.top - 10)}px`;
+        tooltip.style.transform = "translateY(-100%)";
+        tooltip.hidden = false;
+    }
+
+    function bindBonusTooltip(element, payload) {
+        if (!element) return;
+        element.onmouseenter = () => {
+            hideBonusTooltip();
+            bonusTooltipTimer = setTimeout(() => showBonusTooltip(element, payload), 1000);
+        };
+        element.onmouseleave = hideBonusTooltip;
+        element.onfocusin = () => {
+            hideBonusTooltip();
+            bonusTooltipTimer = setTimeout(() => showBonusTooltip(element, payload), 1000);
+        };
+        element.onfocusout = hideBonusTooltip;
+    }
+
+    window.addEventListener("scroll", hideBonusTooltip, true);
 
     function getNokorahStorageKey() {
         const suffix = persistState.characterId || resolveCharacterIdFallback();
@@ -895,7 +987,7 @@
         }
         const hasPoints = currentPoints > 0;
         const isLocked = skillsState.locksByCategory[skillsState.activeCategoryId];
-        const bonusBySkill = getTotalBonuses();
+        const bonusBySkill = getBonusBreakdownBySkill();
 
         if (skillsPointsMinusEl) {
             skillsPointsMinusEl.disabled = !skillsState.isAdmin || !hasPoints || isLocked;
@@ -922,12 +1014,18 @@
             const savedBase = skillsState.baseValuesByCategory[activeCategory.id]?.[nameEl.textContent];
             const base = savedBase ?? 0;
             const allocation = allocations[nameEl.textContent] || 0;
-            const bonus = bonusBySkill[nameEl.textContent] || 0;
+            const bonusEntry = bonusBySkill[nameEl.textContent] || { total: 0, items: 0, nokorah: 0 };
+            const bonus = bonusEntry.total || 0;
             const total = base + allocation + bonus;
             const cap = getSkillCap(skill);
             if (valueEl) {
                 valueEl.textContent = `${total} / ${cap}`;
             }
+            bindBonusTooltip(line, {
+                natif: base + allocation,
+                objets: bonusEntry.items || 0,
+                nokorah: bonusEntry.nokorah || 0
+            });
             const atMax = base + allocation >= cap;
             decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
             incBtn.disabled = atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];

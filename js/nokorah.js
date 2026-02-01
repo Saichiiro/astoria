@@ -204,6 +204,15 @@ async function loadState() {
     state.bonuses = readJson(state.storageKeys.bonuses, []);
     state.upgradeLevel = Number(readJson(state.storageKeys.upgrade, 0)) || 0;
 
+    // If local cache is empty, reuse profile mirror saved for cross-device consistency.
+    if ((!Array.isArray(state.bonuses) || !state.bonuses.length) && state.auth?.getActiveCharacter) {
+        const character = state.auth.getActiveCharacter();
+        const profileBonuses = character?.profile_data?.nokorahBonuses;
+        if (Array.isArray(profileBonuses) && profileBonuses.length) {
+            state.bonuses = profileBonuses;
+        }
+    }
+
     if (!state.active) {
         state.rarity = "commun";
         state.bonuses = [];
@@ -217,6 +226,23 @@ async function saveState() {
     writeJson(state.storageKeys.rarity, state.rarity);
     writeJson(state.storageKeys.bonuses, state.bonuses);
     writeJson(state.storageKeys.upgrade, state.upgradeLevel);
+
+    // Mirror bonuses inside profile_data so other pages (competences) stay in sync across devices.
+    if (state.auth?.getActiveCharacter && state.auth?.updateCharacter) {
+        try {
+            const character = state.auth.getActiveCharacter();
+            if (character?.id) {
+                const profileData = character.profile_data || {};
+                const nextProfileData = {
+                    ...profileData,
+                    nokorahBonuses: Array.isArray(state.bonuses) ? state.bonuses : []
+                };
+                await state.auth.updateCharacter(character.id, { profile_data: nextProfileData });
+            }
+        } catch {
+            // Keep local cache and Nokorah table persistence even if profile mirror fails.
+        }
+    }
 
     // Save to Supabase if available
     if (state.mode === 'supabase' && state.nokorahService && state.characterId) {

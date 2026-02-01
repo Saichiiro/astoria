@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS items (
     name TEXT NOT NULL,
     description TEXT,
     effect TEXT,
+    modifiers JSONB DEFAULT '[]'::jsonb,
     category TEXT,
     rarity TEXT,
     price_kaels INTEGER DEFAULT 0,
