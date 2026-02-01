@@ -31,6 +31,7 @@
 
 
     <link rel="stylesheet" href="css/inventaire.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 
     <style>
         /* Overrides pour aligner les slots symétriquement - FORCÉ */
@@ -159,6 +160,78 @@
         .inventory-item--draggable.is-dragging {
             cursor: grabbing;
             opacity: 0.72;
+        }
+
+        .silhouette-cropper-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.56);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 22000;
+            padding: 20px;
+        }
+
+        .silhouette-cropper-backdrop.open {
+            display: flex;
+        }
+
+        .silhouette-cropper-modal {
+            width: min(760px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 16px;
+            border: 2px solid rgba(216, 27, 96, 0.2);
+            padding: 16px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.26);
+        }
+
+        .silhouette-cropper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .silhouette-cropper-title {
+            margin: 0;
+            font-size: 1.05rem;
+            color: var(--inv-text);
+        }
+
+        .silhouette-cropper-stage {
+            width: 100%;
+            min-height: 320px;
+            max-height: 62vh;
+            background: #f7f3f6;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .silhouette-cropper-stage img {
+            display: block;
+            max-width: 100%;
+        }
+
+        .silhouette-cropper-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .silhouette-cropper-controls input[type="range"] {
+            flex: 1;
+        }
+
+        .silhouette-cropper-actions {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
     </style>
 
@@ -949,6 +1022,29 @@
 
 
 
+    <input type="file" id="silhouetteUploadInput" accept="image/*" hidden>
+
+    <div class="silhouette-cropper-backdrop" id="silhouetteCropperBackdrop" aria-hidden="true">
+        <div class="silhouette-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="silhouetteCropperTitle">
+            <div class="silhouette-cropper-header">
+                <h3 class="silhouette-cropper-title" id="silhouetteCropperTitle">Importer la silhouette du personnage</h3>
+                <button type="button" class="btn-secondary tw-press" id="silhouetteCropperClose">Fermer</button>
+            </div>
+            <div class="silhouette-cropper-stage">
+                <img id="silhouetteCropperImage" alt="Apercu silhouette">
+            </div>
+            <div class="silhouette-cropper-controls">
+                <label for="silhouetteCropperZoom">Zoom</label>
+                <input type="range" id="silhouetteCropperZoom" min="0.2" max="3" step="0.01" value="1">
+                <span>Ratio personnage 230x320</span>
+            </div>
+            <div class="silhouette-cropper-actions">
+                <button type="button" class="btn-secondary tw-press" id="silhouetteCropperCancel">Annuler</button>
+                <button type="button" class="btn-danger tw-press" id="silhouetteCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Load shared data -->
 
 
@@ -974,6 +1070,10 @@
 
 
     <script src="js/ui/searchbar.js"></script>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 
 
 
@@ -1604,6 +1704,20 @@
 
         const listHelpers = window.astoriaListHelpers || {};
 
+        const characterSpriteEl = document.querySelector('.character-sprite');
+        const silhouetteUploadInput = document.getElementById('silhouetteUploadInput');
+        const silhouetteCropperBackdrop = document.getElementById('silhouetteCropperBackdrop');
+        const silhouetteCropperImage = document.getElementById('silhouetteCropperImage');
+        const silhouetteCropperZoom = document.getElementById('silhouetteCropperZoom');
+        const silhouetteCropperClose = document.getElementById('silhouetteCropperClose');
+        const silhouetteCropperCancel = document.getElementById('silhouetteCropperCancel');
+        const silhouetteCropperConfirm = document.getElementById('silhouetteCropperConfirm');
+        const SILHOUETTE_STORAGE_KEY = 'astoriaInventoryCharacterSilhouette';
+        const DEFAULT_SILHOUETTE = 'assets/images/Silhouette.png';
+        const SILHOUETTE_RATIO = 230 / 320;
+        let silhouetteCropper = null;
+        let silhouetteObjectUrl = null;
+
 
 
         const filterItems = listHelpers.filterItems;
@@ -1862,6 +1976,10 @@
 
 
 
+            initSilhouetteUploader();
+
+
+
             if (!inventoryAccessAllowed) {
 
 
@@ -1883,6 +2001,10 @@
 
 
             syncCurrencyItem();
+
+
+
+            await loadCharacterSilhouette();
 
 
 
@@ -3159,6 +3281,514 @@
 
 
                 isCurrency: true
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function applyCharacterSilhouette(src) {
+
+
+
+            if (!characterSpriteEl) return;
+
+
+
+            const safeSrc = src && String(src).trim() ? String(src).trim() : DEFAULT_SILHOUETTE;
+
+
+
+            characterSpriteEl.style.backgroundImage = `url('${safeSrc}')`;
+
+
+
+        }
+
+
+
+        function readStoredSilhouette() {
+
+
+
+            try {
+
+
+
+                const raw = localStorage.getItem(SILHOUETTE_STORAGE_KEY);
+
+
+
+                return raw ? String(raw) : '';
+
+
+
+            } catch {
+
+
+
+                return '';
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function persistSilhouette(src) {
+
+
+
+            const safeSrc = src && String(src).trim() ? String(src).trim() : '';
+
+
+
+            try {
+
+
+
+                if (safeSrc) {
+
+
+
+                    localStorage.setItem(SILHOUETTE_STORAGE_KEY, safeSrc);
+
+
+
+                } else {
+
+
+
+                    localStorage.removeItem(SILHOUETTE_STORAGE_KEY);
+
+
+
+                }
+
+
+
+            } catch {}
+
+
+
+            if (inventoryStorageMode !== 'character' || !authApi?.getActiveCharacter || !authApi?.updateCharacter) {
+
+
+
+                return;
+
+
+
+            }
+
+
+
+            const character = authApi.getActiveCharacter();
+
+
+
+            if (!character?.id) return;
+
+
+
+            const currentProfileData = character.profile_data || {};
+
+
+
+            const inventoryData = { ...(currentProfileData.inventory || {}) };
+
+
+
+            if (safeSrc) {
+
+
+
+                inventoryData.characterSilhouette = safeSrc;
+
+
+
+            } else {
+
+
+
+                delete inventoryData.characterSilhouette;
+
+
+
+            }
+
+
+
+            const nextProfileData = {
+
+
+
+                ...currentProfileData,
+
+
+
+                inventory: inventoryData
+
+
+
+            };
+
+
+
+            try {
+
+
+
+                await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
+
+
+
+            } catch (error) {
+
+
+
+                console.warn('Silhouette save error:', error);
+
+
+
+            }
+
+
+
+        }
+
+
+
+        async function loadCharacterSilhouette() {
+
+
+
+            let nextSrc = '';
+
+
+
+            if (inventoryStorageMode === 'character' && authApi?.getActiveCharacter) {
+
+
+
+                const character = authApi.getActiveCharacter();
+
+
+
+                nextSrc = String(character?.profile_data?.inventory?.characterSilhouette || '');
+
+
+
+            }
+
+
+
+            if (!nextSrc) {
+
+
+
+                nextSrc = readStoredSilhouette();
+
+
+
+            }
+
+
+
+            applyCharacterSilhouette(nextSrc || DEFAULT_SILHOUETTE);
+
+
+
+        }
+
+
+
+        function closeSilhouetteCropper() {
+
+
+
+            if (silhouetteCropper) {
+
+
+
+                silhouetteCropper.destroy();
+
+
+
+                silhouetteCropper = null;
+
+
+
+            }
+
+
+
+            if (silhouetteObjectUrl) {
+
+
+
+                URL.revokeObjectURL(silhouetteObjectUrl);
+
+
+
+                silhouetteObjectUrl = null;
+
+
+
+            }
+
+
+
+            if (silhouetteCropperZoom) silhouetteCropperZoom.value = '1';
+
+
+
+            if (silhouetteCropperBackdrop) {
+
+
+
+                silhouetteCropperBackdrop.classList.remove('open');
+
+
+
+                silhouetteCropperBackdrop.setAttribute('aria-hidden', 'true');
+
+
+
+            }
+
+
+
+        }
+
+
+
+        function openSilhouetteCropper(file) {
+
+
+
+            if (!file || !silhouetteCropperBackdrop || !silhouetteCropperImage || !window.Cropper) return;
+
+
+
+            closeSilhouetteCropper();
+
+
+
+            silhouetteObjectUrl = URL.createObjectURL(file);
+
+
+
+            silhouetteCropperImage.src = silhouetteObjectUrl;
+
+
+
+            silhouetteCropperBackdrop.classList.add('open');
+
+
+
+            silhouetteCropperBackdrop.setAttribute('aria-hidden', 'false');
+
+
+
+            silhouetteCropper = new window.Cropper(silhouetteCropperImage, {
+
+
+
+                aspectRatio: SILHOUETTE_RATIO,
+
+
+
+                viewMode: 1,
+
+
+
+                dragMode: 'move',
+
+
+
+                autoCropArea: 1,
+
+
+
+                responsive: true,
+
+
+
+                background: false
+
+
+
+            });
+
+
+
+        }
+
+
+
+        function initSilhouetteUploader() {
+
+
+
+            if (!characterSpriteEl || !silhouetteUploadInput) return;
+
+
+
+            characterSpriteEl.title = "Cliquer pour importer une silhouette (cropper).";
+
+
+
+            characterSpriteEl.setAttribute('aria-label', 'Importer une silhouette de personnage');
+
+
+
+            characterSpriteEl.addEventListener('click', () => {
+
+
+
+                silhouetteUploadInput.click();
+
+
+
+            });
+
+
+
+            silhouetteUploadInput.addEventListener('change', () => {
+
+
+
+                const file = silhouetteUploadInput.files?.[0];
+
+
+
+                if (!file) return;
+
+
+
+                if (!window.Cropper) {
+
+
+
+                    alert('Cropper indisponible pour le moment.');
+
+
+
+                    silhouetteUploadInput.value = '';
+
+
+
+                    return;
+
+
+
+                }
+
+
+
+                openSilhouetteCropper(file);
+
+
+
+                silhouetteUploadInput.value = '';
+
+
+
+            });
+
+
+
+            silhouetteCropperClose?.addEventListener('click', closeSilhouetteCropper);
+
+
+
+            silhouetteCropperCancel?.addEventListener('click', closeSilhouetteCropper);
+
+
+
+            silhouetteCropperBackdrop?.addEventListener('click', (event) => {
+
+
+
+                if (event.target === silhouetteCropperBackdrop) closeSilhouetteCropper();
+
+
+
+            });
+
+
+
+            silhouetteCropperZoom?.addEventListener('input', () => {
+
+
+
+                if (!silhouetteCropper) return;
+
+
+
+                silhouetteCropper.zoomTo(Number(silhouetteCropperZoom.value || 1));
+
+
+
+            });
+
+
+
+            silhouetteCropperConfirm?.addEventListener('click', async () => {
+
+
+
+                if (!silhouetteCropper) return;
+
+
+
+                const canvas = silhouetteCropper.getCroppedCanvas({
+
+
+
+                    width: 460,
+
+
+
+                    height: 640,
+
+
+
+                    imageSmoothingQuality: 'high'
+
+
+
+                });
+
+
+
+                if (!canvas) return;
+
+
+
+                const dataUrl = canvas.toDataURL('image/png');
+
+
+
+                applyCharacterSilhouette(dataUrl);
+
+
+
+                await persistSilhouette(dataUrl);
+
+
+
+                closeSilhouetteCropper();
 
 
 
@@ -10021,11 +10651,27 @@
 
 
 
-        window.addEventListener('astoria:character-updated', (event) => {
+        window.addEventListener('astoria:character-updated', async (event) => {
 
 
 
-            const next = Number(event?.detail?.kaels);
+            const detail = event?.detail || {};
+
+
+
+            if (detail?.profile_data) {
+
+
+
+                await loadCharacterSilhouette();
+
+
+
+            }
+
+
+
+            const next = Number(detail?.kaels);
 
 
 

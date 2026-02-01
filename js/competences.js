@@ -23,6 +23,10 @@
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
     let bonusTooltipEl = null;
     let bonusTooltipTimer = null;
+    const itemCatalog = {
+        byName: new Map(),
+        byIndex: []
+    };
 
     // Abort initialization gracefully if core DOM nodes are missing
     if (!skillsTabsContainer || !skillsTitleEl || !skillsListEl) {
@@ -112,6 +116,7 @@
     }
 
     hydrateCustomSkills();
+    await hydrateItemCatalog();
     renderSkillsTabs();
     renderSkillsCategory(getActiveCategory());
     updateSkillsPointsDisplay();
@@ -587,6 +592,7 @@
             const value = document.createElement("span");
             value.className = "skills-value";
             value.textContent = `${totalValue} / ${cap}`;
+            value.title = "Survol 1s : détail des sources (natif, objets, nokorah).";
 
             const incBtn = document.createElement("button");
             incBtn.type = "button";
@@ -609,6 +615,7 @@
                 objets: bonusEntry.items || 0,
                 nokorah: bonusEntry.nokorah || 0
             });
+            li.style.cursor = "help";
             skillsListEl.appendChild(li);
         });
 
@@ -761,15 +768,80 @@
             .toLowerCase();
     }
 
+    function safeJson(value) {
+        if (!value) return {};
+        if (typeof value === "object") return value;
+        if (typeof value === "string") {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    function normalizeCatalogItem(item, sourceIndex = null) {
+        if (!item) return null;
+        const images = safeJson(item.images);
+        const primary = images.primary || images.url || item.image || item.image_url || "";
+        const modifiers = safeJson(item.modifiers);
+        return {
+            sourceIndex: Number.isFinite(Number(sourceIndex))
+                ? Number(sourceIndex)
+                : (Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null),
+            name: item.name || item.nom || "",
+            category: item.category || item.categorie || "",
+            image: primary || item.image || "",
+            images: images,
+            effect: item.effect || item.effet || "",
+            modifiers: Array.isArray(modifiers) ? modifiers : (Array.isArray(item.modifiers) ? item.modifiers : [])
+        };
+    }
+
+    async function hydrateItemCatalog() {
+        itemCatalog.byName = new Map();
+        itemCatalog.byIndex = [];
+
+        const localItems = Array.isArray(window.inventoryData) ? window.inventoryData : [];
+        localItems.forEach((entry, index) => {
+            const normalized = normalizeCatalogItem(entry, index);
+            if (!normalized?.name) return;
+            const key = normalizeStatKey(normalized.name);
+            itemCatalog.byIndex[index] = normalized;
+            if (!itemCatalog.byName.has(key)) {
+                itemCatalog.byName.set(key, normalized);
+            }
+        });
+
+        try {
+            const itemsApi = await import("./api/items-service.js");
+            const rows = await itemsApi.getAllItems?.();
+            if (!Array.isArray(rows)) return;
+            rows.forEach((row) => {
+                const normalized = normalizeCatalogItem(row, null);
+                if (!normalized?.name) return;
+                const key = normalizeStatKey(normalized.name);
+                const existing = itemCatalog.byName.get(key);
+                if (existing) {
+                    itemCatalog.byName.set(key, { ...existing, ...normalized });
+                    return;
+                }
+                itemCatalog.byName.set(key, normalized);
+            });
+        } catch {
+            // Optional DB hydration only; local catalog remains available.
+        }
+    }
+
     function resolveCatalogItem(itemKey, itemIndex) {
-        const allItems = Array.isArray(window.inventoryData) ? window.inventoryData : [];
         const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
-        if (numericIndex != null && numericIndex >= 0 && allItems[numericIndex]) {
-            return allItems[numericIndex];
+        if (numericIndex != null && numericIndex >= 0 && itemCatalog.byIndex[numericIndex]) {
+            return itemCatalog.byIndex[numericIndex];
         }
         const targetKey = normalizeStatKey(itemKey);
         if (!targetKey) return null;
-        return allItems.find((item) => normalizeStatKey(item?.name || item?.nom || "") === targetKey) || null;
+        return itemCatalog.byName.get(targetKey) || null;
     }
 
     function getItemBonuses() {
@@ -781,8 +853,14 @@
         const equippedSlots = inventory?.equippedSlots && typeof inventory.equippedSlots === "object"
             ? inventory.equippedSlots
             : {};
+        const legacyEquipped = inventory?.equipped && typeof inventory.equipped === "object"
+            ? inventory.equipped
+            : {};
         const activeConsumables = Array.isArray(inventory?.activeConsumableEffects)
             ? inventory.activeConsumableEffects
+            : [];
+        const legacyConsumables = Array.isArray(inventory?.activeEffects)
+            ? inventory.activeEffects
             : [];
 
         const skillNameMap = new Map();
@@ -829,14 +907,14 @@
             });
         };
 
-        Object.values(equippedSlots).forEach((entry) => {
+        Object.values({ ...legacyEquipped, ...equippedSlots }).forEach((entry) => {
             if (!entry) return;
             const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
             if (!item) return;
             applyModifiers(tools.getModifiers(item));
         });
 
-        activeConsumables.forEach((entry) => {
+        [...legacyConsumables, ...activeConsumables].forEach((entry) => {
             if (!entry) return;
             if (Array.isArray(entry.modifiers)) {
                 applyModifiers(tools.dedupeModifiers ? tools.dedupeModifiers(entry.modifiers) : entry.modifiers);
@@ -1020,6 +1098,7 @@
             const cap = getSkillCap(skill);
             if (valueEl) {
                 valueEl.textContent = `${total} / ${cap}`;
+                valueEl.title = "Survol 1s : détail des sources (natif, objets, nokorah).";
             }
             bindBonusTooltip(line, {
                 natif: base + allocation,
