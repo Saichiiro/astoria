@@ -650,7 +650,7 @@
 
 
 
-                        <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipement</option>
+                        <option value="agricole">&#x1F33E; Agricole</option>
 
 
 
@@ -658,7 +658,15 @@
 
 
 
-                        <option value="agricole">&#x1F33E; Agricole</option>
+                        <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipement</option>
+
+
+
+                        <option value="materiau">&#x2692;&#xFE0F; Matériaux</option>
+
+
+
+                        <option value="quete">&#x2728; Quêtes</option>
 
 
 
@@ -2339,11 +2347,11 @@
 
 
 
-                buyPrice: buyText,
+                buyPrice: priceText,
 
 
 
-                sellPrice: sellText,
+                sellPrice: priceText,
 
 
 
@@ -2760,6 +2768,10 @@
 
 
                 if (!Number.isFinite(qty) || qty <= 0) return;
+
+                // Skip Kaels - currency is managed separately via character.kaels
+                const itemKey = String(row?.item_key || '').toLowerCase();
+                if (itemKey === 'kaels') return;
 
 
 

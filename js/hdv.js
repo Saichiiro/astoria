@@ -742,9 +742,11 @@ function buildCategories() {
 
 function categoryLabel(category) {
     if (category === 'all') return 'Toutes';
-    if (category === 'equipement') return '\u00c9quipement';
-    if (category === 'consommable') return 'Consommable';
     if (category === 'agricole') return 'Agricole';
+    if (category === 'consommable') return 'Consommable';
+    if (category === 'equipement') return '\u00c9quipement';
+    if (category === 'materiau') return 'Matériaux';
+    if (category === 'quete') return 'Quêtes';
     return String(category)
         .replace(/[_-]+/g, ' ')
         .replace(/^\w/, (m) => m.toUpperCase());
