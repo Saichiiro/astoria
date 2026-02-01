@@ -3581,7 +3581,7 @@
 
                 saved = true;
 
-                console.log('[Inventory Storage] ✅ Successfully saved to database!');
+                console.log('[Inventory Storage] ✅ Successfully saved inventory to database!');
 
 
 
@@ -3593,6 +3593,22 @@
 
 
 
+            }
+
+            // Save kaels to character.kaels field
+            const currencyItem = inventoryItems.find(item => item?.isCurrency);
+            if (currencyItem && Number.isFinite(currencyItem.quantity)) {
+                const kaels = Math.max(0, Math.floor(currencyItem.quantity));
+                const currentKaels = Number(character?.kaels ?? 0);
+
+                if (kaels !== currentKaels) {
+                    try {
+                        await authApi.updateCharacter?.(character.id, { kaels });
+                        console.log(`[Inventory Storage] ✅ Updated kaels: ${currentKaels} → ${kaels}`);
+                    } catch (error) {
+                        console.warn('Kaels save error:', error);
+                    }
+                }
             }
 
 
