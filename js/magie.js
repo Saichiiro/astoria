@@ -178,7 +178,9 @@
     ];
     const FICHE_STORAGE_PREFIX = "fiche";
     const ALICE_EMOJI = String.fromCodePoint(0x1F4AB);
-    const EATER_EMOJI = String.fromCodePoint(0x1F480);
+    const MEISTER_EMOJI = String.fromCodePoint(0x1F9EC); // 🧬
+    const WEAPON_EMOJI = String.fromCodePoint(0x1F480); // 💀
+    const EATER_EMOJI = WEAPON_EMOJI; // Legacy alias
 
     const MAGIC_ASCENSION_COSTS = {
         primary: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
@@ -265,6 +267,48 @@
     function getEaterStatus() {
         const data = getFicheTabData("eater");
         return Boolean(data?.hasEater);
+    }
+
+    function getEaterRole() {
+        const data = getFicheTabData("eater");
+        if (!data?.hasEater) return "";
+        const role = data?.eaterRole || "";
+        return role === "meister" || role === "weapon" ? role : "";
+    }
+
+    function getCapacityTerminology(specialization) {
+        // Returns {singular, plural, section} based on specialization type
+        if (specialization === "alice" || specialization === "alice-double") {
+            return { singular: "Capacité", plural: "Capacités", section: "Capacités Alice" };
+        }
+        if (specialization === "meister" || specialization === "arme" || specialization === "eater") {
+            return { singular: "Fragment", plural: "Fragments", section: "Fragments d'âme" };
+        }
+        // sorcellerie or default
+        return { singular: "Sort", plural: "Sorts", section: "Sorts & techniques" };
+    }
+
+    function updateCapacityUI() {
+        const currentPage = pages[activePageIndex];
+        const specialization = currentPage?.fields?.magicSpecialization || "";
+        const terminology = getCapacityTerminology(specialization);
+
+        // Update section title
+        const sectionTitleEl = document.querySelector("#magic-capacities .magic-section-title");
+        if (sectionTitleEl) {
+            sectionTitleEl.textContent = terminology.section;
+        }
+
+        // Update add button text
+        if (addCapacityBtn) {
+            addCapacityBtn.textContent = `+ Ajouter ${terminology.singular === "Fragment" ? "un fragment" : terminology.singular === "Sort" ? "un sort" : "une capacité"}`;
+        }
+
+        // Update navigation button text
+        const capacitiesNavBtn = document.querySelector('.magic-nav-btn[data-target="magic-capacities"]');
+        if (capacitiesNavBtn) {
+            capacitiesNavBtn.textContent = terminology.section;
+        }
     }
 
     function syncSpecializationPages({ specialization, count, nameBase }) {
@@ -413,6 +457,7 @@
         const affinities = getMagicAffinities();
         const aliceStatus = getAliceStatus();
         const eaterEnabled = getEaterStatus();
+        const eaterRole = getEaterRole();
         const existingMap = new Map();
         pages.forEach((page, index) => {
             let key = page?.fields?.magicAffinityKey;
@@ -430,11 +475,7 @@
             }
         });
 
-        pages.forEach((page) => {
-            if (page?.fields?.magicSpecialization === "meister") {
-                page.fields.magicSpecialization = "eater";
-            }
-        });
+        // Legacy migration removed - keep meister and arme as separate types
 
         enabled.forEach((key) => {
             const entry = progress.affinities[key] || {};
@@ -465,8 +506,19 @@
             nameBase: "Alice"
         });
         syncSpecializationPages({
+            specialization: "meister",
+            count: eaterEnabled && eaterRole === "meister" ? 1 : 0,
+            nameBase: "Meister"
+        });
+        syncSpecializationPages({
+            specialization: "arme",
+            count: eaterEnabled && eaterRole === "weapon" ? 1 : 0,
+            nameBase: "Weapon"
+        });
+        // Legacy: hide old "eater" pages
+        syncSpecializationPages({
             specialization: "eater",
-            count: eaterEnabled ? 1 : 0,
+            count: 0,
             nameBase: "Eater"
         });
 
@@ -1283,7 +1335,7 @@
         const visiblePages = pages.filter((page) => !isPageHidden(page));
         const specializationCounts = {};
         const specializationIndexes = {};
-        const numberedSpecializations = new Set(["alice", "eater"]);
+        const numberedSpecializations = new Set(["alice", "meister", "arme"]);
 
         visiblePages.forEach((page) => {
             const specialization = page?.fields?.magicSpecialization;
@@ -1306,8 +1358,10 @@
                 label = entry?.emoji || FALLBACK_SCROLL_EMOJI;
             } else if (specialization === "alice") {
                 label = ALICE_EMOJI;
-            } else if (specialization === "eater" || specialization === "meister") {
-                label = EATER_EMOJI;
+            } else if (specialization === "meister") {
+                label = MEISTER_EMOJI;
+            } else if (specialization === "arme" || specialization === "eater") {
+                label = WEAPON_EMOJI;
             }
             if (specialization && numberedSpecializations.has(specialization) && (specializationCounts[specialization] || 0) > 1) {
                 specializationIndexes[specialization] = (specializationIndexes[specialization] || 0) + 1;
@@ -1374,6 +1428,7 @@
         applyFormFields(pages[activePageIndex].fields || {});
         setActiveSection(activeSection);
         setCapacityFormOpen(false);
+        updateCapacityUI();
         renderCapacities(capacityFilter ? capacityFilter.value : "");
         renderPageTabs();
         renderPagesOverview();
@@ -2282,6 +2337,7 @@
         ensureActivePageVisible();
         applyFormFields(pages[activePageIndex].fields || {});
         setActiveSection(activeSection);
+        updateCapacityUI();
         renderCapacities(capacityFilter ? capacityFilter.value : "");
         renderScrollMeter();
         renderPageTabs();
@@ -2294,6 +2350,7 @@
             syncPagesWithProgress();
             ensureActivePageVisible();
             applyFormFields(pages[activePageIndex]?.fields || {});
+            updateCapacityUI();
             renderPageTabs();
             renderPagesOverview();
             renderScrollMeter();

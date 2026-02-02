@@ -3,6 +3,25 @@
  * Cleaner, more scannable design grouped by rank
  */
 
+const TIMING_LABELS = {
+    t0: "Instantané",
+    t1: "1 Tour",
+    t2: "2 Tours",
+    t3: "3 Tours",
+    t4: "4 Tours",
+    t5: "5 Tours",
+    t6: "6 Tours",
+    t7: "7 Tours",
+    combat1: "1/combat",
+    combat2: "2/combat",
+    combat3: "3/combat",
+    instantane: "Instantané",
+    court: "Court",
+    moyen: "Moyen",
+    long: "Long",
+    aucun: "Aucun"
+};
+
 function buildSpellCard(cap, options = {}) {
     const { isAdmin, canEdit, ascensionCost, showUpgrades } = options;
 
@@ -17,6 +36,21 @@ function buildSpellCard(cap, options = {}) {
     if (cap.target) tags.push(`<span class="spell-pill spell-pill--target">${cap.target}</span>`);
     if (cap.distance) tags.push(`<span class="spell-pill spell-pill--distance">${cap.distance}</span>`);
     if (cap.cost) tags.push(`<span class="spell-pill spell-pill--cost">${cap.cost}</span>`);
+
+    // Timing information with explicit labels
+    const timingInfo = [];
+    if (cap.activationTime) {
+        const label = TIMING_LABELS[cap.activationTime] || cap.activationTime;
+        timingInfo.push(`⏱️ Activation: ${label}`);
+    }
+    if (cap.duration) {
+        const label = TIMING_LABELS[cap.duration] || cap.duration;
+        timingInfo.push(`⏳ Actif: ${label}`);
+    }
+    if (cap.cooldown) {
+        const label = TIMING_LABELS[cap.cooldown] || cap.cooldown;
+        timingInfo.push(`🔄 Recharge: ${label}`);
+    }
 
     return `
         <article class="spell-card" data-spell-id="${cap.id}" data-rank="${cap.rank}">
@@ -36,6 +70,8 @@ function buildSpellCard(cap, options = {}) {
             </div>
 
             ${tags.length ? `<div class="spell-card-tags">${tags.join('')}</div>` : ''}
+
+            ${timingInfo.length ? `<div class="spell-card-timing">${timingInfo.join(' • ')}</div>` : ''}
 
             ${showUpgrades ? `
                 <div class="spell-card-actions">

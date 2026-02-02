@@ -1544,6 +1544,7 @@ function renderMedia(quest) {
     const images = quest.images || [];
     if (!images.length) {
         dom.mediaImage.removeAttribute("src");
+        dom.mediaImage.style.cursor = "default";
         dom.mediaDots.innerHTML = "";
         dom.mediaPrev.hidden = true;
         dom.mediaNext.hidden = true;
@@ -1553,6 +1554,8 @@ function renderMedia(quest) {
     state.activeImageIndex = index;
     dom.mediaImage.src = images[index];
     dom.mediaImage.setAttribute("draggable", "false");
+    dom.mediaImage.style.cursor = "zoom-in";
+    dom.mediaImage.title = "Cliquer pour voir l'image en grand";
     dom.mediaDots.innerHTML = images.map((_, idx) => {
         const active = idx === index ? "active" : "";
         return `<span class="quest-media-dot ${active}"></span>`;
@@ -1560,6 +1563,47 @@ function renderMedia(quest) {
     const showControls = images.length > 1;
     dom.mediaPrev.hidden = !showControls;
     dom.mediaNext.hidden = !showControls;
+}
+
+function openImageFullscreen(imageUrl) {
+    // Create fullscreen overlay
+    const overlay = document.createElement("div");
+    overlay.className = "quest-image-fullscreen";
+    overlay.innerHTML = `
+        <div class="quest-image-fullscreen-scrim"></div>
+        <div class="quest-image-fullscreen-content">
+            <button class="quest-image-fullscreen-close tw-press" aria-label="Fermer">&times;</button>
+            <img src="${imageUrl}" alt="Image de quête en grand" class="quest-image-fullscreen-img">
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+
+    // Close handlers
+    const close = () => {
+        overlay.remove();
+        document.body.style.overflow = "";
+    };
+
+    overlay.querySelector(".quest-image-fullscreen-scrim").addEventListener("click", close);
+    overlay.querySelector(".quest-image-fullscreen-close").addEventListener("click", close);
+
+    // ESC key to close
+    const handleEsc = (event) => {
+        if (event.key === "Escape") {
+            close();
+            document.removeEventListener("keydown", handleEsc);
+        }
+    };
+    document.addEventListener("keydown", handleEsc);
+
+    // Cleanup on close
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) {
+            close();
+        }
+    });
 }
 
 function buildJoinNote(quest) {
@@ -2325,6 +2369,10 @@ function bindEvents() {
         state.activeImageIndex += 1;
         if (state.activeImageIndex >= quest.images.length) state.activeImageIndex = 0;
         renderMedia(quest);
+    });
+    dom.mediaImage.addEventListener("click", () => {
+        const imageUrl = dom.mediaImage.src;
+        if (imageUrl) openImageFullscreen(imageUrl);
     });
     dom.joinBtn.addEventListener("click", toggleParticipation);
     dom.editBtn.addEventListener("click", () => {

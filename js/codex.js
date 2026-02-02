@@ -1092,6 +1092,16 @@ function bindPageEvents() {
             });
         });
     }
+
+    // Equipment slot field visibility
+    const adminItemCategorySelect = document.getElementById('adminItemCategory');
+    const equipmentSlotField = document.getElementById('adminItemEquipmentSlotField');
+    if (adminItemCategorySelect && equipmentSlotField) {
+        adminItemCategorySelect.addEventListener('change', () => {
+            const isEquipment = adminItemCategorySelect.value === 'equipement';
+            equipmentSlotField.style.display = isEquipment ? '' : 'none';
+        });
+    }
 }
 
 // Sort table by column
