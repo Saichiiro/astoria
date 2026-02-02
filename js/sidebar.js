@@ -165,10 +165,21 @@
   const toggle = document.getElementById("openSidebarMenu");
   const sidebar = document.getElementById("sidebarMenu");
   const iconToggle = document.querySelector(".sidebarIconToggle");
+  const closeSidebar = () => {
+    body.classList.remove("sidebar-open");
+    if (toggle) toggle.checked = false;
+  };
+  const syncSidebarState = () => {
+    if (!toggle) return;
+    body.classList.toggle("sidebar-open", !!toggle.checked);
+  };
+
+  // Always boot closed to avoid stale bfcache/checkbox state across pages.
+  closeSidebar();
 
   if (toggle) {
     toggle.addEventListener("change", () => {
-      body.classList.toggle("sidebar-open", toggle.checked);
+      syncSidebarState();
     });
   }
 
@@ -188,8 +199,7 @@
       if (target && target.closest && target.closest(".panel-backdrop, .panel-drawer")) return;
       if (document.documentElement.classList.contains("panel-open")) return;
       if (sidebar.contains(target) || iconToggle.contains(target)) return;
-      body.classList.remove("sidebar-open");
-      toggle.checked = false;
+      closeSidebar();
     });
   }
 
@@ -198,8 +208,26 @@
     if (event.defaultPrevented) return;
     if (document.documentElement.classList.contains("panel-open")) return;
     if (!body.classList.contains("sidebar-open")) return;
-    body.classList.remove("sidebar-open");
-    if (toggle) toggle.checked = false;
+    closeSidebar();
+  });
+
+  // Close the drawer after navigation links are used.
+  sidebar?.querySelectorAll('a[href]').forEach((link) => {
+    link.addEventListener("click", () => {
+      closeSidebar();
+    });
+  });
+
+  // Normalize state when returning via history/bfcache.
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) {
+      closeSidebar();
+      return;
+    }
+    syncSidebarState();
+  });
+  window.addEventListener("pagehide", () => {
+    closeSidebar();
   });
 
   const logoutBtns = Array.from(document.querySelectorAll("#logoutButton"));

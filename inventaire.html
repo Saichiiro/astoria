@@ -80,6 +80,37 @@
             cursor: pointer;
         }
 
+        .character-upload-trigger {
+            position: absolute;
+            right: 16px;
+            bottom: 16px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e91e63, #ff5d92);
+            color: #fff;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 18px rgba(233, 30, 99, 0.35);
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
+            z-index: 2;
+        }
+
+        .character-upload-trigger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 20px rgba(233, 30, 99, 0.32);
+        }
+
+        .character-upload-trigger:focus-visible {
+            outline: 2px solid rgba(233, 30, 99, 0.6);
+            outline-offset: 2px;
+        }
+
         .character-rank {
             position: absolute;
             bottom: 12px;
@@ -342,6 +373,7 @@
                 <div class="character-card" aria-label="Personnage">
                     <div class="character-showcase">
                         <div class="character-sprite" aria-hidden="true"></div>
+                        <button type="button" class="character-upload-trigger tw-press" id="silhouetteUploadTrigger" aria-label="Importer une silhouette">+</button>
                         
                         <div class="character-slot character-slot--tl" data-slot-key="head" data-slot-label="Tete" role="button" tabindex="0" aria-label="Slot Tete">
                             <span class="character-slot-label">Tete</span>
@@ -1705,6 +1737,7 @@
         const listHelpers = window.astoriaListHelpers || {};
 
         const characterSpriteEl = document.querySelector('.character-sprite');
+        const silhouetteUploadTrigger = document.getElementById('silhouetteUploadTrigger');
         const silhouetteUploadInput = document.getElementById('silhouetteUploadInput');
         const silhouetteCropperBackdrop = document.getElementById('silhouetteCropperBackdrop');
         const silhouetteCropperImage = document.getElementById('silhouetteCropperImage');
@@ -1717,6 +1750,7 @@
         const SILHOUETTE_RATIO = 230 / 320;
         let silhouetteCropper = null;
         let silhouetteObjectUrl = null;
+        let isSilhouetteZoomSync = false;
 
 
 
@@ -3549,6 +3583,7 @@
 
 
             if (silhouetteCropperZoom) silhouetteCropperZoom.value = '1';
+            isSilhouetteZoomSync = false;
 
 
 
@@ -3624,7 +3659,24 @@
 
 
 
-                background: false
+                background: false,
+                checkOrientation: false,
+                ready() {
+                    if (!silhouetteCropperZoom || !silhouetteCropper) return;
+                    const ratio = silhouetteCropper.getImageData().ratio || 1;
+                    const min = Number(silhouetteCropperZoom.min || 0.2);
+                    const max = Number(silhouetteCropperZoom.max || 3);
+                    const clamped = Math.min(max, Math.max(min, ratio));
+                    silhouetteCropperZoom.value = String(clamped);
+                },
+                zoom(event) {
+                    if (!silhouetteCropperZoom || isSilhouetteZoomSync) return;
+                    const ratio = Number(event?.detail?.ratio || 1);
+                    const min = Number(silhouetteCropperZoom.min || 0.2);
+                    const max = Number(silhouetteCropperZoom.max || 3);
+                    const clamped = Math.min(max, Math.max(min, ratio));
+                    silhouetteCropperZoom.value = String(clamped);
+                }
 
 
 
@@ -3649,6 +3701,15 @@
 
 
             characterSpriteEl.setAttribute('aria-label', 'Importer une silhouette de personnage');
+            characterSpriteEl.setAttribute('role', 'button');
+            characterSpriteEl.setAttribute('tabindex', '0');
+            if (silhouetteUploadTrigger) {
+                silhouetteUploadTrigger.title = "Importer une silhouette";
+            }
+
+            const triggerSilhouetteUpload = () => {
+                silhouetteUploadInput.click();
+            };
 
 
 
@@ -3656,10 +3717,20 @@
 
 
 
-                silhouetteUploadInput.click();
+                triggerSilhouetteUpload();
 
 
 
+            });
+
+            characterSpriteEl.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                triggerSilhouetteUpload();
+            });
+
+            silhouetteUploadTrigger?.addEventListener('click', () => {
+                triggerSilhouetteUpload();
             });
 
 
@@ -3726,6 +3797,13 @@
 
             });
 
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') return;
+                if (!silhouetteCropperBackdrop?.classList.contains('open')) return;
+                event.preventDefault();
+                closeSilhouetteCropper();
+            });
+
 
 
             silhouetteCropperZoom?.addEventListener('input', () => {
@@ -3736,7 +3814,11 @@
 
 
 
+                isSilhouetteZoomSync = true;
                 silhouetteCropper.zoomTo(Number(silhouetteCropperZoom.value || 1));
+                requestAnimationFrame(() => {
+                    isSilhouetteZoomSync = false;
+                });
 
 
 
