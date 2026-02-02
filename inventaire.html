@@ -82,8 +82,8 @@
 
         .character-upload-trigger {
             position: absolute;
-            right: 16px;
-            bottom: 16px;
+            left: 50%;
+            top: 74%;
             width: 40px;
             height: 40px;
             border: none;
@@ -99,10 +99,11 @@
             box-shadow: 0 10px 18px rgba(233, 30, 99, 0.35);
             transition: transform 0.16s ease, box-shadow 0.16s ease;
             z-index: 2;
+            transform: translate(-50%, -50%);
         }
 
         .character-upload-trigger:hover {
-            transform: translateY(-1px);
+            transform: translate(-50%, calc(-50% - 1px));
             box-shadow: 0 14px 20px rgba(233, 30, 99, 0.32);
         }
 
@@ -200,7 +201,7 @@
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 22000;
+            z-index: 2147483000;
             padding: 20px;
         }
 
@@ -3632,6 +3633,12 @@
 
 
             silhouetteCropperBackdrop.setAttribute('aria-hidden', 'false');
+            silhouetteCropperBackdrop.style.position = 'fixed';
+            silhouetteCropperBackdrop.style.top = '0';
+            silhouetteCropperBackdrop.style.right = '0';
+            silhouetteCropperBackdrop.style.bottom = '0';
+            silhouetteCropperBackdrop.style.left = '0';
+            silhouetteCropperBackdrop.style.zIndex = '2147483000';
 
 
 
@@ -3693,6 +3700,9 @@
 
 
             if (!characterSpriteEl || !silhouetteUploadInput) return;
+            if (silhouetteCropperBackdrop && silhouetteCropperBackdrop.parentElement !== document.body) {
+                document.body.appendChild(silhouetteCropperBackdrop);
+            }
 
 
 

@@ -592,7 +592,6 @@
             const value = document.createElement("span");
             value.className = "skills-value";
             value.textContent = `${totalValue} / ${cap}`;
-            value.title = "Survol 1s : détail des sources (natif, objets, nokorah).";
 
             const incBtn = document.createElement("button");
             incBtn.type = "button";
@@ -613,7 +612,9 @@
             bindBonusTooltip(li, {
                 natif: base + allocation,
                 objets: bonusEntry.items || 0,
-                nokorah: bonusEntry.nokorah || 0
+                nokorah: bonusEntry.nokorah || 0,
+                itemDetails: bonusEntry.itemDetails || [],
+                nokorahDetails: bonusEntry.nokorahDetails || []
             });
             li.style.cursor = "help";
             skillsListEl.appendChild(li);
@@ -726,38 +727,46 @@
     }
 
     function getNokorahBonuses() {
-        const fromProfile = getNokorahBonusesFromProfile();
-        if (Object.keys(fromProfile).length) {
-            return fromProfile;
-        }
-        const key = getNokorahStorageKey();
-        try {
-            const raw = localStorage.getItem(key);
-            const list = raw ? JSON.parse(raw) : [];
-            if (!Array.isArray(list)) return {};
-            return list.reduce((acc, bonus) => {
-                const name = bonus?.name;
-                const points = Number(bonus?.points) || 0;
-                if (!name || points <= 0) return acc;
-                acc[name] = (acc[name] || 0) + points;
-                return acc;
-            }, {});
-        } catch {
-            return {};
-        }
+        return getNokorahBonusBreakdown().totals;
     }
 
     function getNokorahBonusesFromProfile() {
         const character = persistState.auth?.getActiveCharacter?.();
         const list = character?.profile_data?.nokorahBonuses;
-        if (!Array.isArray(list)) return {};
-        return list.reduce((acc, bonus) => {
+        return Array.isArray(list) ? list : [];
+    }
+
+    function getNokorahBonusesRawList() {
+        const fromProfile = getNokorahBonusesFromProfile();
+        if (fromProfile.length) return fromProfile;
+        const key = getNokorahStorageKey();
+        try {
+            const raw = localStorage.getItem(key);
+            const list = raw ? JSON.parse(raw) : [];
+            return Array.isArray(list) ? list : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function getNokorahBonusBreakdown() {
+        const totals = {};
+        const details = {};
+        getNokorahBonusesRawList().forEach((bonus) => {
             const name = bonus?.name;
             const points = Number(bonus?.points) || 0;
-            if (!name || points <= 0) return acc;
-            acc[name] = (acc[name] || 0) + points;
-            return acc;
-        }, {});
+            if (!name || points <= 0) return;
+            totals[name] = (totals[name] || 0) + points;
+            const sourceLabel = String(bonus?.source || bonus?.label || bonus?.origin || "Nokorah").trim() || "Nokorah";
+            if (!details[name]) details[name] = [];
+            const existing = details[name].find((entry) => entry.label === sourceLabel);
+            if (existing) {
+                existing.value += points;
+            } else {
+                details[name].push({ label: sourceLabel, value: points });
+            }
+        });
+        return { totals, details };
     }
 
     function normalizeStatKey(value) {
@@ -844,12 +853,47 @@
         return itemCatalog.byName.get(targetKey) || null;
     }
 
+    function readInventorySnapshotFromLocalStorage() {
+        const snapshot = {};
+        try {
+            const raw = localStorage.getItem("astoriaInventory");
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                if (parsed.equippedSlots || parsed.equipped) {
+                    snapshot.equippedSlots = parsed.equippedSlots || parsed.equipped;
+                }
+                if (Array.isArray(parsed.activeConsumableEffects)) {
+                    snapshot.activeConsumableEffects = parsed.activeConsumableEffects;
+                }
+                if (Array.isArray(parsed.activeEffects)) {
+                    snapshot.activeEffects = parsed.activeEffects;
+                }
+            }
+        } catch {
+            // ignore fallback parse errors
+        }
+
+        if (!snapshot.equippedSlots) {
+            try {
+                const rawEquipped = localStorage.getItem("astoriaInventoryEquippedSlots");
+                if (rawEquipped) {
+                    snapshot.equippedSlots = JSON.parse(rawEquipped);
+                }
+            } catch {
+                // ignore fallback parse errors
+            }
+        }
+
+        return snapshot;
+    }
+
     function getItemBonuses() {
         const tools = window.astoriaItemModifiers;
-        if (!tools?.getModifiers) return {};
-
+        if (!tools?.getModifiers) return { totals: {}, details: {} };
         const character = persistState.auth?.getActiveCharacter?.();
-        const inventory = character?.profile_data?.inventory || {};
+        const profileInventory = character?.profile_data?.inventory;
+        const fallbackInventory = readInventorySnapshotFromLocalStorage();
+        const inventory = profileInventory && typeof profileInventory === "object" ? profileInventory : fallbackInventory;
         const equippedSlots = inventory?.equippedSlots && typeof inventory.equippedSlots === "object"
             ? inventory.equippedSlots
             : {};
@@ -888,7 +932,19 @@
         };
 
         const acc = {};
-        const applyModifiers = (modifiers) => {
+        const details = {};
+        const addDetail = (skillName, label, value) => {
+            if (!details[skillName]) details[skillName] = [];
+            const sourceLabel = String(label || "Objet").trim() || "Objet";
+            const existing = details[skillName].find((entry) => entry.label === sourceLabel);
+            if (existing) {
+                existing.value += value;
+            } else {
+                details[skillName].push({ label: sourceLabel, value });
+            }
+        };
+
+        const applyModifiers = (modifiers, sourceLabel) => {
             (Array.isArray(modifiers) ? modifiers : []).forEach((modifier) => {
                 if (!modifier || modifier.type === "percent") return;
                 const statKey = normalizeStatKey(modifier.stat);
@@ -903,6 +959,7 @@
                 });
                 touched.forEach((skillName) => {
                     acc[skillName] = (acc[skillName] || 0) + value;
+                    addDetail(skillName, sourceLabel, value);
                 });
             });
         };
@@ -910,35 +967,39 @@
         Object.values({ ...legacyEquipped, ...equippedSlots }).forEach((entry) => {
             if (!entry) return;
             const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
+            const sourceLabel = item?.name || entry?.item_key || entry?.name || "Equipement";
             if (!item) return;
-            applyModifiers(tools.getModifiers(item));
+            applyModifiers(tools.getModifiers(item), sourceLabel);
         });
 
         [...legacyConsumables, ...activeConsumables].forEach((entry) => {
             if (!entry) return;
+            const sourceLabel = entry?.name || entry?.item_key || "Consommable";
             if (Array.isArray(entry.modifiers)) {
-                applyModifiers(tools.dedupeModifiers ? tools.dedupeModifiers(entry.modifiers) : entry.modifiers);
+                applyModifiers(tools.dedupeModifiers ? tools.dedupeModifiers(entry.modifiers) : entry.modifiers, sourceLabel);
                 return;
             }
             const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
             if (!item) return;
-            applyModifiers(tools.getModifiers(item));
+            applyModifiers(tools.getModifiers(item), item?.name || sourceLabel);
         });
 
-        return acc;
+        return { totals: acc, details };
     }
 
     function getBonusBreakdownBySkill() {
-        const nokorah = getNokorahBonuses();
+        const nokorah = getNokorahBonusBreakdown();
         const items = getItemBonuses();
-        const keys = new Set([...Object.keys(nokorah), ...Object.keys(items)]);
+        const keys = new Set([...Object.keys(nokorah.totals), ...Object.keys(items.totals)]);
         const map = {};
         keys.forEach((skill) => {
-            const nokorahValue = Number(nokorah[skill]) || 0;
-            const itemValue = Number(items[skill]) || 0;
+            const nokorahValue = Number(nokorah.totals[skill]) || 0;
+            const itemValue = Number(items.totals[skill]) || 0;
             map[skill] = {
                 nokorah: nokorahValue,
                 items: itemValue,
+                itemDetails: Array.isArray(items.details[skill]) ? items.details[skill] : [],
+                nokorahDetails: Array.isArray(nokorah.details[skill]) ? nokorah.details[skill] : [],
                 total: nokorahValue + itemValue
             };
         });
@@ -972,15 +1033,44 @@
         }
     }
 
+    function escapeTooltipHtml(value) {
+        return String(value || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function formatSignedBonus(value) {
+        const numeric = Number(value) || 0;
+        return `${numeric >= 0 ? "+" : ""}${numeric}`;
+    }
+
+    function renderTooltipDetails(entries, emptyLabel) {
+        if (!Array.isArray(entries) || !entries.length) {
+            return `<li class="skills-bonus-tooltip-empty">${escapeTooltipHtml(emptyLabel)}</li>`;
+        }
+        return entries
+            .map((entry) => `<li><span>${escapeTooltipHtml(entry.label)}</span><strong>${formatSignedBonus(entry.value)}</strong></li>`)
+            .join("");
+    }
+
     function showBonusTooltip(target, payload) {
         const tooltip = ensureBonusTooltip();
         const natif = Number(payload?.natif) || 0;
         const objets = Number(payload?.objets) || 0;
         const nokorah = Number(payload?.nokorah) || 0;
+        const total = natif + objets + nokorah;
+        const itemDetails = Array.isArray(payload?.itemDetails) ? payload.itemDetails : [];
+        const nokorahDetails = Array.isArray(payload?.nokorahDetails) ? payload.nokorahDetails : [];
         tooltip.innerHTML = `
-            <div><strong>Natif:</strong> ${natif}</div>
-            <div><strong>Objets:</strong> ${objets >= 0 ? "+" : ""}${objets}</div>
-            <div><strong>Nokorah:</strong> ${nokorah >= 0 ? "+" : ""}${nokorah}</div>
+            <div class="skills-bonus-tooltip-row"><strong>Total bonus</strong><span>${formatSignedBonus(total)}</span></div>
+            <div class="skills-bonus-tooltip-row"><strong>Natif</strong><span>${formatSignedBonus(natif)}</span></div>
+            <div class="skills-bonus-tooltip-row"><strong>Objets</strong><span>${formatSignedBonus(objets)}</span></div>
+            <ul class="skills-bonus-tooltip-list">${renderTooltipDetails(itemDetails, "Aucun bonus objet actif.")}</ul>
+            <div class="skills-bonus-tooltip-row"><strong>Nokorah</strong><span>${formatSignedBonus(nokorah)}</span></div>
+            <ul class="skills-bonus-tooltip-list">${renderTooltipDetails(nokorahDetails, "Aucun bonus Nokorah actif.")}</ul>
         `;
         const rect = target.getBoundingClientRect();
         tooltip.style.left = `${Math.min(window.innerWidth - 240, Math.max(8, rect.left + rect.width / 2 - 110))}px`;
@@ -1098,12 +1188,13 @@
             const cap = getSkillCap(skill);
             if (valueEl) {
                 valueEl.textContent = `${total} / ${cap}`;
-                valueEl.title = "Survol 1s : détail des sources (natif, objets, nokorah).";
             }
             bindBonusTooltip(line, {
                 natif: base + allocation,
                 objets: bonusEntry.items || 0,
-                nokorah: bonusEntry.nokorah || 0
+                nokorah: bonusEntry.nokorah || 0,
+                itemDetails: bonusEntry.itemDetails || [],
+                nokorahDetails: bonusEntry.nokorahDetails || []
             });
             const atMax = base + allocation >= cap;
             decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
