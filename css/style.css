@@ -98,6 +98,12 @@
     --touch-target-comfortable: 48px; /* Plus confortable */
     --touch-target-large: 56px;    /* Pour actions importantes */
     --touch-spacing: 8px;          /* Espacement minimum entre targets */
+
+    /* === RESPONSIVE BREAKPOINTS === */
+    --breakpoint-mobile: 480px;    /* Petits mobiles */
+    --breakpoint-tablet: 768px;    /* Tablettes portrait */
+    --breakpoint-desktop: 1024px;  /* Desktop / tablettes landscape */
+    --breakpoint-wide: 1440px;     /* Large screens */
     --carousel-img: 200px;
     --carousel-img-min-height: 180px;
     --carousel-btn: 28px;
@@ -3107,4 +3113,228 @@ button:hover .shortcut-icon {
         width: 100%;
         min-height: var(--touch-target-comfortable);
     }
+}
+
+/* =================================================================
+   RESPONSIVE BREAKPOINTS STANDARDS
+   ================================================================= */
+
+/* Mobile: 320px - 767px */
+@media (max-width: 767px) {
+    .hide-mobile { display: none !important; }
+}
+
+/* Tablet: 768px - 1023px */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .hide-tablet { display: none !important; }
+}
+
+/* Desktop: 1024px+ */
+@media (min-width: 1024px) {
+    .hide-desktop { display: none !important; }
+}
+
+/* Show only on mobile */
+@media (min-width: 768px) {
+    .show-mobile-only { display: none !important; }
+}
+
+/* =================================================================
+   RESPONSIVE HEADERS
+   ================================================================= */
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: none;
+}
+
+/* Mobile: stack vertical ou compact horizontal */
+@media (max-width: 767px) {
+    .page-header {
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .page-header--stack {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header h1,
+    .page-header .header-title {
+        font-size: 1.2rem;
+        text-align: center;
+    }
+
+    /* Character summary compact sur mobile */
+    .character-summary {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .character-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .character-summary-text {
+        font-size: var(--text-sm);
+    }
+
+    .character-summary-meta {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+}
+
+/* Tablet: optimisation layout */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .page-header {
+        padding: 14px 18px;
+    }
+
+    .page-header h1 {
+        font-size: 1.4rem;
+    }
+}
+
+/* =================================================================
+   RESPONSIVE MODALS
+   ================================================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 16px;
+    width: min(600px, 90vw);
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* Mobile: fullscreen ou presque */
+@media (max-width: 767px) {
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .modal-container {
+        width: 100%;
+        max-height: 95vh;
+        border-radius: 20px 20px 0 0;
+        animation: slideUpModal 0.3s ease;
+    }
+
+    .modal-container--fullscreen {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modal-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--color-gray-200);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 10;
+    }
+
+    .modal-content {
+        padding: 16px;
+    }
+
+    .modal-actions {
+        padding: 16px;
+        border-top: 1px solid var(--color-gray-200);
+        display: flex;
+        gap: 12px;
+        position: sticky;
+        bottom: 0;
+        background: white;
+    }
+
+    .modal-actions .btn-touch {
+        flex: 1;
+    }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .modal-container {
+        width: min(700px, 85vw);
+        max-height: 90vh;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .modal-container {
+        width: min(800px, 80vw);
+    }
+}
+
+/* Animation slide up pour mobile */
+@keyframes slideUpModal {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =================================================================
+   RESPONSIVE UTILITIES
+   ================================================================= */
+
+/* Text alignment responsive */
+@media (max-width: 767px) {
+    .text-center-mobile { text-align: center !important; }
+    .text-left-mobile { text-align: left !important; }
+}
+
+/* Flex direction responsive */
+@media (max-width: 767px) {
+    .flex-col-mobile {
+        flex-direction: column !important;
+    }
+}
+
+/* Full width on mobile */
+@media (max-width: 767px) {
+    .w-full-mobile {
+        width: 100% !important;
+    }
+}
+
+/* Spacing responsive */
+@media (max-width: 767px) {
+    .gap-sm-mobile { gap: 8px !important; }
+    .p-sm-mobile { padding: 12px !important; }
+    .px-sm-mobile { padding-left: 12px !important; padding-right: 12px !important; }
+    .py-sm-mobile { padding-top: 12px !important; padding-bottom: 12px !important; }
 }
