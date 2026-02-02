@@ -2997,6 +2997,56 @@ button:hover .shortcut-icon {
 }
 
 /* =================================================================
+   NAVIGATION FIXES
+   ================================================================= */
+
+/* Cacher tous les boutons Retour */
+.page-back,
+.quest-back,
+.skills-back-link {
+    display: none !important;
+}
+
+/* Fix z-index hierarchy */
+:root {
+    --z-base: 1;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-header: 300;
+    --z-sidebar: 400;
+    --z-modal: 1000;
+    --z-popover: 1100;
+    --z-tooltip: 1200;
+    --z-toast: 1300;
+}
+
+/* Fix scroll issues - empêche scroll dans scroll */
+.inventory-grid,
+.magic-card-grid,
+.quest-track,
+.skills-category-content {
+    overscroll-behavior: contain;
+}
+
+/* Mobile: fix scroll dans modals */
+@media (max-width: 767px) {
+    body.modal-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+    }
+
+    .modal-overlay {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .modal-container {
+        overscroll-behavior: contain;
+    }
+}
+
+/* =================================================================
    TOUCH-FRIENDLY UTILITIES (Mobile UX)
    ================================================================= */
 
