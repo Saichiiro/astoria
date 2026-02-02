@@ -2344,6 +2344,14 @@ function bindEvents() {
     window.addEventListener("keydown", (event) => {
         if (event.defaultPrevented) return;
         if (isEditableTarget(event.target)) return;
+
+        // ESC pour fermer le modal détail
+        if (event.key === "Escape" && dom.detailModal.classList.contains("open")) {
+            event.preventDefault();
+            closeModal(dom.detailModal);
+            return;
+        }
+
         if (dom.detailModal.classList.contains("open")) return;
         if (!isCarouselFocused()) return;
         if (event.key === "ArrowLeft") {
