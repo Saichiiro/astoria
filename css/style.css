@@ -92,6 +92,12 @@
 
     /* === COMPONENT SIZES === */
     --img-thumbnail: 86px;
+
+    /* === TOUCH-FRIENDLY SIZES (Mobile UX) === */
+    --touch-target-min: 44px;      /* Minimum recommandé Apple/Google */
+    --touch-target-comfortable: 48px; /* Plus confortable */
+    --touch-target-large: 56px;    /* Pour actions importantes */
+    --touch-spacing: 8px;          /* Espacement minimum entre targets */
     --carousel-img: 200px;
     --carousel-img-min-height: 180px;
     --carousel-btn: 28px;
@@ -2982,4 +2988,123 @@ button:hover .shortcut-icon {
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* =================================================================
+   TOUCH-FRIENDLY UTILITIES (Mobile UX)
+   ================================================================= */
+
+/* Touch target classes - garantit 44px minimum */
+.touch-target {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.touch-target-comfortable {
+    min-width: var(--touch-target-comfortable);
+    min-height: var(--touch-target-comfortable);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.touch-target-large {
+    min-width: var(--touch-target-large);
+    min-height: var(--touch-target-large);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Buttons touch-friendly */
+.btn-touch {
+    min-height: var(--touch-target-min);
+    padding: 10px 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-touch-comfortable {
+    min-height: var(--touch-target-comfortable);
+    padding: 12px 24px;
+}
+
+.btn-touch-large {
+    min-height: var(--touch-target-large);
+    padding: 14px 28px;
+    font-size: var(--text-lg);
+}
+
+/* Icon buttons touch-friendly */
+.icon-btn-touch {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn-touch-comfortable {
+    width: var(--touch-target-comfortable);
+    height: var(--touch-target-comfortable);
+}
+
+.icon-btn-touch-large {
+    width: var(--touch-target-large);
+    height: var(--touch-target-large);
+}
+
+/* Touch spacing - espacement minimum entre éléments tactiles */
+.touch-spacing > * + * {
+    margin-left: var(--touch-spacing);
+}
+
+.touch-spacing-y > * + * {
+    margin-top: var(--touch-spacing);
+}
+
+/* Amélioration feedback tactile */
+.touch-feedback {
+    transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+.touch-feedback:active {
+    transform: scale(0.95);
+    opacity: 0.8;
+}
+
+/* Désactive le highlight bleu iOS */
+.no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Augmente la zone de clic sans changer le visuel (pseudo-element hack) */
+.touch-area-extend {
+    position: relative;
+}
+
+.touch-area-extend::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+}
+
+/* Full-width touch button (mobile) */
+@media (max-width: 767px) {
+    .btn-touch-full-mobile {
+        width: 100%;
+        min-height: var(--touch-target-comfortable);
+    }
 }
