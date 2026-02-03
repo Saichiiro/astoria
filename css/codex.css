@@ -2,12 +2,25 @@
    CODEX ADMIN - codex.html
    ===================================================================== */
 
+/* =================================================================
+   MODERNIZED CONTROL PANEL
+   ================================================================= */
+.codex-control-panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(252, 244, 248, 0.9));
+    border: 2px solid rgba(238, 162, 201, 0.4);
+    border-radius: 20px;
+    padding: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-5);
+    box-shadow: 0 8px 24px rgba(200, 160, 230, 0.12);
+}
+
 /* Toolbar with stats and add button */
 .codex-toolbar {
     display: flex;
     align-items: center;
     gap: var(--space-4);
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-4);
+    flex-wrap: wrap;
 }
 
 .codex-toolbar .stats-badge {
@@ -657,5 +670,282 @@
     .codex-admin-image {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+/* =================================================================
+   MODERNIZATION: Category Filter Pills
+   ================================================================= */
+.codex-category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: var(--space-2);
+}
+
+.codex-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    background: linear-gradient(180deg, #f8f4f9, #efe8f0);
+    color: #6a2b5a;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(200, 160, 230, 0.1);
+}
+
+.codex-category-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(200, 160, 230, 0.25);
+    border-color: rgba(216, 27, 96, 0.3);
+}
+
+.codex-category-pill.active {
+    background: linear-gradient(135deg, #e91e63, #ff5d92);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 16px rgba(233, 30, 99, 0.35);
+}
+
+.codex-category-pill .pill-icon {
+    font-size: 1.1rem;
+}
+
+.codex-category-pill .pill-count {
+    background: rgba(255, 255, 255, 0.25);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.codex-category-pill.active .pill-count {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* =================================================================
+   MODERNIZATION: Table Styling
+   ================================================================= */
+.table-container {
+    border-radius: 18px;
+    border: 2px solid rgba(238, 162, 201, 0.35);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(200, 160, 230, 0.12);
+}
+
+#inventoryTable {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#inventoryTable thead {
+    background: linear-gradient(180deg, rgba(252, 228, 236, 0.8), rgba(248, 220, 232, 0.9));
+}
+
+#inventoryTable thead th {
+    padding: 14px 16px;
+    font-weight: 700;
+    color: #6a2b5a;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid rgba(238, 162, 201, 0.4);
+    white-space: nowrap;
+}
+
+#inventoryTable tbody tr {
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+#inventoryTable tbody tr:nth-child(even) {
+    background: rgba(252, 244, 248, 0.5);
+}
+
+#inventoryTable tbody tr:hover {
+    background: rgba(252, 228, 236, 0.6);
+    transform: scale(1.005);
+    box-shadow: 0 4px 12px rgba(216, 27, 96, 0.08);
+}
+
+#inventoryTable tbody td {
+    padding: 12px 16px;
+    vertical-align: middle;
+    border-bottom: 1px solid rgba(238, 162, 201, 0.2);
+}
+
+#inventoryTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Table item image */
+#inventoryTable .item-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 2px solid rgba(238, 162, 201, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#inventoryTable tbody tr:hover .item-thumb {
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(216, 27, 96, 0.15);
+}
+
+/* Table name column */
+#inventoryTable .item-name {
+    font-weight: 700;
+    color: #3a1f2e;
+    font-size: 0.95rem;
+}
+
+/* Sortable headers */
+#inventoryTable th.sortable {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+#inventoryTable th.sortable:hover {
+    background: rgba(216, 27, 96, 0.1);
+}
+
+#inventoryTable th.sortable .sort-indicator::after {
+    content: '↕';
+    opacity: 0.4;
+    margin-left: 4px;
+    font-size: 0.7rem;
+}
+
+#inventoryTable th.sortable[aria-sort="ascending"] .sort-indicator::after {
+    content: '↑';
+    opacity: 1;
+}
+
+#inventoryTable th.sortable[aria-sort="descending"] .sort-indicator::after {
+    content: '↓';
+    opacity: 1;
+}
+
+/* View button in table */
+#inventoryTable .view-btn {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 2px solid var(--color-primary);
+    background: linear-gradient(180deg, #fff, #fef5f8);
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#inventoryTable .view-btn:hover {
+    background: linear-gradient(135deg, #e91e63, #ff5d92);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+}
+
+/* =================================================================
+   MODERNIZATION: Stats Badge
+   ================================================================= */
+.codex-toolbar .stats-badge {
+    background: linear-gradient(135deg, #e91e63, #ff5d92);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 12px rgba(233, 30, 99, 0.25);
+}
+
+/* =================================================================
+   MODERNIZATION: Empty State
+   ================================================================= */
+.codex-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6a2b5a;
+}
+
+.codex-empty-state .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.codex-empty-state .empty-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.codex-empty-state .empty-desc {
+    color: #8a5b7a;
+    font-size: 0.9rem;
+}
+
+/* =================================================================
+   MODERNIZATION: Animations
+   ================================================================= */
+@keyframes codexFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#inventoryTable tbody tr {
+    animation: codexFadeIn 0.3s ease forwards;
+}
+
+#inventoryTable tbody tr:nth-child(1) { animation-delay: 0.02s; }
+#inventoryTable tbody tr:nth-child(2) { animation-delay: 0.04s; }
+#inventoryTable tbody tr:nth-child(3) { animation-delay: 0.06s; }
+#inventoryTable tbody tr:nth-child(4) { animation-delay: 0.08s; }
+#inventoryTable tbody tr:nth-child(5) { animation-delay: 0.1s; }
+#inventoryTable tbody tr:nth-child(n+6) { animation-delay: 0.12s; }
+
+/* =================================================================
+   MODERNIZATION: Mobile Responsive
+   ================================================================= */
+@media (max-width: 700px) {
+    .codex-category-pills {
+        gap: 8px;
+    }
+
+    .codex-category-pill {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+
+    .codex-category-pill .pill-count {
+        display: none;
+    }
+
+    #inventoryTable thead th {
+        padding: 10px 12px;
+        font-size: 0.7rem;
+    }
+
+    #inventoryTable tbody td {
+        padding: 10px 12px;
+    }
+
+    #inventoryTable .item-thumb {
+        width: 44px;
+        height: 44px;
     }
 }

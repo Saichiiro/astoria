@@ -47,18 +47,10 @@
             </div>
         </header>
 
-        <section class="codex-control-panel tw-surface" aria-label="Filtres du codex">
+        <section class="codex-control-panel" aria-label="Filtres du codex">
             <div class="codex-toolbar">
                 <span class="stats-badge" id="statsBadge">0 objet</span>
                 <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
-                <select id="categoryFilter" class="category-dropdown tw-input">
-                    <option value="">Toutes cat&eacute;gories</option>
-                    <option value="agricole">&#x1F33E; Agricole</option>
-                    <option value="consommable">&#x1F9EA; Consommables</option>
-                    <option value="equipement">&#x2694;&#xFE0F; &Eacute;quipements</option>
-                    <option value="materiau">&#x2692;&#xFE0F; Mat&eacute;riaux</option>
-                    <option value="quete">&#x2728; Qu&ecirc;tes</option>
-                </select>
                 <div class="inventory-search" id="codexSearch">
                     <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
                         <span class="inventory-search-icon">&#x1F50D;</span>
@@ -72,7 +64,48 @@
                     <div class="recent-searches-dropdown inventory-search-history" id="recentSearchesDropdown"></div>
                 </div>
             </div>
-            <div class="filter-chips" id="filterChips"></div>
+            <!-- Category Pills -->
+            <nav class="codex-category-pills" id="categoryPills" aria-label="Filtrer par catégorie">
+                <button type="button" class="codex-category-pill active" data-category="">
+                    <span class="pill-icon">&#x1F4E6;</span>
+                    <span>Tous</span>
+                    <span class="pill-count" id="countAll">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="agricole">
+                    <span class="pill-icon">&#x1F33E;</span>
+                    <span>Agricole</span>
+                    <span class="pill-count" id="countAgricole">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="consommable">
+                    <span class="pill-icon">&#x1F9EA;</span>
+                    <span>Consommables</span>
+                    <span class="pill-count" id="countConsommable">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="equipement">
+                    <span class="pill-icon">&#x2694;&#xFE0F;</span>
+                    <span>Équipements</span>
+                    <span class="pill-count" id="countEquipement">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="materiau">
+                    <span class="pill-icon">&#x2692;&#xFE0F;</span>
+                    <span>Matériaux</span>
+                    <span class="pill-count" id="countMateriau">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="quete">
+                    <span class="pill-icon">&#x2728;</span>
+                    <span>Quêtes</span>
+                    <span class="pill-count" id="countQuete">0</span>
+                </button>
+            </nav>
+            <!-- Hidden dropdown for backwards compatibility -->
+            <select id="categoryFilter" class="category-dropdown tw-input" hidden>
+                <option value="">Toutes catégories</option>
+                <option value="agricole">Agricole</option>
+                <option value="consommable">Consommables</option>
+                <option value="equipement">Équipements</option>
+                <option value="materiau">Matériaux</option>
+                <option value="quete">Quêtes</option>
+            </select>
         </section>
         <div class="table-container tw-panel">
             <table id="inventoryTable">

@@ -3,7 +3,8 @@ import {
     clearActiveCharacter,
     clearSession,
     readSession,
-    writeSession
+    writeSession,
+    refreshSessionTimestamp
 } from './session-store.js';
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -124,7 +125,10 @@ export function logout() {
 export function isAuthenticated() {
     const session = readSession();
     if (!session) return false;
-    return !isExpired(session);
+    if (isExpired(session)) return false;
+    // Sliding session: refresh timestamp on each visit
+    refreshSessionTimestamp();
+    return true;
 }
 
 export function getCurrentUser() {

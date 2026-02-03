@@ -566,6 +566,9 @@ function loadTable(data, searchQuery) {
         statsBadge.textContent = `${count} objet${count > 1 ? 's' : ''}`;
     }
 
+    // Update category counts in pills
+    updateCategoryCounts();
+
     if (data.length === 0) {
         // Empty state
         tableBody.innerHTML = `
@@ -911,6 +914,15 @@ function clearCategoryFilter() {
     if (pageTitle) {
         pageTitle.textContent = 'Codex d\'Astoria';
     }
+
+    // Reset active pill
+    const categoryPills = document.getElementById('categoryPills');
+    if (categoryPills) {
+        categoryPills.querySelectorAll('.codex-category-pill').forEach(p => p.classList.remove('active'));
+        const allPill = categoryPills.querySelector('[data-category=""]');
+        if (allPill) allPill.classList.add('active');
+    }
+
     applyFilters();
     updateFilterChips();
 }
@@ -923,8 +935,51 @@ function clearAllFilters() {
         searchInput.value = '';
     }
     currentCategory = '';
+
+    // Reset active pill
+    const categoryPills = document.getElementById('categoryPills');
+    if (categoryPills) {
+        categoryPills.querySelectorAll('.codex-category-pill').forEach(p => p.classList.remove('active'));
+        const allPill = categoryPills.querySelector('[data-category=""]');
+        if (allPill) allPill.classList.add('active');
+    }
+
     applyFilters();
     updateFilterChips('');
+}
+
+// Update category counts in pills
+function updateCategoryCounts() {
+    const counts = {
+        '': allItems.length,
+        'agricole': 0,
+        'consommable': 0,
+        'equipement': 0,
+        'materiau': 0,
+        'quete': 0
+    };
+
+    allItems.forEach(item => {
+        const cat = (item.category || '').toLowerCase();
+        if (counts.hasOwnProperty(cat)) {
+            counts[cat]++;
+        }
+    });
+
+    // Update pill counts
+    const countAll = document.getElementById('countAll');
+    const countAgricole = document.getElementById('countAgricole');
+    const countConsommable = document.getElementById('countConsommable');
+    const countEquipement = document.getElementById('countEquipement');
+    const countMateriau = document.getElementById('countMateriau');
+    const countQuete = document.getElementById('countQuete');
+
+    if (countAll) countAll.textContent = counts[''];
+    if (countAgricole) countAgricole.textContent = counts['agricole'];
+    if (countConsommable) countConsommable.textContent = counts['consommable'];
+    if (countEquipement) countEquipement.textContent = counts['equipement'];
+    if (countMateriau) countMateriau.textContent = counts['materiau'];
+    if (countQuete) countQuete.textContent = counts['quete'];
 }
 
 // Override: filter chips without "Réinitialiser filtres" action chip
@@ -1043,6 +1098,26 @@ function hideRecentSearches() {
 }
 
 function bindPageEvents() {
+    // Category pills (modern UI)
+    const categoryPills = document.getElementById('categoryPills');
+    if (categoryPills) {
+        categoryPills.addEventListener('click', (e) => {
+            const pill = e.target.closest('.codex-category-pill');
+            if (!pill) return;
+
+            // Update active state
+            categoryPills.querySelectorAll('.codex-category-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+
+            // Sync with hidden dropdown and trigger filter
+            const category = pill.dataset.category || '';
+            if (categoryFilter) {
+                categoryFilter.value = category;
+            }
+            filterByCategory();
+        });
+    }
+
     if (categoryFilter) {
         categoryFilter.addEventListener('change', () => filterByCategory());
     }

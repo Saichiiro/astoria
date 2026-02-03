@@ -45,6 +45,20 @@ export function writeSession(session) {
     } catch {}
 }
 
+/**
+ * Refresh session timestamp to extend expiration (sliding session)
+ * Call this on page load when user is authenticated
+ */
+export function refreshSessionTimestamp() {
+    const session = readSession();
+    if (session && session.user) {
+        session.timestamp = Date.now();
+        writeSession(session);
+        return true;
+    }
+    return false;
+}
+
 export function clearSession() {
     localStorage.removeItem(SESSION_KEY);
     sessionCache = null;
