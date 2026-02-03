@@ -106,13 +106,6 @@ const normalizeName = window.astoriaImageHelpers && window.astoriaImageHelpers.n
             .toLowerCase();
     };
 
-function sanitizer.clean(str) {
-    return (str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-}
-
 function highlightText(text, query) {
     if (!query || !text) return sanitizer.clean(text);
 

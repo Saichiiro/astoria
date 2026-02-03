@@ -220,15 +220,6 @@ function normalizeText(value) {
         .toLowerCase();
 }
 
-function sanitizer.clean(value) {
-    return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-}
-
 function sanitizeText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
 }
