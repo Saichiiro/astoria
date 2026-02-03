@@ -1,7 +1,11 @@
 // On récupère les données depuis data.js (inventoryData)
-// Safe sanitizer wrapper
+// Safe sanitizer wrapper with fallback
 function clean(value) {
-    return window.sanitizer?.clean(value) || '';
+    if (window.sanitizer?.clean) {
+        return window.sanitizer.clean(value);
+    }
+    // Fallback: return value as-is if sanitizer not loaded
+    return String(value || '');
 }
 
 window.astoriaIsAdmin = false;

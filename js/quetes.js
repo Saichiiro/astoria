@@ -4,9 +4,13 @@ import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
 
-// Safe sanitizer wrapper that returns empty string if sanitizer is not available
+// Safe sanitizer wrapper with fallback when sanitizer not available
 function clean(value) {
-    return window.sanitizer?.clean(value) || '';
+    if (window.sanitizer?.clean) {
+        return window.sanitizer.clean(value);
+    }
+    // Fallback: return value as-is if sanitizer not loaded
+    return String(value || '');
 }
 
 const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation"];
