@@ -4,6 +4,94 @@
 .magic-page {
     max-width: var(--wrapper-max-width);
     margin: 0 auto;
+    min-height: 100vh;
+}
+
+.main-container {
+    margin: 0 auto;
+    padding: 40px;
+    min-height: calc(100vh - 200px);
+    position: relative;
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Original header kept as-is */
+
+/* =====================================================================
+   CATEGORY SELECTION - Page 1
+   ===================================================================== */
+.category-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.category-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(200, 160, 230, 0.15);
+    border: 3px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(213, 0, 109, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.category-card:hover::before {
+    left: 100%;
+}
+
+.category-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 40px rgba(200, 160, 230, 0.35);
+    border-color: #D5006D;
+}
+
+.category-card:active {
+    transform: translateY(-4px) scale(1.01);
+}
+
+.category-icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.category-card:hover .category-icon {
+    transform: scale(1.15) rotate(5deg);
+}
+
+.category-name {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.category-desc {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 600;
 }
 
 .magic-header {
@@ -48,6 +136,8 @@
 .magic-layout {
     display: flex;
     gap: var(--space-6);
+    position: relative;
+    z-index: 1;
 }
 
 .magic-sheet {
@@ -138,31 +228,34 @@
 .magic-nav-btn {
     width: auto;
     text-align: center;
-    border-radius: var(--radius-md);
-    border: 1px solid transparent;
-    padding: var(--space-3) var(--space-4);
-    background: transparent;
+    border-radius: 999px;
+    border: none;
+    padding: 14px 28px;
+    background: white;
     cursor: pointer;
-    font-family: var(--font-family);
-    font-size: var(--text-sm-plus);
-    color: #2e3644;
+    font-family: 'Nunito', var(--font-family);
+    font-size: 15px;
+    color: #666;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--space-3);
-    transition: all var(--transition-fast);
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .magic-top-nav {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: 12px;
     flex-wrap: wrap;
     overflow-x: auto;
-    padding: var(--space-4) var(--space-5);
-    border-bottom: 1px solid #c7ccd6;
-    background: linear-gradient(to right, rgba(249, 250, 252, 0.95), rgba(232, 236, 243, 0.95));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 24px 32px;
+    background: transparent;
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
 }
 
 .magic-top-nav .magic-nav-btn {
@@ -170,16 +263,17 @@
 }
 
 .magic-nav-btn:hover {
-    background: var(--color-primary-lighter);
-    border-color: var(--color-primary-light);
-    color: var(--color-primary-dark);
+    background: #F8F9FA;
+    color: #D5006D;
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
 .magic-nav-btn--active {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-white);
-    box-shadow: 0 2px 6px rgba(216, 27, 96, 0.35);
+    background: linear-gradient(135deg, #D5006D, #FF1493);
+    color: white;
+    box-shadow: 0 4px 20px rgba(213, 0, 109, 0.35);
+    font-weight: 800;
 }
 
 .magic-nav-btn--admin {
@@ -218,12 +312,11 @@
 
 .magic-content {
     flex: 1;
-    background: linear-gradient(to bottom right, #f9fafc, #e8ecf3);
-    border-radius: var(--radius-lg);
-    border: 2px solid #c7ccd6;
-    box-shadow:
-        0 4px 6px rgba(0, 0, 0, 0.07),
-        0 10px 20px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 4px 20px rgba(200, 160, 230, 0.15);
     padding: 0;
     overflow: hidden;
     position: relative;
@@ -255,28 +348,6 @@
     font-weight: var(--font-semibold);
     color: var(--color-primary-dark);
     box-shadow: 0 8px 16px rgba(216, 27, 96, 0.12);
-    animation: magic-pill-pop 0.6s ease both;
-}
-
-.magic-scroll-pill:nth-child(2) {
-    animation-delay: 0.12s;
-}
-
-@keyframes magic-pill-pop {
-    from {
-        transform: translateY(-6px) scale(0.96);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .magic-scroll-pill {
-        animation: none;
-    }
 }
 
 .magic-section {
@@ -290,9 +361,10 @@
 .magic-section-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--space-4);
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
 }
 
 .magic-section-title {
@@ -1036,46 +1108,257 @@
    ===================================================================== */
 
 .spell-section {
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-7);
+    padding: var(--space-4) var(--space-5);
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 20px;
 }
 
+.magic-section-title,
 .spell-section-title {
-    font-size: var(--text-xl);
-    font-weight: var(--font-bold);
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--color-primary);
-    margin: 0 0 var(--space-4);
-    padding-bottom: var(--space-2);
-    border-bottom: 2px solid rgba(216, 27, 96, 0.15);
+    margin: 0;
 }
 
-.spell-card-grid {
+.spell-section-title__count {
+    font-weight: 600;
+    color: #9ca3af;
+}
+
+.spell-card-grid,
+.spells-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+    max-width: 1400px;
 }
 
-.spell-card {
-    background: var(--color-white);
-    border: 1px solid rgba(216, 27, 96, 0.12);
-    border-radius: var(--radius-lg);
-    padding: var(--space-3);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-    transition: all 0.2s ease;
+/* =====================================================================
+   FLIP CARD SYSTEM
+   ===================================================================== */
+.flip-card {
+    perspective: 1000px;
+    height: 280px;
+    cursor: pointer;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.5s ease;
+    transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(200, 160, 230, 0.15);
+}
+
+.flip-card-front {
+    background: white;
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    padding: 24px;
+    border: 2px solid transparent;
+    transition: border-color 0.3s;
+}
+
+.flip-card:hover .flip-card-front {
+    border-color: #D5006D;
+}
+
+.flip-card-back {
+    background: linear-gradient(135deg, #D5006D, #FF1493);
+    color: white;
+    transform: rotateY(180deg);
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* Front card content */
+.spell-card-front-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.spell-card-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #333;
+    flex: 1;
+}
+
+.spell-card-level {
+    background: #F0F0F0;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #666;
+}
+
+.spell-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.spell-card-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 2px solid;
+}
+
+.badge-offensif {
+    background: rgba(213, 0, 109, 0.1);
+    color: #D5006D;
+    border-color: rgba(213, 0, 109, 0.3);
+}
+
+.badge-soutien {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.badge-zone {
+    background: rgba(161, 140, 209, 0.1);
+    color: #8B5CF6;
+    border-color: rgba(161, 140, 209, 0.3);
+}
+
+.spell-card-preview {
+    font-size: 0.9rem;
+    color: #666;
+    line-height: 1.5;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.flip-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #BBB;
+    font-weight: 600;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid #F0F0F0;
+}
+
+/* Back card content */
+.spell-card-back-content h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.spell-detail-section {
+    margin-bottom: 16px;
+}
+
+.spell-detail-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    opacity: 0.8;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.spell-detail-value {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.spell-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.back-flip-hint {
+    text-align: center;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Legacy spell card support (non-flip) */
+.spell-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 253, 0.95));
+    border: 2px solid rgba(216, 27, 96, 0.12);
+    border-radius: 16px;
+    padding: var(--space-4);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.25s ease;
+    display: flex;
+    gap: var(--space-3);
+    position: relative;
 }
 
 .spell-card:hover {
     border-color: rgba(216, 27, 96, 0.25);
-    box-shadow: 0 4px 12px rgba(216, 27, 96, 0.12);
-    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(216, 27, 96, 0.15);
+    transform: translateY(-3px);
+}
+
+/* Icon styling for spell cards */
+.spell-card__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.spell-card__icon--offensif {
+    background: linear-gradient(135deg, #ff6b9d, #ffa8c5);
+}
+
+.spell-card__icon--soutien {
+    background: linear-gradient(135deg, #a8e063, #56ab2f);
+}
+
+.spell-card__icon--controle {
+    background: linear-gradient(135deg, #a18cd1, #fbc2eb);
+}
+
+.spell-card__icon--utilitaire {
+    background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
 .spell-card-header {
     display: flex;
     flex-direction: column;
     gap: var(--space-1);
+    flex: 1;
 }
 
 .spell-card-title-row {
@@ -1087,19 +1370,19 @@
 
 .spell-card-name {
     margin: 0;
-    font-size: var(--text-base);
-    font-weight: var(--font-bold);
-    color: var(--color-primary);
+    font-size: 17px;
+    font-weight: 700;
+    color: #2d3748;
     flex: 1;
     line-height: 1.3;
 }
 
 .spell-card-level {
     font-size: var(--text-xs);
-    font-weight: var(--font-semibold);
-    color: var(--color-gray-600);
-    background: rgba(216, 27, 96, 0.08);
-    padding: 2px 8px;
+    font-weight: 600;
+    color: #718096;
+    background: rgba(113, 128, 150, 0.1);
+    padding: 4px 10px;
     border-radius: 999px;
     white-space: nowrap;
 }
@@ -1139,17 +1422,262 @@
 
 .spell-card-tags {
     display: flex;
-    gap: var(--space-1);
+    gap: 6px;
     flex-wrap: wrap;
+    margin-top: 4px;
 }
 
 .spell-pill {
-    font-size: var(--text-xs);
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: var(--color-gray-100);
-    color: var(--color-gray-700);
-    border: 1px solid var(--color-gray-200);
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(216, 27, 96, 0.06);
+    color: #c91b60;
+    border: none;
+    font-weight: 600;
+}
+
+/* Tag/pill color variations */
+.spell-pill--offensif {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.spell-pill--soutien {
+    background: rgba(34, 197, 94, 0.1);
+    color: #16a34a;
+}
+
+.spell-pill--controle {
+    background: rgba(168, 85, 247, 0.1);
+    color: #9333ea;
+}
+
+.spell-pill--utilitaire {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.spell-pill--mineur {
+    background: rgba(156, 163, 175, 0.12);
+    color: #6b7280;
+}
+
+.spell-pill--signature {
+    background: rgba(236, 72, 153, 0.12);
+    color: #db2777;
+}
+
+.spell-pill--ultime {
+    background: rgba(147, 51, 234, 0.12);
+    color: #9333ea;
+}
+
+/* =====================================================================
+   COST & RANGE INDICATORS - Colored dots
+   ===================================================================== */
+.spell-card-indicators {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.spell-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.spell-indicator__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* Cost indicator colors */
+.spell-indicator__dot--cout-faible {
+    background: #fbbf24;
+}
+
+.spell-indicator__dot--cout-moyen {
+    background: #fb923c;
+}
+
+.spell-indicator__dot--cout-eleve {
+    background: #ef4444;
+}
+
+/* Range indicator colors */
+.spell-indicator__dot--proche {
+    background: #8b5cf6;
+}
+
+.spell-indicator__dot--zone {
+    background: #ec4899;
+}
+
+.spell-indicator__dot--distance {
+    background: #3b82f6;
+}
+
+/* Special indicators */
+.spell-indicator__dot--unique {
+    background: #f472b6;
+}
+
+.spell-indicator__dot--scene {
+    background: #a78bfa;
+}
+
+.spell-indicator__dot--limite {
+    background: #fb7185;
+}
+
+/* =====================================================================
+   ADD SPELL BUTTON - "+ Ajouter un sort"
+   ===================================================================== */
+/* =====================================================================
+   BACK BUTTON
+   ===================================================================== */
+.back-btn {
+    background: white;
+    border: 2px solid #E0E0E0;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.back-btn:hover {
+    background: linear-gradient(135deg, #fff 0%, #fef5fa 100%);
+    border-color: #D5006D;
+    color: #D5006D;
+    transform: translateX(-6px);
+    box-shadow: 0 4px 12px rgba(213, 0, 109, 0.15);
+}
+
+.back-btn:active {
+    transform: translateX(-3px);
+}
+
+/* =====================================================================
+   ADD SPELL BUTTON
+   ===================================================================== */
+.add-spell-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 999px;
+    border: 2px dashed rgba(216, 27, 96, 0.3);
+    background: linear-gradient(135deg, rgba(255, 240, 245, 0.6), rgba(255, 228, 242, 0.6));
+    color: #D5006D;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(216, 27, 96, 0.12);
+    margin: var(--space-4) auto;
+    position: relative;
+    overflow: hidden;
+}
+
+.add-spell-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(213, 0, 109, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.add-spell-btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.add-spell-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 228, 242, 0.8), rgba(255, 210, 232, 0.8));
+    border-color: rgba(216, 27, 96, 0.5);
+    border-style: solid;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(216, 27, 96, 0.25);
+}
+
+.add-spell-btn:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+.add-spell-btn__icon {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* =====================================================================
+   EMPTY STATE
+   ===================================================================== */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(255, 250, 253, 0.6));
+    border-radius: 20px;
+    border: 2px dashed rgba(213, 0, 109, 0.2);
+    animation: fadeIn 0.5s ease;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 20px;
+    opacity: 0.25;
+}
+
+.empty-text {
+    font-size: 1.1rem;
+    color: #999;
+    font-weight: 600;
+}
+
+/* =====================================================================
+   SPECIAL SECTION STYLING - Sort Ultime
+   ===================================================================== */
+.spell-section--ultime {
+    background: linear-gradient(135deg, rgba(255, 245, 220, 0.5), rgba(255, 235, 200, 0.5));
+    border: 2px solid rgba(180, 83, 9, 0.25);
+    box-shadow: 0 4px 16px rgba(180, 83, 9, 0.1);
+}
+
+.spell-section--ultime .spell-section-title {
+    color: #92400e;
+}
+
+.spell-section--signature {
+    background: linear-gradient(135deg, rgba(255, 228, 242, 0.4), rgba(252, 231, 243, 0.4));
+    border: 2px solid rgba(236, 72, 153, 0.2);
+}
+
+.spell-section--mineurs {
+    background: linear-gradient(135deg, rgba(237, 233, 254, 0.4), rgba(243, 232, 255, 0.4));
+    border: 2px solid rgba(139, 92, 246, 0.2);
 }
 
 .spell-pill--target {
@@ -1252,4 +1780,437 @@
     color: var(--color-primary);
     border-color: rgba(216, 27, 96, 0.2);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* =====================================================================
+   MAIN NAVIGATION CARDS
+   ===================================================================== */
+.main-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.nav-card {
+    background: white;
+    border-radius: 16px;
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(200, 160, 230, 0.12);
+    border-left: 6px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-card::after {
+    content: '';
+    position: absolute;
+    right: -50px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: currentColor;
+    opacity: 0;
+    border-radius: 50%;
+    transition: all 0.4s ease;
+}
+
+.nav-card:hover::after {
+    opacity: 0.05;
+    right: 20px;
+}
+
+.nav-card:hover {
+    transform: translateX(8px);
+    box-shadow: 0 6px 24px rgba(200, 160, 230, 0.25);
+}
+
+.nav-card:active {
+    transform: translateX(4px);
+}
+
+.nav-card.resume {
+    border-left-color: #D5006D;
+}
+
+.nav-card.params {
+    border-left-color: #6DD5FA;
+}
+
+.nav-card.spells {
+    border-left-color: #FFB347;
+}
+
+.nav-card-content h3 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.nav-card-content p {
+    font-size: 0.9rem;
+    color: #888;
+    font-weight: 600;
+}
+
+.nav-icon {
+    font-size: 2rem;
+    transition: transform 0.3s ease;
+}
+
+.nav-card:hover .nav-icon {
+    transform: scale(1.2);
+}
+
+/* =====================================================================
+   SPELL TYPE / CATEGORY SELECTION CARDS
+   ===================================================================== */
+.spell-type-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.spell-type-btn {
+    background: white;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(200, 160, 230, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+.spell-type-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(213, 0, 109, 0.1) 0%, transparent 70%);
+    transition: transform 0.5s ease;
+    border-radius: 50%;
+}
+
+.spell-type-btn:hover::before {
+    transform: translate(-50%, -50%) scale(2);
+}
+
+.spell-type-btn:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 10px 36px rgba(200, 160, 230, 0.3);
+}
+
+.spell-type-btn:active {
+    transform: translateY(-3px) scale(1);
+}
+
+.spell-type-btn.mineurs {
+    border-color: #6DD5FA;
+}
+
+.spell-type-btn.mineurs:hover {
+    background: linear-gradient(135deg, rgba(109, 213, 250, 0.1), rgba(41, 128, 185, 0.1));
+}
+
+.spell-type-btn.majeurs {
+    border-color: #A18CD1;
+}
+
+.spell-type-btn.majeurs:hover {
+    background: linear-gradient(135deg, rgba(161, 140, 209, 0.1), rgba(139, 92, 246, 0.1));
+}
+
+.spell-type-btn.signature {
+    border-color: #D5006D;
+}
+
+.spell-type-btn.signature:hover {
+    background: linear-gradient(135deg, rgba(213, 0, 109, 0.1), rgba(255, 20, 147, 0.1));
+}
+
+.spell-type-btn.ultimes {
+    border-color: #FFB347;
+}
+
+.spell-type-btn.ultimes:hover {
+    background: linear-gradient(135deg, rgba(255, 179, 71, 0.1), rgba(255, 140, 66, 0.1));
+}
+
+.spell-type-icon {
+    font-size: 3rem;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.spell-type-btn:hover .spell-type-icon {
+    transform: scale(1.2) rotate(10deg);
+}
+
+.spell-type-name {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.spell-type-count {
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: 600;
+}
+
+/* =====================================================================
+   CATEGORY TOGGLE PILLS - Screenshot style
+   ===================================================================== */
+.spell-category-nav {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: var(--space-5);
+    padding: var(--space-3);
+}
+
+.spell-category-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.6);
+    color: #4a5568;
+    font-size: var(--text-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.spell-category-btn__icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.spell-category-btn__count {
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+.spell-category-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(216, 27, 96, 0.15);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.spell-category-btn--active {
+    background: linear-gradient(135deg, rgba(216, 27, 96, 0.08), rgba(236, 47, 116, 0.08));
+    border-color: rgba(216, 27, 96, 0.25);
+    color: var(--color-primary);
+    box-shadow: 0 3px 10px rgba(216, 27, 96, 0.15);
+}
+
+/* Different colors for different categories */
+.spell-category-btn--mineurs {
+    border-color: rgba(106, 90, 205, 0.2);
+}
+
+.spell-category-btn--mineurs.spell-category-btn--active {
+    background: linear-gradient(135deg, rgba(106, 90, 205, 0.08), rgba(126, 110, 225, 0.08));
+    border-color: rgba(106, 90, 205, 0.35);
+    color: rgb(106, 90, 205);
+}
+
+.spell-category-btn--signature {
+    border-color: rgba(236, 72, 153, 0.2);
+}
+
+.spell-category-btn--signature.spell-category-btn--active {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.08), rgba(255, 92, 173, 0.08));
+    border-color: rgba(236, 72, 153, 0.35);
+    color: rgb(236, 72, 153);
+}
+
+.spell-category-btn--ultimes {
+    border-color: rgba(147, 51, 234, 0.2);
+}
+
+.spell-category-btn--ultimes.spell-category-btn--active {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.08), rgba(167, 71, 254, 0.08));
+    border-color: rgba(147, 51, 234, 0.35);
+    color: rgb(147, 51, 234);
+}
+
+/* =====================================================================
+   PAGE TRANSITIONS & ANIMATIONS
+   ===================================================================== */
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Smooth transitions for interactive elements */
+.category-card,
+.nav-card,
+.spell-type-btn,
+.flip-card,
+.add-spell-btn,
+.back-btn,
+.magic-btn {
+    will-change: transform;
+}
+
+/* Consistent button styling */
+.magic-btn,
+.add-spell-btn {
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-weight: 700;
+    border: none;
+    outline: none;
+}
+
+.magic-btn:disabled,
+.add-spell-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Focus states for accessibility */
+.category-card:focus,
+.nav-card:focus,
+.spell-type-btn:focus,
+.back-btn:focus,
+.add-spell-btn:focus,
+.flip-card:focus {
+    outline: 3px solid #D5006D;
+    outline-offset: 3px;
+}
+
+/* Keyboard navigation support */
+.category-card:focus-visible,
+.nav-card:focus-visible,
+.spell-type-btn:focus-visible {
+    outline: 3px solid #D5006D;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 6px rgba(213, 0, 109, 0.1);
+}
+
+/* Loading state */
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(213, 0, 109, 0.1);
+    border-top-color: #D5006D;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* =====================================================================
+   RESPONSIVE ADJUSTMENTS
+   ===================================================================== */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 20px;
+    }
+
+    .category-selection {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .spell-type-selection {
+        grid-template-columns: 1fr;
+    }
+
+    .spell-card-grid,
+    .spells-container {
+        grid-template-columns: 1fr;
+    }
+
+    .main-nav {
+        max-width: 100%;
+        gap: 16px;
+    }
+
+    .nav-card {
+        padding: 20px 24px;
+    }
+
+    .spell-stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .magic-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

@@ -39,16 +39,51 @@
                 </div>
             </div>
         </header>
-        <section class="magic-layout" aria-label="Fiche magie détaillée">
-            <div class="magic-sheet tw-surface tw-panel">
-                <div class="magic-page-tabs" id="magicPageTabs" role="tablist" aria-label="Pages de fiche magie"></div>
-                <!-- Contenu principal -->
-                <section class="magic-content" aria-live="polite">
-                    <div class="magic-scroll-meter" id="magicScrollMeter" aria-label="Parchemins disponibles">
-                        <span class="magic-scroll-pill">Éveil: <strong id="magicEveilCount">0</strong></span>
-                        <span class="magic-scroll-pill">Ascension: <strong id="magicAscensionCount">0</strong></span>
+
+        <section class="main-container" aria-label="Fiche magie détaillée">
+
+            <!-- PAGE 1: Sélection de catégorie -->
+            <div class="page active" id="page1">
+                <div class="category-selection">
+                    <div class="category-card" onclick="goToPage(2, 'Sorcellerie')" data-specialization="sorcellerie">
+                        <div class="category-icon">🧙</div>
+                        <div class="category-name">Sorcellerie</div>
+                        <div class="category-desc">Magie arcanique</div>
                     </div>
-                    <div class="magic-scroll-meter magic-alice-stats" id="magicAliceStatsMeter" aria-label="Stats Alice" style="display: none;">
+
+                    <div class="category-card" onclick="goToPage(2, 'Alice')" data-specialization="alice">
+                        <div class="category-icon">🎭</div>
+                        <div class="category-name">Alice</div>
+                        <div class="category-desc">Pouvoirs uniques</div>
+                    </div>
+
+                    <div class="category-card" onclick="goToPage(2, 'Arme')" data-specialization="arme">
+                        <div class="category-icon">⚔️</div>
+                        <div class="category-name">Arme</div>
+                        <div class="category-desc">Arme vivante</div>
+                    </div>
+
+                    <div class="category-card" onclick="goToPage(2, 'Meister')" data-specialization="meister">
+                        <div class="category-icon">👤</div>
+                        <div class="category-name">Meister</div>
+                        <div class="category-desc">Maître d'arme</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 2: Navigation principale -->
+            <div class="page" id="page2">
+                <button class="back-btn" onclick="goToPage(1)">
+                    <span>←</span>
+                    <span>Retour</span>
+                </button>
+
+                <!-- Stats display -->
+                <div class="magic-scroll-meter" id="magicScrollMeter" aria-label="Parchemins disponibles">
+                    <span class="magic-scroll-pill">Éveil: <strong id="magicEveilCount">0</strong></span>
+                    <span class="magic-scroll-pill">Ascension: <strong id="magicAscensionCount">0</strong></span>
+                </div>
+                <div class="magic-scroll-meter magic-alice-stats" id="magicAliceStatsMeter" aria-label="Stats Alice" style="display: none;">
                         <div class="alice-stat-group">
                             <div class="alice-stat-label">
                                 <span class="alice-stat-title">⚡ Puissance Alice</span>
@@ -83,30 +118,46 @@
                         <span class="magic-scroll-pill">Fragments ultimes: <strong id="magicMeisterUltimateFragments">0</strong></span>
                         <span class="magic-scroll-pill magic-scroll-pill--dim">Âmes prog: <strong id="magicMeisterProgSouls">0</strong></span>
                     </div>
-                    <div class="magic-scroll-meter" id="magicArmeSoulsMeter" aria-label="Âmes Arme" style="display: none;">
-                        <span class="magic-scroll-pill">Fragments mineurs: <strong id="magicArmeMinorFragments">0</strong></span>
-                        <span class="magic-scroll-pill">Fragments ultimes: <strong id="magicArmeUltimateFragments">0</strong></span>
-                        <span class="magic-scroll-pill magic-scroll-pill--dim">Âmes prog: <strong id="magicArmeProgSouls">0</strong></span>
+                <div class="magic-scroll-meter" id="magicArmeSoulsMeter" aria-label="Âmes Arme" style="display: none;">
+                    <span class="magic-scroll-pill">Fragments mineurs: <strong id="magicArmeMinorFragments">0</strong></span>
+                    <span class="magic-scroll-pill">Fragments ultimes: <strong id="magicArmeUltimateFragments">0</strong></span>
+                    <span class="magic-scroll-pill magic-scroll-pill--dim">Âmes prog: <strong id="magicArmeProgSouls">0</strong></span>
+                </div>
+
+                <div class="main-nav">
+                    <div class="nav-card resume" onclick="showMagicSection('magic-summary')">
+                        <div class="nav-card-content">
+                            <h3>Résumé & spécialisation</h3>
+                            <p>Magie principale, affinité, spécialisation</p>
+                        </div>
+                        <div class="nav-icon">📋</div>
                     </div>
-                    <div class="magic-top-nav" aria-label="Sections de la fiche" role="navigation">
-                        <button class="magic-nav-btn magic-nav-btn--active tw-press" data-target="magic-summary">
-                            Résumé &amp; spécialisation
-                        </button>
-                        <button class="magic-nav-btn tw-press" data-target="magic-parameters">
-                            Paramètres de fonctionnement
-                        </button>
-                        <button class="magic-nav-btn tw-press" data-target="magic-capacities">
-                            Fragments &amp; sorts
-                        </button>
-                        <button class="magic-nav-btn magic-nav-btn--admin tw-press" data-target="magic-admin">
-                            Zone admin
-                        </button>
+
+                    <div class="nav-card params" onclick="showMagicSection('magic-parameters')">
+                        <div class="nav-card-content">
+                            <h3>Paramètres de fonctionnement</h3>
+                            <p>Origine, portée, effet, coût, conditions</p>
+                        </div>
+                        <div class="nav-icon">⚙️</div>
                     </div>
-                    <div class="magic-save-row">
-                        <span class="magic-save-status" id="magicSaveStatus">Sauvegarde en attente.</span>
-                        <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicSaveBtn">Sauvegarder</button>
+
+                    <div class="nav-card spells" onclick="goToPage(3)">
+                        <div class="nav-card-content">
+                            <h3>Sorts & techniques</h3>
+                            <p>Liste de vos capacités magiques</p>
+                        </div>
+                        <div class="nav-icon">✨</div>
                     </div>
-                    <div class="magic-content-body">
+                </div>
+
+                <!-- Save button for summary/params sections -->
+                <div class="magic-save-row" id="magicSaveRow" style="display: none;">
+                    <span class="magic-save-status" id="magicSaveStatus">Sauvegarde en attente.</span>
+                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicSaveBtn">Sauvegarder</button>
+                </div>
+
+                <!-- Content sections (shown when nav cards clicked) -->
+                <div class="magic-content-body" id="magicContentBody" style="display: none;">
                         <!-- 1. Résumé & spécialisation -->
                         <section id="magic-summary" class="magic-section magic-section--active" aria-label="Résumé & spécialisation">
                             <h2 class="magic-section-title">Résumé &amp; spécialisation</h2>
@@ -455,10 +506,124 @@
                             </div>
                         </section>
                     </div>
-                </section>
             </div>
+
+            <!-- PAGE 3: Sélection type de sorts -->
+            <div class="page" id="page3">
+                <button class="back-btn" onclick="goToPage(2)">
+                    <span>←</span>
+                    <span>Retour</span>
+                </button>
+
+                <div class="spell-type-selection">
+                    <div class="spell-type-btn mineurs" onclick="goToPage(4, 'mineurs')">
+                        <div class="spell-type-icon">✦</div>
+                        <div class="spell-type-name">Sorts Mineurs</div>
+                        <div class="spell-type-count" id="spellCountMineurs">0 sort</div>
+                    </div>
+
+                    <div class="spell-type-btn signature" onclick="goToPage(4, 'signature')">
+                        <div class="spell-type-icon">★</div>
+                        <div class="spell-type-name">Sorts Signature</div>
+                        <div class="spell-type-count" id="spellCountSignature">0 sort</div>
+                    </div>
+
+                    <div class="spell-type-btn ultimes" onclick="goToPage(4, 'ultimes')">
+                        <div class="spell-type-icon">◆</div>
+                        <div class="spell-type-name">Sorts Ultimes</div>
+                        <div class="spell-type-count" id="spellCountUltimes">0 sort</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 4: Liste des sorts (cartes flip) -->
+            <div class="page" id="page4">
+                <button class="back-btn" onclick="goToPage(3)">
+                    <span>←</span>
+                    <span>Retour</span>
+                </button>
+
+                <div class="magic-section-header">
+                    <h2 class="magic-section-title" id="page4Title">Sorts</h2>
+                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicAddCapacityBtn">
+                        + Ajouter un sort
+                    </button>
+                </div>
+
+                <!-- Container dynamique rempli par JS -->
+                <div class="spells-container" id="spellsContainer">
+                    <!-- Les cartes flip seront injectées ici -->
+                </div>
+            </div>
+
         </section>
     </main>
+    <script>
+        // Page navigation system
+        let currentSpellCategory = '';
+
+        function goToPage(pageNum, data) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+            // Show the requested page immediately
+            document.getElementById('page' + pageNum).classList.add('active');
+
+            // Update title
+            const pageTitle = document.getElementById('magicPageTitle');
+            if (pageNum === 2 && data) {
+                pageTitle.textContent = `Fiche Magie | ${data}`;
+            } else if (pageNum === 1) {
+                pageTitle.textContent = 'Fiche Magie | Spécification';
+            } else if (pageNum === 4 && data) {
+                currentSpellCategory = data;
+                const categoryNames = {
+                    'mineurs': 'Sorts Mineurs',
+                    'signature': 'Sorts Signature',
+                    'ultimes': 'Sorts Ultimes'
+                };
+                document.getElementById('page4Title').textContent = categoryNames[data] || 'Sorts';
+                loadSpellsForCategory(data);
+            }
+        }
+
+        function showMagicSection(sectionId) {
+            // Show the content body
+            const contentBody = document.getElementById('magicContentBody');
+            const saveRow = document.getElementById('magicSaveRow');
+            contentBody.style.display = 'block';
+            saveRow.style.display = 'flex';
+
+            // Hide all sections
+            document.querySelectorAll('.magic-section').forEach(s => {
+                s.classList.remove('magic-section--active');
+                s.style.display = 'none';
+            });
+
+            // Show the selected section
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('magic-section--active');
+                section.style.display = 'block';
+            }
+        }
+
+        function loadSpellsForCategory(category) {
+            // This will be populated by the existing magie.js with spell data
+            // For now, just show the container
+            const container = document.getElementById('spellsContainer');
+            container.innerHTML = '';
+
+            // The existing magicCapacityList will be filtered and converted to flip cards
+            // This will be handled by the updated magie.js
+        }
+
+        // Initialize - start on page 1
+        document.addEventListener('DOMContentLoaded', function() {
+            // Start on page 1 by default
+            goToPage(1);
+        });
+    </script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script src="js/magie.js" defer></script>
     <script src="js/sidebar.js"></script>
