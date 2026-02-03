@@ -27,6 +27,10 @@ class ToastManager {
      * @param {number} duration - Durée en ms (optionnel)
      */
     success(message, duration = 3000) {
+        if (!this.notyf) {
+            console.warn('[ToastManager] Notyf not initialized, message:', message);
+            return;
+        }
         this.notyf.success({
             message,
             duration,
@@ -39,6 +43,10 @@ class ToastManager {
      * @param {number} duration - Durée en ms (optionnel)
      */
     error(message, duration = 4000) {
+        if (!this.notyf) {
+            console.warn('[ToastManager] Notyf not initialized, message:', message);
+            return;
+        }
         this.notyf.error({
             message,
             duration,
@@ -51,6 +59,10 @@ class ToastManager {
      * @param {number} duration - Durée en ms (optionnel)
      */
     info(message, duration = 3000) {
+        if (!this.notyf) {
+            console.warn('[ToastManager] Notyf not initialized, message:', message);
+            return;
+        }
         this.notyf.open({
             type: 'info',
             message,
@@ -70,6 +82,10 @@ class ToastManager {
      * @param {number} duration - Durée en ms (optionnel)
      */
     warning(message, duration = 3500) {
+        if (!this.notyf) {
+            console.warn('[ToastManager] Notyf not initialized, message:', message);
+            return;
+        }
         this.notyf.open({
             type: 'warning',
             message,
@@ -88,6 +104,10 @@ class ToastManager {
      * @param {object} options - Options Notyf
      */
     custom(options) {
+        if (!this.notyf) {
+            console.warn('[ToastManager] Notyf not initialized');
+            return;
+        }
         this.notyf.open(options);
     }
 
@@ -95,6 +115,7 @@ class ToastManager {
      * Ferme tous les toasts actifs
      */
     dismissAll() {
+        if (!this.notyf) return;
         this.notyf.dismissAll();
     }
 }
