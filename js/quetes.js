@@ -852,17 +852,17 @@ function renderRewardTooltip(item) {
     const image = resolveItemImage(item);
     const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
     const meta = buildRewardMeta(item);
-    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${sanitizer.clean(meta.join(" | "))}</div>` : "";
+    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${window.sanitizer?.clean(meta.join(" | "))}</div>` : "";
     dom.rewardTooltip.innerHTML = `
         <div class="quest-reward-tooltip-media">
             ${image
-                ? `<img src="${sanitizer.clean(image)}" alt="Apercu ${sanitizer.clean(item.name)}">`
-                : `<div class="quest-reward-tooltip-thumb">${sanitizer.clean(getRewardInitial(item))}</div>`}
+                ? `<img src="${window.sanitizer?.clean(image)}" alt="Apercu ${window.sanitizer?.clean(item.name)}">`
+                : `<div class="quest-reward-tooltip-thumb">${window.sanitizer?.clean(getRewardInitial(item))}</div>`}
         </div>
         <div class="quest-reward-tooltip-body">
-            <div class="quest-reward-tooltip-title">${sanitizer.clean(item.name)}</div>
+            <div class="quest-reward-tooltip-title">${window.sanitizer?.clean(item.name)}</div>
             ${metaLine}
-            <div class="quest-reward-tooltip-desc">${sanitizer.clean(description)}</div>
+            <div class="quest-reward-tooltip-desc">${window.sanitizer?.clean(description)}</div>
         </div>
     `;
     dom.rewardTooltip.scrollTop = 0;
@@ -934,15 +934,15 @@ function updateRewardPreview() {
     const image = resolveItemImage(item);
     const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
     const category = formatCategory(item.category);
-    const metaLine = category ? `<div class="quest-reward-preview-meta">${sanitizer.clean(category)}</div>` : "";
+    const metaLine = category ? `<div class="quest-reward-preview-meta">${window.sanitizer?.clean(category)}</div>` : "";
     dom.rewardPreview.innerHTML = `
         ${image
-            ? `<img src="${sanitizer.clean(image)}" alt="Aper\u00E7u ${sanitizer.clean(item.name)}">`
-            : `<div class="quest-reward-preview-thumb">${sanitizer.clean(getRewardInitial(item))}</div>`}
+            ? `<img src="${window.sanitizer?.clean(image)}" alt="Aper\u00E7u ${window.sanitizer?.clean(item.name)}">`
+            : `<div class="quest-reward-preview-thumb">${window.sanitizer?.clean(getRewardInitial(item))}</div>`}
         <div class="quest-reward-preview-body">
-            <div class="quest-reward-preview-title">${sanitizer.clean(item.name)}</div>
+            <div class="quest-reward-preview-title">${window.sanitizer?.clean(item.name)}</div>
             ${metaLine}
-            <div class="quest-reward-preview-desc">${sanitizer.clean(description)}</div>
+            <div class="quest-reward-preview-desc">${window.sanitizer?.clean(description)}</div>
         </div>
     `;
 }
@@ -1364,23 +1364,23 @@ function renderQuestList() {
         card.style.setProperty("--status-color", meta.color);
         card.style.setProperty("--delay", `${index * 120}ms`);
         const adminAction = state.isAdmin
-            ? `<button class="quest-delete-btn" type="button" data-id="${sanitizer.clean(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
+            ? `<button class="quest-delete-btn" type="button" data-id="${window.sanitizer?.clean(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
             : "";
         card.innerHTML = `
             <div class="quest-card-content">
                 <div class="quest-card-header">
-                    <h3 class="quest-card-title">${sanitizer.clean(quest.name)}</h3>
-                    <span class="quest-rank-badge">${sanitizer.clean(quest.rank)}</span>
+                    <h3 class="quest-card-title">${window.sanitizer?.clean(quest.name)}</h3>
+                    <span class="quest-rank-badge">${window.sanitizer?.clean(quest.rank)}</span>
                 </div>
                 <div class="quest-card-media">
-                    <img src="${sanitizer.clean(quest.images[0])}" alt="Illustration ${sanitizer.clean(quest.name)}" draggable="false">
+                    <img src="${window.sanitizer?.clean(quest.images[0])}" alt="Illustration ${window.sanitizer?.clean(quest.name)}" draggable="false">
                 </div>
                 <div class="quest-card-meta">
-                    <span class="quest-type-pill">${sanitizer.clean(quest.type)}</span>
-                    <span class="quest-status-pill">${sanitizer.clean(meta.label)}</span>
+                    <span class="quest-type-pill">${window.sanitizer?.clean(quest.type)}</span>
+                    <span class="quest-status-pill">${window.sanitizer?.clean(meta.label)}</span>
                 </div>
                 <div class="quest-card-actions">
-                    <button class="quest-details-btn" type="button" data-id="${sanitizer.clean(quest.id)}">Details</button>
+                    <button class="quest-details-btn" type="button" data-id="${window.sanitizer?.clean(quest.id)}">Details</button>
                     ${adminAction}
                 </div>
                 <div class="quest-card-participation">
@@ -1457,11 +1457,11 @@ function renderHistory() {
 
     dom.historyBody.innerHTML = filtered.map((entry) => `
         <tr>
-            <td>${sanitizer.clean(entry.date)}</td>
-            <td>${sanitizer.clean(entry.type)}</td>
-            <td>${sanitizer.clean(entry.rank)}</td>
-            <td>${sanitizer.clean(entry.name)}</td>
-            <td>${sanitizer.clean(entry.gains)}</td>
+            <td>${window.sanitizer?.clean(entry.date)}</td>
+            <td>${window.sanitizer?.clean(entry.type)}</td>
+            <td>${window.sanitizer?.clean(entry.rank)}</td>
+            <td>${window.sanitizer?.clean(entry.name)}</td>
+            <td>${window.sanitizer?.clean(entry.gains)}</td>
         </tr>
     `).join("");
 }
@@ -1503,10 +1503,10 @@ function renderDetail(quest) {
     dom.detailStatus.style.color = meta.color;
     dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
 
-    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${sanitizer.clean(loc)}</li>`).join("");
+    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${window.sanitizer?.clean(loc)}</li>`).join("");
     if (quest.rewards.length) {
         dom.detailRewards.innerHTML = quest.rewards
-            .map((reward) => `<li>${sanitizer.clean(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
+            .map((reward) => `<li>${window.sanitizer?.clean(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
             .join("");
     } else {
         dom.detailRewards.innerHTML = "<li>Aucune recompense</li>";
@@ -1523,7 +1523,7 @@ function renderParticipants(quest) {
     if (!quest.participants.length) {
         dom.detailParticipants.innerHTML = "<li>Aucun participant</li>";
     } else {
-        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${sanitizer.clean(participant.label)}</li>`).join("");
+        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${window.sanitizer?.clean(participant.label)}</li>`).join("");
     }
 
     const note = buildJoinNote(quest);
@@ -2048,7 +2048,7 @@ function openEditor(quest) {
 function renderEditorLists() {
     dom.imagesList.innerHTML = state.editor.images.map((src, idx) => `
         <div class="quest-editor-item">
-            <span>${sanitizer.clean(src)}</span>
+            <span>${window.sanitizer?.clean(src)}</span>
             <button type="button" data-remove-image="${idx}">Retirer</button>
         </div>
     `).join("");
@@ -2059,7 +2059,7 @@ function renderEditorLists() {
         // Tooltip désactivé - causait des glitches dans la liste
         return `
         <div class="quest-editor-item">
-            <span>${sanitizer.clean(label)} x${reward.qty}</span>
+            <span>${window.sanitizer?.clean(label)} x${reward.qty}</span>
             <button type="button" data-remove-reward="${idx}">Retirer</button>
         </div>
         `;
