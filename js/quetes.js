@@ -1378,7 +1378,7 @@ function renderQuestList() {
                     <span class="quest-rank-badge">${clean(quest.rank)}</span>
                 </div>
                 <div class="quest-card-media">
-                    <img src="${clean(quest.images[0]) || ''}" alt="Illustration ${clean(quest.name) || ''}" draggable="false">
+                    <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" draggable="false">
                 </div>
                 <div class="quest-card-meta">
                     <span class="quest-type-pill">${clean(quest.type)}</span>
