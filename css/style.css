@@ -3395,4 +3395,15 @@ button:hover .shortcut-icon {
    ================================================================= */
 .notyf {
     z-index: var(--z-toast) !important;
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    pointer-events: none;
+}
+
+.notyf__toast {
+    pointer-events: auto;
 }

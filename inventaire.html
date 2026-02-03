@@ -202,6 +202,160 @@
             pointer-events: none;
         }
 
+        /* =================================================================
+           STATS SECTION
+           ================================================================= */
+        .character-stats {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 235, 240, 0.95));
+            border: 2px solid rgba(238, 162, 201, 0.65);
+            box-shadow: 0 4px 12px rgba(30, 20, 35, 0.08);
+        }
+
+        .stats-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(238, 162, 201, 0.35);
+        }
+
+        .stats-title {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #6a2b5a;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .stats-points {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #7a1242;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px dashed rgba(216, 27, 96, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            padding: 10px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(238, 162, 201, 0.5);
+        }
+
+        .stat-box-title {
+            margin: 0 0 8px 0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #6a2b5a;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: #5c3a4f;
+            border-bottom: 1px dotted rgba(238, 162, 201, 0.25);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #6a2b5a;
+        }
+
+        .stat-bar-container {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .stat-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-bar-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6a2b5a;
+            min-width: 40px;
+        }
+
+        .stat-bar {
+            flex: 1;
+            height: 10px;
+            background: rgba(238, 162, 201, 0.2);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .stat-bar-fill--hp {
+            background: linear-gradient(90deg, #e91e63, #ff5d92);
+        }
+
+        .stat-bar-fill--mana {
+            background: linear-gradient(90deg, #2196f3, #64b5f6);
+        }
+
+        .stat-bar-value {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #5c3a4f;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .inventory-item--draggable {
             cursor: grab;
         }
@@ -455,6 +609,65 @@
                         </div>
 
                         <div class="character-rank">Rang : 3</div>
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="character-stats" id="characterStats">
+                        <div class="stats-header">
+                            <h3 class="stats-title">Attributs</h3>
+                            <span class="stats-points" id="statsPointsAvailable">0 pts dispo</span>
+                        </div>
+
+                        <!-- HP / Mana bars -->
+                        <div class="stat-bar-container">
+                            <div class="stat-bar-row">
+                                <span class="stat-bar-label">HP</span>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill stat-bar-fill--hp" id="hpBar" style="width: 75%;"></div>
+                                </div>
+                                <span class="stat-bar-value" id="hpValue">750 / 1000</span>
+                            </div>
+                            <div class="stat-bar-row">
+                                <span class="stat-bar-label">Mana</span>
+                                <div class="stat-bar">
+                                    <div class="stat-bar-fill stat-bar-fill--mana" id="manaBar" style="width: 60%;"></div>
+                                </div>
+                                <span class="stat-bar-value" id="manaValue">600 / 1000</span>
+                            </div>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <h4 class="stat-box-title">Principal</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#9876;</span> Attaque</span>
+                                    <span class="stat-value" id="statAttack">150</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#128737;</span> Defense</span>
+                                    <span class="stat-value" id="statDefense">120</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#10024;</span> Magie</span>
+                                    <span class="stat-value" id="statMagic">85</span>
+                                </div>
+                            </div>
+                            <div class="stat-box">
+                                <h4 class="stat-box-title">Secondaire</h4>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#9889;</span> Vitesse</span>
+                                    <span class="stat-value" id="statSpeed">45</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#127919;</span> Critique</span>
+                                    <span class="stat-value" id="statCrit">12%</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label"><span class="stat-icon">&#128170;</span> Force</span>
+                                    <span class="stat-value" id="statStrength">60</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </aside>
