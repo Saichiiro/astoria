@@ -1428,7 +1428,7 @@
             // Use uploaderCropper wrapper
             const success = uploaderCropper.open(file, {
                 imageElement: cropperImage,
-                aspectRatio: 1,
+                aspectRatio: NaN, // FREE aspect ratio by default
                 outputWidth: 512,
                 outputHeight: 512,
                 quality: 0.95,

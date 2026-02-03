@@ -102,16 +102,19 @@ class UploaderCropper {
             aspectRatio: this.config.aspectRatio,
             viewMode: 1, // Restrict crop box to canvas, allow canvas smaller than container
             dragMode: 'move',
-            background: false,
-            autoCropArea: 1,
+            background: true, // Grid background like cropper-test.html
+            autoCropArea: 0.8, // 80% initial crop area
             responsive: true,
-            restore: false,
+            restore: true,
             guides: true,
             center: true,
-            highlight: false,
+            highlight: true,
             cropBoxMovable: true,
-            cropBoxResizable: this.config.aspectRatio === 0, // Resize seulement si aspect libre
+            cropBoxResizable: true, // ALWAYS resizable for FREE cropping
             toggleDragModeOnDblclick: false,
+            minCropBoxWidth: 50, // Allow very small crop boxes
+            minCropBoxHeight: 50,
+            modal: true, // Dark overlay around crop box
             ready: () => {
                 // Store the initial "fit to container" zoom as base (100%)
                 const imageData = this.cropper.getImageData();

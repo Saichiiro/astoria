@@ -2193,7 +2193,7 @@ function openCropper(file) {
     // Use uploaderCropper wrapper for consistency
     const success = uploaderCropper.open(file, {
         imageElement: dom.cropperImage,
-        aspectRatio: 1, // Can be 16:9 for landscape quests later
+        aspectRatio: NaN, // FREE aspect ratio by default (like cropper-test.html)
         outputWidth: 800,
         outputHeight: 800,
         quality: 0.9,
