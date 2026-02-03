@@ -224,9 +224,17 @@
                         <div class="quest-editor-block quest-editor-block--images tw-panel">
                             <h4>Image</h4>
                             <div class="quest-editor-image-row">
-                                <div class="quest-editor-image-preview">Image</div>
+                                <button type="button" class="quest-editor-image-preview tw-press" id="questImagePreviewBtn" aria-label="Cliquer pour importer une image">
+                                    <span class="quest-editor-image-placeholder">
+                                        <span class="quest-editor-image-plus">+</span>
+                                        <span class="quest-editor-image-label">Image</span>
+                                    </span>
+                                </button>
                                 <div class="quest-editor-image-controls">
-                                    <button id="questAddImageBtn" type="button" class="tw-press">Importer l'image</button>
+                                    <button id="questAddImageBtn" type="button" class="quest-editor-upload-btn tw-press">
+                                        <span class="quest-editor-upload-icon">📁</span>
+                                        Importer l'image
+                                    </button>
                                     <div class="quest-editor-image-note">Recadre en carr&#233; pour garder la taille.</div>
                                 </div>
                             </div>

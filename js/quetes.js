@@ -193,6 +193,7 @@ const dom = {
     imageUrlInput: document.getElementById("questImageUrlInput"),
     imageFileInput: document.getElementById("questImageFileInput"),
     addImageBtn: document.getElementById("questAddImageBtn"),
+    imagePreviewBtn: document.getElementById("questImagePreviewBtn"),
     imagesList: document.getElementById("questImagesList"),
     rewardNameInput: document.getElementById("questRewardNameInput"),
     // DEPRECATED - Old dropdown system:
@@ -2088,11 +2089,9 @@ function renderEditorLists() {
         if (previewSrc) {
             dom.imagePreview.style.backgroundImage = `url(${previewSrc})`;
             dom.imagePreview.classList.add("has-image");
-            dom.imagePreview.textContent = "";
         } else {
             dom.imagePreview.style.backgroundImage = "none";
             dom.imagePreview.classList.remove("has-image");
-            dom.imagePreview.textContent = "Image";
         }
     }
 }
@@ -2516,6 +2515,7 @@ function bindEvents() {
 
     dom.editorForm.addEventListener("submit", handleEditorSubmit);
     dom.addImageBtn.addEventListener("click", handleAddImage);
+    dom.imagePreviewBtn?.addEventListener("click", handleAddImage);
     dom.imageFileInput.addEventListener("change", handleImageFile);
     // dom.addRewardBtn?.addEventListener("click", handleAddReward); // DEPRECATED - Modal remplace ce bouton
 
