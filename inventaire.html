@@ -63,18 +63,36 @@
         }
 
         .character-showcase {
-            position: relative;
             display: grid;
-            place-items: center;
-            min-height: 460px;
+            grid-template-columns: 56px 1fr 56px;
+            grid-template-rows: 1fr auto auto;
+            gap: 5px;
+            padding: 6px;
             border-radius: var(--radius-xl);
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(237, 226, 238, 0.9));
             border: 2px dashed rgba(228, 132, 184, 0.35);
         }
 
+        .equip-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .equip-center {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-row: 1;
+            grid-column: 2;
+        }
+
         .character-sprite {
-            width: 230px;
-            height: 320px;
+            width: 100%;
+            max-width: 200px;
+            aspect-ratio: 230 / 320;
             background-image: url('assets/images/Silhouette.png');
             background-repeat: no-repeat;
             background-position: center;
@@ -87,20 +105,20 @@
         .character-upload-trigger {
             position: absolute;
             left: 50%;
-            top: 74%;
-            width: 40px;
-            height: 40px;
+            top: 50%;
+            width: 36px;
+            height: 36px;
             border: none;
             border-radius: 999px;
             background: linear-gradient(135deg, #e91e63, #ff5d92);
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             line-height: 1;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 10px 18px rgba(233, 30, 99, 0.35);
+            box-shadow: 0 8px 16px rgba(233, 30, 99, 0.35);
             transition: transform 0.16s ease, box-shadow 0.16s ease;
             z-index: 2;
             transform: translate(-50%, -50%);
@@ -108,7 +126,7 @@
 
         .character-upload-trigger:hover {
             transform: translate(-50%, calc(-50% - 1px));
-            box-shadow: 0 14px 20px rgba(233, 30, 99, 0.32);
+            box-shadow: 0 10px 18px rgba(233, 30, 99, 0.32);
         }
 
         .character-upload-trigger:focus-visible {
@@ -116,24 +134,26 @@
             outline-offset: 2px;
         }
 
+        .equip-bottom {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
         .character-rank {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
+            grid-column: 1 / -1;
             text-align: center;
             font-weight: 600;
             color: var(--inv-text);
-            font-size: 1rem;
+            font-size: 0.9rem;
             white-space: nowrap;
-            z-index: 1;
         }
 
         .character-slot {
-            position: absolute;
-            width: 60px;
-            height: 60px;
-            border-radius: 14px;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
             background: rgba(255, 255, 255, 0.95);
             border: 2px solid rgba(238, 162, 201, 0.8);
             box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08);
@@ -142,15 +162,9 @@
             justify-content: center;
             overflow: hidden;
             cursor: pointer;
+            flex-shrink: 0;
             transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
         }
-
-        .character-slot--tl { top: 20px; left: 20px; }
-        .character-slot--tr { top: 20px; right: 20px; }
-        .character-slot--ml { top: 50%; left: 10px; transform: translateY(-50%); }
-        .character-slot--mr { top: 50%; right: 10px; transform: translateY(-50%); }
-        .character-slot--bl { bottom: 56px; left: 20px; }
-        .character-slot--br { bottom: 56px; right: 20px; }
 
         .character-slot:focus-visible {
             outline: 2px solid rgba(216, 27, 96, 0.65);
@@ -172,11 +186,11 @@
             font-size: 0.6rem;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: rgba(106, 43, 90, 0.72);
+            letter-spacing: 0.02em;
+            color: rgba(106, 43, 90, 0.85);
             text-align: center;
             line-height: 1.1;
-            padding: 0 4px;
+            padding: 0 2px;
             user-select: none;
             pointer-events: none;
         }
@@ -377,26 +391,67 @@
             <aside class="inventory-sidebar" aria-label="Equipement du personnage">
                 <div class="character-card" aria-label="Personnage">
                     <div class="character-showcase">
-                        <div class="character-sprite" aria-hidden="true"></div>
-                        <button type="button" class="character-upload-trigger tw-press" id="silhouetteUploadTrigger" aria-label="Importer une silhouette">+</button>
-                        
-                        <div class="character-slot character-slot--tl" data-slot-key="head" data-slot-label="Tete" role="button" tabindex="0" aria-label="Slot Tete">
-                            <span class="character-slot-label">Tete</span>
+                        <!-- Left column (5) -->
+                        <div class="equip-col equip-left">
+                            <div class="character-slot" data-slot-key="head" data-slot-label="Casque" role="button" tabindex="0" aria-label="Slot Casque">
+                                <span class="character-slot-label">Casque</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="amulet" data-slot-label="Collier" role="button" tabindex="0" aria-label="Slot Collier">
+                                <span class="character-slot-label">Collier</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="chest" data-slot-label="Plastron" role="button" tabindex="0" aria-label="Slot Plastron">
+                                <span class="character-slot-label">Plastron</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="ring1" data-slot-label="Anneau" role="button" tabindex="0" aria-label="Slot Anneau">
+                                <span class="character-slot-label">Anneau</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="ring2" data-slot-label="Anneau" role="button" tabindex="0" aria-label="Slot Anneau">
+                                <span class="character-slot-label">Anneau</span>
+                            </div>
                         </div>
-                        <div class="character-slot character-slot--tr" data-slot-key="weapon" data-slot-label="Arme" role="button" tabindex="0" aria-label="Slot Arme">
-                            <span class="character-slot-label">Arme</span>
+
+                        <!-- Center: character -->
+                        <div class="equip-center">
+                            <div class="character-sprite" aria-hidden="true"></div>
+                            <button type="button" class="character-upload-trigger tw-press" id="silhouetteUploadTrigger" aria-label="Importer une silhouette">+</button>
                         </div>
-                        <div class="character-slot character-slot--ml" data-slot-key="amulet" data-slot-label="Amulette" role="button" tabindex="0" aria-label="Slot Amulette">
-                            <span class="character-slot-label">Amulette</span>
+
+                        <!-- Right column (5) -->
+                        <div class="equip-col equip-right">
+                            <div class="character-slot" data-slot-key="cape" data-slot-label="Cape" role="button" tabindex="0" aria-label="Slot Cape">
+                                <span class="character-slot-label">Cape</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="shoulders" data-slot-label="Epaulettes" role="button" tabindex="0" aria-label="Slot Epaulettes">
+                                <span class="character-slot-label">Epaulettes</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="belt" data-slot-label="Ceinture" role="button" tabindex="0" aria-label="Slot Ceinture">
+                                <span class="character-slot-label">Ceinture</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="gloves" data-slot-label="Gantelets" role="button" tabindex="0" aria-label="Slot Gantelets">
+                                <span class="character-slot-label">Gantelets</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="boots" data-slot-label="Bottes" role="button" tabindex="0" aria-label="Slot Bottes">
+                                <span class="character-slot-label">Bottes</span>
+                            </div>
                         </div>
-                        <div class="character-slot character-slot--mr" data-slot-key="offhand" data-slot-label="Secondaire" role="button" tabindex="0" aria-label="Slot Secondaire">
-                            <span class="character-slot-label">Secondaire</span>
-                        </div>
-                        <div class="character-slot character-slot--bl" data-slot-key="boots" data-slot-label="Bottes" role="button" tabindex="0" aria-label="Slot Bottes">
-                            <span class="character-slot-label">Bottes</span>
-                        </div>
-                        <div class="character-slot character-slot--br" data-slot-key="relic" data-slot-label="Relique" role="button" tabindex="0" aria-label="Slot Relique">
-                            <span class="character-slot-label">Relique</span>
+
+                        <!-- Bottom row (5) -->
+                        <div class="equip-bottom">
+                            <div class="character-slot" data-slot-key="artifact" data-slot-label="Artefact" role="button" tabindex="0" aria-label="Slot Artefact">
+                                <span class="character-slot-label">Artefact</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="weapon" data-slot-label="Arme Principale" role="button" tabindex="0" aria-label="Slot Arme Principale">
+                                <span class="character-slot-label">Arme Principale</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="offhand" data-slot-label="Arme Secondaire" role="button" tabindex="0" aria-label="Slot Arme Secondaire">
+                                <span class="character-slot-label">Arme Secondaire</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="mount" data-slot-label="Monture" role="button" tabindex="0" aria-label="Slot Monture">
+                                <span class="character-slot-label">Monture</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="companion" data-slot-label="Familier" role="button" tabindex="0" aria-label="Slot Familier">
+                                <span class="character-slot-label">Familier</span>
+                            </div>
                         </div>
 
                         <div class="character-rank">Rang : 3</div>
@@ -1617,12 +1672,21 @@
 
         const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
         const EQUIPMENT_SLOT_DEFS = [
-            { key: 'head', label: 'Tete' },
-            { key: 'weapon', label: 'Arme' },
-            { key: 'amulet', label: 'Amulette' },
-            { key: 'offhand', label: 'Secondaire' },
+            { key: 'head', label: 'Casque' },
+            { key: 'cape', label: 'Cape' },
+            { key: 'shoulders', label: 'Epaulettes' },
+            { key: 'amulet', label: 'Collier' },
+            { key: 'chest', label: 'Plastron' },
+            { key: 'gloves', label: 'Gantelets' },
+            { key: 'belt', label: 'Ceinture' },
+            { key: 'ring1', label: 'Anneau' },
             { key: 'boots', label: 'Bottes' },
-            { key: 'relic', label: 'Relique' }
+            { key: 'ring2', label: 'Anneau' },
+            { key: 'artifact', label: 'Artefact' },
+            { key: 'weapon', label: 'Arme Principale' },
+            { key: 'offhand', label: 'Arme Secondaire' },
+            { key: 'companion', label: 'Familier' },
+            { key: 'mount', label: 'Monture' }
         ];
 
         let equippedSlots = {};
@@ -3408,6 +3472,15 @@
 
 
             characterSpriteEl.style.backgroundImage = `url('${safeSrc}')`;
+
+
+
+            // Hide + button when a custom silhouette is loaded
+            const uploadBtn = document.getElementById('silhouetteUploadTrigger');
+            if (uploadBtn) {
+                const isCustom = safeSrc !== DEFAULT_SILHOUETTE;
+                uploadBtn.style.display = isCustom ? 'none' : '';
+            }
 
 
 
@@ -7784,6 +7857,49 @@
 
 
 
+        /**
+         * Check if an item's equipment slot is compatible with target slot
+         * Handles special cases like rings (anneau -> ring1 or ring2)
+         * STRICT: items without equipmentSlot cannot be equipped
+         */
+        function isSlotCompatible(itemSlot, targetSlot) {
+            if (!itemSlot) return false; // STRICT: items must have equipmentSlot defined
+
+            // Direct match
+            if (itemSlot === targetSlot) return true;
+
+            // Ring slots: "anneau" can go to ring1 or ring2
+            if (itemSlot === 'anneau' && (targetSlot === 'ring1' || targetSlot === 'ring2')) {
+                return true;
+            }
+
+            return false;
+        }
+
+
+
+        /**
+         * Find first available slot for an item
+         * Returns slot key or null if no slot available
+         */
+        function findAvailableSlot(item) {
+            if (!item || !item.equipmentSlot) return null;
+
+            const itemSlot = item.equipmentSlot;
+
+            // For rings, find first available ring slot
+            if (itemSlot === 'anneau') {
+                if (!equippedSlots['ring1']) return 'ring1';
+                if (!equippedSlots['ring2']) return 'ring2';
+                return 'ring1'; // Replace first ring if both occupied
+            }
+
+            // For other items, return the direct slot
+            return itemSlot;
+        }
+
+
+
         function buildEquippedItem(itemKey, itemIndex) {
 
 
@@ -8144,6 +8260,21 @@
 
 
 
+            // Validate slot compatibility - STRICT: items must have equipmentSlot
+            if (!item.equipmentSlot) {
+                toastManager.error(`Cet objet n'a pas de slot d'équipement défini`);
+                return;
+            }
+
+            if (!isSlotCompatible(item.equipmentSlot, slotKey)) {
+                const slotDef = EQUIPMENT_SLOT_DEFS.find(s => s.key === slotKey);
+                const slotLabel = slotDef ? slotDef.label : slotKey;
+                toastManager.error(`Cet objet ne peut pas être équipé dans le slot ${slotLabel}`);
+                return;
+            }
+
+
+
             const occupied = equippedSlots?.[slotKey];
 
 
@@ -8272,6 +8403,25 @@
 
 
 
+        }
+
+
+
+        /**
+         * Highlight valid target slots for a dragged item
+         */
+        function highlightValidSlots(item) {
+            if (!item || !item.equipmentSlot) return;
+
+            // Find all compatible slots
+            EQUIPMENT_SLOT_DEFS.forEach((slot) => {
+                if (isSlotCompatible(item.equipmentSlot, slot.key)) {
+                    const slotEl = document.querySelector(`.character-slot[data-slot-key="${slot.key}"]`);
+                    if (slotEl) {
+                        slotEl.classList.add('is-drop-target');
+                    }
+                }
+            });
         }
 
 
@@ -9052,6 +9202,11 @@
 
 
 
+                    // Highlight valid target slots
+                    highlightValidSlots(item);
+
+
+
                     if (event.dataTransfer) {
 
 
@@ -9088,6 +9243,31 @@
 
 
 
+                });
+
+
+
+                // Double-click/tap to auto-equip
+                let lastTap = 0;
+                card.addEventListener('dblclick', () => {
+                    const targetSlot = findAvailableSlot(item);
+                    if (targetSlot) {
+                        equipItemToSlot(item.id, targetSlot);
+                    }
+                });
+
+                // Mobile: detect double-tap (300ms threshold)
+                card.addEventListener('touchend', (event) => {
+                    const currentTime = new Date().getTime();
+                    const tapLength = currentTime - lastTap;
+                    if (tapLength < 300 && tapLength > 0) {
+                        event.preventDefault();
+                        const targetSlot = findAvailableSlot(item);
+                        if (targetSlot) {
+                            equipItemToSlot(item.id, targetSlot);
+                        }
+                    }
+                    lastTap = currentTime;
                 });
 
 
