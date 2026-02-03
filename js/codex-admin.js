@@ -155,6 +155,7 @@ function mapDbItem(row) {
         description: row.description || '',
         effect: row.effect || '',
         category: row.category || '',
+        equipment_slot: row.equipment_slot || '',
         buyPrice: priceText,
         sellPrice: priceText,
         image: primary,
@@ -316,8 +317,13 @@ function openAdminModal(item) {
         dom.sellInput.value = editingItem.sellPrice || '';
         dom.descriptionInput.value = editingItem.description || '';
         dom.effectInput.value = editingItem.effect || '';
-        // Load equipment slot value
+        // Show/hide equipment slot field based on category
+        const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
         const eqSlotEl = document.getElementById('adminItemEquipmentSlot');
+        const isEquipment = (editingItem.category || '').toLowerCase() === 'equipement';
+        if (eqSlotField) {
+            eqSlotField.style.display = isEquipment ? '' : 'none';
+        }
         if (eqSlotEl) {
             eqSlotEl.value = editingItem.equipment_slot || editingItem.equipmentSlot || '';
         }
@@ -325,6 +331,10 @@ function openAdminModal(item) {
             setImagePreview(editingItem.image);
             setImageMetaText('Image actuelle');
         }
+    } else {
+        // New item - hide equipment slot field by default
+        const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
+        if (eqSlotField) eqSlotField.style.display = 'none';
     }
 
     openBackdrop(dom.backdrop);
@@ -642,7 +652,7 @@ async function loadDbItems() {
     console.log('[LOAD] Loading items from database...');
     const { data, error } = await supabase
         .from('items')
-        .select('id, name, description, effect, category, price_kaels, images, enabled, created_at')
+        .select('id, name, description, effect, category, price_kaels, images, enabled, created_at, equipment_slot')
         .order('created_at', { ascending: true });
 
     if (error) {
