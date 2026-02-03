@@ -71,7 +71,10 @@ const state = {
         isDragging: false
     },
     cropper: {
-        pendingFile: null // Used with uploaderCropper wrapper
+        instance: null, // Direct Cropper.js instance
+        scaleX: 1,
+        scaleY: 1,
+        baseZoom: 1
     },
     isValidating: false,
     adminNotes: {}
@@ -216,7 +219,6 @@ const dom = {
     cropperZoomOut: document.getElementById("questCropperZoomOut"),
     cropperRotateLeft: document.getElementById("questCropperRotateLeft"),
     cropperRotateRight: document.getElementById("questCropperRotateRight"),
-    cropperRotate180: document.getElementById("questCropperRotate180"),
     cropperFlipX: document.getElementById("questCropperFlipX"),
     cropperFlipY: document.getElementById("questCropperFlipY"),
     cropperReset: document.getElementById("questCropperReset"),
@@ -2157,9 +2159,26 @@ function handleAddImage() {
     }
 }
 
+function updateCropInfo() {
+    if (!state.cropper.instance) return;
+
+    const imageData = state.cropper.instance.getImageData();
+    const currentZoom = imageData.width / imageData.naturalWidth;
+    const zoomPercent = Math.round((currentZoom / state.cropper.baseZoom) * 100);
+
+    if (dom.cropperZoomDisplay) {
+        dom.cropperZoomDisplay.textContent = zoomPercent + '%';
+    }
+    if (dom.cropperZoom) {
+        dom.cropperZoom.value = zoomPercent;
+    }
+}
+
 function destroyCropper() {
-    uploaderCropper.destroy();
-    state.cropper.pendingFile = null;
+    if (state.cropper.instance) {
+        state.cropper.instance.destroy();
+        state.cropper.instance = null;
+    }
 }
 
 function closeCropper(resetInput = true) {
@@ -2195,118 +2214,169 @@ function openCropper(file) {
         return;
     }
 
-    state.cropper.pendingFile = file;
-
-    // Use uploaderCropper wrapper for consistency
-    const success = uploaderCropper.open(file, {
-        imageElement: dom.cropperImage,
-        aspectRatio: NaN, // FREE aspect ratio by default (like cropper-test.html)
-        outputWidth: 800,
-        outputHeight: 800,
-        quality: 0.9,
-        enableRotate: true,
-        enableZoom: true,
-        onZoomChange: (zoomPercent) => {
-            // Update zoom display and slider
-            if (dom.cropperZoomDisplay) {
-                dom.cropperZoomDisplay.textContent = `${zoomPercent}%`;
-            }
-            if (dom.cropperZoom) {
-                dom.cropperZoom.value = zoomPercent;
-            }
-        }
-    });
-
-    if (!success) {
-        toastManager.error('Impossible d\'ouvrir le recadrage');
-        return;
+    // Destroy existing cropper
+    if (state.cropper.instance) {
+        state.cropper.instance.destroy();
+        state.cropper.instance = null;
     }
 
-    // Show modal
-    modalManager.open(dom.cropperBackdrop, {
-        closeOnBackdropClick: false,
-        closeOnEsc: true,
-        openClass: 'open'
-    });
+    // Load image
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        dom.cropperImage.src = event.target.result;
 
-    // Wire up cropper controls
+        // Wait for image to load before initializing cropper
+        dom.cropperImage.onload = () => {
+            // Open modal with modalManager (like items modal)
+            modalManager.open(dom.cropperBackdrop, {
+                closeOnBackdropClick: false,
+                closeOnEsc: true
+            });
+
+            // Initialize Cropper.js
+            state.cropper.instance = new Cropper(dom.cropperImage, {
+                viewMode: 1,
+                dragMode: 'move',
+                aspectRatio: NaN, // FREE aspect ratio
+                autoCropArea: 1.0, // Full image by default
+                restore: true,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+                background: true,
+                responsive: true,
+                checkOrientation: true,
+                modal: true,
+                minCropBoxWidth: 50,
+                minCropBoxHeight: 50,
+                wheelZoomRatio: 0.1,
+                movable: true,
+                zoomable: true,
+                rotatable: true,
+                scalable: true,
+                ready() {
+                    // Store the initial zoom as the base (100%)
+                    const imageData = state.cropper.instance.getImageData();
+                    state.cropper.baseZoom = imageData.width / imageData.naturalWidth;
+                    updateCropInfo();
+                },
+                crop() {
+                    updateCropInfo();
+                },
+                zoom() {
+                    updateCropInfo();
+                }
+            });
+
+            state.cropper.scaleX = 1;
+            state.cropper.scaleY = 1;
+        };
+    };
+    reader.readAsDataURL(file);
+
+    // Wire up controls
     if (dom.cropperZoom) {
         dom.cropperZoom.oninput = () => {
-            const targetPercent = parseInt(dom.cropperZoom.value);
-            uploaderCropper.zoomToPercent(targetPercent);
+            if (!state.cropper.instance) return;
+            const targetPercent = parseInt(dom.cropperZoom.value) / 100;
+            const targetZoom = state.cropper.baseZoom * targetPercent;
+            state.cropper.instance.zoomTo(targetZoom);
         };
     }
 
     if (dom.cropperZoomIn) {
-        dom.cropperZoomIn.onclick = () => uploaderCropper.zoomIn();
+        dom.cropperZoomIn.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.zoom(0.1);
+        };
     }
 
     if (dom.cropperZoomOut) {
-        dom.cropperZoomOut.onclick = () => uploaderCropper.zoomOut();
+        dom.cropperZoomOut.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.zoom(-0.1);
+        };
     }
 
     if (dom.cropperRotateLeft) {
-        dom.cropperRotateLeft.onclick = () => uploaderCropper.rotate(-90);
+        dom.cropperRotateLeft.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.rotate(-90);
+        };
     }
 
     if (dom.cropperRotateRight) {
-        dom.cropperRotateRight.onclick = () => uploaderCropper.rotate(90);
-    }
-
-    if (dom.cropperRotate180) {
-        dom.cropperRotate180.onclick = () => uploaderCropper.rotate(180);
+        dom.cropperRotateRight.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.rotate(90);
+        };
     }
 
     if (dom.cropperFlipX) {
-        dom.cropperFlipX.onclick = () => uploaderCropper.flipX();
+        dom.cropperFlipX.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.scaleX = -state.cropper.scaleX;
+                state.cropper.instance.scaleX(state.cropper.scaleX);
+            }
+        };
     }
 
     if (dom.cropperFlipY) {
-        dom.cropperFlipY.onclick = () => uploaderCropper.flipY();
+        dom.cropperFlipY.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.scaleY = -state.cropper.scaleY;
+                state.cropper.instance.scaleY(state.cropper.scaleY);
+            }
+        };
     }
 
     if (dom.cropperReset) {
-        dom.cropperReset.onclick = () => uploaderCropper.reset();
-    }
-
-    // Wire up aspect ratio buttons
-    const aspectButtons = dom.cropperBackdrop?.querySelectorAll('.cropper-aspect-btn');
-    aspectButtons?.forEach(btn => {
-        btn.onclick = () => {
-            const ratio = parseFloat(btn.dataset.ratio);
-            if (uploaderCropper.cropper && Number.isFinite(ratio)) {
-                uploaderCropper.cropper.setAspectRatio(ratio);
-                // Update active state
-                aspectButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+        dom.cropperReset.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.instance.reset();
+                state.cropper.scaleX = 1;
+                state.cropper.scaleY = 1;
             }
         };
-    });
+    }
 }
 
 async function applyCropper() {
-    if (!uploaderCropper.cropper) {
+    if (!state.cropper.instance) {
         closeCropper();
         return;
     }
 
-    const result = await uploaderCropper.confirm();
-    if (!result || !result.blob) {
+    const canvas = state.cropper.instance.getCroppedCanvas({
+        maxWidth: 4096,
+        maxHeight: 4096,
+        fillColor: '#fff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+
+    if (!canvas) {
         toastManager.error('Recadrage impossible');
         return;
     }
 
-    // Convert blob to data URL for quest images
-    const reader = new FileReader();
-    reader.onload = () => {
-        const dataUrl = String(reader.result || "");
-        if (dataUrl) {
-            state.editor.images.push(dataUrl);
-            renderEditorLists();
-            toastManager.success('Image ajoutée');
+    // Convert canvas to blob then to data URL
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            toastManager.error('Recadrage impossible');
+            return;
         }
-    };
-    reader.readAsDataURL(result.blob);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = String(reader.result || "");
+            if (dataUrl) {
+                state.editor.images.push(dataUrl);
+                renderEditorLists();
+                toastManager.success('Image ajoutée');
+            }
+        };
+        reader.readAsDataURL(blob);
+    }, 'image/jpeg', 0.92);
 
     closeCropper(false);
 }
@@ -2565,13 +2635,6 @@ function bindEvents() {
     dom.cropperClose?.addEventListener("click", () => closeCropper());
     dom.cropperCancel?.addEventListener("click", () => closeCropper());
     dom.cropperConfirm?.addEventListener("click", () => applyCropper());
-    dom.cropperZoom?.addEventListener("input", () => {
-        if (!state.cropper.instance) return;
-        const value = Number(dom.cropperZoom.value);
-        if (Number.isFinite(value)) {
-            state.cropper.instance.zoomTo(value);
-        }
-    });
     bindEditorListEvents();
     bindCarouselDrag();
     bindMediaDrag();

@@ -373,104 +373,192 @@
     border: 1px dashed rgba(216, 27, 96, 0.25);
 }
 
+/* Cropper Modal Backdrop (like items modal) */
 .profile-cropper-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: none;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(76, 58, 99, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 999999 !important;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    padding: var(--space-4);
-    z-index: 2500;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
 }
 
-.profile-cropper-backdrop.open {
-    display: flex;
+.profile-cropper-backdrop:not([hidden]) {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .profile-cropper-modal {
-    width: min(92vw, 560px);
-    background: var(--color-white);
-    border: 2px solid var(--color-primary-light);
-    border-radius: 16px;
-    padding: var(--space-4);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(120, 38, 70, 0.3);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+}
+
+.profile-cropper-backdrop:not([hidden]) .profile-cropper-modal {
+    transform: scale(1);
 }
 
 .profile-cropper-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-3);
-    margin-bottom: var(--space-3);
+    padding: 20px 24px;
+    border-bottom: 2px solid rgba(255, 106, 162, 0.2);
+    flex-shrink: 0;
 }
 
 .profile-cropper-title {
     margin: 0;
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--color-primary);
 }
 
 .profile-cropper-close {
-    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 106, 162, 0.3);
     background: transparent;
     color: var(--color-primary);
     font-size: 1.5rem;
-    line-height: 1;
+    font-weight: 700;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.profile-cropper-close:hover {
+    background: rgba(255, 106, 162, 0.1);
+    border-color: var(--color-primary);
 }
 
 .profile-cropper-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: 16px;
 }
 
 .profile-cropper-stage {
-    width: min(100%, 360px);
-    aspect-ratio: 1;
-    margin: 0 auto;
-    background: #f6f6f8;
+    background: #fafafa;
+    border: 2px dashed #ddd;
     border-radius: 12px;
-    border: 1px solid var(--color-primary-light);
+    padding: 12px;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
-.profile-cropper-stage img {
-    width: 100%;
-    height: 100%;
+#avatarCropperImage {
+    max-width: 100%;
+    max-height: 100%;
     display: block;
 }
 
 .profile-cropper-controls {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-shrink: 0;
     flex-wrap: wrap;
 }
 
-.profile-cropper-controls label {
-    font-weight: var(--font-semibold);
-    color: var(--color-gray-700);
+.profile-cropper-toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
 }
 
-.profile-cropper-controls input[type="range"] {
+.profile-tool-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-tool-btn:hover {
+    background: #f8f9fa;
+    border-color: #bbb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.profile-tool-btn:active {
+    transform: scale(0.95);
+    background: #e9ecef;
+}
+
+.profile-toolbar-divider {
+    width: 1px;
+    height: 30px;
+    background: #ddd;
+    margin: 0 4px;
+}
+
+.profile-cropper-zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     flex: 1;
-    min-width: 180px;
+    min-width: 200px;
+}
+
+.profile-zoom-display {
+    min-width: 50px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-family: 'Courier New', monospace;
+}
+
+#avatarZoomRange {
+    flex: 1;
 }
 
 .profile-cropper-hint {
-    font-size: var(--text-xs);
-    color: var(--color-gray-600);
+    display: none;
 }
 
 .profile-cropper-actions {
     display: flex;
     justify-content: flex-end;
-    gap: var(--space-3);
-    margin-top: var(--space-4);
-    flex-wrap: wrap;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 2px solid rgba(255, 106, 162, 0.2);
+    flex-shrink: 0;
 }
 
 .profile-tags-badge {

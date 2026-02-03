@@ -328,68 +328,42 @@
             </form>
         </div>
     </div>
-    <div class="profile-cropper-backdrop" id="avatarCropperBackdrop" aria-hidden="true">
+    <!-- Cropper Modal with Backdrop (like items modal) -->
+    <div class="profile-cropper-backdrop" id="avatarCropperBackdrop" hidden aria-hidden="true">
         <div class="profile-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="avatarCropperTitle">
             <div class="profile-cropper-header">
-                <h2 class="profile-cropper-title" id="avatarCropperTitle">Ajuster l'avatar</h2>
+                <h2 class="profile-cropper-title" id="avatarCropperTitle">Recadrer l'avatar</h2>
                 <button type="button" class="profile-cropper-close tw-press" id="avatarCropperClose" aria-label="Fermer">×</button>
             </div>
             <div class="profile-cropper-body">
                 <div class="profile-cropper-stage">
-                    <img id="avatarCropperImage" alt="Apercu avatar">
+                    <img id="avatarCropperImage" alt="Image to crop">
                 </div>
+
                 <div class="profile-cropper-controls">
-                    <!-- Aspect Ratio Controls -->
-                    <div class="cropper-control-group">
-                        <label>Format</label>
-                        <div class="cropper-button-group">
-                            <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="1" title="Carré 1:1">□ Carré</button>
-                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
-                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="0.5625" title="Portrait 9:16">▯ Portrait</button>
-                        </div>
+                    <div class="profile-cropper-toolbar">
+                        <button class="profile-tool-btn" id="avatarCropperRotateLeft" title="Rotation -90°">↺</button>
+                        <button class="profile-tool-btn" id="avatarCropperRotateRight" title="Rotation +90°">↻</button>
+                        <button class="profile-tool-btn" id="avatarCropperFlipX" title="Miroir horizontal">↔</button>
+                        <button class="profile-tool-btn" id="avatarCropperFlipY" title="Miroir vertical">↕</button>
+
+                        <div class="profile-toolbar-divider"></div>
+
+                        <button class="profile-tool-btn" id="avatarCropperReset" title="Réinitialiser">↺</button>
                     </div>
 
-                    <!-- Rotation Controls -->
-                    <div class="cropper-control-group">
-                        <label>Rotation</label>
-                        <div class="cropper-button-group">
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotateLeft" title="Rotation -90°">↺ -90°</button>
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotateRight" title="Rotation +90°">↻ +90°</button>
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotate180" title="Rotation 180°">↻ 180°</button>
-                        </div>
+                    <div class="profile-cropper-zoom-controls">
+                        <button class="profile-tool-btn" id="avatarCropperZoomOut" title="Zoom -">−</button>
+                        <span class="profile-zoom-display" id="avatarCropperZoomDisplay">100%</span>
+                        <input type="range" id="avatarZoomRange" min="10" max="300" value="100" step="1">
+                        <button class="profile-tool-btn" id="avatarCropperZoomIn" title="Zoom +">+</button>
                     </div>
-
-                    <!-- Flip Controls -->
-                    <div class="cropper-control-group">
-                        <label>Miroir</label>
-                        <div class="cropper-button-group">
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperFlipX" title="Miroir horizontal">↔ Horizontal</button>
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperFlipY" title="Miroir vertical">↕ Vertical</button>
-                        </div>
-                    </div>
-
-                    <!-- Zoom Controls -->
-                    <div class="cropper-control-group">
-                        <label for="avatarZoomRange">Zoom</label>
-                        <div class="cropper-zoom-group">
-                            <span id="avatarCropperZoomDisplay" style="min-width: 60px; text-align: center; font-weight: 600; font-family: 'Courier New', monospace;">100%</span>
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomOut" title="Zoom -">−</button>
-                            <input type="range" id="avatarZoomRange" min="10" max="300" step="1" value="100">
-                            <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomIn" title="Zoom +">+</button>
-                        </div>
-                    </div>
-
-                    <!-- Reset Button -->
-                    <div class="cropper-control-group">
-                        <button type="button" class="cropper-btn cropper-btn-secondary tw-press" id="avatarCropperReset" title="Réinitialiser">↺ Réinitialiser</button>
-                    </div>
-
-                    <span class="profile-cropper-hint">Utilise les contrôles pour ajuster le cadrage.</span>
                 </div>
             </div>
+
             <div class="profile-cropper-actions">
-                <button type="button" class="profile-modal-button secondary tw-press" id="avatarCropperCancel">Annuler</button>
-                <button type="button" class="profile-modal-button tw-press" id="avatarCropperConfirm">Enregistrer</button>
+                <button class="profile-modal-button secondary tw-press" id="avatarCropperCancel">Cancel</button>
+                <button class="profile-modal-button tw-press" id="avatarCropperConfirm">✓ Apply</button>
             </div>
         </div>
     </div>
@@ -479,6 +453,7 @@
         const avatarImg = document.getElementById('characterAvatarImg');
         const avatarPlaceholder = document.getElementById('characterInitial');
         const cropperBackdrop = document.getElementById('avatarCropperBackdrop');
+        const cropperClose = document.getElementById('avatarCropperClose');
         const cropperImage = document.getElementById('avatarCropperImage');
         const cropperZoom = document.getElementById('avatarZoomRange');
         const cropperZoomDisplay = document.getElementById('avatarCropperZoomDisplay');
@@ -486,11 +461,9 @@
         const cropperZoomOut = document.getElementById('avatarCropperZoomOut');
         const cropperRotateLeft = document.getElementById('avatarCropperRotateLeft');
         const cropperRotateRight = document.getElementById('avatarCropperRotateRight');
-        const cropperRotate180 = document.getElementById('avatarCropperRotate180');
         const cropperFlipX = document.getElementById('avatarCropperFlipX');
         const cropperFlipY = document.getElementById('avatarCropperFlipY');
         const cropperReset = document.getElementById('avatarCropperReset');
-        const cropperClose = document.getElementById('avatarCropperClose');
         const cropperCancel = document.getElementById('avatarCropperCancel');
         const cropperConfirm = document.getElementById('avatarCropperConfirm');
         let currentUser = null;
@@ -504,7 +477,10 @@
         let dockSouls = null;
         let soulConsoValue = null;
         let soulProgValue = null;
-        let pendingAvatarFile = null; // Used with uploaderCropper wrapper
+        let avatarCropper = null; // Direct Cropper.js instance
+        let cropperScaleX = 1;
+        let cropperScaleY = 1;
+        let cropperBaseZoom = 1;
         let presentations = [];
         let activePresentationId = null;
         let editingPresentationId = null;
@@ -1404,14 +1380,33 @@
             isPresentationDirty = true;
             updateSaveButtonState();
         }
+        function updateCropInfo() {
+            if (!avatarCropper) return;
+            const imageData = avatarCropper.getImageData();
+            const currentZoom = imageData.width / imageData.naturalWidth;
+            const zoomPercent = Math.round((currentZoom / cropperBaseZoom) * 100);
+            if (cropperZoomDisplay) {
+                cropperZoomDisplay.textContent = zoomPercent + '%';
+            }
+            if (cropperZoom) {
+                cropperZoom.value = zoomPercent;
+            }
+        }
         function destroyAvatarCropper() {
-            uploaderCropper.destroy();
-            pendingAvatarFile = null;
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+            }
         }
         function closeAvatarCropper(resetInput = true) {
-            if (!cropperBackdrop) return;
-            modalManager.close(cropperBackdrop);
+            if (cropperBackdrop) {
+                modalManager.close(cropperBackdrop);
+            }
             destroyAvatarCropper();
+            if (cropperImage) {
+                cropperImage.src = '';
+                cropperImage.removeAttribute('src');
+            }
             if (resetInput && avatarInput) {
                 avatarInput.value = '';
             }
@@ -1423,93 +1418,129 @@
                 return;
             }
 
-            pendingAvatarFile = file;
-
-            // Use uploaderCropper wrapper
-            const success = uploaderCropper.open(file, {
-                imageElement: cropperImage,
-                aspectRatio: NaN, // FREE aspect ratio by default
-                outputWidth: 512,
-                outputHeight: 512,
-                quality: 0.95,
-                enableRotate: true,
-                enableZoom: true,
-                onZoomChange: (zoomPercent) => {
-                    // Update zoom display and slider
-                    if (cropperZoomDisplay) {
-                        cropperZoomDisplay.textContent = `${zoomPercent}%`;
-                    }
-                    if (cropperZoom) {
-                        cropperZoom.value = zoomPercent;
-                    }
-                }
-            });
-
-            if (!success) {
-                toastManager.error('Impossible d\'ouvrir le recadrage');
-                return;
+            // Destroy existing cropper
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
             }
 
-            // Show modal
-            modalManager.open(cropperBackdrop, {
-                closeOnBackdropClick: false,
-                closeOnEsc: true,
-                openClass: 'open'
-            });
+            // Load image
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                cropperImage.src = event.target.result;
 
-            // Wire up cropper controls
+                // Wait for image to load before initializing cropper
+                cropperImage.onload = () => {
+                    // Open modal with modalManager (like items modal)
+                    modalManager.open(cropperBackdrop, {
+                        closeOnBackdropClick: false,
+                        closeOnEsc: true
+                    });
+
+                    // Initialize Cropper.js
+                    avatarCropper = new Cropper(cropperImage, {
+                        viewMode: 1,
+                        dragMode: 'move',
+                        aspectRatio: NaN, // FREE aspect ratio
+                        autoCropArea: 1.0, // Full image by default
+                        restore: true,
+                        guides: true,
+                        center: true,
+                        highlight: true,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        background: true,
+                        responsive: true,
+                        checkOrientation: true,
+                        modal: true,
+                        minCropBoxWidth: 50,
+                        minCropBoxHeight: 50,
+                        wheelZoomRatio: 0.1,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: true,
+                        scalable: true,
+                        ready() {
+                            const imageData = avatarCropper.getImageData();
+                            cropperBaseZoom = imageData.width / imageData.naturalWidth;
+                            updateCropInfo();
+                        },
+                        crop() {
+                            updateCropInfo();
+                        },
+                        zoom() {
+                            updateCropInfo();
+                        }
+                    });
+
+                    cropperScaleX = 1;
+                    cropperScaleY = 1;
+                };
+            };
+            reader.readAsDataURL(file);
+
+            // Wire up controls
             if (cropperZoom) {
                 cropperZoom.oninput = () => {
-                    const targetPercent = parseInt(cropperZoom.value);
-                    uploaderCropper.zoomToPercent(targetPercent);
+                    if (!avatarCropper) return;
+                    const targetPercent = parseInt(cropperZoom.value) / 100;
+                    const targetZoom = cropperBaseZoom * targetPercent;
+                    avatarCropper.zoomTo(targetZoom);
                 };
             }
 
             if (cropperZoomIn) {
-                cropperZoomIn.onclick = () => uploaderCropper.zoomIn();
+                cropperZoomIn.onclick = () => {
+                    if (avatarCropper) avatarCropper.zoom(0.1);
+                };
             }
 
             if (cropperZoomOut) {
-                cropperZoomOut.onclick = () => uploaderCropper.zoomOut();
+                cropperZoomOut.onclick = () => {
+                    if (avatarCropper) avatarCropper.zoom(-0.1);
+                };
             }
 
             if (cropperRotateLeft) {
-                cropperRotateLeft.onclick = () => uploaderCropper.rotate(-90);
+                cropperRotateLeft.onclick = () => {
+                    if (avatarCropper) avatarCropper.rotate(-90);
+                };
             }
 
             if (cropperRotateRight) {
-                cropperRotateRight.onclick = () => uploaderCropper.rotate(90);
-            }
-
-            if (cropperRotate180) {
-                cropperRotate180.onclick = () => uploaderCropper.rotate(180);
+                cropperRotateRight.onclick = () => {
+                    if (avatarCropper) avatarCropper.rotate(90);
+                };
             }
 
             if (cropperFlipX) {
-                cropperFlipX.onclick = () => uploaderCropper.flipX();
+                cropperFlipX.onclick = () => {
+                    if (avatarCropper) {
+                        cropperScaleX = -cropperScaleX;
+                        avatarCropper.scaleX(cropperScaleX);
+                    }
+                };
             }
 
             if (cropperFlipY) {
-                cropperFlipY.onclick = () => uploaderCropper.flipY();
+                cropperFlipY.onclick = () => {
+                    if (avatarCropper) {
+                        cropperScaleY = -cropperScaleY;
+                        avatarCropper.scaleY(cropperScaleY);
+                    }
+                };
             }
 
             if (cropperReset) {
-                cropperReset.onclick = () => uploaderCropper.reset();
-            }
-
-            // Wire up aspect ratio buttons
-            const aspectButtons = cropperBackdrop?.querySelectorAll('.cropper-aspect-btn');
-            aspectButtons?.forEach(btn => {
-                btn.onclick = () => {
-                    const ratio = parseFloat(btn.dataset.ratio);
-                    if (uploaderCropper.cropper && Number.isFinite(ratio)) {
-                        uploaderCropper.cropper.setAspectRatio(ratio);
-                        // Update active state
-                        aspectButtons.forEach(b => b.classList.remove('active'));
-                        btn.classList.add('active');
+                cropperReset.onclick = () => {
+                    if (avatarCropper) {
+                        avatarCropper.reset();
+                        cropperScaleX = 1;
+                        cropperScaleY = 1;
                     }
                 };
-            });
+            }
         }
         // Initialize page
         async function init() {
@@ -2136,30 +2167,33 @@
         if (cropperCancel) {
             cropperCancel.addEventListener('click', () => closeAvatarCropper());
         }
-        if (cropperBackdrop) {
-            cropperBackdrop.addEventListener('click', (event) => {
-                if (event.target === cropperBackdrop) {
-                    closeAvatarCropper();
-                }
-            });
-        }
         if (cropperConfirm) {
             cropperConfirm.addEventListener('click', async () => {
-                if (!uploaderCropper.cropper || !pendingAvatarFile) return;
+                if (!avatarCropper) return;
 
-                const result = await uploaderCropper.confirm();
-                if (!result || !result.blob) {
+                const canvas = avatarCropper.getCroppedCanvas({
+                    maxWidth: 4096,
+                    maxHeight: 4096,
+                    fillColor: '#fff',
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+
+                if (!canvas) {
                     toastManager.error('Recadrage impossible');
                     return;
                 }
 
-                const baseName = String(pendingAvatarFile.name || 'avatar')
-                    .replace(/\.[^/.]+$/, '')
-                    .slice(0, 120);
-                const uploadFile = new File([result.blob], `${baseName}.png`, { type: 'image/png' });
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        toastManager.error('Recadrage impossible');
+                        return;
+                    }
 
-                closeAvatarCropper(false);
-                await uploadAvatar(uploadFile);
+                    const uploadFile = new File([blob], 'avatar.png', { type: 'image/png' });
+                    closeAvatarCropper(false);
+                    await uploadAvatar(uploadFile);
+                }, 'image/png', 0.95);
             });
         }
         createForm.addEventListener('submit', async (e) => {

@@ -2038,102 +2038,192 @@ body.quest-board {
     }
 }
 
+/* Cropper Modal Backdrop (like items modal) */
 .quest-cropper-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(45, 24, 60, 0.45);
-    backdrop-filter: blur(8px);
-    display: none;
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(76, 58, 99, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 999999 !important;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    z-index: 80;
-    padding: 24px;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
 }
 
-.quest-cropper-backdrop.open {
-    display: flex;
+.quest-cropper-backdrop:not([hidden]) {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .quest-cropper-modal {
-    width: min(520px, 92vw);
     background: #fff;
     border-radius: 20px;
-    border: 2px solid rgba(255, 106, 162, 0.35);
-    box-shadow: var(--quest-shadow);
-    padding: 16px;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(120, 38, 70, 0.3);
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+}
+
+.quest-cropper-backdrop:not([hidden]) .quest-cropper-modal {
+    transform: scale(1);
 }
 
 .quest-cropper-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    padding: 20px 24px;
+    border-bottom: 2px solid rgba(255, 106, 162, 0.2);
+    flex-shrink: 0;
 }
 
 .quest-cropper-title {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--quest-pink);
 }
 
 .quest-cropper-close {
-    border: none;
-    background: rgba(255, 106, 162, 0.12);
-    color: var(--quest-pink);
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
+    border: 2px solid rgba(255, 106, 162, 0.3);
+    background: transparent;
+    color: var(--quest-pink);
+    font-size: 1.5rem;
+    font-weight: 700;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.quest-cropper-close:hover {
+    background: rgba(255, 106, 162, 0.1);
+    border-color: var(--quest-pink);
 }
 
 .quest-cropper-body {
-    display: grid;
-    gap: 12px;
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .quest-cropper-stage {
-    background: rgba(255, 106, 162, 0.08);
-    border-radius: 16px;
+    background: #fafafa;
+    border: 2px dashed #ddd;
+    border-radius: 12px;
     padding: 12px;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+#questCropperImage {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+}
+
+.quest-cropper-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.quest-cropper-toolbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.quest-tool-btn {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.quest-cropper-stage img {
-    max-width: 100%;
-    max-height: 320px;
-    display: block;
+.quest-tool-btn:hover {
+    background: #f8f9fa;
+    border-color: #bbb;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.quest-cropper-controls {
-    display: grid;
-    gap: 6px;
-    font-size: 0.85rem;
-    color: #4c3a63;
+.quest-tool-btn:active {
+    transform: scale(0.95);
+    background: #e9ecef;
+}
+
+.quest-toolbar-divider {
+    width: 1px;
+    height: 30px;
+    background: #ddd;
+    margin: 0 4px;
+}
+
+.quest-cropper-zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.quest-zoom-display {
+    min-width: 50px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+    font-family: 'Courier New', monospace;
+}
+
+#questCropperZoom {
+    flex: 1;
+}
+
+.quest-cropper-hint {
+    display: none;
 }
 
 .quest-cropper-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 12px;
-}
-
-.quest-cropper-button {
-    border: none;
-    border-radius: 12px;
-    padding: 8px 14px;
-    font-weight: 700;
-    background: var(--quest-pink);
-    color: #fff;
-    cursor: pointer;
-}
-
-.quest-cropper-button.secondary {
-    background: #fff;
-    color: var(--quest-pink);
-    border: 2px solid var(--quest-pink);
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 2px solid rgba(255, 106, 162, 0.2);
+    flex-shrink: 0;
 }
 
 /* Fullscreen image viewer */
