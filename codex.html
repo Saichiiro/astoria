@@ -247,11 +247,7 @@
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
     <script src="js/item-modifiers.js"></script>
-    <script src="js/ui/list-helpers.js"></script>
-    <script src="js/ui/search-history.js"></script>
-    <script src="js/ui/searchbar.js"></script>
-    <script type="module" src="js/ui/app-shell.js"></script>
-    <!-- External Libraries (CDN) -->
+    <!-- External Libraries (CDN) - MUST LOAD FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
 
@@ -268,13 +264,19 @@
     <!-- localForage for IndexedDB/localStorage abstraction (~17KB) -->
     <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
 
-    <!-- Library Wrappers (Astoria) -->
+    <!-- Library Wrappers (Astoria) - MUST LOAD BEFORE APP SCRIPTS -->
     <script src="js/components/toast-manager.js"></script>
     <script src="js/components/storage-manager.js"></script>
     <script src="js/components/modal-manager.js"></script>
     <script src="js/components/uploader-cropper.js"></script>
     <script src="js/utils/sanitize.js"></script>
     <script src="js/utils/floating.js"></script>
+
+    <!-- App Scripts (now can use wrappers) -->
+    <script src="js/ui/list-helpers.js"></script>
+    <script src="js/ui/search-history.js"></script>
+    <script src="js/ui/searchbar.js"></script>
+    <script type="module" src="js/ui/app-shell.js"></script>
     <script src="js/codex.js?v=202601291"></script>
     <script type="module" src="js/codex-admin-summary.js?v=202601291"></script>
     <script type="module" src="js/codex-admin.js?v=202601291"></script>
