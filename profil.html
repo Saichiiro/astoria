@@ -372,8 +372,9 @@
                     <div class="cropper-control-group">
                         <label for="avatarZoomRange">Zoom</label>
                         <div class="cropper-zoom-group">
+                            <span id="avatarCropperZoomDisplay" style="min-width: 60px; text-align: center; font-weight: 600; font-family: 'Courier New', monospace;">100%</span>
                             <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomOut" title="Zoom -">−</button>
-                            <input type="range" id="avatarZoomRange" min="0.2" max="3" step="0.01" value="1">
+                            <input type="range" id="avatarZoomRange" min="10" max="300" step="1" value="100">
                             <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomIn" title="Zoom +">+</button>
                         </div>
                     </div>
@@ -480,6 +481,7 @@
         const cropperBackdrop = document.getElementById('avatarCropperBackdrop');
         const cropperImage = document.getElementById('avatarCropperImage');
         const cropperZoom = document.getElementById('avatarZoomRange');
+        const cropperZoomDisplay = document.getElementById('avatarCropperZoomDisplay');
         const cropperZoomIn = document.getElementById('avatarCropperZoomIn');
         const cropperZoomOut = document.getElementById('avatarCropperZoomOut');
         const cropperRotateLeft = document.getElementById('avatarCropperRotateLeft');
@@ -1431,7 +1433,16 @@
                 outputHeight: 512,
                 quality: 0.95,
                 enableRotate: true,
-                enableZoom: true
+                enableZoom: true,
+                onZoomChange: (zoomPercent) => {
+                    // Update zoom display and slider
+                    if (cropperZoomDisplay) {
+                        cropperZoomDisplay.textContent = `${zoomPercent}%`;
+                    }
+                    if (cropperZoom) {
+                        cropperZoom.value = zoomPercent;
+                    }
+                }
             });
 
             if (!success) {
@@ -1449,9 +1460,8 @@
             // Wire up cropper controls
             if (cropperZoom) {
                 cropperZoom.oninput = () => {
-                    if (uploaderCropper.cropper) {
-                        uploaderCropper.cropper.zoomTo(Number(cropperZoom.value));
-                    }
+                    const targetPercent = parseInt(cropperZoom.value);
+                    uploaderCropper.zoomToPercent(targetPercent);
                 };
             }
 

@@ -114,6 +114,70 @@
         uniq.forEach((url) => preloadImage(url));
     }
 
+    /**
+     * Get aspect ratio for a given display context
+     * @param {string} context - Display context identifier
+     * @returns {string} CSS aspect-ratio value
+     */
+    function getContainerAspect(context) {
+        const aspects = {
+            'inventory-grid': '1 / 1',      // Square thumbnails
+            'quest-carousel': 'auto',       // Free aspect (preserves image ratio)
+            'character-slot': '1 / 1',      // Square/circular slots
+            'item-detail': '4 / 3',         // Detail view
+            'item-popover': '1 / 1',        // Popover images
+            'free': 'auto'                  // No constraint
+        };
+        return aspects[context] || 'auto';
+    }
+
+    /**
+     * Apply consistent image styling for a given context
+     * @param {HTMLImageElement} imgElement - Image element to style
+     * @param {string} context - Display context identifier
+     * @param {object} options - Additional styling options
+     */
+    function applyImageStyle(imgElement, context, options = {}) {
+        const {
+            objectFit = 'cover',
+            objectPosition = 'center',
+            applyAspectRatio = true
+        } = options;
+
+        if (applyAspectRatio) {
+            imgElement.style.aspectRatio = getContainerAspect(context);
+        }
+        imgElement.style.objectFit = objectFit;
+        imgElement.style.objectPosition = objectPosition;
+        imgElement.style.width = '100%';
+        imgElement.style.height = '100%';
+    }
+
+    /**
+     * Create an image element with consistent styling for a context
+     * @param {string} src - Image source URL
+     * @param {string} context - Display context identifier
+     * @param {object} options - Additional options
+     * @returns {HTMLImageElement}
+     */
+    function createStyledImage(src, context, options = {}) {
+        const {
+            alt = '',
+            loading = 'lazy',
+            className = '',
+            ...styleOptions
+        } = options;
+
+        const img = document.createElement('img');
+        img.src = src || largePlaceholder;
+        img.alt = alt;
+        img.loading = loading;
+        if (className) img.className = className;
+
+        applyImageStyle(img, context, styleOptions);
+        return img;
+    }
+
     window.astoriaImageHelpers = {
         basePath,
         normalizeName,
@@ -123,6 +187,9 @@
         smallPlaceholder,
         resolveItemImages,
         preloadImage,
-        preloadMany
+        preloadMany,
+        getContainerAspect,
+        applyImageStyle,
+        createStyledImage
     };
 })();

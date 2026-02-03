@@ -210,6 +210,7 @@ const dom = {
     cropperBackdrop: document.getElementById("questCropperBackdrop"),
     cropperImage: document.getElementById("questCropperImage"),
     cropperZoom: document.getElementById("questCropperZoom"),
+    cropperZoomDisplay: document.getElementById("questCropperZoomDisplay"),
     cropperZoomIn: document.getElementById("questCropperZoomIn"),
     cropperZoomOut: document.getElementById("questCropperZoomOut"),
     cropperRotateLeft: document.getElementById("questCropperRotateLeft"),
@@ -2198,7 +2199,16 @@ function openCropper(file) {
         outputHeight: 800,
         quality: 0.9,
         enableRotate: true,
-        enableZoom: true
+        enableZoom: true,
+        onZoomChange: (zoomPercent) => {
+            // Update zoom display and slider
+            if (dom.cropperZoomDisplay) {
+                dom.cropperZoomDisplay.textContent = `${zoomPercent}%`;
+            }
+            if (dom.cropperZoom) {
+                dom.cropperZoom.value = zoomPercent;
+            }
+        }
     });
 
     if (!success) {
@@ -2216,9 +2226,8 @@ function openCropper(file) {
     // Wire up cropper controls
     if (dom.cropperZoom) {
         dom.cropperZoom.oninput = () => {
-            if (uploaderCropper.cropper) {
-                uploaderCropper.cropper.zoomTo(Number(dom.cropperZoom.value));
-            }
+            const targetPercent = parseInt(dom.cropperZoom.value);
+            uploaderCropper.zoomToPercent(targetPercent);
         };
     }
 

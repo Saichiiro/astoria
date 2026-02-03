@@ -10,6 +10,7 @@ class UploaderCropper {
         this.currentFile = null;
         this.config = null;
         this.hasCropper = typeof Cropper !== 'undefined';
+        this.baseZoom = 1; // Store initial "fit to container" zoom level
 
         if (!this.hasCropper) {
             console.warn('[UploaderCropper] Cropper.js library not loaded!');
@@ -62,6 +63,8 @@ class UploaderCropper {
             outputFormat: options.outputFormat ?? 'image/png',
             onConfirm: options.onConfirm || null,
             onCancel: options.onCancel || null,
+            onZoomChange: options.onZoomChange || null,
+            onCropChange: options.onCropChange || null,
             enableRotate: options.enableRotate !== false,
             enableZoom: options.enableZoom !== false,
         };
@@ -97,7 +100,7 @@ class UploaderCropper {
 
         const cropperOptions = {
             aspectRatio: this.config.aspectRatio,
-            viewMode: 1, // Restrict crop box to canvas
+            viewMode: 1, // Restrict crop box to canvas, allow canvas smaller than container
             dragMode: 'move',
             background: false,
             autoCropArea: 1,
@@ -109,6 +112,29 @@ class UploaderCropper {
             cropBoxMovable: true,
             cropBoxResizable: this.config.aspectRatio === 0, // Resize seulement si aspect libre
             toggleDragModeOnDblclick: false,
+            ready: () => {
+                // Store the initial "fit to container" zoom as base (100%)
+                const imageData = this.cropper.getImageData();
+                this.baseZoom = imageData.width / imageData.naturalWidth;
+                console.log('[UploaderCropper] Base zoom set to:', this.baseZoom);
+
+                // Trigger zoom info update callback if provided
+                if (this.config.onZoomChange) {
+                    this.config.onZoomChange(this.getZoomPercent());
+                }
+            },
+            zoom: () => {
+                // Trigger zoom info update callback if provided
+                if (this.config.onZoomChange) {
+                    this.config.onZoomChange(this.getZoomPercent());
+                }
+            },
+            crop: () => {
+                // Trigger crop info update callback if provided
+                if (this.config.onCropChange) {
+                    this.config.onCropChange(this.cropper.getData());
+                }
+            }
         };
 
         // Enable rotation controls if requested
@@ -204,6 +230,7 @@ class UploaderCropper {
 
         this.currentFile = null;
         this.config = null;
+        this.baseZoom = 1;
         console.log('[UploaderCropper] Destroyed');
     }
 
@@ -230,6 +257,44 @@ class UploaderCropper {
             return;
         }
         this.cropper.zoom(ratio);
+    }
+
+    /**
+     * Get current zoom as percentage relative to initial fit (100%)
+     * @returns {number} Zoom percentage
+     */
+    getZoomPercent() {
+        if (!this.cropper) return 100;
+        const imageData = this.cropper.getImageData();
+        const currentZoom = imageData.width / imageData.naturalWidth;
+        return Math.round((currentZoom / this.baseZoom) * 100);
+    }
+
+    /**
+     * Zoom to specific percentage (relative to initial fit)
+     * @param {number} percent - Target zoom percentage (100 = initial fit)
+     */
+    zoomToPercent(percent) {
+        if (!this.cropper) {
+            console.warn('[UploaderCropper] No active cropper to zoom');
+            return;
+        }
+        const targetZoom = this.baseZoom * (percent / 100);
+        this.cropper.zoomTo(targetZoom);
+    }
+
+    /**
+     * Zoom in by 10%
+     */
+    zoomIn() {
+        this.zoom(0.1);
+    }
+
+    /**
+     * Zoom out by 10%
+     */
+    zoomOut() {
+        this.zoom(-0.1);
     }
 
     /**
