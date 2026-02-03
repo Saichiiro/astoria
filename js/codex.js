@@ -213,12 +213,13 @@ function mergeLocalItems(dbItems, disabledNames) {
     const merged = [];
     const seenNames = new Set();
     const disabledSet = disabledNames instanceof Set ? disabledNames : new Set();
-    const tombstones = new Set(getItemTombstones());
+    // Tombstones check removed - async storage incompatible with sync merge
+    // Tombstones are already filtered by codex-admin before calling this
     const addItem = (item) => {
         if (!item) return;
         const nameKey = normalizeName(item.name || item.nom || "");
         if (nameKey && disabledSet.has(nameKey)) return;
-        if (nameKey && tombstones.has(nameKey)) return;
+        // Tombstone check removed - handled upstream
         if (nameKey && seenNames.has(nameKey)) return;
         if (nameKey) seenNames.add(nameKey);
         merged.push(item);
