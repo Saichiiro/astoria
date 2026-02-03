@@ -31,6 +31,7 @@ class ToastManager {
             console.warn('[ToastManager] Notyf not initialized, message:', message);
             return;
         }
+        this.notyf.dismissAll();
         this.notyf.success({
             message,
             duration,
@@ -47,6 +48,7 @@ class ToastManager {
             console.warn('[ToastManager] Notyf not initialized, message:', message);
             return;
         }
+        this.notyf.dismissAll();
         this.notyf.error({
             message,
             duration,
@@ -63,6 +65,7 @@ class ToastManager {
             console.warn('[ToastManager] Notyf not initialized, message:', message);
             return;
         }
+        this.notyf.dismissAll();
         this.notyf.open({
             type: 'info',
             message,
@@ -86,6 +89,7 @@ class ToastManager {
             console.warn('[ToastManager] Notyf not initialized, message:', message);
             return;
         }
+        this.notyf.dismissAll();
         this.notyf.open({
             type: 'warning',
             message,

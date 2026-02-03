@@ -217,8 +217,8 @@ function parsePrice(raw) {
 
 function openBackdrop(backdrop) {
     if (!backdrop) return;
+    backdrop.removeAttribute('aria-hidden');
     backdrop.classList.add('open');
-    backdrop.setAttribute('aria-hidden', 'false');
 }
 
 function closeBackdrop(backdrop) {
@@ -316,6 +316,11 @@ function openAdminModal(item) {
         dom.sellInput.value = editingItem.sellPrice || '';
         dom.descriptionInput.value = editingItem.description || '';
         dom.effectInput.value = editingItem.effect || '';
+        // Load equipment slot value
+        const eqSlotEl = document.getElementById('adminItemEquipmentSlot');
+        if (eqSlotEl) {
+            eqSlotEl.value = editingItem.equipment_slot || editingItem.equipmentSlot || '';
+        }
         if (editingItem.image) {
             setImagePreview(editingItem.image);
             setImageMetaText('Image actuelle');
@@ -543,12 +548,16 @@ async function saveItem(event) {
         return;
     }
 
+    const equipmentSlotEl = document.getElementById('adminItemEquipmentSlot');
+    const equipmentSlotVal = equipmentSlotEl ? equipmentSlotEl.value.trim() : '';
+
     const payload = {
         name,
         description: dom.descriptionInput.value.trim(),
         effect: dom.effectInput.value.trim(),
         category: dom.categoryInput.value.trim().toLowerCase(),
-        price_kaels: parsePrice(dom.sellInput.value)
+        price_kaels: parsePrice(dom.sellInput.value),
+        equipment_slot: equipmentSlotVal || null
     };
 
     dom.saveBtn.disabled = true;

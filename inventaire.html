@@ -7858,18 +7858,55 @@
 
 
         /**
+         * Map codex equipment_slot values (French) to inventory slot keys (English)
+         */
+        const SLOT_MAP = {
+            'casque': 'head',
+            'cape': 'cape',
+            'epaulettes': 'shoulders',
+            'collier': 'amulet',
+            'plastron': 'chest',
+            'ceinture': 'belt',
+            'gantelets': 'gloves',
+            'anneau': 'anneau',
+            'bottes': 'boots',
+            'arme-principale': 'weapon',
+            'arme-une-main': 'weapon',
+            'arme-deux-mains': 'weapon',
+            'arme-secondaire': 'offhand',
+            'artefact': 'artifact',
+            'familier': 'companion',
+            'monture': 'mount'
+        };
+
+        function normalizeSlot(rawSlot) {
+            if (!rawSlot) return null;
+            return SLOT_MAP[rawSlot] || rawSlot;
+        }
+
+        /**
+         * Get the normalized equipment slot from an item
+         * Checks both equipment_slot (DB) and equipmentSlot (JS) fields
+         */
+        function getItemSlot(item) {
+            const raw = item?.equipment_slot || item?.equipmentSlot || null;
+            return normalizeSlot(raw);
+        }
+
+        /**
          * Check if an item's equipment slot is compatible with target slot
          * Handles special cases like rings (anneau -> ring1 or ring2)
          * STRICT: items without equipmentSlot cannot be equipped
          */
         function isSlotCompatible(itemSlot, targetSlot) {
-            if (!itemSlot) return false; // STRICT: items must have equipmentSlot defined
+            const normalized = normalizeSlot(itemSlot);
+            if (!normalized) return false; // STRICT: items must have equipmentSlot defined
 
             // Direct match
-            if (itemSlot === targetSlot) return true;
+            if (normalized === targetSlot) return true;
 
             // Ring slots: "anneau" can go to ring1 or ring2
-            if (itemSlot === 'anneau' && (targetSlot === 'ring1' || targetSlot === 'ring2')) {
+            if (normalized === 'anneau' && (targetSlot === 'ring1' || targetSlot === 'ring2')) {
                 return true;
             }
 
@@ -7883,19 +7920,18 @@
          * Returns slot key or null if no slot available
          */
         function findAvailableSlot(item) {
-            if (!item || !item.equipmentSlot) return null;
-
-            const itemSlot = item.equipmentSlot;
+            const slot = getItemSlot(item);
+            if (!slot) return null;
 
             // For rings, find first available ring slot
-            if (itemSlot === 'anneau') {
+            if (slot === 'anneau') {
                 if (!equippedSlots['ring1']) return 'ring1';
                 if (!equippedSlots['ring2']) return 'ring2';
                 return 'ring1'; // Replace first ring if both occupied
             }
 
             // For other items, return the direct slot
-            return itemSlot;
+            return slot;
         }
 
 
@@ -8261,12 +8297,13 @@
 
 
             // Validate slot compatibility - STRICT: items must have equipmentSlot
-            if (!item.equipmentSlot) {
+            const itemSlot = getItemSlot(item);
+            if (!itemSlot) {
                 toastManager.error(`Cet objet n'a pas de slot d'équipement défini`);
                 return;
             }
 
-            if (!isSlotCompatible(item.equipmentSlot, slotKey)) {
+            if (!isSlotCompatible(itemSlot, slotKey)) {
                 const slotDef = EQUIPMENT_SLOT_DEFS.find(s => s.key === slotKey);
                 const slotLabel = slotDef ? slotDef.label : slotKey;
                 toastManager.error(`Cet objet ne peut pas être équipé dans le slot ${slotLabel}`);
@@ -8411,11 +8448,12 @@
          * Highlight valid target slots for a dragged item
          */
         function highlightValidSlots(item) {
-            if (!item || !item.equipmentSlot) return;
+            const itemSlot = getItemSlot(item);
+            if (!itemSlot) return;
 
             // Find all compatible slots
             EQUIPMENT_SLOT_DEFS.forEach((slot) => {
-                if (isSlotCompatible(item.equipmentSlot, slot.key)) {
+                if (isSlotCompatible(itemSlot, slot.key)) {
                     const slotEl = document.querySelector(`.character-slot[data-slot-key="${slot.key}"]`);
                     if (slotEl) {
                         slotEl.classList.add('is-drop-target');
