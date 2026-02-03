@@ -1760,9 +1760,7 @@
         const SILHOUETTE_STORAGE_KEY = 'astoriaInventoryCharacterSilhouette';
         const DEFAULT_SILHOUETTE = 'assets/images/Silhouette.png';
         const SILHOUETTE_RATIO = 230 / 320;
-        let silhouetteCropper = null;
-        let silhouetteObjectUrl = null;
-        let isSilhouetteZoomSync = false;
+        // Silhouette cropper now uses uploaderCropper wrapper
 
 
 
@@ -3559,149 +3557,50 @@
 
 
         function closeSilhouetteCropper() {
-
-
-
-            if (silhouetteCropper) {
-
-
-
-                silhouetteCropper.destroy();
-
-
-
-                silhouetteCropper = null;
-
-
-
-            }
-
-
-
-            if (silhouetteObjectUrl) {
-
-
-
-                URL.revokeObjectURL(silhouetteObjectUrl);
-
-
-
-                silhouetteObjectUrl = null;
-
-
-
-            }
-
-
-
-            if (silhouetteCropperZoom) silhouetteCropperZoom.value = '1';
-            isSilhouetteZoomSync = false;
-
-
-
             if (silhouetteCropperBackdrop) {
-
-
-
-                silhouetteCropperBackdrop.classList.remove('open');
-
-
-
-                silhouetteCropperBackdrop.setAttribute('aria-hidden', 'true');
-
-
-
+                modalManager.close(silhouetteCropperBackdrop);
             }
-
-
-
+            uploaderCropper.destroy();
+            if (silhouetteUploadInput) silhouetteUploadInput.value = '';
         }
 
 
 
         function openSilhouetteCropper(file) {
+            if (!file || !silhouetteCropperBackdrop || !silhouetteCropperImage || !window.Cropper) {
+                toastManager.warning('Recadrage indisponible');
+                return;
+            }
 
-
-
-            if (!file || !silhouetteCropperBackdrop || !silhouetteCropperImage || !window.Cropper) return;
-
-
-
-            closeSilhouetteCropper();
-
-
-
-            silhouetteObjectUrl = URL.createObjectURL(file);
-
-
-
-            silhouetteCropperImage.src = silhouetteObjectUrl;
-
-
-
-            silhouetteCropperBackdrop.classList.add('open');
-
-
-
-            silhouetteCropperBackdrop.setAttribute('aria-hidden', 'false');
-            silhouetteCropperBackdrop.style.position = 'fixed';
-            silhouetteCropperBackdrop.style.top = '0';
-            silhouetteCropperBackdrop.style.right = '0';
-            silhouetteCropperBackdrop.style.bottom = '0';
-            silhouetteCropperBackdrop.style.left = '0';
-            silhouetteCropperBackdrop.style.zIndex = '2147483000';
-
-
-
-            silhouetteCropper = new window.Cropper(silhouetteCropperImage, {
-
-
-
-                aspectRatio: SILHOUETTE_RATIO,
-
-
-
-                viewMode: 1,
-
-
-
-                dragMode: 'move',
-
-
-
-                autoCropArea: 1,
-
-
-
-                responsive: true,
-
-
-
-                background: false,
-                checkOrientation: false,
-                ready() {
-                    if (!silhouetteCropperZoom || !silhouetteCropper) return;
-                    const ratio = silhouetteCropper.getImageData().ratio || 1;
-                    const min = Number(silhouetteCropperZoom.min || 0.2);
-                    const max = Number(silhouetteCropperZoom.max || 3);
-                    const clamped = Math.min(max, Math.max(min, ratio));
-                    silhouetteCropperZoom.value = String(clamped);
-                },
-                zoom(event) {
-                    if (!silhouetteCropperZoom || isSilhouetteZoomSync) return;
-                    const ratio = Number(event?.detail?.ratio || 1);
-                    const min = Number(silhouetteCropperZoom.min || 0.2);
-                    const max = Number(silhouetteCropperZoom.max || 3);
-                    const clamped = Math.min(max, Math.max(min, ratio));
-                    silhouetteCropperZoom.value = String(clamped);
-                }
-
-
-
+            // Use uploaderCropper wrapper for consistency
+            const success = uploaderCropper.open(file, {
+                imageElement: silhouetteCropperImage,
+                aspectRatio: SILHOUETTE_RATIO, // 230:320
+                outputWidth: 460,
+                outputHeight: 640,
+                quality: 0.95,
+                enableRotate: true,
+                enableZoom: true
             });
 
+            if (!success) {
+                toastManager.error('Impossible d\'ouvrir le recadrage');
+                return;
+            }
 
+            // Show modal
+            modalManager.open(silhouetteCropperBackdrop, {
+                closeOnBackdropClick: false,
+                closeOnEsc: true,
+                openClass: 'open'
+            });
 
+            // Sync zoom slider if present
+            if (silhouetteCropperZoom && uploaderCropper.cropper) {
+                silhouetteCropperZoom.oninput = () => {
+                    uploaderCropper.cropper.zoomTo(Number(silhouetteCropperZoom.value));
+                };
+            }
         }
 
 
@@ -3827,74 +3726,30 @@
 
 
 
-            silhouetteCropperZoom?.addEventListener('input', () => {
-
-
-
-                if (!silhouetteCropper) return;
-
-
-
-                isSilhouetteZoomSync = true;
-                silhouetteCropper.zoomTo(Number(silhouetteCropperZoom.value || 1));
-                requestAnimationFrame(() => {
-                    isSilhouetteZoomSync = false;
-                });
-
-
-
-            });
-
-
+            // Zoom handled in openSilhouetteCropper via uploaderCropper
 
             silhouetteCropperConfirm?.addEventListener('click', async () => {
+                if (!uploaderCropper.cropper) return;
 
+                const result = await uploaderCropper.confirm();
+                if (!result || !result.blob) {
+                    toastManager.error('Recadrage impossible');
+                    return;
+                }
 
-
-                if (!silhouetteCropper) return;
-
-
-
-                const canvas = silhouetteCropper.getCroppedCanvas({
-
-
-
-                    width: 460,
-
-
-
-                    height: 640,
-
-
-
-                    imageSmoothingQuality: 'high'
-
-
-
-                });
-
-
-
-                if (!canvas) return;
-
-
-
-                const dataUrl = canvas.toDataURL('image/png');
-
-
-
-                applyCharacterSilhouette(dataUrl);
-
-
-
-                await persistSilhouette(dataUrl);
-
-
+                // Convert blob to data URL
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const dataUrl = String(reader.result || '');
+                    if (dataUrl) {
+                        applyCharacterSilhouette(dataUrl);
+                        await persistSilhouette(dataUrl);
+                        toastManager.success('Silhouette mise à jour');
+                    }
+                };
+                reader.readAsDataURL(result.blob);
 
                 closeSilhouetteCropper();
-
-
-
             });
 
 
