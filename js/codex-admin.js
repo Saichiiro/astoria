@@ -73,22 +73,23 @@ function getDbMatch(item) {
 }
 
 
-function getItemTombstones() {
+async function getItemTombstones() {
     try {
-        const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
+        // Using StorageManager instead of localStorage
+        const data = await storageManager.get(ITEM_TOMBSTONES_KEY);
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.warn('[CodexAdmin] getItemTombstones error:', error);
         return [];
     }
 }
 
-function addItemTombstone(name) {
+async function addItemTombstone(name) {
     const key = normalizeItemName(name);
     if (!key) return;
-    const tombstones = new Set(getItemTombstones());
+    const tombstones = new Set(await getItemTombstones());
     tombstones.add(key);
-    localStorage.setItem(ITEM_TOMBSTONES_KEY, JSON.stringify(Array.from(tombstones)));
+    await storageManager.set(ITEM_TOMBSTONES_KEY, Array.from(tombstones));
 }
 
 function setError(message) {
@@ -361,7 +362,7 @@ async function confirmDelete() {
 
         console.log('[DELETE] Successfully deleted from DB:', data);
 
-        addItemTombstone(editingItem?.name || "");
+        await addItemTombstone(editingItem?.name || "");
         // Remove from UI
         window.astoriaCodex?.removeItemByRef(editingItem);
         console.log('[DELETE] Removed from UI');

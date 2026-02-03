@@ -1,14 +1,14 @@
 // ============================================================================
-// Popover de détails d'item - Système réutilisable
+// Popover de détails d'item - Système réutilisable (REFACTORED with FloatingManager)
 // ============================================================================
 
-let popoverInstance = null;
+let popoverFloatingInstance = null;
 
 export function showItemDetailsPopover(item, anchorElement) {
     console.log('[Popover] showItemDetailsPopover called', { item, anchorElement });
 
     // Fermer le popover existant s'il y en a un
-    if (popoverInstance) {
+    if (popoverFloatingInstance) {
         closeItemDetailsPopover();
     }
 
@@ -19,18 +19,26 @@ export function showItemDetailsPopover(item, anchorElement) {
     // Ajouter au backdrop du modal items pour qu'il soit par-dessus le modal blanc
     const modalBackdrop = document.getElementById('questItemsModalBackdrop') || document.body;
     modalBackdrop.appendChild(popover);
-    popoverInstance = popover;
     console.log('[Popover] Popover appended to:', modalBackdrop);
 
-    // Positionner le popover par rapport à l'élément ancre
-    positionPopover(popover, anchorElement);
-    console.log('[Popover] Popover positioned');
-
-    // Afficher avec animation
-    requestAnimationFrame(() => {
-        popover.classList.add('visible');
-        console.log('[Popover] Popover should be visible now');
+    // REFACTORED: Utiliser FloatingManager au lieu du positionnement manuel
+    popoverFloatingInstance = floatingManager.createPopover(anchorElement, popover, {
+        placement: 'right',
+        offset: 12,
+        arrow: false,
+        trigger: 'manual', // Géré manuellement car déjà ouvert
+        onHide: () => {
+            // Cleanup après fermeture
+            if (popover && popover.parentNode) {
+                popover.parentNode.removeChild(popover);
+            }
+            popoverFloatingInstance = null;
+        }
     });
+
+    // Afficher le popover
+    popoverFloatingInstance.show();
+    console.log('[Popover] Popover shown with FloatingManager');
 
     // Event listeners
     const closeBtn = popover.querySelector('.item-details-popover-close');
@@ -51,7 +59,8 @@ export function showItemDetailsPopover(item, anchorElement) {
         document.addEventListener('click', outsideClickHandler);
     }, 100);
 
-    // Fermer avec Escape
+    // ESC key et click-outside sont déjà gérés par FloatingManager
+    // Mais on garde l'handler ESC custom pour la compatibilité
     const escapeHandler = (e) => {
         if (e.key === 'Escape') {
             closeItemDetailsPopover();
@@ -64,14 +73,10 @@ export function showItemDetailsPopover(item, anchorElement) {
 }
 
 export function closeItemDetailsPopover() {
-    if (popoverInstance) {
-        popoverInstance.classList.remove('visible');
-        setTimeout(() => {
-            if (popoverInstance && popoverInstance.parentNode) {
-                popoverInstance.parentNode.removeChild(popoverInstance);
-            }
-            popoverInstance = null;
-        }, 200);
+    if (popoverFloatingInstance) {
+        popoverFloatingInstance.hide();
+        popoverFloatingInstance.destroy();
+        popoverFloatingInstance = null;
     }
 }
 
@@ -187,96 +192,7 @@ function createPopoverElement(item) {
     return popover;
 }
 
-function positionPopover(popover, anchorElement) {
-    const anchorRect = anchorElement.getBoundingClientRect();
-    const popoverWidth = 320;
-    const gap = 12; // Espace entre l'ancre et le popover
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
-
-    // Hauteur max du popover est limitée par max-height: calc(100vh - 40px)
-    const maxPopoverHeight = viewportHeight - 40;
-    const popoverHeight = Math.min(popover.offsetHeight || maxPopoverHeight, maxPopoverHeight);
-
-    // Détecter si le panneau de détails de l'inventaire est visible
-    const itemDetailPanel = document.getElementById('itemDetail');
-    const scrollTypesPanel = document.getElementById('scrollTypesPanel');
-    let detailPanelWidth = 0;
-
-    if (itemDetailPanel && window.getComputedStyle(itemDetailPanel).display !== 'none') {
-        detailPanelWidth = Math.max(detailPanelWidth, itemDetailPanel.offsetWidth);
-    }
-    if (scrollTypesPanel && scrollTypesPanel.getAttribute('aria-hidden') !== 'true') {
-        detailPanelWidth = Math.max(detailPanelWidth, scrollTypesPanel.offsetWidth);
-    }
-
-    console.log('[Popover] Position debug:', {
-        anchorRect,
-        popoverWidth,
-        popoverHeight,
-        viewportWidth,
-        viewportHeight,
-        scrollX,
-        scrollY,
-        detailPanelWidth
-    });
-
-    let placement = 'right'; // Par défaut
-    let top = 0;
-    let left = 0;
-
-    // Réserver l'espace du panneau de détails à droite (+ marge de 20px)
-    const availableRightSpace = viewportWidth - detailPanelWidth - 20;
-
-    // Essayer de placer à droite (en tenant compte du panneau de détails)
-    if (anchorRect.right + gap + popoverWidth <= availableRightSpace) {
-        placement = 'right';
-        left = anchorRect.right + gap + scrollX;
-        top = anchorRect.top + anchorRect.height / 2 - popoverHeight / 2 + scrollY;
-    }
-    // Sinon essayer à gauche
-    else if (anchorRect.left - gap - popoverWidth >= 0) {
-        placement = 'left';
-        left = anchorRect.left - gap - popoverWidth + scrollX;
-        top = anchorRect.top + anchorRect.height / 2 - popoverHeight / 2 + scrollY;
-    }
-    // Sinon essayer en bas
-    else if (anchorRect.bottom + gap + popoverHeight <= viewportHeight) {
-        placement = 'bottom';
-        left = anchorRect.left + anchorRect.width / 2 - popoverWidth / 2 + scrollX;
-        top = anchorRect.bottom + gap + scrollY;
-    }
-    // Sinon placer en haut
-    else {
-        placement = 'top';
-        left = anchorRect.left + anchorRect.width / 2 - popoverWidth / 2 + scrollX;
-        top = anchorRect.top - gap - popoverHeight + scrollY;
-    }
-
-    // S'assurer que le popover reste dans le viewport horizontalement
-    if (left < 20) {
-        left = 20;
-    } else if (left + popoverWidth > viewportWidth - 20) {
-        left = viewportWidth - popoverWidth - 20;
-    }
-
-    // S'assurer que le popover reste dans le viewport verticalement
-    if (top < 20) {
-        top = 20;
-    } else if (top + popoverHeight > viewportHeight - 20 + scrollY) {
-        top = viewportHeight - popoverHeight - 20 + scrollY;
-    }
-
-    popover.style.left = `${left}px`;
-    popover.style.top = `${top}px`;
-    popover.setAttribute('data-placement', placement);
-
-    console.log('[Popover] Final position:', { left, top, placement });
-}
-
-// Export de la fonction pour fermer manuellement le popover
+// Export de la fonction pour vérifier si le popover est ouvert
 export function isPopoverOpen() {
-    return popoverInstance !== null;
+    return popoverFloatingInstance !== null;
 }

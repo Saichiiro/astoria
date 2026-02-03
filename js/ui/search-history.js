@@ -1,20 +1,22 @@
 (function () {
     const helpers = window.astoriaSearchHistory || {};
 
-    function readStorage(key) {
+    // Using StorageManager instead of localStorage
+    async function readStorage(key) {
         try {
-            const raw = localStorage.getItem(key);
-            return raw ? JSON.parse(raw) : [];
+            const data = await storageManager.get(key);
+            return Array.isArray(data) ? data : [];
         } catch (error) {
+            console.warn('[SearchHistory] Read error:', error);
             return [];
         }
     }
 
-    function writeStorage(key, items) {
+    async function writeStorage(key, items) {
         try {
-            localStorage.setItem(key, JSON.stringify(items));
+            await storageManager.set(key, items);
         } catch (error) {
-            // ignore storage failures
+            console.warn('[SearchHistory] Write error:', error);
         }
     }
 
@@ -23,26 +25,26 @@
         const maxItems = Number.isFinite(options?.maxItems) ? options.maxItems : 5;
         const minLength = Number.isFinite(options?.minLength) ? options.minLength : 2;
 
-        function get() {
-            return readStorage(storageKey);
+        async function get() {
+            return await readStorage(storageKey);
         }
 
-        function save(query) {
+        async function save(query) {
             const value = String(query || "").trim();
             if (!value || value.length < minLength) return;
 
-            let items = readStorage(storageKey);
+            let items = await readStorage(storageKey);
             items = items.filter((item) => item !== value);
             items.unshift(value);
             items = items.slice(0, maxItems);
-            writeStorage(storageKey, items);
+            await writeStorage(storageKey, items);
         }
 
-        function clear() {
+        async function clear() {
             try {
-                localStorage.removeItem(storageKey);
+                await storageManager.remove(storageKey);
             } catch (error) {
-                // ignore storage failures
+                console.warn('[SearchHistory] Clear error:', error);
             }
         }
 

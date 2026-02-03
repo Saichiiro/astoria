@@ -304,19 +304,24 @@ export function initItemsModal(questesModule) {
             modalDom.search.value = "";
         }
 
-        modalDom.backdrop.hidden = false;
-        modalDom.backdrop.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
+        // REFACTORED: Use ModalManager instead of manual scroll lock
+        modalManager.open(modalDom.backdrop, {
+            closeOnBackdropClick: true,
+            closeOnEsc: true,
+            focusElement: modalDom.search,
+            openClass: 'open',
+            onClose: () => {
+                console.log("[Items Modal] ModalManager onClose triggered");
+                // Ne PAS clear - persistence des quantités entre ouvertures
+            }
+        });
     }
 
     // Fermer le modal
     function closeModal() {
         if (!modalDom.backdrop) return;
-
-        modalDom.backdrop.hidden = true;
-        modalDom.backdrop.setAttribute("aria-hidden", "true");
-        document.body.style.overflow = "";
-        // Ne PAS clear - persistence des quantités entre ouvertures
+        // REFACTORED: Use ModalManager instead of manual close
+        modalManager.close(modalDom.backdrop);
     }
 
     // Confirmer et ajouter les récompenses
@@ -369,20 +374,8 @@ export function initItemsModal(questesModule) {
         });
     }
 
-    if (modalDom.backdrop) {
-        modalDom.backdrop.addEventListener("click", (e) => {
-            if (e.target === modalDom.backdrop) {
-                closeModal();
-            }
-        });
-    }
-
-    // Escape pour fermer
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !modalDom.backdrop.hidden) {
-            closeModal();
-        }
-    });
+    // REFACTORED: Backdrop click and ESC handlers are now managed by ModalManager
+    // No need for custom handlers - ModalManager handles closeOnBackdropClick and closeOnEsc
 
     // Connecter le bouton d'ouverture du modal
     const openModalBtn = document.getElementById("questOpenItemsModalBtn");

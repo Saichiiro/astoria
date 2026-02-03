@@ -1,17 +1,16 @@
 // On récupère les données depuis data.js (inventoryData)
 window.astoriaIsAdmin = false;
 
-function initAdminFlag() {
+async function initAdminFlag() {
     try {
-        const raw = localStorage.getItem("astoria_session");
-        if (!raw) return;
-        const session = JSON.parse(raw);
+        // Using StorageManager instead of localStorage
+        const session = await storageManager.get("astoria_session");
         if (!session || !session.user || !session.timestamp) return;
         const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
         if ((Date.now() - session.timestamp) > maxAgeMs) return;
         window.astoriaIsAdmin = session.user.role === "admin";
-    } catch {
-        // ignore invalid session
+    } catch (error) {
+        console.warn('[Codex] initAdminFlag error:', error);
     }
 }
 
@@ -23,12 +22,13 @@ let allItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryD
 const localItems = allItems.slice();
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 
-function getItemTombstones() {
+async function getItemTombstones() {
     try {
-        const raw = localStorage.getItem(ITEM_TOMBSTONES_KEY);
-        const parsed = raw ? JSON.parse(raw) : [];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
+        // Using StorageManager instead of localStorage
+        const data = await storageManager.get(ITEM_TOMBSTONES_KEY);
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.warn('[Codex] getItemTombstones error:', error);
         return [];
     }
 }
@@ -1220,7 +1220,7 @@ window.astoriaCodex = {
         return target;
     },
     getItemByIndex(index) {
-        return currentData[index];
+        return allItems[index];
     },
     refresh() {
         rowCache.clear();
