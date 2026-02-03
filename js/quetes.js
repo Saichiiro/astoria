@@ -2167,6 +2167,13 @@ function closeCropper(resetInput = true) {
         modalManager.close(dom.cropperBackdrop);
     }
     destroyCropper();
+
+    // Clear the image element to prevent blob URL issues
+    if (dom.cropperImage) {
+        dom.cropperImage.src = '';
+        dom.cropperImage.removeAttribute('src');
+    }
+
     if (resetInput && dom.imageFileInput) {
         dom.imageFileInput.value = "";
     }
