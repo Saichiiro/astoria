@@ -59,6 +59,7 @@ class ModalManager {
         }
 
         // Ouvrir le modal (ajouter classe CSS)
+        modalElement.removeAttribute('hidden'); // Remove hidden boolean attribute
         modalElement.classList.add(config.openClass);
         modalElement.setAttribute('aria-hidden', 'false');
 
@@ -90,6 +91,7 @@ class ModalManager {
         // Fermer le modal (retirer classe CSS)
         modalElement.classList.remove(config.openClass);
         modalElement.setAttribute('aria-hidden', 'true');
+        modalElement.setAttribute('hidden', ''); // Add back hidden boolean attribute
 
         // Unlock scroll (seulement si c'était le dernier modal)
         const wasLast = this.modalStack[this.modalStack.length - 1] === modalElement;

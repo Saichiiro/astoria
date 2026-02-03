@@ -32,7 +32,8 @@
       "Bash(gh issue edit:*)",
       "Bash(gh issue close:*)",
       "Bash(git log:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -49,6 +49,9 @@ class UploaderCropper {
             return false;
         }
 
+        // Destroy existing cropper BEFORE setting new config
+        this.destroy();
+
         this.currentFile = file;
         this.config = {
             imageElement: options.imageElement,
@@ -62,9 +65,6 @@ class UploaderCropper {
             enableRotate: options.enableRotate !== false,
             enableZoom: options.enableZoom !== false,
         };
-
-        // Destroy existing cropper
-        this.destroy();
 
         // Create blob URL
         const blobUrl = URL.createObjectURL(file);
