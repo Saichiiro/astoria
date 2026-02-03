@@ -106,7 +106,7 @@ const normalizeName = window.astoriaImageHelpers && window.astoriaImageHelpers.n
             .toLowerCase();
     };
 
-function escapeHtml(str) {
+function sanitizer.clean(str) {
     return (str || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -114,10 +114,10 @@ function escapeHtml(str) {
 }
 
 function highlightText(text, query) {
-    if (!query || !text) return escapeHtml(text);
+    if (!query || !text) return sanitizer.clean(text);
 
-    const escaped = escapeHtml(text);
-    const escapedQuery = escapeHtml(query);
+    const escaped = sanitizer.clean(text);
+    const escapedQuery = sanitizer.clean(query);
 
     // Create case-insensitive regex
     const regex = new RegExp(`(${escapedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
@@ -125,7 +125,7 @@ function highlightText(text, query) {
 }
 
 function escapeForAttribute(str) {
-    return escapeHtml(str)
+    return sanitizer.clean(str)
         .replace(/'/g, "&#39;")
         .replace(/"/g, "&quot;");
 }
@@ -179,7 +179,7 @@ function getModifierBadgesHtml(item, max = 3) {
     const html = visible
         .map((badge) => {
             const cls = badge.positive ? "is-positive" : "is-negative";
-            return `<span class="codex-mod-badge ${cls}">${escapeHtml(badge.label)}</span>`;
+            return `<span class="codex-mod-badge ${cls}">${sanitizer.clean(badge.label)}</span>`;
         })
         .join("");
     const remaining = badges.length - visible.length;
@@ -195,7 +195,7 @@ function getModifierListHtml(item) {
     const rows = badges
         .map((badge) => {
             const cls = badge.positive ? "is-positive" : "is-negative";
-            return `<li class="codex-mod-line ${cls}">${escapeHtml(badge.label)}</li>`;
+            return `<li class="codex-mod-line ${cls}">${sanitizer.clean(badge.label)}</li>`;
         })
         .join("");
     return `<span class="modal-label">Modificateurs :</span><ul class="codex-mod-list">${rows}</ul>`;
@@ -452,7 +452,7 @@ function buildRow(item, globalIndex) {
     const modifiersHtml = getModifierBadgesHtml(item, 2);
     const images = resolveImages(item);
     const meta = getOrCreateItemMeta(item, globalIndex);
-    const keyAttr = escapeHtml(meta.key);
+    const keyAttr = sanitizer.clean(meta.key);
     const categoryIcon = getCategoryIcon(category);
 
     const badgeMatches = Array.from(name.matchAll(/\[(.*?)\]/g)).map(match => match[1]);
@@ -468,33 +468,33 @@ function buildRow(item, globalIndex) {
         (getModifierSearchText(item) ? ` | Bonus : ${getModifierSearchText(item)}` : "") +
         (effect ? ` | Effet : ${effect}` : "");
 
-    const highlightedName = escapeHtml(displayName);
-    const highlightedDesc = escapeHtml(description);
-    const highlightedEffect = escapeHtml(effectSummary);
-    const highlightedBuyLine = escapeHtml(buyLine);
-    const highlightedSellLine = escapeHtml(sellLine);
+    const highlightedName = sanitizer.clean(displayName);
+    const highlightedDesc = sanitizer.clean(description);
+    const highlightedEffect = sanitizer.clean(effectSummary);
+    const highlightedBuyLine = sanitizer.clean(buyLine);
+    const highlightedSellLine = sanitizer.clean(sellLine);
 
     const nameContent = isSeasonCape
         ? `<span class="name-text name-text--stacked">${
-              escapeHtml(capeBaseName)
+              sanitizer.clean(capeBaseName)
           }<br><span class="name-tag-line">${
-              escapeHtml(capeTag)
+              sanitizer.clean(capeTag)
           }</span></span>`
         : `<span class="name-text">${highlightedName}</span>`;
 
     const badgesHtml = !isSeasonCape && badgeMatches.length
         ? `<span class="name-badges">${badgeMatches
-              .map((badge) => `<span class=\"name-badge\">${escapeHtml(badge)}</span>`)
+              .map((badge) => `<span class=\"name-badge\">${sanitizer.clean(badge)}</span>`)
               .join("")}</span>`
         : "";
 
     const rowHtml = `
-        <tr class="item-row" data-key="${keyAttr}" data-global-index="${globalIndex}" data-category="${escapeHtml(category || "")}">
+        <tr class="item-row" data-key="${keyAttr}" data-global-index="${globalIndex}" data-category="${sanitizer.clean(category || "")}">
             <td class="img-cell" data-label="Illustration">
-                <img src="${escapeHtml(images.primary)}" alt="${escapeHtml(name || "Illustration")}" width="86" height="86" decoding="async" fetchpriority="low">
+                <img src="${sanitizer.clean(images.primary)}" alt="${sanitizer.clean(name || "Illustration")}" width="86" height="86" decoding="async" fetchpriority="low">
             </td>
             <td class="name-cell" data-label="Nom">
-                <span class="category-icon" title="${escapeHtml(category || 'Autre')}">${categoryIcon}</span>
+                <span class="category-icon" title="${sanitizer.clean(category || 'Autre')}">${categoryIcon}</span>
                 ${nameContent}
                 ${badgesHtml}
             </td>
@@ -619,20 +619,20 @@ function openItemModal(index) {
     updateCarouselView(name);
 
     modalCategory.innerHTML = category
-        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${escapeHtml(category)}</span>`
+        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${sanitizer.clean(category)}</span>`
         : "";
     modalDescription.innerHTML = description
-        ? `<span class="modal-label">Description :</span> ${escapeHtml(description)}`
+        ? `<span class="modal-label">Description :</span> ${sanitizer.clean(description)}`
         : "";
     modalPrice.innerHTML = priceText
-        ? `<span class="modal-label">Prix :</span> ${escapeHtml(priceText)}`
+        ? `<span class="modal-label">Prix :</span> ${sanitizer.clean(priceText)}`
         : "";
     if (modalModifiers) {
         modalModifiers.innerHTML = modifiersHtml;
         modalModifiers.style.display = modifiersHtml ? "" : "none";
     }
     modalEffect.innerHTML = effect
-        ? `<span class="modal-label">Effet :</span> ${escapeHtml(effect)}`
+        ? `<span class="modal-label">Effet :</span> ${sanitizer.clean(effect)}`
         : "";
 
     modal.classList.add("open");

@@ -222,7 +222,7 @@ function normalizeText(value) {
         .toLowerCase();
 }
 
-function escapeHtml(value) {
+function sanitizer.clean(value) {
     return String(value || "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -863,17 +863,17 @@ function renderRewardTooltip(item) {
     const image = resolveItemImage(item);
     const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
     const meta = buildRewardMeta(item);
-    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${escapeHtml(meta.join(" | "))}</div>` : "";
+    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${sanitizer.clean(meta.join(" | "))}</div>` : "";
     dom.rewardTooltip.innerHTML = `
         <div class="quest-reward-tooltip-media">
             ${image
-                ? `<img src="${escapeHtml(image)}" alt="Apercu ${escapeHtml(item.name)}">`
-                : `<div class="quest-reward-tooltip-thumb">${escapeHtml(getRewardInitial(item))}</div>`}
+                ? `<img src="${sanitizer.clean(image)}" alt="Apercu ${sanitizer.clean(item.name)}">`
+                : `<div class="quest-reward-tooltip-thumb">${sanitizer.clean(getRewardInitial(item))}</div>`}
         </div>
         <div class="quest-reward-tooltip-body">
-            <div class="quest-reward-tooltip-title">${escapeHtml(item.name)}</div>
+            <div class="quest-reward-tooltip-title">${sanitizer.clean(item.name)}</div>
             ${metaLine}
-            <div class="quest-reward-tooltip-desc">${escapeHtml(description)}</div>
+            <div class="quest-reward-tooltip-desc">${sanitizer.clean(description)}</div>
         </div>
     `;
     dom.rewardTooltip.scrollTop = 0;
@@ -945,15 +945,15 @@ function updateRewardPreview() {
     const image = resolveItemImage(item);
     const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
     const category = formatCategory(item.category);
-    const metaLine = category ? `<div class="quest-reward-preview-meta">${escapeHtml(category)}</div>` : "";
+    const metaLine = category ? `<div class="quest-reward-preview-meta">${sanitizer.clean(category)}</div>` : "";
     dom.rewardPreview.innerHTML = `
         ${image
-            ? `<img src="${escapeHtml(image)}" alt="Aper\u00E7u ${escapeHtml(item.name)}">`
-            : `<div class="quest-reward-preview-thumb">${escapeHtml(getRewardInitial(item))}</div>`}
+            ? `<img src="${sanitizer.clean(image)}" alt="Aper\u00E7u ${sanitizer.clean(item.name)}">`
+            : `<div class="quest-reward-preview-thumb">${sanitizer.clean(getRewardInitial(item))}</div>`}
         <div class="quest-reward-preview-body">
-            <div class="quest-reward-preview-title">${escapeHtml(item.name)}</div>
+            <div class="quest-reward-preview-title">${sanitizer.clean(item.name)}</div>
             ${metaLine}
-            <div class="quest-reward-preview-desc">${escapeHtml(description)}</div>
+            <div class="quest-reward-preview-desc">${sanitizer.clean(description)}</div>
         </div>
     `;
 }
@@ -1375,23 +1375,23 @@ function renderQuestList() {
         card.style.setProperty("--status-color", meta.color);
         card.style.setProperty("--delay", `${index * 120}ms`);
         const adminAction = state.isAdmin
-            ? `<button class="quest-delete-btn" type="button" data-id="${escapeHtml(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
+            ? `<button class="quest-delete-btn" type="button" data-id="${sanitizer.clean(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
             : "";
         card.innerHTML = `
             <div class="quest-card-content">
                 <div class="quest-card-header">
-                    <h3 class="quest-card-title">${escapeHtml(quest.name)}</h3>
-                    <span class="quest-rank-badge">${escapeHtml(quest.rank)}</span>
+                    <h3 class="quest-card-title">${sanitizer.clean(quest.name)}</h3>
+                    <span class="quest-rank-badge">${sanitizer.clean(quest.rank)}</span>
                 </div>
                 <div class="quest-card-media">
-                    <img src="${escapeHtml(quest.images[0])}" alt="Illustration ${escapeHtml(quest.name)}" draggable="false">
+                    <img src="${sanitizer.clean(quest.images[0])}" alt="Illustration ${sanitizer.clean(quest.name)}" draggable="false">
                 </div>
                 <div class="quest-card-meta">
-                    <span class="quest-type-pill">${escapeHtml(quest.type)}</span>
-                    <span class="quest-status-pill">${escapeHtml(meta.label)}</span>
+                    <span class="quest-type-pill">${sanitizer.clean(quest.type)}</span>
+                    <span class="quest-status-pill">${sanitizer.clean(meta.label)}</span>
                 </div>
                 <div class="quest-card-actions">
-                    <button class="quest-details-btn" type="button" data-id="${escapeHtml(quest.id)}">Details</button>
+                    <button class="quest-details-btn" type="button" data-id="${sanitizer.clean(quest.id)}">Details</button>
                     ${adminAction}
                 </div>
                 <div class="quest-card-participation">
@@ -1468,11 +1468,11 @@ function renderHistory() {
 
     dom.historyBody.innerHTML = filtered.map((entry) => `
         <tr>
-            <td>${escapeHtml(entry.date)}</td>
-            <td>${escapeHtml(entry.type)}</td>
-            <td>${escapeHtml(entry.rank)}</td>
-            <td>${escapeHtml(entry.name)}</td>
-            <td>${escapeHtml(entry.gains)}</td>
+            <td>${sanitizer.clean(entry.date)}</td>
+            <td>${sanitizer.clean(entry.type)}</td>
+            <td>${sanitizer.clean(entry.rank)}</td>
+            <td>${sanitizer.clean(entry.name)}</td>
+            <td>${sanitizer.clean(entry.gains)}</td>
         </tr>
     `).join("");
 }
@@ -1514,10 +1514,10 @@ function renderDetail(quest) {
     dom.detailStatus.style.color = meta.color;
     dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
 
-    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${escapeHtml(loc)}</li>`).join("");
+    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${sanitizer.clean(loc)}</li>`).join("");
     if (quest.rewards.length) {
         dom.detailRewards.innerHTML = quest.rewards
-            .map((reward) => `<li>${escapeHtml(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
+            .map((reward) => `<li>${sanitizer.clean(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
             .join("");
     } else {
         dom.detailRewards.innerHTML = "<li>Aucune recompense</li>";
@@ -1534,7 +1534,7 @@ function renderParticipants(quest) {
     if (!quest.participants.length) {
         dom.detailParticipants.innerHTML = "<li>Aucun participant</li>";
     } else {
-        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${escapeHtml(participant.label)}</li>`).join("");
+        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${sanitizer.clean(participant.label)}</li>`).join("");
     }
 
     const note = buildJoinNote(quest);
@@ -2059,7 +2059,7 @@ function openEditor(quest) {
 function renderEditorLists() {
     dom.imagesList.innerHTML = state.editor.images.map((src, idx) => `
         <div class="quest-editor-item">
-            <span>${escapeHtml(src)}</span>
+            <span>${sanitizer.clean(src)}</span>
             <button type="button" data-remove-image="${idx}">Retirer</button>
         </div>
     `).join("");
@@ -2070,7 +2070,7 @@ function renderEditorLists() {
         // Tooltip désactivé - causait des glitches dans la liste
         return `
         <div class="quest-editor-item">
-            <span>${escapeHtml(label)} x${reward.qty}</span>
+            <span>${sanitizer.clean(label)} x${reward.qty}</span>
             <button type="button" data-remove-reward="${idx}">Retirer</button>
         </div>
         `;
