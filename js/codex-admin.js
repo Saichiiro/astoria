@@ -36,6 +36,14 @@ const dom = {
     cropperBackdrop: document.getElementById('itemCropperBackdrop'),
     cropperImage: document.getElementById('itemCropperImage'),
     cropperZoom: document.getElementById('itemCropperZoom'),
+    cropperZoomIn: document.getElementById('itemCropperZoomIn'),
+    cropperZoomOut: document.getElementById('itemCropperZoomOut'),
+    cropperRotateLeft: document.getElementById('itemCropperRotateLeft'),
+    cropperRotateRight: document.getElementById('itemCropperRotateRight'),
+    cropperRotate180: document.getElementById('itemCropperRotate180'),
+    cropperFlipX: document.getElementById('itemCropperFlipX'),
+    cropperFlipY: document.getElementById('itemCropperFlipY'),
+    cropperReset: document.getElementById('itemCropperReset'),
     cropperClose: document.getElementById('itemCropperClose'),
     cropperCancel: document.getElementById('itemCropperCancel'),
     cropperConfirm: document.getElementById('itemCropperConfirm'),
@@ -775,6 +783,50 @@ async function init() {
             syncZoom = true;
             cropper.zoomTo(value);
             syncZoom = false;
+        }
+    });
+
+    // Wire up cropper controls
+    dom.cropperZoomIn?.addEventListener('click', () => {
+        if (cropper) cropper.zoom(0.1);
+    });
+
+    dom.cropperZoomOut?.addEventListener('click', () => {
+        if (cropper) cropper.zoom(-0.1);
+    });
+
+    dom.cropperRotateLeft?.addEventListener('click', () => {
+        if (cropper) cropper.rotate(-90);
+    });
+
+    dom.cropperRotateRight?.addEventListener('click', () => {
+        if (cropper) cropper.rotate(90);
+    });
+
+    dom.cropperRotate180?.addEventListener('click', () => {
+        if (cropper) cropper.rotate(180);
+    });
+
+    let scaleX = 1, scaleY = 1;
+    dom.cropperFlipX?.addEventListener('click', () => {
+        if (cropper) {
+            scaleX = -scaleX;
+            cropper.scaleX(scaleX);
+        }
+    });
+
+    dom.cropperFlipY?.addEventListener('click', () => {
+        if (cropper) {
+            scaleY = -scaleY;
+            cropper.scaleY(scaleY);
+        }
+    });
+
+    dom.cropperReset?.addEventListener('click', () => {
+        if (cropper) {
+            cropper.reset();
+            scaleX = 1;
+            scaleY = 1;
         }
     });
 

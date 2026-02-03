@@ -1070,9 +1070,41 @@
                 <img id="silhouetteCropperImage" alt="Apercu silhouette">
             </div>
             <div class="silhouette-cropper-controls">
-                <label for="silhouetteCropperZoom">Zoom</label>
-                <input type="range" id="silhouetteCropperZoom" min="0.2" max="3" step="0.01" value="1">
-                <span>Ratio personnage 230x320</span>
+                <!-- Rotation Controls -->
+                <div class="cropper-control-group">
+                    <label>Rotation</label>
+                    <div class="cropper-button-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotateLeft" title="Rotation -90°">↺ -90°</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotateRight" title="Rotation +90°">↻ +90°</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotate180" title="Rotation 180°">↻ 180°</button>
+                    </div>
+                </div>
+
+                <!-- Flip Controls -->
+                <div class="cropper-control-group">
+                    <label>Miroir</label>
+                    <div class="cropper-button-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperFlipX" title="Miroir horizontal">↔ Horizontal</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperFlipY" title="Miroir vertical">↕ Vertical</button>
+                    </div>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="cropper-control-group">
+                    <label for="silhouetteCropperZoom">Zoom</label>
+                    <div class="cropper-zoom-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperZoomOut" title="Zoom -">−</button>
+                        <input type="range" id="silhouetteCropperZoom" min="0.2" max="3" step="0.01" value="1">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="cropper-control-group">
+                    <button type="button" class="cropper-btn cropper-btn-secondary tw-press" id="silhouetteCropperReset" title="Réinitialiser">↺ Réinitialiser</button>
+                </div>
+
+                <span>Ratio personnage 230x320 (portrait)</span>
             </div>
             <div class="silhouette-cropper-actions">
                 <button type="button" class="btn-secondary tw-press" id="silhouetteCropperCancel">Annuler</button>
@@ -1762,6 +1794,14 @@
         const silhouetteCropperBackdrop = document.getElementById('silhouetteCropperBackdrop');
         const silhouetteCropperImage = document.getElementById('silhouetteCropperImage');
         const silhouetteCropperZoom = document.getElementById('silhouetteCropperZoom');
+        const silhouetteCropperZoomIn = document.getElementById('silhouetteCropperZoomIn');
+        const silhouetteCropperZoomOut = document.getElementById('silhouetteCropperZoomOut');
+        const silhouetteCropperRotateLeft = document.getElementById('silhouetteCropperRotateLeft');
+        const silhouetteCropperRotateRight = document.getElementById('silhouetteCropperRotateRight');
+        const silhouetteCropperRotate180 = document.getElementById('silhouetteCropperRotate180');
+        const silhouetteCropperFlipX = document.getElementById('silhouetteCropperFlipX');
+        const silhouetteCropperFlipY = document.getElementById('silhouetteCropperFlipY');
+        const silhouetteCropperReset = document.getElementById('silhouetteCropperReset');
         const silhouetteCropperClose = document.getElementById('silhouetteCropperClose');
         const silhouetteCropperCancel = document.getElementById('silhouetteCropperCancel');
         const silhouetteCropperConfirm = document.getElementById('silhouetteCropperConfirm');
@@ -3603,11 +3643,45 @@
                 openClass: 'open'
             });
 
-            // Sync zoom slider if present
-            if (silhouetteCropperZoom && uploaderCropper.cropper) {
+            // Wire up cropper controls
+            if (silhouetteCropperZoom) {
                 silhouetteCropperZoom.oninput = () => {
-                    uploaderCropper.cropper.zoomTo(Number(silhouetteCropperZoom.value));
+                    if (uploaderCropper.cropper) {
+                        uploaderCropper.cropper.zoomTo(Number(silhouetteCropperZoom.value));
+                    }
                 };
+            }
+
+            if (silhouetteCropperZoomIn) {
+                silhouetteCropperZoomIn.onclick = () => uploaderCropper.zoomIn();
+            }
+
+            if (silhouetteCropperZoomOut) {
+                silhouetteCropperZoomOut.onclick = () => uploaderCropper.zoomOut();
+            }
+
+            if (silhouetteCropperRotateLeft) {
+                silhouetteCropperRotateLeft.onclick = () => uploaderCropper.rotate(-90);
+            }
+
+            if (silhouetteCropperRotateRight) {
+                silhouetteCropperRotateRight.onclick = () => uploaderCropper.rotate(90);
+            }
+
+            if (silhouetteCropperRotate180) {
+                silhouetteCropperRotate180.onclick = () => uploaderCropper.rotate(180);
+            }
+
+            if (silhouetteCropperFlipX) {
+                silhouetteCropperFlipX.onclick = () => uploaderCropper.flipX();
+            }
+
+            if (silhouetteCropperFlipY) {
+                silhouetteCropperFlipY.onclick = () => uploaderCropper.flipY();
+            }
+
+            if (silhouetteCropperReset) {
+                silhouetteCropperReset.onclick = () => uploaderCropper.reset();
             }
         }
 

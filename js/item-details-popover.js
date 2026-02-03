@@ -1,14 +1,14 @@
 // ============================================================================
-// Popover de détails d'item - Système réutilisable (REFACTORED with FloatingManager)
+// Popover de détails d'item - Système réutilisable (Simple positioning)
 // ============================================================================
 
-let popoverFloatingInstance = null;
+let currentPopover = null;
 
 export function showItemDetailsPopover(item, anchorElement) {
     console.log('[Popover] showItemDetailsPopover called', { item, anchorElement });
 
     // Fermer le popover existant s'il y en a un
-    if (popoverFloatingInstance) {
+    if (currentPopover) {
         closeItemDetailsPopover();
     }
 
@@ -21,24 +21,14 @@ export function showItemDetailsPopover(item, anchorElement) {
     modalBackdrop.appendChild(popover);
     console.log('[Popover] Popover appended to:', modalBackdrop);
 
-    // REFACTORED: Utiliser FloatingManager au lieu du positionnement manuel
-    popoverFloatingInstance = floatingManager.createPopover(anchorElement, popover, {
-        placement: 'right',
-        offset: 12,
-        arrow: false,
-        trigger: 'manual', // Géré manuellement car déjà ouvert
-        onHide: () => {
-            // Cleanup après fermeture
-            if (popover && popover.parentNode) {
-                popover.parentNode.removeChild(popover);
-            }
-            popoverFloatingInstance = null;
-        }
-    });
+    // Position the popover next to the anchor element
+    positionPopover(popover, anchorElement);
+    currentPopover = popover;
 
     // Afficher le popover
-    popoverFloatingInstance.show();
-    console.log('[Popover] Popover shown with FloatingManager');
+    popover.style.opacity = '1';
+    popover.style.pointerEvents = 'auto';
+    console.log('[Popover] Popover shown with simple positioning');
 
     // Event listeners
     const closeBtn = popover.querySelector('.item-details-popover-close');
@@ -73,11 +63,47 @@ export function showItemDetailsPopover(item, anchorElement) {
 }
 
 export function closeItemDetailsPopover() {
-    if (popoverFloatingInstance) {
-        popoverFloatingInstance.hide();
-        popoverFloatingInstance.destroy();
-        popoverFloatingInstance = null;
+    if (currentPopover) {
+        if (currentPopover.parentNode) {
+            currentPopover.parentNode.removeChild(currentPopover);
+        }
+        currentPopover = null;
     }
+}
+
+function positionPopover(popover, anchorElement) {
+    // Get anchor position relative to viewport
+    const anchorRect = anchorElement.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+
+    // Try to position to the right of the anchor
+    let left = anchorRect.right + 12;
+    let top = anchorRect.top;
+
+    // Check if popover would overflow viewport on the right
+    if (left + popoverRect.width > window.innerWidth - 20) {
+        // Position to the left instead
+        left = anchorRect.left - popoverRect.width - 12;
+    }
+
+    // Check if popover would overflow viewport on the left
+    if (left < 20) {
+        // Position below instead
+        left = anchorRect.left;
+        top = anchorRect.bottom + 12;
+    }
+
+    // Check if popover would overflow viewport on the bottom
+    if (top + popoverRect.height > window.innerHeight - 20) {
+        // Adjust to fit
+        top = Math.max(20, window.innerHeight - popoverRect.height - 20);
+    }
+
+    // Apply position (fixed positioning relative to viewport)
+    popover.style.position = 'fixed';
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    popover.style.zIndex = '10000';
 }
 
 function createPopoverElement(item) {
@@ -194,5 +220,5 @@ function createPopoverElement(item) {
 
 // Export de la fonction pour vérifier si le popover est ouvert
 export function isPopoverOpen() {
-    return popoverFloatingInstance !== null;
+    return currentPopover !== null;
 }

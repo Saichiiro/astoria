@@ -210,6 +210,14 @@ const dom = {
     cropperBackdrop: document.getElementById("questCropperBackdrop"),
     cropperImage: document.getElementById("questCropperImage"),
     cropperZoom: document.getElementById("questCropperZoom"),
+    cropperZoomIn: document.getElementById("questCropperZoomIn"),
+    cropperZoomOut: document.getElementById("questCropperZoomOut"),
+    cropperRotateLeft: document.getElementById("questCropperRotateLeft"),
+    cropperRotateRight: document.getElementById("questCropperRotateRight"),
+    cropperRotate180: document.getElementById("questCropperRotate180"),
+    cropperFlipX: document.getElementById("questCropperFlipX"),
+    cropperFlipY: document.getElementById("questCropperFlipY"),
+    cropperReset: document.getElementById("questCropperReset"),
     cropperClose: document.getElementById("questCropperClose"),
     cropperCancel: document.getElementById("questCropperCancel"),
     cropperConfirm: document.getElementById("questCropperConfirm")
@@ -2205,11 +2213,45 @@ function openCropper(file) {
         openClass: 'open'
     });
 
-    // Sync zoom slider if present
-    if (dom.cropperZoom && uploaderCropper.cropper) {
+    // Wire up cropper controls
+    if (dom.cropperZoom) {
         dom.cropperZoom.oninput = () => {
-            uploaderCropper.cropper.zoomTo(Number(dom.cropperZoom.value));
+            if (uploaderCropper.cropper) {
+                uploaderCropper.cropper.zoomTo(Number(dom.cropperZoom.value));
+            }
         };
+    }
+
+    if (dom.cropperZoomIn) {
+        dom.cropperZoomIn.onclick = () => uploaderCropper.zoomIn();
+    }
+
+    if (dom.cropperZoomOut) {
+        dom.cropperZoomOut.onclick = () => uploaderCropper.zoomOut();
+    }
+
+    if (dom.cropperRotateLeft) {
+        dom.cropperRotateLeft.onclick = () => uploaderCropper.rotate(-90);
+    }
+
+    if (dom.cropperRotateRight) {
+        dom.cropperRotateRight.onclick = () => uploaderCropper.rotate(90);
+    }
+
+    if (dom.cropperRotate180) {
+        dom.cropperRotate180.onclick = () => uploaderCropper.rotate(180);
+    }
+
+    if (dom.cropperFlipX) {
+        dom.cropperFlipX.onclick = () => uploaderCropper.flipX();
+    }
+
+    if (dom.cropperFlipY) {
+        dom.cropperFlipY.onclick = () => uploaderCropper.flipY();
+    }
+
+    if (dom.cropperReset) {
+        dom.cropperReset.onclick = () => uploaderCropper.reset();
     }
 }
 

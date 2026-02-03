@@ -338,9 +338,41 @@
                     <img id="avatarCropperImage" alt="Apercu avatar">
                 </div>
                 <div class="profile-cropper-controls">
-                    <label for="avatarZoomRange">Zoom</label>
-                    <input type="range" id="avatarZoomRange" min="0.2" max="3" step="0.01" value="1">
-                    <span class="profile-cropper-hint">Molette pour zoomer.</span>
+                    <!-- Rotation Controls -->
+                    <div class="cropper-control-group">
+                        <label>Rotation</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotateLeft" title="Rotation -90°">↺ -90°</button>
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotateRight" title="Rotation +90°">↻ +90°</button>
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperRotate180" title="Rotation 180°">↻ 180°</button>
+                        </div>
+                    </div>
+
+                    <!-- Flip Controls -->
+                    <div class="cropper-control-group">
+                        <label>Miroir</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperFlipX" title="Miroir horizontal">↔ Horizontal</button>
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperFlipY" title="Miroir vertical">↕ Vertical</button>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="cropper-control-group">
+                        <label for="avatarZoomRange">Zoom</label>
+                        <div class="cropper-zoom-group">
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomOut" title="Zoom -">−</button>
+                            <input type="range" id="avatarZoomRange" min="0.2" max="3" step="0.01" value="1">
+                            <button type="button" class="cropper-btn tw-press" id="avatarCropperZoomIn" title="Zoom +">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="cropper-control-group">
+                        <button type="button" class="cropper-btn cropper-btn-secondary tw-press" id="avatarCropperReset" title="Réinitialiser">↺ Réinitialiser</button>
+                    </div>
+
+                    <span class="profile-cropper-hint">Utilise les contrôles pour ajuster le cadrage.</span>
                 </div>
             </div>
             <div class="profile-cropper-actions">
@@ -437,6 +469,14 @@
         const cropperBackdrop = document.getElementById('avatarCropperBackdrop');
         const cropperImage = document.getElementById('avatarCropperImage');
         const cropperZoom = document.getElementById('avatarZoomRange');
+        const cropperZoomIn = document.getElementById('avatarCropperZoomIn');
+        const cropperZoomOut = document.getElementById('avatarCropperZoomOut');
+        const cropperRotateLeft = document.getElementById('avatarCropperRotateLeft');
+        const cropperRotateRight = document.getElementById('avatarCropperRotateRight');
+        const cropperRotate180 = document.getElementById('avatarCropperRotate180');
+        const cropperFlipX = document.getElementById('avatarCropperFlipX');
+        const cropperFlipY = document.getElementById('avatarCropperFlipY');
+        const cropperReset = document.getElementById('avatarCropperReset');
         const cropperClose = document.getElementById('avatarCropperClose');
         const cropperCancel = document.getElementById('avatarCropperCancel');
         const cropperConfirm = document.getElementById('avatarCropperConfirm');
@@ -1395,11 +1435,45 @@
                 openClass: 'open'
             });
 
-            // Sync zoom slider if present
-            if (cropperZoom && uploaderCropper.cropper) {
+            // Wire up cropper controls
+            if (cropperZoom) {
                 cropperZoom.oninput = () => {
-                    uploaderCropper.cropper.zoomTo(Number(cropperZoom.value));
+                    if (uploaderCropper.cropper) {
+                        uploaderCropper.cropper.zoomTo(Number(cropperZoom.value));
+                    }
                 };
+            }
+
+            if (cropperZoomIn) {
+                cropperZoomIn.onclick = () => uploaderCropper.zoomIn();
+            }
+
+            if (cropperZoomOut) {
+                cropperZoomOut.onclick = () => uploaderCropper.zoomOut();
+            }
+
+            if (cropperRotateLeft) {
+                cropperRotateLeft.onclick = () => uploaderCropper.rotate(-90);
+            }
+
+            if (cropperRotateRight) {
+                cropperRotateRight.onclick = () => uploaderCropper.rotate(90);
+            }
+
+            if (cropperRotate180) {
+                cropperRotate180.onclick = () => uploaderCropper.rotate(180);
+            }
+
+            if (cropperFlipX) {
+                cropperFlipX.onclick = () => uploaderCropper.flipX();
+            }
+
+            if (cropperFlipY) {
+                cropperFlipY.onclick = () => uploaderCropper.flipY();
+            }
+
+            if (cropperReset) {
+                cropperReset.onclick = () => uploaderCropper.reset();
             }
         }
         // Initialize page
