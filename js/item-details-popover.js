@@ -76,34 +76,60 @@ function positionPopover(popover, anchorElement) {
     const anchorRect = anchorElement.getBoundingClientRect();
     const popoverRect = popover.getBoundingClientRect();
 
-    // Try to position to the right of the anchor
-    let left = anchorRect.right + 12;
-    let top = anchorRect.top;
+    // Get modal body for scroll position (if inside modal)
+    const modalBody = document.querySelector('.quest-items-modal-body');
+    const hasScroll = modalBody && modalBody.scrollHeight > modalBody.clientHeight;
 
-    // Check if popover would overflow viewport on the right
-    if (left + popoverRect.width > window.innerWidth - 20) {
-        // Position to the left instead
+    // Calculate available space
+    const spaceRight = window.innerWidth - anchorRect.right;
+    const spaceLeft = anchorRect.left;
+    const spaceBelow = window.innerHeight - anchorRect.bottom;
+    const spaceAbove = anchorRect.top;
+
+    let left, top;
+    let placement = 'right'; // default
+
+    // Determine best placement based on available space
+    if (spaceRight >= popoverRect.width + 20) {
+        // Position to the right
+        placement = 'right';
+        left = anchorRect.right + 12;
+        top = anchorRect.top;
+    } else if (spaceLeft >= popoverRect.width + 20) {
+        // Position to the left
+        placement = 'left';
         left = anchorRect.left - popoverRect.width - 12;
-    }
-
-    // Check if popover would overflow viewport on the left
-    if (left < 20) {
-        // Position below instead
-        left = anchorRect.left;
+        top = anchorRect.top;
+    } else if (spaceBelow >= popoverRect.height + 20) {
+        // Position below
+        placement = 'below';
+        left = Math.max(20, Math.min(anchorRect.left, window.innerWidth - popoverRect.width - 20));
         top = anchorRect.bottom + 12;
+    } else if (spaceAbove >= popoverRect.height + 20) {
+        // Position above
+        placement = 'above';
+        left = Math.max(20, Math.min(anchorRect.left, window.innerWidth - popoverRect.width - 20));
+        top = anchorRect.top - popoverRect.height - 12;
+    } else {
+        // Not enough space anywhere, position in center of viewport
+        placement = 'center';
+        left = (window.innerWidth - popoverRect.width) / 2;
+        top = Math.max(20, (window.innerHeight - popoverRect.height) / 2);
     }
 
-    // Check if popover would overflow viewport on the bottom
-    if (top + popoverRect.height > window.innerHeight - 20) {
-        // Adjust to fit
-        top = Math.max(20, window.innerHeight - popoverRect.height - 20);
-    }
+    // Ensure popover stays within viewport bounds
+    left = Math.max(20, Math.min(left, window.innerWidth - popoverRect.width - 20));
+    top = Math.max(20, Math.min(top, window.innerHeight - popoverRect.height - 20));
 
     // Apply position (fixed positioning relative to viewport)
     popover.style.position = 'fixed';
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
     popover.style.zIndex = '10000';
+    popover.style.maxHeight = `${window.innerHeight - 40}px`;
+    popover.style.overflowY = 'auto'; // Allow scrolling if content is too long
+
+    console.log('[Popover] Positioned:', { placement, left, top, hasScroll });
 }
 
 function createPopoverElement(item) {

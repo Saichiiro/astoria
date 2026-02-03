@@ -2253,6 +2253,20 @@ function openCropper(file) {
     if (dom.cropperReset) {
         dom.cropperReset.onclick = () => uploaderCropper.reset();
     }
+
+    // Wire up aspect ratio buttons
+    const aspectButtons = dom.cropperBackdrop?.querySelectorAll('.cropper-aspect-btn');
+    aspectButtons?.forEach(btn => {
+        btn.onclick = () => {
+            const ratio = parseFloat(btn.dataset.ratio);
+            if (uploaderCropper.cropper && Number.isFinite(ratio)) {
+                uploaderCropper.cropper.setAspectRatio(ratio);
+                // Update active state
+                aspectButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        };
+    });
 }
 
 async function applyCropper() {

@@ -7,6 +7,7 @@
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
         <link rel="stylesheet" href="css/profil.css">
+        <link rel="stylesheet" href="css/cropper-controls.css?v=202602032">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 <style>
@@ -338,6 +339,16 @@
                     <img id="avatarCropperImage" alt="Apercu avatar">
                 </div>
                 <div class="profile-cropper-controls">
+                    <!-- Aspect Ratio Controls -->
+                    <div class="cropper-control-group">
+                        <label>Format</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="1" title="Carré 1:1">□ Carré</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="0.5625" title="Portrait 9:16">▯ Portrait</button>
+                        </div>
+                    </div>
+
                     <!-- Rotation Controls -->
                     <div class="cropper-control-group">
                         <label>Rotation</label>
@@ -1475,6 +1486,20 @@
             if (cropperReset) {
                 cropperReset.onclick = () => uploaderCropper.reset();
             }
+
+            // Wire up aspect ratio buttons
+            const aspectButtons = cropperBackdrop?.querySelectorAll('.cropper-aspect-btn');
+            aspectButtons?.forEach(btn => {
+                btn.onclick = () => {
+                    const ratio = parseFloat(btn.dataset.ratio);
+                    if (uploaderCropper.cropper && Number.isFinite(ratio)) {
+                        uploaderCropper.cropper.setAspectRatio(ratio);
+                        // Update active state
+                        aspectButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    }
+                };
+            });
         }
         // Initialize page
         async function init() {

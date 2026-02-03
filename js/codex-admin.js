@@ -830,6 +830,20 @@ async function init() {
         }
     });
 
+    // Wire up aspect ratio buttons
+    const aspectButtons = dom.cropperBackdrop?.querySelectorAll('.cropper-aspect-btn');
+    aspectButtons?.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const ratio = parseFloat(btn.dataset.ratio);
+            if (cropper && Number.isFinite(ratio)) {
+                cropper.setAspectRatio(ratio);
+                // Update active state
+                aspectButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        });
+    });
+
     window.addEventListener('astoria:codex-modal-open', (event) => updateEditButton(event.detail));
     window.addEventListener('astoria:codex-modal-close', () => updateEditButton(null));
 

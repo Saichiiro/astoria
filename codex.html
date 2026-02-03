@@ -8,6 +8,7 @@
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css?v=1770112863">
     <link rel="stylesheet" href="css/codex.css?v=1770112863">
+    <link rel="stylesheet" href="css/cropper-controls.css?v=202602032">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
@@ -219,6 +220,16 @@
                     <img id="itemCropperImage" alt="Apercu recadrage">
                 </div>
                 <div class="codex-cropper-controls">
+                    <!-- Aspect Ratio Controls -->
+                    <div class="cropper-control-group">
+                        <label>Format</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="1" title="Carré 1:1">□ Carré</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="0.5625" title="Portrait 9:16">▯ Portrait</button>
+                        </div>
+                    </div>
+
                     <!-- Rotation Controls -->
                     <div class="cropper-control-group">
                         <label>Rotation</label>

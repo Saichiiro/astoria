@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/quetes.css?v=1770112863">
     <link rel="stylesheet" href="css/quetes-items-modal.css?v=1770112863">
     <link rel="stylesheet" href="css/item-details-popover.css?v=202601301">
+    <link rel="stylesheet" href="css/cropper-controls.css?v=202602032">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js@10.2.0/public/assets/styles/choices.min.css">
@@ -271,6 +272,16 @@
                     <img id="questCropperImage" alt="Aper&#231;u recadrage">
                 </div>
                 <div class="quest-cropper-controls">
+                    <!-- Aspect Ratio Controls -->
+                    <div class="cropper-control-group">
+                        <label>Format</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="1" title="Carré 1:1">□ Carré</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="0.5625" title="Portrait 9:16">▯ Portrait</button>
+                        </div>
+                    </div>
+
                     <!-- Rotation Controls -->
                     <div class="cropper-control-group">
                         <label>Rotation</label>
