@@ -356,6 +356,7 @@ async function confirmDelete() {
         if (error) {
             console.error('[DELETE] Delete error:', error);
             setError('Impossible de supprimer l\'objet.');
+            toastManager.error('Impossible de supprimer l\'objet.');
             closeDeleteModal();
             return;
         }
@@ -368,12 +369,15 @@ async function confirmDelete() {
         console.log('[DELETE] Removed from UI');
         await loadDbItems();
 
+        toastManager.success(`"${editingItem.name}" supprimé avec succès`);
+
         // Close modals
         closeDeleteModal();
         closeAdminModal();
     } catch (error) {
         console.error('[DELETE] Exception:', error);
         setError('Erreur lors de la suppression.');
+        toastManager.error('Erreur lors de la suppression.');
         closeDeleteModal();
     }
 }
@@ -507,7 +511,9 @@ async function uploadImage(dbId, nameHint) {
 
     if (uploadError) {
         console.error('[UPLOAD] Upload error:', uploadError);
-        setError(`Upload impossible: ${uploadError.message || 'Verifie le bucket items'}`);
+        const errorMsg = `Upload impossible: ${uploadError.message || 'Verifie le bucket items'}`;
+        setError(errorMsg);
+        toastManager.error('Échec de l\'upload de l\'image');
         return null;
     }
 
@@ -601,10 +607,14 @@ async function saveItem(event) {
         // Reset image state
         imageBlob = null;
         imageMeta = null;
-            closeAdminModal();
+
+        toastManager.success(isUpdate ? `"${name}" mis à jour` : `"${name}" ajouté au codex`);
+        closeAdminModal();
     } catch (error) {
         console.error('Save error:', error);
-        setError(`Impossible de sauvegarder: ${error.message || 'Erreur inconnue'}`);
+        const errorMsg = `Impossible de sauvegarder: ${error.message || 'Erreur inconnue'}`;
+        setError(errorMsg);
+        toastManager.error('Échec de la sauvegarde');
     } finally {
         dom.saveBtn.disabled = false;
     }

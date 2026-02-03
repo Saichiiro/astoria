@@ -1426,6 +1426,7 @@ function renderQuestList() {
             renderQuestList();
             persistState();
             await deleteQuestFromDb(questId);
+            toastManager.success(`"${quest.name}" supprimée`);
         });
     });
 
@@ -1733,6 +1734,10 @@ async function validateQuest() {
     for (const entry of historyEntries) {
         await insertHistoryToDb(entry);
     }
+
+    const recipientNames = recipients.map(r => r.label || r.name).filter(Boolean).join(', ') || 'les participants';
+    toastManager.success(`Quête validée pour ${recipientNames}`);
+
     state.isValidating = false;
 }
 
@@ -2124,6 +2129,12 @@ async function handleEditorSubmit(event) {
     const saved = await upsertQuestToDb(questData);
     if (!saved && questStorage.mode === "memory") {
         console.warn("[Quetes] Quest saved in memory only (storage blocked).");
+        toastManager.warning('Quête sauvegardée en mémoire uniquement');
+    } else if (saved) {
+        const isUpdate = state.editor.questId;
+        toastManager.success(isUpdate ? `"${name}" mis à jour` : `"${name}" ajouté`);
+    } else {
+        toastManager.error('Échec de la sauvegarde');
     }
 }
 
