@@ -24,19 +24,19 @@
 }
 
 .codex-toolbar .stats-badge {
-    margin-right: auto;
+    flex-shrink: 0;
 }
 
 .codex-toolbar .admin-add-btn {
-    margin-left: auto;
+    flex-shrink: 0;
 }
 
-.codex-toolbar .category-dropdown {
-    min-width: 200px;
+.codex-toolbar-spacer {
+    flex: 1;
 }
 
 .codex-toolbar .inventory-search {
-    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .top-nav-placeholder {

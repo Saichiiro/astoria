@@ -51,7 +51,8 @@
             <div class="codex-toolbar">
                 <span class="stats-badge" id="statsBadge">0 objet</span>
                 <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
-                <div class="inventory-search" id="codexSearch">
+                <div class="codex-toolbar-spacer"></div>
+                <div class="inventory-search" id="codexSearch" data-search-priority="page">
                     <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
                         <span class="inventory-search-icon">&#x1F50D;</span>
                     </button>
@@ -359,6 +360,7 @@
     <script src="js/ui/list-helpers.js"></script>
     <script src="js/ui/search-history.js"></script>
     <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script src="js/codex.js?v=1770112863"></script>
     <script type="module" src="js/codex-admin-summary.js?v=1770112863"></script>
