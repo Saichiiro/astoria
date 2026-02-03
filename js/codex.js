@@ -1,7 +1,7 @@
 // On récupère les données depuis data.js (inventoryData)
 // Safe sanitizer wrapper
 function clean(value) {
-    return clean(value) || '';
+    return window.sanitizer?.clean(value) || '';
 }
 
 window.astoriaIsAdmin = false;
