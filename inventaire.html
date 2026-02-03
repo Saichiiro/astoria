@@ -32,6 +32,7 @@
 
     <link rel="stylesheet" href="css/inventaire.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
 
     <style>
         /* Overrides pour aligner les slots symétriquement - FORCÉ */
@@ -1104,12 +1105,22 @@
 
     <script src="js/ui/searchbar.js"></script>
 
-
-
+    <!-- External Libraries (CDN) - MUST LOAD FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
+    <!-- Library Wrappers (Astoria) - MUST LOAD BEFORE APP SCRIPTS -->
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/storage-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/utils/sanitize.js"></script>
 
-
+    <!-- App Scripts -->
     <script type="module" src="js/ui/app-shell.js"></script>
 
 
