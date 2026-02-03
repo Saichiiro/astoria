@@ -444,10 +444,7 @@
         let dockSouls = null;
         let soulConsoValue = null;
         let soulProgValue = null;
-        let avatarCropper = null;
-        let avatarPreviewUrl = '';
-        let pendingAvatarFile = null;
-        let isCropperZoomSync = false;
+        let pendingAvatarFile = null; // Used with uploaderCropper wrapper
         let presentations = [];
         let activePresentationId = null;
         let editingPresentationId = null;
@@ -1348,20 +1345,12 @@
             updateSaveButtonState();
         }
         function destroyAvatarCropper() {
-            if (avatarCropper) {
-                avatarCropper.destroy();
-                avatarCropper = null;
-            }
-            if (avatarPreviewUrl) {
-                URL.revokeObjectURL(avatarPreviewUrl);
-                avatarPreviewUrl = '';
-            }
+            uploaderCropper.destroy();
             pendingAvatarFile = null;
         }
         function closeAvatarCropper(resetInput = true) {
             if (!cropperBackdrop) return;
-            cropperBackdrop.classList.remove('open');
-            cropperBackdrop.setAttribute('aria-hidden', 'true');
+            modalManager.close(cropperBackdrop);
             destroyAvatarCropper();
             if (resetInput && avatarInput) {
                 avatarInput.value = '';
@@ -1369,48 +1358,40 @@
         }
         function openAvatarCropper(file) {
             if (!cropperBackdrop || !cropperImage || !window.Cropper) {
-                alert('Recadrage indisponible, upload direct.');
+                toastManager.warning('Recadrage indisponible, upload direct');
                 uploadAvatar(file);
                 return;
             }
-            destroyAvatarCropper();
+
             pendingAvatarFile = file;
-            avatarPreviewUrl = URL.createObjectURL(file);
-            cropperImage.src = avatarPreviewUrl;
-            cropperBackdrop.classList.add('open');
-            cropperBackdrop.setAttribute('aria-hidden', 'false');
-            avatarCropper = new Cropper(cropperImage, {
+
+            // Use uploaderCropper wrapper
+            const success = uploaderCropper.open(file, {
+                imageElement: cropperImage,
                 aspectRatio: 1,
-                viewMode: 1,
-                dragMode: 'move',
-                background: false,
-                autoCropArea: 1,
-                responsive: true,
-                checkOrientation: false,
-                ready() {
-                    if (cropperZoom && avatarCropper) {
-                        const ratio = avatarCropper.getImageData().ratio || 1;
-                        cropperZoom.value = String(ratio);
-                    }
-                },
-                zoom(event) {
-                    if (!cropperZoom || isCropperZoomSync) return;
-                    const ratio = event.detail?.ratio ?? 1;
-                    const min = Number(cropperZoom.min || 0);
-                    const max = Number(cropperZoom.max || 3);
-                    const clamped = Math.min(max, Math.max(min, ratio));
-                    cropperZoom.value = String(clamped);
-                }
+                outputWidth: 512,
+                outputHeight: 512,
+                quality: 0.95,
+                enableRotate: true,
+                enableZoom: true
             });
-            if (cropperZoom) {
+
+            if (!success) {
+                toastManager.error('Impossible d\'ouvrir le recadrage');
+                return;
+            }
+
+            // Show modal
+            modalManager.open(cropperBackdrop, {
+                closeOnBackdropClick: false,
+                closeOnEsc: true,
+                openClass: 'open'
+            });
+
+            // Sync zoom slider if present
+            if (cropperZoom && uploaderCropper.cropper) {
                 cropperZoom.oninput = () => {
-                    if (avatarCropper) {
-                        isCropperZoomSync = true;
-                        avatarCropper.zoomTo(Number(cropperZoom.value));
-                        requestAnimationFrame(() => {
-                            isCropperZoomSync = false;
-                        });
-                    }
+                    uploaderCropper.cropper.zoomTo(Number(cropperZoom.value));
                 };
             }
         }
@@ -1827,11 +1808,11 @@
         async function uploadAvatar(file) {
             if (!currentCharacter || !canEditProfile()) return;
             if (!file || !file.type.startsWith('image/')) {
-                alert('Image invalide.');
+                toastManager.error('Image invalide');
                 return;
             }
             if (file.size > MAX_AVATAR_SIZE) {
-                alert('Image trop lourde (max 2 Mo).');
+                toastManager.error('Image trop lourde (max 2 Mo)');
                 return;
             }
             avatarTrigger.classList.add('is-uploading');
@@ -1850,13 +1831,13 @@
                     });
                 if (uploadError) {
                     console.error(uploadError);
-                    alert('Upload impossible. Vérifiez le bucket avatars.');
+                    toastManager.error('Upload impossible. Vérifiez le bucket avatars');
                     return;
                 }
                 const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(filePath);
                 const publicUrl = publicData?.publicUrl;
                 if (!publicUrl) {
-                    alert('URL avatar introuvable.');
+                    toastManager.error('URL avatar introuvable');
                     return;
                 }
                 const profileData = currentCharacter.profile_data || {};
@@ -1868,15 +1849,16 @@
                     }
                 });
                 if (!res || !res.success) {
-                    alert('Enregistrement avatar impossible.');
+                    toastManager.error('Enregistrement avatar impossible');
                     return;
                 }
                 currentCharacter = res.character;
                 updateAvatarUI(publicUrl);
                 persistCharacterSummary(buildCharacterSummary(currentCharacter));
+                toastManager.success('Avatar mis à jour');
             } catch (error) {
                 console.error(error);
-                alert('Erreur lors de l\'upload.');
+                toastManager.error('Erreur lors de l\'upload');
             } finally {
                 avatarTrigger.classList.remove('is-uploading');
                 avatarInput.value = '';
@@ -2047,25 +2029,21 @@
         }
         if (cropperConfirm) {
             cropperConfirm.addEventListener('click', async () => {
-                if (!avatarCropper || !pendingAvatarFile) return;
-                const canvas = avatarCropper.getCroppedCanvas({
-                    width: 512,
-                    height: 512,
-                    imageSmoothingQuality: 'high'
-                });
-                if (!canvas) return;
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        alert('Recadrage impossible.');
-                        return;
-                    }
-                    const baseName = String(pendingAvatarFile.name || 'avatar')
-                        .replace(/\.[^/.]+$/, '')
-                        .slice(0, 120);
-                    const uploadFile = new File([blob], `${baseName}.png`, { type: 'image/png' });
-                    closeAvatarCropper(false);
-                    await uploadAvatar(uploadFile);
-                }, 'image/png');
+                if (!uploaderCropper.cropper || !pendingAvatarFile) return;
+
+                const result = await uploaderCropper.confirm();
+                if (!result || !result.blob) {
+                    toastManager.error('Recadrage impossible');
+                    return;
+                }
+
+                const baseName = String(pendingAvatarFile.name || 'avatar')
+                    .replace(/\.[^/.]+$/, '')
+                    .slice(0, 120);
+                const uploadFile = new File([result.blob], `${baseName}.png`, { type: 'image/png' });
+
+                closeAvatarCropper(false);
+                await uploadAvatar(uploadFile);
             });
         }
         createForm.addEventListener('submit', async (e) => {
