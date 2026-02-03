@@ -62,9 +62,7 @@ const state = {
         isDragging: false
     },
     cropper: {
-        instance: null,
-        pendingFile: null,
-        previewUrl: ""
+        pendingFile: null // Used with uploaderCropper wrapper
     },
     isValidating: false,
     adminNotes: {}
@@ -2151,32 +2149,25 @@ function handleAddImage() {
     }
 }
 
-function destroyCropper(keepPreview = false) {
-    if (state.cropper.instance) {
-        state.cropper.instance.destroy();
-        state.cropper.instance = null;
-    }
-    if (!keepPreview && state.cropper.previewUrl) {
-        URL.revokeObjectURL(state.cropper.previewUrl);
-        state.cropper.previewUrl = "";
-    }
+function destroyCropper() {
+    uploaderCropper.destroy();
+    state.cropper.pendingFile = null;
 }
 
 function closeCropper(resetInput = true) {
     if (dom.cropperBackdrop) {
-        dom.cropperBackdrop.classList.remove("open");
-        dom.cropperBackdrop.setAttribute("aria-hidden", "true");
+        modalManager.close(dom.cropperBackdrop);
     }
     destroyCropper();
     if (resetInput && dom.imageFileInput) {
         dom.imageFileInput.value = "";
     }
-    state.cropper.pendingFile = null;
 }
 
 function openCropper(file) {
     if (!dom.cropperBackdrop || !dom.cropperImage || !window.Cropper) {
         console.warn("[Quetes] Cropper unavailable, falling back to raw image.");
+        toastManager.warning('Recadrage indisponible, upload direct');
         const reader = new FileReader();
         reader.onload = () => {
             const src = String(reader.result || "");
@@ -2188,48 +2179,64 @@ function openCropper(file) {
         reader.readAsDataURL(file);
         return;
     }
-    destroyCropper();
+
     state.cropper.pendingFile = file;
-    state.cropper.previewUrl = URL.createObjectURL(file);
-    dom.cropperImage.src = state.cropper.previewUrl;
-    dom.cropperBackdrop.classList.add("open");
-    dom.cropperBackdrop.setAttribute("aria-hidden", "false");
-    state.cropper.instance = new Cropper(dom.cropperImage, {
-        viewMode: 1,
-        aspectRatio: 1,
-        background: false,
-        autoCropArea: 1,
-        movable: true,
-        zoomable: true,
-        guides: false,
-        ready() {
-            if (dom.cropperZoom) {
-                dom.cropperZoom.value = 1;
-            }
-        },
-        zoom(event) {
-            if (!dom.cropperZoom) return;
-            dom.cropperZoom.value = event.detail.ratio.toFixed(2);
-        }
+
+    // Use uploaderCropper wrapper for consistency
+    const success = uploaderCropper.open(file, {
+        imageElement: dom.cropperImage,
+        aspectRatio: 1, // Can be 16:9 for landscape quests later
+        outputWidth: 800,
+        outputHeight: 800,
+        quality: 0.9,
+        enableRotate: true,
+        enableZoom: true
     });
+
+    if (!success) {
+        toastManager.error('Impossible d\'ouvrir le recadrage');
+        return;
+    }
+
+    // Show modal
+    modalManager.open(dom.cropperBackdrop, {
+        closeOnBackdropClick: false,
+        closeOnEsc: true,
+        openClass: 'open'
+    });
+
+    // Sync zoom slider if present
+    if (dom.cropperZoom && uploaderCropper.cropper) {
+        dom.cropperZoom.oninput = () => {
+            uploaderCropper.cropper.zoomTo(Number(dom.cropperZoom.value));
+        };
+    }
 }
 
 async function applyCropper() {
-    if (!state.cropper.instance) {
+    if (!uploaderCropper.cropper) {
         closeCropper();
         return;
     }
-    const canvas = state.cropper.instance.getCroppedCanvas({
-        width: 512,
-        height: 512,
-        imageSmoothingEnabled: true,
-        imageSmoothingQuality: "high"
-    });
-    const dataUrl = canvas?.toDataURL("image/png");
-    if (dataUrl) {
-        state.editor.images.push(dataUrl);
-        renderEditorLists();
+
+    const result = await uploaderCropper.confirm();
+    if (!result || !result.blob) {
+        toastManager.error('Recadrage impossible');
+        return;
     }
+
+    // Convert blob to data URL for quest images
+    const reader = new FileReader();
+    reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        if (dataUrl) {
+            state.editor.images.push(dataUrl);
+            renderEditorLists();
+            toastManager.success('Image ajoutée');
+        }
+    };
+    reader.readAsDataURL(result.blob);
+
     closeCropper(false);
 }
 
