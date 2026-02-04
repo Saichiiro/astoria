@@ -278,13 +278,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
-    border: 2px solid var(--inv-border);
-    border-radius: var(--radius-xl);
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid var(--inv-border);
+    border-radius: var(--radius-full);
     background: var(--inv-card-strong);
-    color: var(--inv-text);
-    font-size: 1.1rem;
+    color: var(--inv-muted);
+    font-size: 0.85rem;
     cursor: pointer;
     transition: all var(--transition-fast);
 }
@@ -1415,8 +1415,12 @@
     border-radius: var(--radius-lg);
     box-shadow: 0 10px 28px rgba(210, 75, 143, 0.22);
     padding: var(--space-2) 0;
-    display: flex;
+    display: none;
     flex-direction: column;
+}
+
+.inv-context-menu.open {
+    display: flex;
 }
 
 .ctx-option {

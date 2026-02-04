@@ -1298,7 +1298,7 @@
 
 
     <!-- Context menu -->
-    <div class="inv-context-menu" id="invContextMenu" hidden>
+    <div class="inv-context-menu" id="invContextMenu">
         <button class="ctx-option" data-action="inspect">&#x1F50D; Inspecter</button>
         <button class="ctx-option" data-action="equip">&#x2694;&#xFE0F; Équiper</button>
         <button class="ctx-option" data-action="use">&#x2728; Utiliser</button>
@@ -8496,6 +8496,8 @@
 
             if (shouldPersist) {
                 persistInventory();
+                selectedItemIndex = null;
+                showDetailPlaceholder();
                 renderInventory();
 
                 // Trigger unequip poof animation
@@ -9739,7 +9741,7 @@
             ctxMenu.querySelector('[data-action="drop"]').hidden = isCurrency;
             ctxMenu.querySelector('.ctx-divider').hidden = isCurrency;
 
-            ctxMenu.hidden = false;
+            ctxMenu.classList.add('open');
 
             // Position: keep within viewport
             const menuW = ctxMenu.offsetWidth;
@@ -9753,7 +9755,7 @@
         }
 
         function closeContextMenu() {
-            ctxMenu.hidden = true;
+            ctxMenu.classList.remove('open');
             ctxTargetItem = null;
         }
 
