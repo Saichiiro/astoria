@@ -3,13 +3,19 @@
    ===================================================================== */
 
 /* =================================================================
-   THEME OVERRIDES - Pink/Purple Accent
+   THEME OVERRIDES - Darker theme with lighter pink
    ================================================================= */
 :root {
-    --tblr-primary: #e91e63;
-    --tblr-primary-rgb: 233, 30, 99;
-    --tblr-pink: #e91e63;
-    --tblr-pink-rgb: 233, 30, 99;
+    --tblr-primary: #f48fb1;
+    --tblr-primary-rgb: 244, 143, 177;
+    --tblr-pink: #f48fb1;
+    --tblr-pink-rgb: 244, 143, 177;
+    --admin-bg-dark: #0d0d0d;
+    --admin-bg-card: #161616;
+    --admin-bg-surface: #1a1a1a;
+    --admin-border: rgba(255, 255, 255, 0.08);
+    --admin-text: #e0e0e0;
+    --admin-text-muted: #888;
 }
 
 /* Navbar brand styling */
@@ -165,11 +171,13 @@
 .btn-primary {
     background: var(--tblr-primary);
     border-color: var(--tblr-primary);
+    color: #0d0d0d;
 }
 
 .btn-primary:hover {
-    background: #c2185b;
-    border-color: #c2185b;
+    background: #f8bbd9;
+    border-color: #f8bbd9;
+    color: #0d0d0d;
 }
 
 .btn-outline-primary {
@@ -180,7 +188,7 @@
 .btn-outline-primary:hover {
     background: var(--tblr-primary);
     border-color: var(--tblr-primary);
-    color: #fff;
+    color: #0d0d0d;
 }
 
 .btn-ghost-primary {
@@ -188,73 +196,177 @@
 }
 
 .btn-ghost-primary:hover {
-    background: rgba(233, 30, 99, 0.1);
+    background: rgba(244, 143, 177, 0.15);
 }
 
 /* =================================================================
-   DARK THEME ADJUSTMENTS
+   DARK THEME ADJUSTMENTS - True black with light pink
    ================================================================= */
 .theme-dark {
-    --tblr-body-bg: #1a1225;
-    --tblr-bg-surface: #241832;
-    --tblr-card-bg: #241832;
+    --tblr-body-bg: var(--admin-bg-dark);
+    --tblr-bg-surface: var(--admin-bg-surface);
+    --tblr-card-bg: var(--admin-bg-card);
+    --tblr-body-color: var(--admin-text);
+    --tblr-muted: var(--admin-text-muted);
 }
 
 .theme-dark .card {
-    background: var(--tblr-card-bg);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .theme-dark .card-header {
-    border-bottom-color: rgba(255, 255, 255, 0.1);
+    border-bottom-color: var(--admin-border);
+    background: transparent;
+}
+
+.theme-dark .card-title {
+    color: #fff;
 }
 
 .theme-dark .navbar-vertical {
-    background: linear-gradient(180deg, #2d1f3d 0%, #1a1225 100%);
+    background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+    border-right: 1px solid var(--admin-border);
+}
+
+.theme-dark .nav-link {
+    color: var(--admin-text-muted);
+    transition: all 0.15s ease;
+}
+
+.theme-dark .nav-link:hover {
+    color: #fff;
+    background: rgba(244, 143, 177, 0.08);
+}
+
+.theme-dark .nav-link.active {
+    color: var(--tblr-primary) !important;
+    background: rgba(244, 143, 177, 0.12);
 }
 
 .theme-dark .page-wrapper {
-    background: var(--tblr-body-bg);
+    background: var(--admin-bg-dark);
 }
 
 .theme-dark .page-header {
-    background: var(--tblr-card-bg);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--admin-bg-card);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.theme-dark .page-title {
+    color: #fff;
 }
 
 .theme-dark .footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--admin-border);
+    background: var(--admin-bg-card);
 }
 
 .theme-dark .table-striped tbody tr:nth-of-type(odd) {
     background-color: rgba(255, 255, 255, 0.02);
 }
 
+.theme-dark .table {
+    color: var(--admin-text);
+}
+
+.theme-dark .table thead th {
+    color: var(--admin-text-muted);
+    border-bottom-color: var(--admin-border);
+}
+
 .theme-dark .form-control,
 .theme-dark .form-select {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--admin-bg-surface);
+    border-color: var(--admin-border);
     color: #fff;
 }
 
 .theme-dark .form-control:focus,
 .theme-dark .form-select:focus {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--admin-bg-surface);
     border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.15);
+}
+
+.theme-dark .form-control::placeholder {
+    color: var(--admin-text-muted);
+}
+
+/* Stat cards */
+.theme-dark .avatar {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .bg-primary {
+    background: var(--tblr-primary) !important;
+    color: #0d0d0d !important;
+}
+
+.theme-dark .bg-pink {
+    background: #f48fb1 !important;
+    color: #0d0d0d !important;
 }
 
 .theme-dark .dropdown-menu {
-    background: #2d1f3d;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .theme-dark .dropdown-item {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--admin-text);
 }
 
 .theme-dark .dropdown-item:hover {
-    background: rgba(233, 30, 99, 0.15);
+    background: rgba(244, 143, 177, 0.12);
     color: #fff;
+}
+
+.theme-dark .dropdown-divider {
+    border-color: var(--admin-border);
+}
+
+/* Modal */
+.theme-dark .modal-content {
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+}
+
+.theme-dark .modal-header {
+    border-bottom-color: var(--admin-border);
+}
+
+.theme-dark .modal-footer {
+    border-top-color: var(--admin-border);
+}
+
+.theme-dark .btn-close {
+    filter: invert(1);
+}
+
+/* Status badges */
+.theme-dark .badge {
+    font-weight: 600;
+}
+
+/* Links */
+.theme-dark a {
+    color: var(--tblr-primary);
+}
+
+.theme-dark a:hover {
+    color: #f8bbd9;
+}
+
+.theme-dark .link-secondary {
+    color: var(--admin-text-muted) !important;
+}
+
+/* Text colors */
+.theme-dark .text-muted {
+    color: var(--admin-text-muted) !important;
 }
 
 /* =================================================================
@@ -311,4 +423,104 @@
     font-size: 3rem;
     opacity: 0.5;
     margin-bottom: 1rem;
+}
+
+/* =================================================================
+   UX ENHANCEMENTS
+   ================================================================= */
+
+/* Smooth transitions */
+.card,
+.btn,
+.nav-link,
+.dropdown-item,
+.form-control,
+.form-select {
+    transition: all 0.15s ease;
+}
+
+/* Card hover lift */
+.theme-dark .card:hover {
+    border-color: rgba(244, 143, 177, 0.2);
+}
+
+/* Better focus states */
+.theme-dark .btn:focus {
+    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.2);
+}
+
+/* Table row hover */
+.theme-dark .table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.theme-dark .table tbody tr:hover {
+    background: rgba(244, 143, 177, 0.05) !important;
+}
+
+/* Quick action buttons - subtle glow on hover */
+.theme-dark .btn-outline-primary:hover,
+.theme-dark .btn-outline-success:hover,
+.theme-dark .btn-outline-info:hover,
+.theme-dark .btn-outline-warning:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Avatar ring on hover */
+.theme-dark .avatar:hover {
+    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.3);
+}
+
+/* Navbar brand subtle animation */
+.navbar-brand a:hover .nav-brand-icon {
+    transform: rotate(10deg);
+    transition: transform 0.2s ease;
+}
+
+/* Active nav indicator animation */
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: var(--tblr-primary);
+    border-radius: 0 2px 2px 0;
+}
+
+.nav-link {
+    position: relative;
+}
+
+/* Scrollbar styling */
+.theme-dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+    background: var(--admin-bg-dark);
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+    background: var(--admin-border);
+    border-radius: 4px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Loading shimmer for placeholders */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.loading-shimmer {
+    background: linear-gradient(90deg, var(--admin-bg-surface) 25%, var(--admin-bg-card) 50%, var(--admin-bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
 }

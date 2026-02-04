@@ -758,6 +758,8 @@
     letter-spacing: 0.05em;
     border-bottom: 2px solid rgba(238, 162, 201, 0.4);
     white-space: nowrap;
+    /* Override sticky positioning to fix horizontal scroll */
+    position: static !important;
 }
 
 #inventoryTable tbody tr {
