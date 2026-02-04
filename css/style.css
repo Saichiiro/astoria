@@ -1580,7 +1580,7 @@ tbody tr.keyboard-selected {
    ================================================================= */
 @media (max-width: 780px) {
     .table-container {
-        overflow-x: visible;
+        overflow-x: auto;
     }
 
     table {
