@@ -182,6 +182,19 @@
             box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12);
         }
 
+        .character-slot.is-blocked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(200, 200, 200, 0.3),
+                rgba(200, 200, 200, 0.3) 4px,
+                rgba(255, 255, 255, 0.95) 4px,
+                rgba(255, 255, 255, 0.95) 8px
+            );
+            border-color: rgba(150, 150, 150, 0.6);
+        }
+
         .character-slot-label {
             font-size: 0.6rem;
             font-weight: 700;
@@ -597,8 +610,8 @@
                             <div class="character-slot" data-slot-key="weapon" data-slot-label="Arme" role="button" tabindex="0" aria-label="Slot Arme">
                                 <span class="character-slot-label">Arme</span>
                             </div>
-                            <div class="character-slot" data-slot-key="offhand" data-slot-label="Arme à deux mains" role="button" tabindex="0" aria-label="Slot Arme à deux mains">
-                                <span class="character-slot-label">Arme 2 mains</span>
+                            <div class="character-slot" data-slot-key="offhand" data-slot-label="Arme secondaire" role="button" tabindex="0" aria-label="Slot Arme secondaire">
+                                <span class="character-slot-label">Secondaire</span>
                             </div>
                             <div class="character-slot" data-slot-key="mount" data-slot-label="Monture" role="button" tabindex="0" aria-label="Slot Monture">
                                 <span class="character-slot-label">Monture</span>
@@ -1898,7 +1911,7 @@
             { key: 'ring2', label: 'Anneau' },
             { key: 'artifact', label: 'Artefact' },
             { key: 'weapon', label: 'Arme' },
-            { key: 'offhand', label: 'Arme \u00e0 deux mains' },
+            { key: 'offhand', label: 'Arme secondaire' },
             { key: 'companion', label: 'Familier' },
             { key: 'mount', label: 'Monture' }
         ];
@@ -5284,197 +5297,72 @@
 
 
         function addItemToInventory() {
-
-
-
-            const selectedIndex = itemSelect.value;
-
-
-
-            const quantity = parseInt(quantityInput.value) || 1;
-
-
-
-            if (!selectedIndex) {
-
-
-
-                alert('Veuillez sélectionner un objet');
-
-
-
-                return;
-
-
-
-            }
-
-
-
-            if (quantity < 1) {
-
-
-
-                alert('La quantité doit être au moins 1');
-
-
-
-                return;
-
-
-
-            }
-
-
-
-            const allItems = getAllItems();
-
-
-
-            const sourceItem = allItems[parseInt(selectedIndex)];
-
-
-
-            const sourceIndex = parseInt(selectedIndex);
-
-
-
-            if (!sourceItem) {
-
-
-
-                alert('Objet invalide');
-
-
-
-                return;
-
-
-
-            }
-
-
-
-            // Check if item already exists in inventory
-
-
-
-            const existingItem = inventoryItems.find(i => i.sourceIndex === sourceIndex || i.name === sourceItem.name);
-
-
-
-            if (existingItem) {
-
-
-
-                // Update quantity if already exists
-
-
-
-                existingItem.quantity += quantity;
-
-
-
-                if (!Number.isFinite(Number(existingItem.sourceIndex))) {
-
-
-
-                    existingItem.sourceIndex = sourceIndex;
-
-
-
+            try {
+                const selectedIndex = itemSelect.value;
+                const quantity = parseInt(quantityInput.value) || 1;
+
+                if (!selectedIndex) {
+                    alert('Veuillez sélectionner un objet');
+                    return;
                 }
 
+                if (quantity < 1) {
+                    alert('La quantité doit être au moins 1');
+                    return;
+                }
 
+                const allItems = getAllItems();
+                const sourceItem = allItems[parseInt(selectedIndex)];
+                const sourceIndex = parseInt(selectedIndex);
 
-                console.log(`Updated ${existingItem.name}: quantity now ${existingItem.quantity}`);
+                if (!sourceItem) {
+                    alert('Objet invalide');
+                    return;
+                }
 
+                // Check if item already exists in inventory
+                const existingItem = inventoryItems.find(i => i.sourceIndex === sourceIndex || i.name === sourceItem.name);
 
+                if (existingItem) {
+                    // Update quantity if already exists
+                    existingItem.quantity += quantity;
+                    if (!Number.isFinite(Number(existingItem.sourceIndex))) {
+                        existingItem.sourceIndex = sourceIndex;
+                    }
+                    // Also update equipment_slot if not set
+                    if (!existingItem.equipment_slot && sourceItem.equipment_slot) {
+                        existingItem.equipment_slot = sourceItem.equipment_slot;
+                    }
+                    console.log(`Updated ${existingItem.name}: quantity now ${existingItem.quantity}`);
+                } else {
+                    // Add new item with all data from source (use original category from data)
+                    const newItem = {
+                        id: nextItemId++,
+                        sourceIndex,
+                        name: sourceItem.name,
+                        category: sourceItem.category,
+                        image: sourceItem.image,
+                        description: sourceItem.description,
+                        effect: sourceItem.effect,
+                        buyPrice: sourceItem.buyPrice,
+                        sellPrice: sourceItem.sellPrice,
+                        equipment_slot: sourceItem.equipment_slot || '',
+                        quantity: quantity
+                    };
+                    inventoryItems.push(newItem);
+                    console.log(`Added ${newItem.name} x${quantity} to inventory`);
+                }
 
-            } else {
+                persistInventory();
+                closeAddPanel();
+                renderInventory();
 
-
-
-                // Add new item with all data from source (use original category from data)
-
-
-
-                const newItem = {
-
-
-
-                    id: nextItemId++,
-
-
-
-                    sourceIndex,
-
-
-
-                    name: sourceItem.name,
-
-
-
-                    category: sourceItem.category, // Use original category from data
-
-
-
-                    image: sourceItem.image,
-
-
-
-                    description: sourceItem.description,
-
-
-
-                    effect: sourceItem.effect,
-
-
-
-                    buyPrice: sourceItem.buyPrice,
-
-
-
-                    sellPrice: sourceItem.sellPrice,
-
-
-
-                    quantity: quantity
-
-
-
-                };
-
-
-
-                inventoryItems.push(newItem);
-
-
-
-                console.log(`Added ${newItem.name} x${quantity} to inventory`);
-
-
-
+            } catch (error) {
+                console.error('[Inventory] Error adding item:', error);
+                alert('Erreur lors de l\'ajout. Veuillez réessayer.');
+                // Ensure panel is closed even on error
+                closeAddPanel();
             }
-
-
-
-            persistInventory();
-
-
-
-            // Close panel and refresh display
-
-
-
-            closeAddPanel();
-
-
-
-            renderInventory();
-
-
-
         }
 
 
@@ -8077,6 +7965,8 @@
 
         /**
          * Map codex equipment_slot values (French) to inventory slot keys (English)
+         * Weapons: 'arme'/'arme-une-main' can go in weapon OR offhand
+         *          'arme-deux-mains' goes in weapon only and blocks offhand
          */
         const SLOT_MAP = {
             'casque': 'head',
@@ -8091,12 +7981,29 @@
             'arme': 'weapon',
             'arme-principale': 'weapon',
             'arme-une-main': 'weapon',
-            'arme-deux-mains': 'offhand',
+            'arme-deux-mains': 'weapon',
             'arme-secondaire': 'offhand',
             'artefact': 'artifact',
             'familier': 'companion',
             'monture': 'mount'
         };
+
+        // One-handed weapon types (can go in weapon OR offhand)
+        const ONE_HANDED_SLOTS = ['arme', 'arme-une-main'];
+        // Two-handed weapon type (weapon only, blocks offhand)
+        const TWO_HANDED_SLOT = 'arme-deux-mains';
+
+        function isOneHandedWeapon(rawSlot) {
+            return ONE_HANDED_SLOTS.includes(rawSlot);
+        }
+
+        function isTwoHandedWeapon(rawSlot) {
+            return rawSlot === TWO_HANDED_SLOT;
+        }
+
+        function getRawSlot(item) {
+            return item?.equipment_slot || item?.equipmentSlot || null;
+        }
 
         function normalizeSlot(rawSlot) {
             if (!rawSlot) return null;
@@ -8113,8 +8020,19 @@
         }
 
         /**
+         * Check if offhand slot is blocked by a two-handed weapon in weapon slot
+         */
+        function isOffhandBlocked() {
+            const weaponItem = equippedSlots['weapon'];
+            if (!weaponItem) return false;
+            const rawSlot = getRawSlot(weaponItem);
+            return isTwoHandedWeapon(rawSlot);
+        }
+
+        /**
          * Check if an item's equipment slot is compatible with target slot
          * Handles special cases like rings (anneau -> ring1 or ring2)
+         * and one-handed weapons (can go in weapon or offhand)
          * STRICT: items without equipmentSlot cannot be equipped
          */
         function isSlotCompatible(itemSlot, targetSlot) {
@@ -8129,6 +8047,18 @@
                 return true;
             }
 
+            // One-handed weapons can also go in offhand slot
+            if (isOneHandedWeapon(itemSlot) && targetSlot === 'offhand') {
+                // But not if offhand is blocked by a two-handed weapon
+                if (isOffhandBlocked()) return false;
+                return true;
+            }
+
+            // Two-handed weapons cannot go in offhand
+            if (isTwoHandedWeapon(itemSlot) && targetSlot === 'offhand') {
+                return false;
+            }
+
             return false;
         }
 
@@ -8140,6 +8070,7 @@
          */
         function findAvailableSlot(item) {
             const slot = getItemSlot(item);
+            const rawSlot = getRawSlot(item);
             if (!slot) return null;
 
             // For rings, find first available ring slot
@@ -8147,6 +8078,18 @@
                 if (!equippedSlots['ring1']) return 'ring1';
                 if (!equippedSlots['ring2']) return 'ring2';
                 return 'ring1'; // Replace first ring if both occupied
+            }
+
+            // For one-handed weapons, prefer weapon slot, fallback to offhand
+            if (isOneHandedWeapon(rawSlot)) {
+                if (!equippedSlots['weapon']) return 'weapon';
+                if (!equippedSlots['offhand'] && !isOffhandBlocked()) return 'offhand';
+                return 'weapon'; // Replace main weapon if both occupied
+            }
+
+            // For two-handed weapons, only weapon slot (will clear offhand on equip)
+            if (isTwoHandedWeapon(rawSlot)) {
+                return 'weapon';
             }
 
             // For other items, return the direct slot
@@ -8529,7 +8472,11 @@
                 return;
             }
 
-
+            // Two-handed weapon clears offhand when equipped to weapon slot
+            const rawSlot = getRawSlot(item);
+            if (isTwoHandedWeapon(rawSlot) && slotKey === 'weapon' && equippedSlots['offhand']) {
+                unequipSlot('offhand', false);
+            }
 
             const occupied = equippedSlots?.[slotKey];
 
@@ -8580,53 +8527,18 @@
 
 
             equippedSlots[slotKey] = {
-
-
-
                 sourceIndex: Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null,
-
-
-
                 name: item.name,
-
-
-
                 category: item.category,
-
-
-
                 image: item.image,
-
-
-
                 images: item.images,
-
-
-
                 description: item.description,
-
-
-
                 effect: item.effect,
-
-
-
                 modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
-
-
-
                 buyPrice: item.buyPrice,
-
-
-
                 sellPrice: item.sellPrice,
-
-
-
+                equipment_slot: item.equipment_slot || '',
                 quantity: 1
-
-
-
             };
 
 
@@ -8701,11 +8613,11 @@
 
                 const equippedItem = equippedSlots?.[slot.key];
 
-
-
                 slotEl.classList.toggle('has-item', Boolean(equippedItem));
 
-
+                // Mark offhand as blocked if two-handed weapon is equipped
+                const offhandBlocked = slot.key === 'offhand' && isOffhandBlocked();
+                slotEl.classList.toggle('is-blocked', offhandBlocked);
 
                 slotEl.innerHTML = '';
 
@@ -8845,21 +8757,17 @@
 
                 label.className = 'character-slot-label';
 
-
-
-                label.textContent = slot.label;
-
-
+                if (offhandBlocked) {
+                    label.textContent = 'Bloqué';
+                    slotEl.title = `${slot.label}: bloqué par une arme à deux mains`;
+                    slotEl.setAttribute('aria-label', `${slot.label}: bloqué par une arme à deux mains.`);
+                } else {
+                    label.textContent = slot.label;
+                    slotEl.title = `${slot.label}: vide (depose un equipement)`;
+                    slotEl.setAttribute('aria-label', `${slot.label}: vide. Depose un equipement ici.`);
+                }
 
                 slotEl.appendChild(label);
-
-
-
-                slotEl.title = `${slot.label}: vide (depose un equipement)`;
-
-
-
-                slotEl.setAttribute('aria-label', `${slot.label}: vide. Depose un equipement ici.`);
 
 
 
@@ -8908,33 +8816,17 @@
 
 
                 slotEl.addEventListener('dragover', (event) => {
-
-
-
                     if (!draggedEquipmentItemId) return;
 
-
-
-                    event.preventDefault();
-
-
-
-                    if (event.dataTransfer) {
-
-
-
-                        event.dataTransfer.dropEffect = 'move';
-
-
-
+                    // Don't allow drops on blocked offhand slot
+                    if (slotKey === 'offhand' && isOffhandBlocked()) {
+                        if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
+                        return;
                     }
 
-
-
+                    event.preventDefault();
+                    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
                     slotEl.classList.add('is-drop-target');
-
-
-
                 });
 
 
