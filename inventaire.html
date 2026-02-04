@@ -728,7 +728,19 @@
                 <!-- Category filter bar + search -->
                 <div class="inventory-toolbar">
 
-
+            <div class="inventory-sort" id="inventorySort">
+                <button type="button" class="inventory-sort-btn tw-press" id="inventorySortBtn" aria-label="Trier" aria-expanded="false" title="Trier les objets">
+                    <span class="inventory-sort-icon">&#x2195;</span>
+                </button>
+                <div class="inventory-sort-dropdown" id="inventorySortDropdown" hidden>
+                    <button class="sort-option active" data-sort="default">Par défaut</button>
+                    <button class="sort-option" data-sort="name-asc">A &rarr; Z</button>
+                    <button class="sort-option" data-sort="name-desc">Z &rarr; A</button>
+                    <button class="sort-option" data-sort="price-desc">Prix &darr;</button>
+                    <button class="sort-option" data-sort="price-asc">Prix &uarr;</button>
+                    <button class="sort-option" data-sort="qty-desc">Quantité &darr;</button>
+                </div>
+            </div>
 
             <nav class="inventory-categories" aria-label="Cat&eacute;gories d'inventaire">
 
@@ -833,20 +845,6 @@
             </nav>
 
 
-
-            <div class="inventory-sort" id="inventorySort">
-                <button type="button" class="inventory-sort-btn tw-press" id="inventorySortBtn" aria-label="Trier" aria-expanded="false" title="Trier les objets">
-                    <span class="inventory-sort-icon">&#x2195;</span>
-                </button>
-                <div class="inventory-sort-dropdown" id="inventorySortDropdown" hidden>
-                    <button class="sort-option active" data-sort="default">Par défaut</button>
-                    <button class="sort-option" data-sort="name-asc">A &rarr; Z</button>
-                    <button class="sort-option" data-sort="name-desc">Z &rarr; A</button>
-                    <button class="sort-option" data-sort="price-desc">Prix &darr;</button>
-                    <button class="sort-option" data-sort="price-asc">Prix &uarr;</button>
-                    <button class="sort-option" data-sort="qty-desc">Quantité &darr;</button>
-                </div>
-            </div>
 
             <div class="inventory-search" id="inventorySearch" data-search-priority="page">
 
@@ -1296,15 +1294,6 @@
     <!-- Delete confirmation modal -->
 
 
-
-    <!-- Context menu -->
-    <div class="inv-context-menu" id="invContextMenu">
-        <button class="ctx-option" data-action="inspect">&#x1F50D; Inspecter</button>
-        <button class="ctx-option" data-action="equip">&#x2694;&#xFE0F; Équiper</button>
-        <button class="ctx-option" data-action="use">&#x2728; Utiliser</button>
-        <hr class="ctx-divider">
-        <button class="ctx-option ctx-option--danger" data-action="drop">&#x1F5D1;&#xFE0F; Jeter</button>
-    </div>
 
     <div class="delete-modal-overlay" id="deleteModal">
 
@@ -9709,12 +9698,6 @@
 
             card.addEventListener('click', () => selectItem(item, card));
 
-            // Right-click context menu
-            card.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                openContextMenu(e, item);
-            });
-
             return card;
 
 
@@ -9722,74 +9705,6 @@
         }
 
 
-
-        // =================================================================
-        // CONTEXT MENU
-        // =================================================================
-
-        const ctxMenu = document.getElementById('invContextMenu');
-        let ctxTargetItem = null;
-
-        function openContextMenu(e, item) {
-            ctxTargetItem = item;
-            const isCurrency = item?.isCurrency === true;
-            const equippable = isItemEquippable(item);
-
-            // Toggle visibility of context-specific options
-            ctxMenu.querySelector('[data-action="equip"]').hidden = !equippable || isCurrency;
-            ctxMenu.querySelector('[data-action="use"]').hidden = isCurrency;
-            ctxMenu.querySelector('[data-action="drop"]').hidden = isCurrency;
-            ctxMenu.querySelector('.ctx-divider').hidden = isCurrency;
-
-            ctxMenu.classList.add('open');
-
-            // Position: keep within viewport
-            const menuW = ctxMenu.offsetWidth;
-            const menuH = ctxMenu.offsetHeight;
-            let x = e.clientX;
-            let y = e.clientY;
-            if (x + menuW > window.innerWidth) x = window.innerWidth - menuW - 8;
-            if (y + menuH > window.innerHeight) y = window.innerHeight - menuH - 8;
-            ctxMenu.style.left = x + 'px';
-            ctxMenu.style.top = y + 'px';
-        }
-
-        function closeContextMenu() {
-            ctxMenu.classList.remove('open');
-            ctxTargetItem = null;
-        }
-
-        // Dismiss on click / scroll / Escape
-        document.addEventListener('click', closeContextMenu);
-        document.addEventListener('scroll', closeContextMenu, true);
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeContextMenu(); });
-
-        // Handle context menu actions
-        ctxMenu.addEventListener('click', (e) => {
-            const btn = e.target.closest('.ctx-option');
-            if (!btn || !ctxTargetItem) return;
-            e.stopPropagation();
-            const action = btn.dataset.action;
-            const item = ctxTargetItem;
-            closeContextMenu();
-
-            switch (action) {
-                case 'inspect':
-                    showItemDetail(item);
-                    break;
-                case 'equip': {
-                    const slot = findAvailableSlot(item);
-                    if (slot) equipItemToSlot(item.id, slot);
-                    break;
-                }
-                case 'use':
-                    useItem(item.id);
-                    break;
-                case 'drop':
-                    openDeleteModal(item.id);
-                    break;
-            }
-        });
 
         // =================================================================
 
