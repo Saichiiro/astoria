@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Astoria</title>
+    <link rel="icon" type="image/x-icon" href="../assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+</head>
+<body class="admin-body">
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-sidebar-header">
+                <div class="admin-logo">
+                    <span class="admin-logo-icon">⚔️</span>
+                    <span class="admin-logo-text">Astoria Admin</span>
+                </div>
+                <button class="admin-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                    <span></span>
+                </button>
+            </div>
+
+            <nav class="admin-nav" aria-label="Navigation admin">
+                <div class="admin-nav-section">
+                    <span class="admin-nav-label">Tableau de bord</span>
+                    <a href="#dashboard" class="admin-nav-item active" data-page="dashboard">
+                        <span class="admin-nav-icon">📊</span>
+                        <span class="admin-nav-text">Vue d'ensemble</span>
+                    </a>
+                </div>
+
+                <div class="admin-nav-section">
+                    <span class="admin-nav-label">Gestion</span>
+                    <a href="#users" class="admin-nav-item" data-page="users">
+                        <span class="admin-nav-icon">👥</span>
+                        <span class="admin-nav-text">Utilisateurs</span>
+                    </a>
+                    <a href="#characters" class="admin-nav-item" data-page="characters">
+                        <span class="admin-nav-icon">🎭</span>
+                        <span class="admin-nav-text">Personnages</span>
+                    </a>
+                    <a href="#items" class="admin-nav-item" data-page="items">
+                        <span class="admin-nav-icon">📦</span>
+                        <span class="admin-nav-text">Objets</span>
+                        <span class="admin-nav-badge">Codex</span>
+                    </a>
+                </div>
+
+                <div class="admin-nav-section">
+                    <span class="admin-nav-label">Économie</span>
+                    <a href="#economy" class="admin-nav-item" data-page="economy">
+                        <span class="admin-nav-icon">💰</span>
+                        <span class="admin-nav-text">Kaels & Transactions</span>
+                    </a>
+                    <a href="#market" class="admin-nav-item" data-page="market">
+                        <span class="admin-nav-icon">🏪</span>
+                        <span class="admin-nav-text">Marché</span>
+                    </a>
+                </div>
+
+                <div class="admin-nav-section">
+                    <span class="admin-nav-label">RP & Events</span>
+                    <a href="#events" class="admin-nav-item" data-page="events">
+                        <span class="admin-nav-icon">📅</span>
+                        <span class="admin-nav-text">Événements</span>
+                    </a>
+                    <a href="#announcements" class="admin-nav-item" data-page="announcements">
+                        <span class="admin-nav-icon">📢</span>
+                        <span class="admin-nav-text">Annonces</span>
+                    </a>
+                </div>
+
+                <div class="admin-nav-section">
+                    <span class="admin-nav-label">Système</span>
+                    <a href="#logs" class="admin-nav-item" data-page="logs">
+                        <span class="admin-nav-icon">📋</span>
+                        <span class="admin-nav-text">Logs & Audit</span>
+                    </a>
+                    <a href="#settings" class="admin-nav-item" data-page="settings">
+                        <span class="admin-nav-icon">⚙️</span>
+                        <span class="admin-nav-text">Paramètres</span>
+                    </a>
+                </div>
+            </nav>
+
+            <div class="admin-sidebar-footer">
+                <a href="../index.html" class="admin-nav-item admin-nav-exit">
+                    <span class="admin-nav-icon">🚪</span>
+                    <span class="admin-nav-text">Retour au site</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <div class="admin-header-left">
+                    <h1 class="admin-page-title" id="pageTitle">Tableau de bord</h1>
+                    <p class="admin-page-subtitle" id="pageSubtitle">Vue d'ensemble de l'activité</p>
+                </div>
+                <div class="admin-header-right">
+                    <div class="admin-quick-actions">
+                        <button class="admin-quick-btn" title="Actions rapides">
+                            <span>⚡</span>
+                        </button>
+                        <button class="admin-quick-btn" title="Notifications">
+                            <span>🔔</span>
+                        </button>
+                    </div>
+                    <div class="admin-user-info" id="adminUserInfo">
+                        <span class="admin-user-name">Admin</span>
+                        <span class="admin-user-role">Staff</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="admin-content" id="adminContent">
+                <!-- Dashboard Page (default) -->
+                <section class="admin-page active" data-page="dashboard">
+                    <div class="admin-stats-grid">
+                        <div class="admin-stat-card">
+                            <div class="admin-stat-icon">👥</div>
+                            <div class="admin-stat-info">
+                                <span class="admin-stat-value" id="statUsers">--</span>
+                                <span class="admin-stat-label">Utilisateurs</span>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="admin-stat-icon">🎭</div>
+                            <div class="admin-stat-info">
+                                <span class="admin-stat-value" id="statCharacters">--</span>
+                                <span class="admin-stat-label">Personnages</span>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="admin-stat-icon">📦</div>
+                            <div class="admin-stat-info">
+                                <span class="admin-stat-value" id="statItems">--</span>
+                                <span class="admin-stat-label">Objets</span>
+                            </div>
+                        </div>
+                        <div class="admin-stat-card">
+                            <div class="admin-stat-icon">💰</div>
+                            <div class="admin-stat-info">
+                                <span class="admin-stat-value" id="statKaels">--</span>
+                                <span class="admin-stat-label">Kaels en circulation</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="admin-dashboard-grid">
+                        <div class="admin-card">
+                            <h3 class="admin-card-title">Actions rapides</h3>
+                            <div class="admin-quick-grid">
+                                <button class="admin-action-btn">
+                                    <span class="admin-action-icon">➕</span>
+                                    <span>Nouvel objet</span>
+                                </button>
+                                <button class="admin-action-btn">
+                                    <span class="admin-action-icon">💸</span>
+                                    <span>Donner Kaels</span>
+                                </button>
+                                <button class="admin-action-btn">
+                                    <span class="admin-action-icon">📢</span>
+                                    <span>Annonce</span>
+                                </button>
+                                <button class="admin-action-btn">
+                                    <span class="admin-action-icon">🎉</span>
+                                    <span>Nouvel event</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="admin-card">
+                            <h3 class="admin-card-title">Activité récente</h3>
+                            <div class="admin-activity-list" id="activityList">
+                                <div class="admin-activity-empty">
+                                    <span>📋</span>
+                                    <p>Aucune activité récente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Users Page (stub) -->
+                <section class="admin-page" data-page="users">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">👥</span>
+                        <h2>Gestion des utilisateurs</h2>
+                        <p>Cette section permettra de gérer les utilisateurs, leurs rôles et permissions.</p>
+                        <ul class="stub-features">
+                            <li>Liste des utilisateurs avec recherche/filtres</li>
+                            <li>Attribution des rôles (Admin, Staff, Joueur)</li>
+                            <li>Ban/Unban temporaire ou permanent</li>
+                            <li>Historique d'activité par utilisateur</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Characters Page (stub) -->
+                <section class="admin-page" data-page="characters">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">🎭</span>
+                        <h2>Gestion des personnages</h2>
+                        <p>Cette section permettra de gérer les personnages des joueurs.</p>
+                        <ul class="stub-features">
+                            <li>Revue et validation des personnages</li>
+                            <li>Modification des stats et inventaire</li>
+                            <li>Attribution de récompenses</li>
+                            <li>Historique des modifications</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Items Page (stub) -->
+                <section class="admin-page" data-page="items">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">📦</span>
+                        <h2>Gestion des objets</h2>
+                        <p>Accès rapide au Codex avec fonctionnalités admin étendues.</p>
+                        <ul class="stub-features">
+                            <li>Actions groupées (activer/désactiver)</li>
+                            <li>Import/Export en masse</li>
+                            <li>Statistiques d'utilisation</li>
+                            <li>Historique des modifications</li>
+                        </ul>
+                        <a href="../codex.html" class="admin-link-btn">Ouvrir le Codex →</a>
+                    </div>
+                </section>
+
+                <!-- Economy Page (stub) -->
+                <section class="admin-page" data-page="economy">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">💰</span>
+                        <h2>Économie & Transactions</h2>
+                        <p>Contrôle de l'économie du jeu et des transactions.</p>
+                        <ul class="stub-features">
+                            <li>Donner/Retirer des Kaels</li>
+                            <li>Historique des transactions</li>
+                            <li>Statistiques économiques</li>
+                            <li>Détection d'abus</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Market Page (stub) -->
+                <section class="admin-page" data-page="market">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">🏪</span>
+                        <h2>Gestion du marché</h2>
+                        <p>Configuration et monitoring du marché.</p>
+                        <ul class="stub-features">
+                            <li>Prix de base des objets</li>
+                            <li>Offres en cours</li>
+                            <li>Historique des ventes</li>
+                            <li>Alertes de prix anormaux</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Events Page (stub) -->
+                <section class="admin-page" data-page="events">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">📅</span>
+                        <h2>Événements RP</h2>
+                        <p>Création et gestion des événements roleplay.</p>
+                        <ul class="stub-features">
+                            <li>Créer/planifier des events</li>
+                            <li>Gestion des participants</li>
+                            <li>Récompenses automatiques</li>
+                            <li>Calendrier des events</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Announcements Page (stub) -->
+                <section class="admin-page" data-page="announcements">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">📢</span>
+                        <h2>Annonces</h2>
+                        <p>Diffusion d'annonces aux joueurs.</p>
+                        <ul class="stub-features">
+                            <li>Créer des annonces</li>
+                            <li>Planification de publication</li>
+                            <li>Ciblage par rôle/groupe</li>
+                            <li>Historique des annonces</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Logs Page (stub) -->
+                <section class="admin-page" data-page="logs">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">📋</span>
+                        <h2>Logs & Audit</h2>
+                        <p>Suivi des actions et audit de sécurité.</p>
+                        <ul class="stub-features">
+                            <li>Logs des actions admin</li>
+                            <li>Historique des connexions</li>
+                            <li>Détection d'anomalies</li>
+                            <li>Export des logs</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Settings Page (stub) -->
+                <section class="admin-page" data-page="settings">
+                    <div class="admin-page-stub">
+                        <span class="stub-icon">⚙️</span>
+                        <h2>Paramètres</h2>
+                        <p>Configuration du système.</p>
+                        <ul class="stub-features">
+                            <li>Paramètres généraux</li>
+                            <li>Configuration des rôles</li>
+                            <li>Maintenance mode</li>
+                            <li>Backups</li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@latest/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
