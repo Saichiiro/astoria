@@ -510,7 +510,7 @@ function buildRow(item, globalIndex) {
                 <span class="commerce-line">${highlightedBuyLine}</span>
                 <span class="commerce-line">${highlightedSellLine}</span>
             </td>
-            <td class="effect-cell" data-label="Effet">${modifiersHtml}${highlightedEffect ? `<div class="effect-summary">${highlightedEffect}</div>` : ""}</td>
+            <td class="effect-cell" data-label="Effet">${modifiersHtml || (highlightedEffect ? `<div class="effect-summary">${highlightedEffect}</div>` : "")}</td>
             <td class="action-cell" data-label="Action">
                 ${window.astoriaIsAdmin
                     ? `<button class="edit-btn" type="button" data-edit-index="${globalIndex}" title="Modifier l'objet">Modifier</button>`
