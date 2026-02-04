@@ -623,9 +623,13 @@ function openItemModal(index) {
     currentCarouselTitle = name || "Illustration";
     updateCarouselView(name);
 
+    const equipSlot = item.equipment_slot || '';
+    const slotBadge = equipSlot
+        ? ` <span class="modal-slot-badge">${clean(equipSlot.replace(/-/g, ' '))}</span>`
+        : '';
     modalCategory.innerHTML = category
-        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${clean(category)}</span>`
-        : "";
+        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${clean(category)}</span>${slotBadge}`
+        : (slotBadge ? `<span class="modal-label">Slot :</span>${slotBadge}` : '');
     modalDescription.innerHTML = description
         ? `<span class="modal-label">Description :</span> ${clean(description)}`
         : "";
@@ -636,7 +640,8 @@ function openItemModal(index) {
         modalModifiers.innerHTML = modifiersHtml;
         modalModifiers.style.display = modifiersHtml ? "" : "none";
     }
-    modalEffect.innerHTML = effect
+    // Only show plain-text effect if no structured modifiers exist (avoid redundancy)
+    modalEffect.innerHTML = (!modifiersHtml && effect)
         ? `<span class="modal-label">Effet :</span> ${clean(effect)}`
         : "";
 

@@ -182,6 +182,16 @@
             box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12);
         }
 
+        .character-slot.has-item:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 6px 16px rgba(216, 27, 96, 0.18);
+        }
+
+        .character-slot:not(.has-item):not(.is-blocked):hover {
+            border-color: rgba(238, 162, 201, 1);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.12);
+        }
+
         .character-slot.is-blocked {
             opacity: 0.5;
             cursor: not-allowed;
@@ -213,6 +223,27 @@
             height: 100%;
             object-fit: cover;
             pointer-events: none;
+        }
+
+        /* Equip shimmer — subtle glow */
+        @keyframes slot-equip-flash {
+            0%   { box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12); }
+            40%  { box-shadow: 0 0 8px 2px rgba(233, 30, 99, 0.22), inset 0 0 8px 1px rgba(255, 255, 255, 0.25); }
+            100% { box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12); }
+        }
+
+        @keyframes slot-unequip-poof {
+            0%   { transform: scale(1); opacity: 1; }
+            35%  { transform: scale(1.06); opacity: 0.85; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .character-slot.equip-flash {
+            animation: slot-equip-flash 0.4s ease-out;
+        }
+
+        .character-slot.unequip-poof {
+            animation: slot-unequip-poof 0.25s ease-out;
         }
 
         /* =================================================================
@@ -8005,6 +8036,31 @@
             return item?.equipment_slot || item?.equipmentSlot || null;
         }
 
+        const SLOT_DISPLAY_NAMES = {
+            'casque': 'Casque',
+            'cape': 'Cape',
+            'epaulettes': 'Épaulettes',
+            'collier': 'Collier',
+            'plastron': 'Plastron',
+            'ceinture': 'Ceinture',
+            'gantelets': 'Gantelets',
+            'anneau': 'Anneau',
+            'bottes': 'Bottes',
+            'arme': 'Arme',
+            'arme-principale': 'Arme principale',
+            'arme-une-main': 'Arme (une main)',
+            'arme-deux-mains': 'Arme (deux mains)',
+            'arme-secondaire': 'Arme secondaire',
+            'artefact': 'Artefact',
+            'familier': 'Familier',
+            'monture': 'Monture'
+        };
+
+        function getSlotDisplayName(rawSlot) {
+            if (!rawSlot) return '';
+            return SLOT_DISPLAY_NAMES[rawSlot] || rawSlot;
+        }
+
         function normalizeSlot(rawSlot) {
             if (!rawSlot) return null;
             return SLOT_MAP[rawSlot] || rawSlot;
@@ -8147,21 +8203,10 @@
 
 
                 modifiers: Array.isArray(sourceItem.modifiers) ? sourceItem.modifiers : [],
-
-
-
                 buyPrice: sourceItem.buyPrice,
-
-
-
                 sellPrice: sourceItem.sellPrice,
-
-
-
+                equipment_slot: sourceItem.equipment_slot || '',
                 quantity: 1
-
-
-
             };
 
 
@@ -8335,29 +8380,15 @@
 
 
             if (existing) {
-
-
-
                 existing.quantity = Math.max(0, Math.floor(Number(existing.quantity) || 0)) + quantity;
-
-
-
                 if (!Number.isFinite(Number(existing.sourceIndex)) && sourceIndex != null) {
-
-
-
                     existing.sourceIndex = sourceIndex;
-
-
-
                 }
-
-
-
+                // Restore equipment_slot if it was lost
+                if (!existing.equipment_slot && item.equipment_slot) {
+                    existing.equipment_slot = item.equipment_slot;
+                }
                 return;
-
-
-
             }
 
 
@@ -8415,25 +8446,22 @@
 
 
             if (shouldPersist) {
-
-
-
                 persistInventory();
-
-
-
                 renderInventory();
 
-
-
+                // Trigger unequip poof animation
+                requestAnimationFrame(() => {
+                    const slotEl = document.querySelector(`.character-slot[data-slot-key="${slotKey}"]`);
+                    if (slotEl) {
+                        slotEl.classList.remove('unequip-poof');
+                        void slotEl.offsetWidth;
+                        slotEl.classList.add('unequip-poof');
+                        slotEl.addEventListener('animationend', () => slotEl.classList.remove('unequip-poof'), { once: true });
+                    }
+                });
             }
 
-
-
             return true;
-
-
-
         }
 
 
@@ -8544,16 +8572,19 @@
 
 
             persistInventory();
-
-
-
             renderInventory();
 
-
-
+            // Trigger equip flash animation
+            requestAnimationFrame(() => {
+                const slotEl = document.querySelector(`.character-slot[data-slot-key="${slotKey}"]`);
+                if (slotEl) {
+                    slotEl.classList.remove('equip-flash');
+                    void slotEl.offsetWidth; // force reflow
+                    slotEl.classList.add('equip-flash');
+                    slotEl.addEventListener('animationend', () => slotEl.classList.remove('equip-flash'), { once: true });
+                }
+            });
         }
-
-
 
         function clearSlotDropTargets() {
 
@@ -8723,11 +8754,8 @@
 
 
 
-                    slotEl.title = `${slot.label}: ${equippedItem.name} (cliquer pour desequiper)`;
-
-
-
-                    slotEl.setAttribute('aria-label', `${slot.label}: ${equippedItem.name}. Cliquer pour desequiper.`);
+                    slotEl.title = `${slot.label}: ${equippedItem.name} (double-clic pour déséquiper)`;
+                    slotEl.setAttribute('aria-label', `${slot.label}: ${equippedItem.name}. Double-clic pour déséquiper.`);
 
 
 
@@ -8876,21 +8904,16 @@
 
 
                 slotEl.addEventListener('click', () => {
-
-
-
-                    if (equippedSlots?.[slotKey]) {
-
-
-
-                        unequipSlot(slotKey);
-
-
-
+                    const equipped = equippedSlots?.[slotKey];
+                    if (equipped) {
+                        showItemDetail(equipped);
                     }
+                });
 
-
-
+                slotEl.addEventListener('dblclick', () => {
+                    if (equippedSlots?.[slotKey]) {
+                        unequipSlot(slotKey);
+                    }
                 });
 
 
@@ -9590,21 +9613,10 @@
 
 
                 <div class="item-info">
-
-
-
                     <div class="item-name">${escapeHtml(item.name)}</div>
-
-
-
-                    ${item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
-
-
-
+                    ${isCurrency ? `<div class="item-currency-badge">${item.quantity} &#x1FA99;</div>` : ''}
+                    ${!isCurrency && item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
                     ${modifiersHtml}
-
-
-
                 </div>
 
 
@@ -9966,6 +9978,7 @@
 
 
                         <span class="detail-category">${categoryLabels[item.category] || 'Autre'}</span>
+                        ${item.equipment_slot ? `<span class="detail-slot-badge">${escapeHtml(getSlotDisplayName(item.equipment_slot))}</span>` : ''}
 
 
 
@@ -10025,34 +10038,14 @@
 
 
 
-                    ${item.effect ? `
-
-
-
+                    ${modifiersSectionHtml || (item.effect ? `
                     <div class="detail-section">
-
-
-
                         <span class="detail-label">Effet</span>
-
-
-
                         <p class="detail-text detail-effect">${escapeHtml(item.effect)}</p>
-
-
-
                     </div>
-
-
-
-                    ` : ''}
-
-
+                    ` : '')}
 
                     <div class="detail-section">
-
-
-
                         <span class="detail-label">Commerce</span>
 
 
