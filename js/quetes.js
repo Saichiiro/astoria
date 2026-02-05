@@ -3,6 +3,7 @@ import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
+import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
 
 // Safe sanitizer wrapper with fallback when sanitizer not available
 function clean(value) {
@@ -61,7 +62,11 @@ const state = {
     editor: {
         questId: null,
         images: [],
-        rewards: []
+        rewards: [],
+        prerequisites: []
+    },
+    currentQuest: {
+        prerequisites: []
     },
     carousel: {
         x: 0,
@@ -2086,6 +2091,21 @@ function renderEditorLists() {
         `;
     }).join("");
 
+    // Render prerequisites list
+    const prerequisitesList = document.getElementById("questPrerequisitesList");
+    if (prerequisitesList && state.editor.prerequisites) {
+        prerequisitesList.innerHTML = state.editor.prerequisites.map((questId, idx) => {
+            const quest = state.quests.find(q => q.id === questId);
+            const title = quest ? quest.title : questId;
+            return `
+            <div class="quest-editor-item">
+                <span>${clean(title)}</span>
+                <button type="button" data-remove-prerequisite="${idx}">Retirer</button>
+            </div>
+            `;
+        }).join("");
+    }
+
     if (dom.imagePreview) {
         const previewSrc = state.editor.images[0];
         if (previewSrc) {
@@ -2095,6 +2115,22 @@ function renderEditorLists() {
             dom.imagePreview.style.backgroundImage = "none";
             dom.imagePreview.classList.remove("has-image");
         }
+    }
+}
+
+function renderPrerequisitesList() {
+    const prerequisitesList = document.getElementById("questPrerequisitesList");
+    if (prerequisitesList && state.currentQuest.prerequisites) {
+        prerequisitesList.innerHTML = state.currentQuest.prerequisites.map((questId, idx) => {
+            const quest = state.quests.find(q => q.id === questId);
+            const title = quest ? quest.title : questId;
+            return `
+            <div class="quest-editor-item">
+                <span>${clean(title)}</span>
+                <button type="button" data-remove-prerequisite="${idx}">Retirer</button>
+            </div>
+            `;
+        }).join("");
     }
 }
 
@@ -2682,6 +2718,9 @@ async function init() {
     // Initialiser le modal de sélection des récompenses AVANT bindEvents
     // pour que le modal remplace le bouton trigger avant que l'ancien listener soit attaché
     initItemsModal({ dom, resolveItemByName, addReward: handleAddReward });
+
+    // Initialiser le modal de sélection des prérequis
+    initPrerequisitesModal({ state, renderPrerequisitesList });
 
     bindEvents();
     await initQuestPanelShortcuts();

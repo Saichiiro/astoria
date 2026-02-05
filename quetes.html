@@ -185,10 +185,6 @@
                             <input id="questNameInput" type="text" required>
                         </label>
                         <label class="quest-editor-field">
-                            <span>Type de qu&#234;te</span>
-                            <select id="questTypeInput" required></select>
-                        </label>
-                        <label class="quest-editor-field">
                             <span>Rang de difficult&#233;</span>
                             <select id="questRankInput" required></select>
                         </label>
@@ -210,6 +206,20 @@
     </div>
     <div class="quest-editor-list" id="questRewardsList"></div>
     <div class="quest-editor-hint">Relier &#224; l'inventaire au moment de l'int&#233;gration.</div>
+</div>
+                        <div class="quest-editor-block quest-editor-block--prerequisites tw-panel tw-surface">
+    <h4>Pr&#233;requis</h4>
+    <div class="quest-editor-row quest-prerequisites-actions">
+        <button id="questOpenPrerequisitesModalBtn" type="button" class="tw-press tw-press--primary">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des qu&#234;tes
+        </button>
+    </div>
+    <div class="quest-editor-list" id="questPrerequisitesList"></div>
+    <label class="quest-editor-field">
+        <span>Comp&#233;tences requises (niveau minimum)</span>
+        <input id="questSkillRequirementInput" type="number" min="0" placeholder="Ex: 5">
+    </label>
 </div>
                         <label class="quest-editor-field">
                             <span>Participation (1-5)</span>
@@ -241,30 +251,16 @@
                             <input id="questImageFileInput" type="file" accept="image/*">
                             <div class="quest-editor-list" id="questImagesList"></div>
                         </div>
-                        <label class="quest-editor-field quest-editor-field--wide">
-                            <span>URL de l'image</span>
-                            <input id="questImageUrlInput" class="quest-editor-image-url" type="url" placeholder="https://example.com/image.jpg">
-                        </label>
-                        <label class="quest-editor-field quest-editor-field--wide">
-                            <span>Type de qu&#234;te</span>
-                            <select id="questTypeInput" class="quest-editor-select">
+                        <div class="quest-editor-block tw-panel">
+                            <h4>Type de qu&#234;te</h4>
+                            <select id="questTypeInput" class="quest-editor-select" required>
+                                <option value="">S&#233;lectionner un type</option>
                                 <option value="standard">Standard</option>
                                 <option value="event">&#201;v&#233;nement</option>
                                 <option value="daily">Quotidienne</option>
                                 <option value="weekly">Hebdomadaire</option>
                                 <option value="story">Histoire</option>
                             </select>
-                        </label>
-                        <div class="quest-editor-block quest-editor-block--requirements tw-panel" id="questRequirementsBlock">
-                            <h4>Pr&#233;requis</h4>
-                            <label class="quest-editor-field">
-                                <span>Comp&#233;tences requises (niveau minimum)</span>
-                                <input id="questSkillRequirementInput" type="number" min="0" placeholder="Ex: 5">
-                            </label>
-                            <label class="quest-editor-field">
-                                <span>Qu&#234;tes pr&#233;c&#233;dentes (IDs s&#233;par&#233;s par virgules)</span>
-                                <input id="questPrerequisitesInput" type="text" placeholder="Ex: quest-1, quest-2">
-                            </label>
                         </div>
                         <label class="quest-editor-field quest-editor-field--wide">
                             <span>Description</span>
