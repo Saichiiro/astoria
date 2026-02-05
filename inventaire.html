@@ -8612,7 +8612,6 @@
             }
 
             // Two-handed weapon clears offhand when equipped to weapon slot
-            const rawSlot = getRawSlot(item);
             if (isTwoHandedWeapon(rawSlot) && slotKey === 'weapon' && equippedSlots['offhand']) {
                 unequipSlot('offhand', false);
             }
