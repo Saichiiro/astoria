@@ -252,6 +252,105 @@
     overflow: auto;
 }
 
+/* Modifiers section */
+.codex-admin-modifiers-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.codex-admin-modifiers-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-height: 40px;
+    padding: var(--space-2);
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--color-gray-300);
+}
+
+.codex-admin-modifiers-list:empty::before {
+    content: 'Aucun modificateur ajouté';
+    color: var(--color-gray-400);
+    font-size: var(--text-sm);
+    font-style: italic;
+}
+
+.codex-modifier-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border: 1px solid #81c784;
+    border-radius: 20px;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: #2e7d32;
+    transition: all 0.15s ease;
+}
+
+.codex-modifier-pill.negative {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border-color: #e57373;
+    color: #c62828;
+}
+
+.codex-modifier-pill-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+    margin-left: var(--space-1);
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+}
+
+.codex-modifier-pill-remove:hover {
+    opacity: 1;
+}
+
+.codex-admin-modifiers-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.codex-admin-modifiers-inputs {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.2fr auto;
+    gap: var(--space-2);
+    align-items: end;
+}
+
+.codex-modifier-stat {
+    grid-column: 1;
+}
+
+.codex-modifier-value {
+    grid-column: 2;
+}
+
+.codex-modifier-type {
+    grid-column: 3;
+}
+
+.codex-modifier-add {
+    grid-column: 4;
+    padding: var(--space-2) var(--space-3);
+    white-space: nowrap;
+}
+
+.codex-admin-modifiers-hint {
+    font-size: var(--text-xs);
+    color: var(--color-gray-500);
+    font-style: italic;
+}
+
 .codex-admin-image {
     display: flex;
     align-items: center;

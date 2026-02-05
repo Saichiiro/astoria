@@ -221,6 +221,24 @@
                     <textarea class="codex-admin-textarea tw-input" id="adminItemEffect" name="effect" rows="2" placeholder="Effet principal..."></textarea>
                 </div>
                 <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Modificateurs</div>
+                    <div class="codex-admin-modifiers-container">
+                        <div class="codex-admin-modifiers-list" id="adminItemModifiersList"></div>
+                        <div class="codex-admin-modifiers-form">
+                            <div class="codex-admin-modifiers-inputs">
+                                <input type="text" class="codex-admin-input tw-input codex-modifier-stat" id="modifierStatInput" placeholder="Stat (ex: Force, Vitesse)">
+                                <input type="number" class="codex-admin-input tw-input codex-modifier-value" id="modifierValueInput" placeholder="Valeur" step="1">
+                                <select class="codex-admin-input tw-input codex-modifier-type" id="modifierTypeInput">
+                                    <option value="flat">Points</option>
+                                    <option value="percent">Pourcentage</option>
+                                </select>
+                                <button type="button" class="codex-admin-button secondary tw-press codex-modifier-add" id="addModifierBtn">+ Ajouter</button>
+                            </div>
+                            <div class="codex-admin-modifiers-hint">Ajoutez des modificateurs de statistiques comme "+5 Force" ou "+10% Vitesse"</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="codex-admin-section">
                     <div class="codex-admin-section-title">Image</div>
                     <div class="codex-admin-image">
                         <div class="codex-admin-image-preview" id="adminItemImagePreview">

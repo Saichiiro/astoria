@@ -23,6 +23,11 @@ const dom = {
     sellInput: document.getElementById('adminItemSell'),
     descriptionInput: document.getElementById('adminItemDescription'),
     effectInput: document.getElementById('adminItemEffect'),
+    modifiersList: document.getElementById('adminItemModifiersList'),
+    modifierStatInput: document.getElementById('modifierStatInput'),
+    modifierValueInput: document.getElementById('modifierValueInput'),
+    modifierTypeInput: document.getElementById('modifierTypeInput'),
+    addModifierBtn: document.getElementById('addModifierBtn'),
     imageBtn: document.getElementById('adminItemImageBtn'),
     imageInput: document.getElementById('adminItemImageInput'),
     imagePreview: document.getElementById('adminItemImagePreview'),
@@ -64,6 +69,76 @@ let imageMeta = null;
 const knownCategories = new Set();
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 let dbItemsByKey = new Map();
+let currentModifiers = [];
+
+// Modifier management functions
+function addModifier(stat, value, type = 'flat') {
+    if (!stat || !stat.trim() || value === 0 || isNaN(value)) return;
+
+    const modifier = {
+        stat: stat.trim(),
+        value: parseFloat(value),
+        type: type
+    };
+
+    currentModifiers.push(modifier);
+    renderModifiers();
+    clearModifierInputs();
+}
+
+function removeModifier(index) {
+    currentModifiers.splice(index, 1);
+    renderModifiers();
+}
+
+function renderModifiers() {
+    if (!dom.modifiersList) return;
+
+    if (currentModifiers.length === 0) {
+        dom.modifiersList.innerHTML = '';
+        return;
+    }
+
+    dom.modifiersList.innerHTML = currentModifiers.map((mod, index) => {
+        const sign = mod.value > 0 ? '+' : '';
+        const suffix = mod.type === 'percent' ? '%' : '';
+        const label = `${sign}${mod.value}${suffix} ${mod.stat}`;
+        const className = mod.value >= 0 ? 'codex-modifier-pill' : 'codex-modifier-pill negative';
+
+        return `
+            <div class="${className}">
+                <span>${label}</span>
+                <button type="button" class="codex-modifier-pill-remove" data-index="${index}">×</button>
+            </div>
+        `;
+    }).join('');
+
+    // Add click handlers for remove buttons
+    dom.modifiersList.querySelectorAll('.codex-modifier-pill-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const index = parseInt(btn.dataset.index, 10);
+            removeModifier(index);
+        });
+    });
+}
+
+function clearModifierInputs() {
+    if (dom.modifierStatInput) dom.modifierStatInput.value = '';
+    if (dom.modifierValueInput) dom.modifierValueInput.value = '';
+    if (dom.modifierTypeInput) dom.modifierTypeInput.value = 'flat';
+}
+
+function loadModifiersFromItem(item) {
+    currentModifiers = [];
+    if (item && item.modifiers && Array.isArray(item.modifiers)) {
+        currentModifiers = item.modifiers.map(mod => ({
+            stat: mod.stat || '',
+            value: parseFloat(mod.value) || 0,
+            type: mod.type || 'flat'
+        }));
+    }
+    renderModifiers();
+}
 
 function normalizeItemName(value) {
     return String(value || "")
@@ -331,10 +406,14 @@ function openAdminModal(item) {
             setImagePreview(editingItem.image);
             setImageMetaText('Image actuelle');
         }
+        // Load modifiers from item
+        loadModifiersFromItem(editingItem);
     } else {
         // New item - hide equipment slot field by default
         const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
         if (eqSlotField) eqSlotField.style.display = 'none';
+        // Clear modifiers for new item
+        loadModifiersFromItem(null);
     }
 
     openBackdrop(dom.backdrop);
@@ -347,6 +426,8 @@ function closeAdminModal() {
     imageBlob = null;
     imageMeta = null;
     editingItem = null;
+    currentModifiers = [];
+    renderModifiers();
 }
 
 function openDeleteModal() {
@@ -567,7 +648,8 @@ async function saveItem(event) {
         effect: dom.effectInput.value.trim(),
         category: dom.categoryInput.value.trim().toLowerCase(),
         price_kaels: parsePrice(dom.sellInput.value),
-        equipment_slot: equipmentSlotVal || null
+        equipment_slot: equipmentSlotVal || null,
+        modifiers: currentModifiers.length > 0 ? currentModifiers : null
     };
 
     dom.saveBtn.disabled = true;
@@ -778,6 +860,24 @@ async function init() {
     dom.deleteBtn?.addEventListener('click', openDeleteModal);
     dom.deleteCancel?.addEventListener('click', closeDeleteModal);
     dom.deleteConfirm?.addEventListener('click', confirmDelete);
+
+    // Modifier management
+    dom.addModifierBtn?.addEventListener('click', () => {
+        const stat = dom.modifierStatInput?.value.trim();
+        const value = parseFloat(dom.modifierValueInput?.value);
+        const type = dom.modifierTypeInput?.value;
+        addModifier(stat, value, type);
+    });
+
+    // Allow Enter key in modifier inputs to add
+    [dom.modifierStatInput, dom.modifierValueInput].forEach(input => {
+        input?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                dom.addModifierBtn?.click();
+            }
+        });
+    });
 
     dom.imageBtn?.addEventListener('click', () => dom.imageInput?.click());
     dom.imagePreview?.addEventListener('click', () => dom.imageInput?.click());
