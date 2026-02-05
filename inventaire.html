@@ -205,6 +205,24 @@
             border-color: rgba(150, 150, 150, 0.6);
         }
 
+        .character-slot.is-available {
+            border-color: rgba(76, 175, 80, 0.8);
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.1) 100%);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3), inset 0 0 20px rgba(76, 175, 80, 0.15);
+            animation: slot-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes slot-pulse {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(76, 175, 80, 0.3), inset 0 0 20px rgba(76, 175, 80, 0.15);
+                border-color: rgba(76, 175, 80, 0.8);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(76, 175, 80, 0.5), inset 0 0 30px rgba(76, 175, 80, 0.25);
+                border-color: rgba(76, 175, 80, 1);
+            }
+        }
+
         .character-slot-label {
             font-size: 0.6rem;
             font-weight: 700;
@@ -8087,17 +8105,43 @@
             'monture': 'mount'
         };
 
-        // One-handed weapon types (can go in weapon OR offhand)
-        const ONE_HANDED_SLOTS = ['arme', 'arme-une-main'];
-        // Two-handed weapon type (weapon only, blocks offhand)
+        // Weapon types
         const TWO_HANDED_SLOT = 'arme-deux-mains';
-
-        function isOneHandedWeapon(rawSlot) {
-            return ONE_HANDED_SLOTS.includes(rawSlot);
-        }
+        const MAIN_HAND_SLOT = 'arme';
+        const OFF_HAND_SLOT = 'arme-secondaire';
 
         function isTwoHandedWeapon(rawSlot) {
             return rawSlot === TWO_HANDED_SLOT;
+        }
+
+        function isMainHandWeapon(rawSlot) {
+            return rawSlot === MAIN_HAND_SLOT || rawSlot === 'arme-principale' || rawSlot === 'arme-une-main';
+        }
+
+        function isOffHandWeapon(rawSlot) {
+            return rawSlot === OFF_HAND_SLOT;
+        }
+
+        /**
+         * Check if offhand should be highlighted as available
+         * Highlights when weapon slot has a main-hand weapon equipped
+         */
+        function shouldHighlightOffhand() {
+            const weaponItem = equippedSlots['weapon'];
+            if (!weaponItem) return false;
+            const rawSlot = getRawSlot(weaponItem);
+            return isMainHandWeapon(rawSlot);
+        }
+
+        /**
+         * Check if weapon should be highlighted as available
+         * Highlights when offhand slot has an off-hand weapon equipped
+         */
+        function shouldHighlightWeapon() {
+            const offhandItem = equippedSlots['offhand'];
+            if (!offhandItem) return false;
+            const rawSlot = getRawSlot(offhandItem);
+            return isOffHandWeapon(rawSlot);
         }
 
         function getRawSlot(item) {
@@ -8156,7 +8200,7 @@
         /**
          * Check if an item's equipment slot is compatible with target slot
          * Handles special cases like rings (anneau -> ring1 or ring2)
-         * and one-handed weapons (can go in weapon or offhand)
+         * Main hand weapons go to weapon slot, off hand weapons go to offhand slot
          * STRICT: items without equipmentSlot cannot be equipped
          */
         function isSlotCompatible(itemSlot, targetSlot) {
@@ -8171,15 +8215,13 @@
                 return true;
             }
 
-            // One-handed weapons can also go in offhand slot
-            if (isOneHandedWeapon(itemSlot) && targetSlot === 'offhand') {
-                // But not if offhand is blocked by a two-handed weapon
-                if (isOffhandBlocked()) return false;
-                return true;
+            // Block two-handed weapons from offhand
+            if (isTwoHandedWeapon(itemSlot) && targetSlot === 'offhand') {
+                return false;
             }
 
-            // Two-handed weapons cannot go in offhand
-            if (isTwoHandedWeapon(itemSlot) && targetSlot === 'offhand') {
+            // Block offhand if two-handed weapon in weapon slot
+            if (targetSlot === 'offhand' && isOffhandBlocked()) {
                 return false;
             }
 
@@ -8719,6 +8761,11 @@
                 // Mark offhand as blocked if two-handed weapon is equipped
                 const offhandBlocked = slot.key === 'offhand' && isOffhandBlocked();
                 slotEl.classList.toggle('is-blocked', offhandBlocked);
+
+                // Highlight complementary weapon slots
+                const shouldHighlight = (slot.key === 'offhand' && shouldHighlightOffhand()) ||
+                                      (slot.key === 'weapon' && shouldHighlightWeapon());
+                slotEl.classList.toggle('is-available', shouldHighlight && !equippedItem && !offhandBlocked);
 
                 slotEl.innerHTML = '';
 
