@@ -107,7 +107,14 @@ const questStorage = (() => {
         getItem: (key) => (backend ? backend.getItem(key) : (memory.has(key) ? memory.get(key) : null)),
         setItem: (key, value) => {
             if (backend) {
-                backend.setItem(key, value);
+                try {
+                    backend.setItem(key, value);
+                } catch (e) {
+                    // Silently handle quota errors since data persists to database
+                    if (e.name !== 'QuotaExceededError') {
+                        console.warn('[Quetes] Storage error:', e);
+                    }
+                }
             } else {
                 memory.set(key, value);
             }
@@ -681,6 +688,7 @@ async function upsertQuestToDb(quest) {
             description: quest.description,
             locations: quest.locations,
             rewards: quest.rewards,
+            prerequisites: quest.prerequisites || [],
             images: quest.images,
             max_participants: quest.maxParticipants,
             completed_by: quest.completedBy
@@ -1628,6 +1636,20 @@ function buildJoinNote(quest) {
     if (!participant || !participant.id) {
         return "Selectionnez un personnage pour participer.";
     }
+
+    // Check prerequisites
+    if (quest.prerequisites && quest.prerequisites.length > 0) {
+        const missingPrereqs = quest.prerequisites.filter(prereqId => {
+            const prereqQuest = state.quests.find(q => q.id === prereqId);
+            if (!prereqQuest) return true; // If quest not found, consider it missing
+            return !prereqQuest.completedBy.includes(participant.key);
+        });
+
+        if (missingPrereqs.length > 0) {
+            return "Vous devez compl\u00E9ter les qu\u00EAtes pr\u00E9requises.";
+        }
+    }
+
     if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
         return "Qu\u00EAte d\u00E9j\u00E0 r\u00E9alis\u00E9e (non r\u00E9p\u00E9titive).";
     }
@@ -2467,6 +2489,15 @@ function bindEditorListEvents() {
             if (Number.isFinite(idx)) {
                 state.editor.rewards.splice(idx, 1);
                 renderEditorLists();
+            }
+            return;
+        }
+        const removePrerequisiteBtn = event.target.closest("[data-remove-prerequisite]");
+        if (removePrerequisiteBtn) {
+            const idx = Number(removePrerequisiteBtn.dataset.removePrerequisite);
+            if (Number.isFinite(idx)) {
+                state.currentQuest.prerequisites.splice(idx, 1);
+                renderPrerequisitesList();
             }
         }
     });
