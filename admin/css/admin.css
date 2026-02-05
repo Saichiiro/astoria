@@ -3,19 +3,22 @@
    ===================================================================== */
 
 /* =================================================================
-   THEME OVERRIDES - Darker theme with lighter pink
+   THEME OVERRIDES - Pink/purple Astoria theme
    ================================================================= */
 :root {
-    --tblr-primary: #f48fb1;
-    --tblr-primary-rgb: 244, 143, 177;
+    --tblr-primary: #d24b8f;
+    --tblr-primary-rgb: 210, 75, 143;
     --tblr-pink: #f48fb1;
     --tblr-pink-rgb: 244, 143, 177;
-    --admin-bg-dark: #0d0d0d;
-    --admin-bg-card: #161616;
-    --admin-bg-surface: #1a1a1a;
-    --admin-border: rgba(255, 255, 255, 0.08);
-    --admin-text: #e0e0e0;
-    --admin-text-muted: #888;
+    --admin-bg-dark: #1a1225;
+    --admin-bg-card: #231832;
+    --admin-bg-surface: #2a1f3d;
+    --admin-border: rgba(210, 75, 143, 0.15);
+    --admin-border-strong: rgba(210, 75, 143, 0.3);
+    --admin-text: #f0e6f5;
+    --admin-text-muted: #a89db5;
+    --admin-accent-soft: rgba(210, 75, 143, 0.08);
+    --admin-glow: rgba(210, 75, 143, 0.25);
 }
 
 /* Navbar brand styling */
@@ -85,25 +88,53 @@
    CARDS
    ================================================================= */
 .card {
-    border: 1px solid rgba(233, 30, 99, 0.1);
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
     background: transparent;
-    border-bottom: 1px solid rgba(233, 30, 99, 0.1);
+    border-bottom: 1px solid var(--admin-border);
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+}
+
+.card-body {
+    padding: 1.25rem;
 }
 
 /* =================================================================
    STATS CARDS
    ================================================================= */
+.card-sm {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
 .card-sm .avatar {
-    width: 3rem;
-    height: 3rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 14px;
+    font-size: 1.25rem;
 }
 
 .card-sm .font-weight-medium {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.card-sm .text-muted {
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 /* =================================================================
@@ -168,27 +199,39 @@
 /* =================================================================
    BUTTONS
    ================================================================= */
+.btn {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+}
+
 .btn-primary {
-    background: var(--tblr-primary);
-    border-color: var(--tblr-primary);
-    color: #0d0d0d;
+    background: linear-gradient(135deg, #ad1457 0%, #880e4f 100%);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px var(--admin-glow);
 }
 
 .btn-primary:hover {
-    background: #f8bbd9;
-    border-color: #f8bbd9;
-    color: #0d0d0d;
+    background: linear-gradient(135deg, #c2185b 0%, #ad1457 100%);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--admin-glow);
 }
 
 .btn-outline-primary {
     color: var(--tblr-primary);
-    border-color: var(--tblr-primary);
+    border-color: var(--admin-border-strong);
+    background: var(--admin-accent-soft);
 }
 
 .btn-outline-primary:hover {
     background: var(--tblr-primary);
     border-color: var(--tblr-primary);
-    color: #0d0d0d;
+    color: #fff;
 }
 
 .btn-ghost-primary {
@@ -196,11 +239,11 @@
 }
 
 .btn-ghost-primary:hover {
-    background: rgba(244, 143, 177, 0.15);
+    background: var(--admin-accent-soft);
 }
 
 /* =================================================================
-   DARK THEME ADJUSTMENTS - True black with light pink
+   DARK THEME ADJUSTMENTS - Astoria purple/pink aesthetic
    ================================================================= */
 .theme-dark {
     --tblr-body-bg: var(--admin-bg-dark);
@@ -213,7 +256,7 @@
 .theme-dark .card {
     background: var(--admin-bg-card);
     border-color: var(--admin-border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--admin-border);
 }
 
 .theme-dark .card-header {
@@ -222,35 +265,40 @@
 }
 
 .theme-dark .card-title {
-    color: #fff;
+    color: var(--admin-text);
 }
 
 .theme-dark .navbar-vertical {
-    background: linear-gradient(180deg, #111 0%, #0a0a0a 100%);
+    background: linear-gradient(180deg, #1f1430 0%, #150d1f 100%);
     border-right: 1px solid var(--admin-border);
 }
 
 .theme-dark .nav-link {
     color: var(--admin-text-muted);
     transition: all 0.15s ease;
+    border-radius: 8px;
+    margin: 2px 8px;
 }
 
 .theme-dark .nav-link:hover {
-    color: #fff;
-    background: rgba(244, 143, 177, 0.08);
+    color: var(--admin-text);
+    background: var(--admin-accent-soft);
 }
 
 .theme-dark .nav-link.active {
     color: var(--tblr-primary) !important;
-    background: rgba(244, 143, 177, 0.12);
+    background: rgba(210, 75, 143, 0.15);
+    font-weight: 500;
 }
 
 .theme-dark .page-wrapper {
-    background: var(--admin-bg-dark);
+    background: linear-gradient(135deg, var(--admin-bg-dark) 0%, #1a1028 50%, #1e1530 100%);
+    min-height: 100vh;
 }
 
 .theme-dark .page-header {
-    background: var(--admin-bg-card);
+    background: rgba(35, 24, 50, 0.85);
+    backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--admin-border);
 }
 
@@ -280,14 +328,15 @@
 .theme-dark .form-select {
     background: var(--admin-bg-surface);
     border-color: var(--admin-border);
-    color: #fff;
+    color: var(--admin-text);
+    border-radius: 10px;
 }
 
 .theme-dark .form-control:focus,
 .theme-dark .form-select:focus {
     background: var(--admin-bg-surface);
     border-color: var(--tblr-primary);
-    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.15);
+    box-shadow: 0 0 0 3px var(--admin-glow);
 }
 
 .theme-dark .form-control::placeholder {
@@ -296,17 +345,27 @@
 
 /* Stat cards */
 .theme-dark .avatar {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .theme-dark .bg-primary {
-    background: var(--tblr-primary) !important;
-    color: #0d0d0d !important;
+    background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%) !important;
+    color: #fff !important;
 }
 
 .theme-dark .bg-pink {
-    background: #f48fb1 !important;
-    color: #0d0d0d !important;
+    background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .bg-green {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .bg-yellow {
+    background: linear-gradient(135deg, #ffca28 0%, #ffa726 100%) !important;
+    color: #1a1225 !important;
 }
 
 .theme-dark .dropdown-menu {
@@ -458,12 +517,82 @@
     background: rgba(244, 143, 177, 0.05) !important;
 }
 
-/* Quick action buttons - subtle glow on hover */
+/* Quick action buttons - softer outlines with hover glow */
+.theme-dark .btn-outline-success {
+    color: #66bb6a;
+    border-color: rgba(102, 187, 106, 0.3);
+    background: rgba(102, 187, 106, 0.08);
+}
+
+.theme-dark .btn-outline-success:hover {
+    background: #66bb6a;
+    border-color: #66bb6a;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(102, 187, 106, 0.25);
+}
+
+.theme-dark .btn-outline-info {
+    color: #4fc3f7;
+    border-color: rgba(79, 195, 247, 0.3);
+    background: rgba(79, 195, 247, 0.08);
+}
+
+.theme-dark .btn-outline-info:hover {
+    background: #4fc3f7;
+    border-color: #4fc3f7;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.25);
+}
+
+.theme-dark .btn-outline-warning {
+    color: #ffca28;
+    border-color: rgba(255, 202, 40, 0.3);
+    background: rgba(255, 202, 40, 0.08);
+}
+
+.theme-dark .btn-outline-warning:hover {
+    background: #ffca28;
+    border-color: #ffca28;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(255, 202, 40, 0.25);
+}
+
+/* Pink outline button */
+.theme-dark .btn-outline-pink {
+    color: #f48fb1;
+    border-color: rgba(244, 143, 177, 0.3);
+    background: rgba(244, 143, 177, 0.08);
+}
+
+.theme-dark .btn-outline-pink:hover {
+    background: #f48fb1;
+    border-color: #f48fb1;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(244, 143, 177, 0.25);
+}
+
+/* Purple outline button */
+.theme-dark .btn-outline-purple {
+    color: #7c4dff;
+    border-color: rgba(124, 77, 255, 0.3);
+    background: rgba(124, 77, 255, 0.08);
+}
+
+.theme-dark .btn-outline-purple:hover {
+    background: #7c4dff;
+    border-color: #7c4dff;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.25);
+}
+
 .theme-dark .btn-outline-primary:hover,
 .theme-dark .btn-outline-success:hover,
 .theme-dark .btn-outline-info:hover,
-.theme-dark .btn-outline-warning:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.theme-dark .btn-outline-warning:hover,
+.theme-dark .btn-outline-pink:hover,
+.theme-dark .btn-outline-purple:hover {
+    transform: translateY(-1px);
 }
 
 /* Avatar ring on hover */
@@ -496,21 +625,21 @@
 
 /* Scrollbar styling */
 .theme-dark ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 .theme-dark ::-webkit-scrollbar-track {
-    background: var(--admin-bg-dark);
+    background: transparent;
 }
 
 .theme-dark ::-webkit-scrollbar-thumb {
-    background: var(--admin-border);
-    border-radius: 4px;
+    background: var(--admin-border-strong);
+    border-radius: 3px;
 }
 
 .theme-dark ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--tblr-primary);
 }
 
 /* Loading shimmer for placeholders */
@@ -523,4 +652,75 @@
     background: linear-gradient(90deg, var(--admin-bg-surface) 25%, var(--admin-bg-card) 50%, var(--admin-bg-surface) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
+}
+
+/* =================================================================
+   STAT CARD ACCENT BORDERS
+   ================================================================= */
+.card-sm:nth-child(1) .card {
+    border-top: 3px solid #7c4dff;
+}
+
+.card-sm:nth-child(2) .card {
+    border-top: 3px solid #f48fb1;
+}
+
+.card-sm:nth-child(3) .card {
+    border-top: 3px solid #66bb6a;
+}
+
+.card-sm:nth-child(4) .card {
+    border-top: 3px solid #ffca28;
+}
+
+/* Alternate: using column selectors */
+.row-cards > .col-sm-6:nth-child(1) .card-sm {
+    border-top: 3px solid #7c4dff;
+}
+
+.row-cards > .col-sm-6:nth-child(2) .card-sm {
+    border-top: 3px solid #f48fb1;
+}
+
+.row-cards > .col-sm-6:nth-child(3) .card-sm {
+    border-top: 3px solid #66bb6a;
+}
+
+.row-cards > .col-sm-6:nth-child(4) .card-sm {
+    border-top: 3px solid #ffca28;
+}
+
+/* =================================================================
+   EMPTY STATE ENHANCEMENT
+   ================================================================= */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--admin-text-muted);
+}
+
+.empty-state i,
+.empty-state .ti {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+/* =================================================================
+   NAV SECTION LABELS
+   ================================================================= */
+.theme-dark .nav-link-title {
+    font-size: 0.875rem;
+}
+
+.theme-dark .dropdown-menu {
+    border-radius: 12px;
+    padding: 0.5rem;
+}
+
+.theme-dark .dropdown-item {
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin: 2px 0;
 }
