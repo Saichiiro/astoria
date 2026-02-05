@@ -533,6 +533,7 @@ function mapQuestRow(row) {
         description: row.description || "",
         locations: parseJsonArray(row.locations),
         rewards: parseJsonArray(row.rewards),
+        prerequisites: parseJsonArray(row.prerequisites),
         images: parseJsonArray(row.images),
         participants: [], // Will be populated separately from quest_participants table
         maxParticipants: Number(row.max_participants) || 1,
@@ -2044,6 +2045,7 @@ function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
     state.editor.rewards = quest ? quest.rewards.map((reward) => stripRewardElement(reward)) : [];
+    state.currentQuest.prerequisites = quest ? [...(quest.prerequisites || [])] : [];
     dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
     dom.nameInput.value = quest ? quest.name : "";
@@ -2066,6 +2068,7 @@ function openEditor(quest) {
     }
 
     renderEditorLists();
+    renderPrerequisitesList();
     dom.editorModal.classList.add("open");
     dom.editorModal.setAttribute("aria-hidden", "false");
     dom.editorModal.removeAttribute("inert");
@@ -2154,6 +2157,7 @@ async function handleEditorSubmit(event) {
         description: dom.descInput.value.trim() || "Description a definir.",
         locations,
         rewards: state.editor.rewards.length ? state.editor.rewards : [],
+        prerequisites: state.currentQuest.prerequisites || [],
         images: state.editor.images.length ? state.editor.images : ["assets/images/objets/Clef_Manndorf.png"],
         participants: [],
         maxParticipants: Math.min(5, Math.max(1, Number(dom.maxParticipantsInput.value) || 1)),
