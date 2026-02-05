@@ -2,20 +2,6 @@
    DESIGN SYSTEM - CSS Variables
    ================================================================= */
 
-/* Global UX improvements */
-html {
-    scroll-behavior: smooth;
-}
-
-* {
-    -webkit-tap-highlight-color: rgba(216, 27, 96, 0.2);
-}
-
-/* Smooth transitions for interactive elements */
-a, button, input, select, textarea {
-    transition: all 0.2s ease;
-}
-
 :root {
     /* === COLOR PALETTE === */
     --color-primary: #d81b60;
@@ -458,61 +444,19 @@ textarea {
 }
 
 .tw-press {
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
+    transition: transform 0.2s ease-out;
 }
 
 .tw-press:active {
     transform: scale(0.98);
 }
 
-.tw-press::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1, 1) translate(-50%);
-    transform-origin: 50% 50%;
-}
-
-.tw-press:focus:not(:active)::after {
-    animation: ripple 0.6s ease-out;
-}
-
-@keyframes ripple {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(40, 40);
-        opacity: 0;
-    }
-}
-
 .tw-hover {
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease;
+    transition: transform 0.2s ease-out;
 }
 
 .tw-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-/* Enhanced focus states for accessibility */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
 }
 .quest-back {
     text-decoration: none;
