@@ -218,6 +218,20 @@
             pointer-events: none;
         }
 
+        .character-slot-icon {
+            font-size: 1.5rem;
+            opacity: 0.25;
+            filter: grayscale(100%);
+            user-select: none;
+            pointer-events: none;
+            transition: opacity 0.15s ease, filter 0.15s ease;
+        }
+
+        .character-slot:hover .character-slot-icon {
+            opacity: 0.4;
+            filter: grayscale(50%);
+        }
+
         .character-slot-item-image {
             width: 100%;
             height: 100%;
@@ -244,6 +258,22 @@
 
         .character-slot.unequip-poof {
             animation: slot-unequip-poof 0.25s ease-out;
+        }
+
+        /* Pulse animation for valid drop targets while dragging */
+        @keyframes slot-pulse {
+            0%, 100% { box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08); }
+            50% { box-shadow: inset 0 0 12px rgba(216, 27, 96, 0.18), 0 0 8px rgba(216, 27, 96, 0.12); }
+        }
+
+        .character-slot.valid-target:not(.has-item) {
+            animation: slot-pulse 1.2s ease-in-out infinite;
+            border-color: rgba(216, 27, 96, 0.6);
+        }
+
+        .character-slot.valid-target:not(.has-item) .character-slot-icon {
+            opacity: 0.5;
+            filter: grayscale(30%);
         }
 
         /* =================================================================
@@ -1940,21 +1970,21 @@
 
         const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
         const EQUIPMENT_SLOT_DEFS = [
-            { key: 'head', label: 'Casque' },
-            { key: 'cape', label: 'Cape' },
-            { key: 'shoulders', label: 'Epaulettes' },
-            { key: 'amulet', label: 'Collier' },
-            { key: 'chest', label: 'Plastron' },
-            { key: 'gloves', label: 'Gantelets' },
-            { key: 'belt', label: 'Ceinture' },
-            { key: 'ring1', label: 'Anneau' },
-            { key: 'boots', label: 'Bottes' },
-            { key: 'ring2', label: 'Anneau' },
-            { key: 'artifact', label: 'Artefact' },
-            { key: 'weapon', label: 'Arme' },
-            { key: 'offhand', label: 'Arme secondaire' },
-            { key: 'companion', label: 'Familier' },
-            { key: 'mount', label: 'Monture' }
+            { key: 'head', label: 'Casque', icon: '🪖' },
+            { key: 'cape', label: 'Cape', icon: '🧣' },
+            { key: 'shoulders', label: 'Epaulettes', icon: '🎖️' },
+            { key: 'amulet', label: 'Collier', icon: '📿' },
+            { key: 'chest', label: 'Plastron', icon: '🎽' },
+            { key: 'gloves', label: 'Gantelets', icon: '🧤' },
+            { key: 'belt', label: 'Ceinture', icon: '🎗️' },
+            { key: 'ring1', label: 'Anneau', icon: '💍' },
+            { key: 'boots', label: 'Bottes', icon: '🥾' },
+            { key: 'ring2', label: 'Anneau', icon: '💍' },
+            { key: 'artifact', label: 'Artefact', icon: '🔮' },
+            { key: 'weapon', label: 'Arme', icon: '⚔️' },
+            { key: 'offhand', label: 'Arme secondaire', icon: '🛡️' },
+            { key: 'companion', label: 'Familier', icon: '🐾' },
+            { key: 'mount', label: 'Monture', icon: '🐴' }
         ];
 
         let equippedSlots = {};
@@ -8819,23 +8849,23 @@
 
 
 
-                const label = document.createElement('span');
-
-
-
-                label.className = 'character-slot-label';
-
                 if (offhandBlocked) {
+                    const label = document.createElement('span');
+                    label.className = 'character-slot-label';
                     label.textContent = 'Bloqué';
+                    slotEl.appendChild(label);
                     slotEl.title = `${slot.label}: bloqué par une arme à deux mains`;
                     slotEl.setAttribute('aria-label', `${slot.label}: bloqué par une arme à deux mains.`);
                 } else {
-                    label.textContent = slot.label;
-                    slotEl.title = `${slot.label}: vide (depose un equipement)`;
-                    slotEl.setAttribute('aria-label', `${slot.label}: vide. Depose un equipement ici.`);
+                    // Show shadowed emoji icon as placeholder
+                    const iconEl = document.createElement('span');
+                    iconEl.className = 'character-slot-icon';
+                    iconEl.textContent = slot.icon;
+                    iconEl.setAttribute('aria-hidden', 'true');
+                    slotEl.appendChild(iconEl);
+                    slotEl.title = `${slot.label}: vide (dépose un équipement)`;
+                    slotEl.setAttribute('aria-label', `${slot.label}: vide. Dépose un équipement ici.`);
                 }
-
-                slotEl.appendChild(label);
 
 
 
