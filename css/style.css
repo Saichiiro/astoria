@@ -2622,6 +2622,41 @@ button:hover .shortcut-icon {
     letter-spacing: var(--letter-spacing-wide);
 }
 
+/* Link to full admin panel */
+.panel-admin-full-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin: var(--space-4) 0;
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%);
+    color: #fff;
+    font-weight: var(--font-semibold);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.panel-admin-full-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+    color: #fff;
+}
+
+.panel-admin-full-link-icon {
+    font-size: 1.1rem;
+}
+
+.panel-admin-deprecation {
+    margin: var(--space-2) 0 var(--space-4);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: rgba(255, 152, 0, 0.08);
+    border-left: 3px solid var(--color-accent-warning);
+    font-size: var(--text-xs);
+    color: var(--color-accent-warning);
+}
+
 /* Placeholder section */
 .panel-admin-placeholder {
     margin-top: var(--space-4);

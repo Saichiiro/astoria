@@ -813,9 +813,60 @@
         </div>
     </div>
 
+    <!-- Edit Kaels Modal (from character table) -->
+    <div class="modal modal-blur fade" id="kaelsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifier les Kaels</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Personnage: <strong id="kaelsModalCharName">-</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau montant</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="kaelsModalInput" min="0" value="0">
+                            <span class="input-group-text">kaels</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-warning" id="kaelsModalSave">
+                        <i class="ti ti-check me-1"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Character Modal -->
+    <div class="modal modal-blur fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-status bg-danger"></div>
+                <div class="modal-body text-center py-4">
+                    <i class="ti ti-alert-triangle text-danger" style="font-size: 3rem;"></i>
+                    <h3 class="mt-3">Supprimer le personnage ?</h3>
+                    <p class="text-muted">
+                        Vous êtes sur le point de supprimer <strong id="deleteModalCharName">-</strong>.
+                        <br>Cette action est irréversible.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="deleteModalConfirm">
+                        <i class="ti ti-trash me-1"></i> Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
     <!-- Admin JS -->
-    <script src="js/admin.js"></script>
+    <script type="module" src="js/admin.js"></script>
 </body>
 </html>

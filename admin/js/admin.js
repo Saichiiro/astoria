@@ -3,8 +3,15 @@
  * Built with Tabler UI Framework
  */
 
+import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
+
 (function() {
     'use strict';
+
+    // Supabase reference
+    let supabase = null;
+    let allCharacters = [];
+    let allItems = [];
 
     // =================================================================
     // CONFIGURATION
@@ -182,23 +189,32 @@
     // =================================================================
 
     /**
-     * Load dashboard statistics
-     * TODO: Connect to Supabase for real data
+     * Load dashboard statistics from Supabase
      */
     async function loadDashboardStats() {
         try {
-            // Placeholder - will be replaced with actual Supabase queries
-            const stats = {
-                users: '12',
-                characters: '28',
-                items: '36',
-                kaels: '15,420'
-            };
+            if (!supabase) {
+                supabase = await getSupabaseClient();
+            }
 
-            animateCounter('statUsers', stats.users);
-            animateCounter('statCharacters', stats.characters);
-            animateCounter('statItems', stats.items);
-            animateCounter('statKaels', stats.kaels);
+            // Get user count
+            const { count: userCount } = await supabase
+                .from('users')
+                .select('id', { count: 'exact', head: true });
+
+            // Get characters
+            allCharacters = await getAllCharacters() || [];
+
+            // Get items
+            allItems = await getAllItems() || [];
+
+            // Calculate total kaels
+            const totalKaels = allCharacters.reduce((sum, char) => sum + (char.kaels || 0), 0);
+
+            animateCounter('statUsers', String(userCount || 0));
+            animateCounter('statCharacters', String(allCharacters.length));
+            animateCounter('statItems', String(allItems.length));
+            animateCounter('statKaels', totalKaels.toLocaleString('fr-FR'));
 
         } catch (err) {
             console.error('[Admin] Failed to load stats:', err);
@@ -281,22 +297,198 @@
     // =================================================================
 
     /**
-     * Load characters list
-     * TODO: Connect to Supabase
+     * Render characters table
+     */
+    function renderCharactersTable(characters) {
+        const tbody = document.getElementById('charactersTableBody');
+        if (!tbody) return;
+
+        if (!characters || characters.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="ti ti-users-off me-2"></i>
+                        Aucun personnage trouvé
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = characters.map(char => {
+            const avatarUrl = char.profile_data?.avatar_url || '';
+            const avatarHtml = avatarUrl
+                ? `<span class="avatar" style="background-image: url(${avatarUrl})"></span>`
+                : `<span class="avatar">${(char.name || '?').charAt(0).toUpperCase()}</span>`;
+
+            const createdDate = char.created_at
+                ? new Date(char.created_at).toLocaleDateString('fr-FR')
+                : '-';
+
+            const ownerShort = char.user_id ? char.user_id.slice(0, 8) + '...' : '-';
+            const raceClass = `${char.race || ''} ${char.class || ''}`.trim() || '-';
+            const kaels = char.kaels != null ? char.kaels.toLocaleString('fr-FR') : '0';
+
+            return `
+                <tr>
+                    <td>${avatarHtml}</td>
+                    <td>
+                        <div class="font-weight-medium">${char.name || 'Sans nom'}</div>
+                    </td>
+                    <td class="text-muted">${ownerShort}</td>
+                    <td>${raceClass}</td>
+                    <td><span class="badge bg-warning-lt text-warning">${kaels} K</span></td>
+                    <td class="text-muted">${createdDate}</td>
+                    <td>
+                        <div class="btn-list flex-nowrap">
+                            <button class="btn btn-sm btn-ghost-primary" data-action="select" data-char-id="${char.id}" title="Activer">
+                                <i class="ti ti-user-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-warning" data-action="edit-kaels" data-char-id="${char.id}" title="Modifier Kaels">
+                                <i class="ti ti-coin"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-danger" data-action="delete" data-char-id="${char.id}" title="Supprimer">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Load characters list from Supabase
      */
     async function loadCharacters() {
         const tbody = document.getElementById('charactersTableBody');
         if (!tbody) return;
 
-        // Placeholder
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                    <i class="ti ti-database-off me-2"></i>
-                    Connexion à la base de données requise
-                </td>
-            </tr>
-        `;
+        try {
+            if (!allCharacters.length) {
+                allCharacters = await getAllCharacters() || [];
+            }
+            renderCharactersTable(allCharacters);
+        } catch (err) {
+            console.error('[Admin] Failed to load characters:', err);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="ti ti-alert-circle me-2"></i>
+                        Erreur de chargement
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    /**
+     * Filter characters by search term
+     */
+    function filterCharacters(searchTerm) {
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) {
+            renderCharactersTable(allCharacters);
+            return;
+        }
+        const filtered = allCharacters.filter(char =>
+            (char.name || '').toLowerCase().includes(term) ||
+            (char.race || '').toLowerCase().includes(term) ||
+            (char.class || '').toLowerCase().includes(term)
+        );
+        renderCharactersTable(filtered);
+    }
+
+    /**
+     * Initialize characters search
+     */
+    function initCharactersSearch() {
+        const searchInput = document.getElementById('charactersSearch');
+        if (!searchInput) return;
+
+        let searchTimer = null;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                filterCharacters(searchInput.value);
+            }, 200);
+        });
+    }
+
+    /**
+     * Handle character actions (select, edit kaels, delete)
+     */
+    function initCharacterActions() {
+        const tbody = document.getElementById('charactersTableBody');
+        if (!tbody) return;
+
+        tbody.addEventListener('click', async (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            const charId = btn.dataset.charId;
+            const char = allCharacters.find(c => c.id === charId);
+            if (!char) return;
+
+            switch (action) {
+                case 'select':
+                    const result = await setActiveCharacter(charId);
+                    if (result && result.success) {
+                        showToast('Personnage activé', 'success');
+                    }
+                    break;
+                case 'edit-kaels':
+                    openKaelsModal(char);
+                    break;
+                case 'delete':
+                    openDeleteModal(char);
+                    break;
+            }
+        });
+    }
+
+    /**
+     * Open kaels edit modal
+     */
+    function openKaelsModal(char) {
+        const modal = document.getElementById('kaelsModal');
+        if (!modal) return;
+
+        const nameEl = modal.querySelector('#kaelsModalCharName');
+        const input = modal.querySelector('#kaelsModalInput');
+
+        if (nameEl) nameEl.textContent = char.name || 'Sans nom';
+        if (input) input.value = char.kaels || 0;
+
+        modal.dataset.charId = char.id;
+
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+
+    /**
+     * Open delete confirmation modal
+     */
+    function openDeleteModal(char) {
+        const modal = document.getElementById('deleteModal');
+        if (!modal) return;
+
+        const nameEl = modal.querySelector('#deleteModalCharName');
+        if (nameEl) nameEl.textContent = char.name || 'Sans nom';
+
+        modal.dataset.charId = char.id;
+
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    }
+
+    /**
+     * Show toast notification
+     */
+    function showToast(message, type = 'info') {
+        // Simple console log for now - could add actual toast UI later
+        console.log(`[Admin Toast - ${type}] ${message}`);
     }
 
     // =================================================================
@@ -305,7 +497,6 @@
 
     /**
      * Load characters for kaels dropdown
-     * TODO: Connect to Supabase
      */
     async function loadCharactersForKaels() {
         const selects = [
@@ -315,13 +506,156 @@
 
         selects.forEach(select => {
             if (!select) return;
-            // Placeholder - will populate from Supabase
+
+            // Clear existing options except first
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            // Add characters
+            allCharacters.forEach(char => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = `${char.name || 'Sans nom'} (${char.kaels || 0} K)`;
+                select.appendChild(option);
+            });
+        });
+    }
+
+    /**
+     * Initialize quick kaels form
+     */
+    function initQuickKaelsForm() {
+        const select = document.getElementById('quickKaelsCharacter');
+        const amountInput = document.getElementById('quickKaelsAmount');
+        const submitBtn = document.getElementById('quickKaelsSubmit');
+
+        if (!select || !amountInput || !submitBtn) return;
+
+        // Enable/disable submit based on form validity
+        function updateSubmitState() {
+            const hasCharacter = select.value !== '';
+            const hasAmount = parseInt(amountInput.value, 10) > 0;
+            submitBtn.disabled = !(hasCharacter && hasAmount);
+        }
+
+        select.addEventListener('change', updateSubmitState);
+        amountInput.addEventListener('input', updateSubmitState);
+
+        // Handle submit
+        submitBtn.addEventListener('click', async () => {
+            const charId = select.value;
+            const amount = parseInt(amountInput.value, 10);
+            const reason = document.getElementById('quickKaelsReason')?.value || '';
+
+            if (!charId || !amount || amount <= 0) return;
+
+            const char = allCharacters.find(c => c.id === charId);
+            if (!char) return;
+
+            const newKaels = (char.kaels || 0) + amount;
+
+            try {
+                const result = await updateCharacter(charId, { kaels: newKaels });
+                if (result && result.success) {
+                    // Update local data
+                    char.kaels = newKaels;
+                    renderCharactersTable(allCharacters);
+                    loadDashboardStats();
+                    loadCharactersForKaels();
+
+                    // Close modal and reset form
+                    const modal = document.getElementById('giveKaelsModal');
+                    bootstrap.Modal.getInstance(modal)?.hide();
+                    select.value = '';
+                    amountInput.value = '';
+                    if (document.getElementById('quickKaelsReason')) {
+                        document.getElementById('quickKaelsReason').value = '';
+                    }
+                    submitBtn.disabled = true;
+
+                    showToast(`${amount} kaels donnés à ${char.name}`, 'success');
+                    console.log('[Admin] Kaels given:', { charId, amount, reason });
+                }
+            } catch (err) {
+                console.error('[Admin] Failed to give kaels:', err);
+                showToast('Erreur lors de l\'envoi', 'error');
+            }
         });
     }
 
     // =================================================================
     // INITIALIZATION
     // =================================================================
+
+    /**
+     * Initialize modal handlers for kaels and delete
+     */
+    function initModals() {
+        // Kaels modal save handler
+        const kaelsSaveBtn = document.getElementById('kaelsModalSave');
+        if (kaelsSaveBtn) {
+            kaelsSaveBtn.addEventListener('click', async () => {
+                const modal = document.getElementById('kaelsModal');
+                const charId = modal?.dataset.charId;
+                const input = modal?.querySelector('#kaelsModalInput');
+                const newKaels = parseInt(input?.value, 10);
+
+                if (!charId || isNaN(newKaels) || newKaels < 0) {
+                    showToast('Valeur invalide', 'error');
+                    return;
+                }
+
+                try {
+                    const result = await updateCharacter(charId, { kaels: newKaels });
+                    if (result && result.success) {
+                        // Update local data
+                        const char = allCharacters.find(c => c.id === charId);
+                        if (char) char.kaels = newKaels;
+                        renderCharactersTable(allCharacters);
+                        loadDashboardStats(); // Refresh total kaels
+
+                        bootstrap.Modal.getInstance(modal)?.hide();
+                        showToast('Kaels mis à jour', 'success');
+                    }
+                } catch (err) {
+                    console.error('[Admin] Failed to update kaels:', err);
+                    showToast('Erreur de mise à jour', 'error');
+                }
+            });
+        }
+
+        // Delete modal confirm handler
+        const deleteConfirmBtn = document.getElementById('deleteModalConfirm');
+        if (deleteConfirmBtn) {
+            deleteConfirmBtn.addEventListener('click', async () => {
+                const modal = document.getElementById('deleteModal');
+                const charId = modal?.dataset.charId;
+
+                if (!charId || !supabase) return;
+
+                try {
+                    const { error } = await supabase
+                        .from('characters')
+                        .delete()
+                        .eq('id', charId);
+
+                    if (error) throw error;
+
+                    // Update local data
+                    allCharacters = allCharacters.filter(c => c.id !== charId);
+                    renderCharactersTable(allCharacters);
+                    loadDashboardStats(); // Refresh counts
+
+                    bootstrap.Modal.getInstance(modal)?.hide();
+                    showToast('Personnage supprimé', 'success');
+                } catch (err) {
+                    console.error('[Admin] Failed to delete character:', err);
+                    showToast('Erreur de suppression', 'error');
+                }
+            });
+        }
+    }
 
     async function init() {
         console.log('[Admin] Initializing...');
@@ -330,15 +664,24 @@
         const isAuthorized = await checkAuth();
         if (!isAuthorized) return;
 
+        // Initialize Supabase early
+        supabase = await getSupabaseClient();
+
         // Initialize navigation
         initNavigation();
 
         // Load initial data
-        loadDashboardStats();
+        await loadDashboardStats();
         loadRecentActivity();
         loadUsers();
         loadCharacters();
         loadCharactersForKaels();
+
+        // Initialize interactive features
+        initCharactersSearch();
+        initCharacterActions();
+        initModals();
+        initQuickKaelsForm();
 
         // Logout handler
         const logoutBtn = document.getElementById('logoutBtn');

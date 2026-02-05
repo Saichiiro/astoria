@@ -28,6 +28,16 @@ export const adminPanel = {
       return wrapper;
     }
 
+    // Link to full admin panel
+    const adminLink = document.createElement("a");
+    adminLink.href = "admin/index.html";
+    adminLink.className = "panel-admin-full-link";
+    adminLink.innerHTML = `<span class="panel-admin-full-link-icon">⚙️</span> Ouvrir le panneau admin complet`;
+    wrapper.appendChild(adminLink);
+
+    const deprecationNotice = el("p", "panel-admin-deprecation", "Ce panneau latéral sera remplacé. Utilisez le panneau admin complet.");
+    wrapper.appendChild(deprecationNotice);
+
     const adminContext = el("div", "panel-admin-stub");
     const adminContextTitle = el("h4", "panel-admin-stub-title", "Admin view");
     const adminContextBody = el("p", "panel-muted", "No active character selected.");
