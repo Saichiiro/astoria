@@ -8598,13 +8598,13 @@
 
 
             // Validate slot compatibility - STRICT: items must have equipmentSlot
-            const itemSlot = getItemSlot(item);
-            if (!itemSlot) {
+            const rawSlot = getRawSlot(item);
+            if (!rawSlot) {
                 toastManager.error(`Cet objet n'a pas de slot d'équipement défini`);
                 return;
             }
 
-            if (!isSlotCompatible(itemSlot, slotKey)) {
+            if (!isSlotCompatible(rawSlot, slotKey)) {
                 const slotDef = EQUIPMENT_SLOT_DEFS.find(s => s.key === slotKey);
                 const slotLabel = slotDef ? slotDef.label : slotKey;
                 toastManager.error(`Cet objet ne peut pas être équipé dans le slot ${slotLabel}`);
@@ -8721,12 +8721,12 @@
          * Highlight valid target slots for a dragged item
          */
         function highlightValidSlots(item) {
-            const itemSlot = getItemSlot(item);
-            if (!itemSlot) return;
+            const rawSlot = getRawSlot(item);
+            if (!rawSlot) return;
 
             // Find all compatible slots
             EQUIPMENT_SLOT_DEFS.forEach((slot) => {
-                if (isSlotCompatible(itemSlot, slot.key)) {
+                if (isSlotCompatible(rawSlot, slot.key)) {
                     const slotEl = document.querySelector(`.character-slot[data-slot-key="${slot.key}"]`);
                     if (slotEl) {
                         slotEl.classList.add('is-drop-target');
