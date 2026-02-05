@@ -453,9 +453,8 @@ async function confirmDelete() {
     try {
         const { data, error } = await supabase
             .from('items')
-            .update({ enabled: false })
-            .eq('id', editingItem._dbId)
-            .select();
+            .delete()
+            .eq('id', editingItem._dbId);
 
         if (error) {
             console.error('[DELETE] Delete error:', error);

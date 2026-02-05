@@ -2096,7 +2096,7 @@ function renderEditorLists() {
     if (prerequisitesList && state.editor.prerequisites) {
         prerequisitesList.innerHTML = state.editor.prerequisites.map((questId, idx) => {
             const quest = state.quests.find(q => q.id === questId);
-            const title = quest ? quest.title : questId;
+            const title = quest ? quest.name : questId;
             return `
             <div class="quest-editor-item">
                 <span>${clean(title)}</span>
@@ -2123,7 +2123,7 @@ function renderPrerequisitesList() {
     if (prerequisitesList && state.currentQuest.prerequisites) {
         prerequisitesList.innerHTML = state.currentQuest.prerequisites.map((questId, idx) => {
             const quest = state.quests.find(q => q.id === questId);
-            const title = quest ? quest.title : questId;
+            const title = quest ? quest.name : questId;
             return `
             <div class="quest-editor-item">
                 <span>${clean(title)}</span>

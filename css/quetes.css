@@ -1223,6 +1223,25 @@ body.quest-board {
     font-weight: 700;
 }
 
+.quest-editor-block select,
+.quest-editor-select {
+    width: 100%;
+    border-radius: 18px;
+    border: 2px solid rgba(255, 106, 162, 0.4);
+    padding: 10px 14px;
+    font-weight: 600;
+    font-family: var(--quest-font-body);
+    background-color: #fff;
+    color: #4c3a63;
+    font-size: 1rem;
+}
+
+.quest-editor-block select:focus,
+.quest-editor-select:focus {
+    outline: none;
+    border-color: var(--quest-pink);
+}
+
 .quest-editor-block--images {
     background: #fff;
     border: 2px solid rgba(255, 106, 162, 0.25);

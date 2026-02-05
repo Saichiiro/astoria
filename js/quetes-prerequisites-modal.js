@@ -67,8 +67,8 @@ export function initPrerequisitesModal(questesModule) {
 
             const { data: quests, error } = await supabase
                 .from('quests')
-                .select('id, title, type, rank, description')
-                .order('title', { ascending: true });
+                .select('id, name, type, rank, description')
+                .order('name', { ascending: true });
 
             if (error) {
                 console.error('[Prerequisites Modal] Error loading quests:', error);
@@ -109,7 +109,7 @@ export function initPrerequisitesModal(questesModule) {
 
         const name = document.createElement("div");
         name.className = "quest-items-modal-item-name";
-        name.textContent = quest.title || "Sans titre";
+        name.textContent = quest.name || "Sans titre";
 
         const desc = document.createElement("div");
         desc.className = "quest-items-modal-item-desc";
@@ -147,9 +147,9 @@ export function initPrerequisitesModal(questesModule) {
 
         const searchTerm = modalDom.search?.value.toLowerCase() || "";
         const filtered = modalState.allQuests.filter(q => {
-            const title = (q.title || "").toLowerCase();
+            const name = (q.name || "").toLowerCase();
             const type = (q.type || "").toLowerCase();
-            return title.includes(searchTerm) || type.includes(searchTerm);
+            return name.includes(searchTerm) || type.includes(searchTerm);
         });
 
         if (filtered.length === 0) {
