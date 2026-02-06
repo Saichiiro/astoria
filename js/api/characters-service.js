@@ -32,7 +32,7 @@ export async function getAllCharacters() {
 
         const { data, error } = await supabase
             .from('characters')
-            .select('id, name, user_id, race, class, profile_data')
+            .select('id, name, user_id, race, class, profile_data, kaels, created_at')
             .order('created_at', { ascending: true });
 
         if (error) {
