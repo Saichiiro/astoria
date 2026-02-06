@@ -1516,6 +1516,8 @@ function openDetail(questId) {
     dom.detailModal.classList.add("open");
     dom.detailModal.setAttribute("aria-hidden", "false");
     dom.detailModal.removeAttribute("inert");
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
 }
 
 function closeModal(modal) {
@@ -1527,6 +1529,8 @@ function closeModal(modal) {
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
     modal.setAttribute("inert", "");
+    // Unlock body scroll
+    document.body.style.overflow = "";
 }
 
 function renderDetail(quest) {
