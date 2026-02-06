@@ -4,6 +4,7 @@
  */
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
+import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
 
 (function() {
     'use strict';
@@ -564,6 +565,19 @@ import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacte
                     loadDashboardStats();
                     loadCharactersForKaels();
 
+                    // Log admin action
+                    const reasonText = document.getElementById('quickKaelsReason')?.value || 'Aucune raison spécifiée';
+                    await logActivity({
+                        actionType: ActionTypes.KAELS_ADMIN_GRANT,
+                        characterId: charId,
+                        actionData: {
+                            amount: amount,
+                            previous_balance: char.kaels - amount,
+                            new_balance: newKaels,
+                            reason: reasonText
+                        }
+                    });
+
                     // Close modal and reset form
                     const modal = document.getElementById('giveKaelsModal');
                     bootstrap.Modal.getInstance(modal)?.hide();
@@ -607,13 +621,27 @@ import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacte
                 }
 
                 try {
+                    const char = allCharacters.find(c => c.id === charId);
+                    const previousKaels = char?.kaels || 0;
+
                     const result = await updateCharacter(charId, { kaels: newKaels });
                     if (result && result.success) {
                         // Update local data
-                        const char = allCharacters.find(c => c.id === charId);
                         if (char) char.kaels = newKaels;
                         renderCharactersTable(allCharacters);
                         loadDashboardStats(); // Refresh total kaels
+
+                        // Log admin action
+                        await logActivity({
+                            actionType: ActionTypes.KAELS_ADMIN_GRANT,
+                            characterId: charId,
+                            actionData: {
+                                amount: newKaels - previousKaels,
+                                previous_balance: previousKaels,
+                                new_balance: newKaels,
+                                reason: 'Modification manuelle par admin'
+                            }
+                        });
 
                         bootstrap.Modal.getInstance(modal)?.hide();
                         showToast('Kaels mis à jour', 'success');

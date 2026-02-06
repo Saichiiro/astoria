@@ -1577,6 +1577,15 @@
 
 
 
+    <!-- Activity Logger Module -->
+    <script type="module">
+        import { logActivity, ActionTypes } from './js/api/activity-logger.js';
+        // Expose to inventory script
+        window.astoriaActivityLogger = { logActivity, ActionTypes };
+    </script>
+
+
+
     <!-- Inventory-specific JS -->
 
 
@@ -8560,6 +8569,22 @@
                 showDetailPlaceholder();
                 renderInventory();
 
+                // Log unequip activity
+                if (window.astoriaActivityLogger) {
+                    const characterId = activeCharacter?.id || currentUser?.activeCharacterId;
+                    if (characterId) {
+                        window.astoriaActivityLogger.logActivity({
+                            actionType: window.astoriaActivityLogger.ActionTypes.INVENTORY_UNEQUIP,
+                            characterId: characterId,
+                            actionData: {
+                                item_name: equippedItem.name,
+                                item_id: equippedItem.sourceIndex,
+                                slot: slotKey
+                            }
+                        }).catch(err => console.warn('[Inventory] Failed to log unequip:', err));
+                    }
+                }
+
                 // Trigger unequip poof animation
                 requestAnimationFrame(() => {
                     const slotEl = document.querySelector(`.character-slot[data-slot-key="${slotKey}"]`);
@@ -8683,6 +8708,22 @@
 
             persistInventory();
             renderInventory();
+
+            // Log equip activity
+            if (window.astoriaActivityLogger) {
+                const characterId = activeCharacter?.id || currentUser?.activeCharacterId;
+                if (characterId) {
+                    window.astoriaActivityLogger.logActivity({
+                        actionType: window.astoriaActivityLogger.ActionTypes.INVENTORY_EQUIP,
+                        characterId: characterId,
+                        actionData: {
+                            item_name: item.name,
+                            item_id: item.sourceIndex,
+                            slot: slotKey
+                        }
+                    }).catch(err => console.warn('[Inventory] Failed to log equip:', err));
+                }
+            }
 
             // Trigger equip flash animation
             requestAnimationFrame(() => {
