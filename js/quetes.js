@@ -4,6 +4,7 @@ import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
 import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
+import { logQuestJoin, logActivity, ActionTypes } from "./api/activity-logger.js";
 
 // Safe sanitizer wrapper with fallback when sanitizer not available
 function clean(value) {
@@ -1693,9 +1694,24 @@ function toggleParticipation() {
         if (note) return;
         if (!isParticipant(quest)) {
             quest.participants.push({ ...state.participant, joinedAt: Date.now() });
+            // Log quest join activity
+            logQuestJoin({
+                characterId: state.participant?.id,
+                questId: quest.id,
+                questName: quest.name
+            });
         }
     } else {
         quest.participants = quest.participants.filter((entry) => entry.key !== state.participant.key);
+        // Log quest abandon activity
+        logActivity({
+            actionType: ActionTypes.QUEST_ABANDON,
+            characterId: state.participant?.id,
+            actionData: {
+                quest_id: quest.id,
+                quest_name: quest.name
+            }
+        });
     }
 
     renderDetail(quest);
@@ -1775,6 +1791,24 @@ async function validateQuest() {
     await upsertQuestToDb(quest);
     for (const entry of historyEntries) {
         await insertHistoryToDb(entry);
+    }
+
+    // Log quest completions for each recipient
+    for (const recipient of recipients) {
+        await logActivity({
+            actionType: ActionTypes.QUEST_COMPLETE,
+            characterId: resolveParticipantId(recipient),
+            actionData: {
+                quest_id: quest.id,
+                quest_name: quest.name,
+                quest_type: quest.type,
+                quest_rank: quest.rank,
+                rewards: appliedRewards.map(r => ({
+                    name: formatRewardLabel(r),
+                    quantity: r.qty
+                }))
+            }
+        });
     }
 
     const recipientNames = recipients.map(r => r.label || r.name).filter(Boolean).join(', ') || 'les participants';

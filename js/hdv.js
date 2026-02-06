@@ -19,6 +19,7 @@ import {
 import { getInventoryRows, setInventoryItem } from './api/inventory-service.js';
 import { getCategories, getCategoriesMap } from './api/categories-service.js';
 import { initCharacterSummary } from './ui/character-summary.js';
+import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
 
 const dom = {
     kaelsBadge: document.getElementById('characterKaelsBadge'),
@@ -1029,6 +1030,14 @@ function renderListings(listings) {
                         setStatus(dom.search.status, 'Achat effectue, inventaire non mis a jour.', 'error');
                     } else {
                         setStatus(dom.search.status, 'Achat effectue.', 'success');
+                        // Log the purchase activity
+                        await logItemPurchase({
+                            characterId: state.character?.id,
+                            itemName: item.name,
+                            itemId: listing.item_id,
+                            price: listing.unit_price,
+                            quantity: listing.quantity
+                        });
                     }
                 } catch (err) {
                     console.error(err);
@@ -1587,6 +1596,18 @@ function wireEvents() {
                 inventoryUpdated ? 'Offre creee.' : 'Offre creee, inventaire non mis a jour.',
                 inventoryUpdated ? 'success' : 'error'
             );
+            // Log the sale listing
+            await logActivity({
+                actionType: ActionTypes.ITEM_SELL,
+                characterId: state.character?.id,
+                actionData: {
+                    item_name: entry.name,
+                    item_id: itemId,
+                    price: unitPrice,
+                    quantity: quantity,
+                    total_cost: unitPrice * quantity
+                }
+            });
             await refreshSearch();
             await refreshMine();
         } catch (err) {
