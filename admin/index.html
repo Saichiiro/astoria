@@ -575,37 +575,98 @@
                     </div>
 
                     <!-- ================================================
-                         LOGS PAGE
+                         LOGS PAGE - Activity Logs Viewer
                          ================================================ -->
                     <div class="admin-page" data-page="logs">
+                        <!-- Statistics Row -->
+                        <div class="row g-2 mb-3" id="logsStatsContainer">
+                            <!-- Stats will be dynamically populated -->
+                        </div>
+
+                        <!-- Filters Card -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-filter me-2"></i>Filtres</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="activityLogsFilterForm" class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Type d'action</label>
+                                        <select id="actionTypeFilter" class="form-select">
+                                            <option value="">Tous les types</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date début</label>
+                                        <input type="date" id="startDateFilter" class="form-control">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date fin</label>
+                                        <input type="date" id="endDateFilter" class="form-control">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Résultats par page</label>
+                                        <select id="limitFilter" class="form-select">
+                                            <option value="25">25</option>
+                                            <option value="50" selected>50</option>
+                                            <option value="100">100</option>
+                                            <option value="200">200</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Logs Table Card -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Logs & Audit</h3>
+                                <h3 class="card-title"><i class="ti ti-list-details me-2"></i>Journal d'activité</h3>
                                 <div class="card-actions">
-                                    <button class="btn btn-outline-secondary" disabled>
-                                        <i class="ti ti-download me-1"></i> Exporter
+                                    <button class="btn btn-outline-secondary btn-sm" id="logsRefreshBtn">
+                                        <i class="ti ti-refresh me-1"></i> Actualiser
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm" id="logsExportBtn">
+                                        <i class="ti ti-download me-1"></i> Exporter CSV
                                     </button>
                                 </div>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-vcenter card-table">
+                                <table class="table table-vcenter card-table table-hover">
                                     <thead>
                                         <tr>
-                                            <th>Date</th>
-                                            <th>Admin</th>
-                                            <th>Action</th>
-                                            <th>Cible</th>
+                                            <th>Timestamp</th>
+                                            <th>Type</th>
+                                            <th>Utilisateur</th>
+                                            <th>Personnage</th>
                                             <th>Détails</th>
+                                            <th width="60"></th>
                                         </tr>
                                     </thead>
-                                    <tbody id="logsTableBody">
+                                    <tbody id="activityLogsTable">
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted py-4">
-                                                Aucun log disponible
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Chargement...</span>
+                                                </div>
                                             </td>
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <div class="card-footer d-flex align-items-center">
+                                <p class="m-0 text-muted" id="logsPageInfo">Page 1</p>
+                                <ul class="pagination m-0 ms-auto">
+                                    <li class="page-item">
+                                        <button class="page-link" id="logsPrevBtn" disabled>
+                                            <i class="ti ti-chevron-left"></i> Précédent
+                                        </button>
+                                    </li>
+                                    <li class="page-item">
+                                        <button class="page-link" id="logsNextBtn">
+                                            Suivant <i class="ti ti-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -864,9 +925,29 @@
         </div>
     </div>
 
+    <!-- Log Details Modal -->
+    <div class="modal modal-blur fade" id="logDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails du log</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="logDetailsContent">
+                    <!-- Content will be injected by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
     <!-- Admin JS -->
     <script type="module" src="js/admin.js"></script>
+    <!-- Activity Logs -->
+    <script type="module" src="js/activity-logs.js"></script>
 </body>
 </html>
