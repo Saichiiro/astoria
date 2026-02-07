@@ -41,10 +41,16 @@ export async function login(username, password) {
         }
 
         // Update last_login timestamp
-        await supabase
+        const { error: updateError } = await supabase
             .from('users')
             .update({ last_login: new Date().toISOString() })
             .eq('id', user.id);
+
+        if (updateError) {
+            console.error('[Auth] Failed to update last_login:', updateError);
+        } else {
+            console.log('[Auth] Updated last_login for user:', user.id);
+        }
 
         const session = {
             user: {
