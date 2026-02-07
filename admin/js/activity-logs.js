@@ -159,6 +159,60 @@ function initEventListeners() {
             loadStats();
         });
     }
+
+    // Quick filter buttons
+    const quickFilterToday = document.getElementById('quickFilterToday');
+    if (quickFilterToday) {
+        quickFilterToday.addEventListener('click', () => {
+            const today = new Date().toISOString().split('T')[0];
+            dom.startDateInput.value = today;
+            dom.endDateInput.value = today;
+            dom.actionTypeSelect.value = '';
+            applyFilters();
+        });
+    }
+
+    const quickFilterQuestsWeek = document.getElementById('quickFilterQuestsWeek');
+    if (quickFilterQuestsWeek) {
+        quickFilterQuestsWeek.addEventListener('click', () => {
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            dom.startDateInput.value = weekAgo.toISOString().split('T')[0];
+            dom.endDateInput.value = today.toISOString().split('T')[0];
+            dom.actionTypeSelect.value = 'quest_complete';
+            applyFilters();
+        });
+    }
+
+    const quickFilterKaels = document.getElementById('quickFilterKaels');
+    if (quickFilterKaels) {
+        quickFilterKaels.addEventListener('click', () => {
+            dom.actionTypeSelect.value = 'kaels_admin_grant';
+            dom.startDateInput.value = '';
+            dom.endDateInput.value = '';
+            applyFilters();
+        });
+    }
+
+    const quickFilterPurchases = document.getElementById('quickFilterPurchases');
+    if (quickFilterPurchases) {
+        quickFilterPurchases.addEventListener('click', () => {
+            dom.actionTypeSelect.value = 'item_purchase';
+            dom.startDateInput.value = '';
+            dom.endDateInput.value = '';
+            applyFilters();
+        });
+    }
+
+    const quickFilterClear = document.getElementById('quickFilterClear');
+    if (quickFilterClear) {
+        quickFilterClear.addEventListener('click', () => {
+            dom.actionTypeSelect.value = '';
+            dom.startDateInput.value = '';
+            dom.endDateInput.value = '';
+            applyFilters();
+        });
+    }
 }
 
 /**
