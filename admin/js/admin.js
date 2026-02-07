@@ -275,8 +275,7 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
     // =================================================================
 
     /**
-     * Load users list
-     * TODO: Connect to Supabase
+     * Load users list with enhanced data
      */
     async function loadUsers() {
         const tbody = document.getElementById('usersTableBody');
@@ -294,11 +293,22 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                 </tr>
             `;
 
-            // Fetch users from database
+            // Fetch users with character count and total kaels
             const { data: users, error } = await supabase
                 .from('users')
-                .select('id, username, role, created_at')
-                .order('created_at', { ascending: false });
+                .select(`
+                    id,
+                    username,
+                    role,
+                    created_at,
+                    last_login,
+                    characters (
+                        id,
+                        name,
+                        kaels
+                    )
+                `)
+                .order('last_login', { ascending: false, nullsLast: true });
 
             if (error) {
                 console.error('[Admin] Error loading users:', error);
@@ -325,30 +335,66 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                 return;
             }
 
-            // Render users table
+            // Render enhanced users table
             tbody.innerHTML = users.map(user => {
-                const createdDate = user.created_at
-                    ? new Date(user.created_at).toLocaleDateString('fr-FR')
-                    : '-';
-                const roleBadge = user.role === 'admin'
-                    ? '<span class="badge bg-red-lt">Admin</span>'
-                    : '<span class="badge bg-secondary-lt">Joueur</span>';
+                const lastLogin = user.last_login
+                    ? new Date(user.last_login).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : '<span class="text-muted">Jamais</span>';
+
+                const roleClass = user.role === 'admin' ? 'bg-red' : 'bg-blue';
+                const roleIcon = user.role === 'admin' ? 'ti-shield-check' : 'ti-user';
+                const roleBadge = `<span class="badge ${roleClass}"><i class="ti ${roleIcon} me-1"></i>${user.role === 'admin' ? 'Admin' : 'Joueur'}</span>`;
+
+                const charCount = user.characters?.length || 0;
+                const totalKaels = user.characters?.reduce((sum, char) => sum + (char.kaels || 0), 0) || 0;
+
+                const charDisplay = charCount > 0
+                    ? `<span class="text-primary fw-bold">${charCount}</span> <span class="text-muted">perso${charCount > 1 ? 's' : ''}</span>`
+                    : '<span class="text-muted">Aucun</span>';
+
+                const kaelsDisplay = totalKaels > 0
+                    ? `<span class="fw-bold">${totalKaels.toLocaleString('fr-FR')}</span> <i class="ti ti-coin text-warning"></i>`
+                    : '<span class="text-muted">0 K</span>';
 
                 return `
-                    <tr>
+                    <tr style="background: rgba(255, 255, 255, 0.02);">
                         <td>
-                            <span class="avatar avatar-sm">${(user.username || 'U').charAt(0).toUpperCase()}</span>
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm me-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600;">
+                                    ${(user.username || 'U').charAt(0).toUpperCase()}
+                                </span>
+                                <div>
+                                    <div class="fw-bold text-white">${user.username || '-'}</div>
+                                    <div class="text-muted small"><code>${user.id.substring(0, 8)}...</code></div>
+                                </div>
+                            </div>
                         </td>
-                        <td>${user.username || '-'}</td>
                         <td>${roleBadge}</td>
-                        <td class="text-muted">${createdDate}</td>
-                        <td class="text-muted"><code>${user.id.substring(0, 8)}...</code></td>
+                        <td>${charDisplay}</td>
+                        <td>${kaelsDisplay}</td>
+                        <td class="text-muted small">${lastLogin}</td>
                         <td>
-                            <span class="badge bg-success-lt">Actif</span>
+                            <span class="badge bg-success">
+                                <i class="ti ti-circle-check me-1"></i> Actif
+                            </span>
                         </td>
                         <td class="text-end">
                             <div class="btn-list">
-                                <button class="btn btn-sm btn-ghost-secondary" disabled>
+                                ${charCount > 0 ? `
+                                    <button class="btn btn-sm btn-ghost-info" onclick="viewUserCharacters('${user.id}')" title="Voir les personnages">
+                                        <i class="ti ti-mask"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-sm btn-ghost-warning" onclick="changeUserRole('${user.id}', '${user.role}')" title="Changer le rôle">
+                                    <i class="ti ti-user-cog"></i>
+                                </button>
+                                <button class="btn btn-sm btn-ghost-primary" onclick="editUser('${user.id}')" title="Modifier">
                                     <i class="ti ti-edit"></i>
                                 </button>
                             </div>
@@ -371,6 +417,54 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
             `;
         }
     }
+
+    /**
+     * View user characters
+     */
+    window.viewUserCharacters = function(userId) {
+        const user = allCharacters.filter(char => char.user_id === userId);
+        if (user.length === 0) {
+            showToast('Aucun personnage trouvé', 'info');
+            return;
+        }
+
+        // Switch to characters page and filter by user
+        switchPage('characters');
+        showToast(`Affichage des personnages (${user.length})`, 'info');
+    };
+
+    /**
+     * Change user role
+     */
+    window.changeUserRole = async function(userId, currentRole) {
+        const newRole = currentRole === 'admin' ? 'player' : 'admin';
+        const confirm = window.confirm(`Changer le rôle de cet utilisateur en "${newRole}" ?`);
+
+        if (!confirm) return;
+
+        try {
+            const { error } = await supabase
+                .from('users')
+                .update({ role: newRole })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            showToast('Rôle mis à jour avec succès', 'success');
+            loadUsers();
+        } catch (err) {
+            console.error('[Admin] Failed to change role:', err);
+            showToast('Erreur lors du changement de rôle', 'error');
+        }
+    };
+
+    /**
+     * Edit user
+     */
+    window.editUser = function(userId) {
+        showToast('Fonctionnalité en développement', 'info');
+        // TODO: Open edit modal with user details
+    };
 
     // =================================================================
     // CHARACTERS PAGE

@@ -40,6 +40,12 @@ export async function login(username, password) {
             return { success: false, error: 'Mot de passe incorrect' };
         }
 
+        // Update last_login timestamp
+        await supabase
+            .from('users')
+            .update({ last_login: new Date().toISOString() })
+            .eq('id', user.id);
+
         const session = {
             user: {
                 id: user.id,
