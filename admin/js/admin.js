@@ -282,15 +282,94 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
         const tbody = document.getElementById('usersTableBody');
         if (!tbody) return;
 
-        // Placeholder
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                    <i class="ti ti-database-off me-2"></i>
-                    Connexion à la base de données requise
-                </td>
-            </tr>
-        `;
+        try {
+            // Show loading state
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            // Fetch users from database
+            const { data: users, error } = await supabase
+                .from('users')
+                .select('id, username, role, created_at')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('[Admin] Error loading users:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger py-4">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            Erreur: ${error.message}
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="ti ti-users-off me-2"></i>
+                            Aucun utilisateur trouvé
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Render users table
+            tbody.innerHTML = users.map(user => {
+                const createdDate = user.created_at
+                    ? new Date(user.created_at).toLocaleDateString('fr-FR')
+                    : '-';
+                const roleBadge = user.role === 'admin'
+                    ? '<span class="badge bg-red-lt">Admin</span>'
+                    : '<span class="badge bg-secondary-lt">Joueur</span>';
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="avatar avatar-sm">${(user.username || 'U').charAt(0).toUpperCase()}</span>
+                        </td>
+                        <td>${user.username || '-'}</td>
+                        <td>${roleBadge}</td>
+                        <td class="text-muted">${createdDate}</td>
+                        <td class="text-muted"><code>${user.id.substring(0, 8)}...</code></td>
+                        <td>
+                            <span class="badge bg-success-lt">Actif</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-list">
+                                <button class="btn btn-sm btn-ghost-secondary" disabled>
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            console.log('[Admin] Loaded', users.length, 'users');
+
+        } catch (err) {
+            console.error('[Admin] Exception loading users:', err);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="ti ti-database-off me-2"></i>
+                        Erreur de connexion à la base de données
+                    </td>
+                </tr>
+            `;
+        }
     }
 
     // =================================================================

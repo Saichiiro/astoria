@@ -161,7 +161,7 @@ export async function queryActivityLogs(filters = {}) {
             .from('activity_logs')
             .select(`
                 *,
-                user:users(id, email),
+                user:users(id, username),
                 character:characters(id, name)
             `)
             .order('created_at', { ascending: false });
