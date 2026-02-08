@@ -97,6 +97,9 @@
 ### Phase 3: Player Features (Can Wait)
 **Timeline: 1 week**
 
+⚠️ **IMPORTANT: Focus on ONE page at a time until 100% complete!**
+Don't scatter - finish one feature completely before moving to the next.
+
 1. **House System** (Issue #9)
    - Add house selection to character creation
    - Display house badges on profiles
@@ -105,10 +108,75 @@
    - Add ranking field to characters
    - Display star badges
    - Link to competences/permissions
-3. **Character Sheets** (Issue #14)
+3. **Inventory Stats Summary** ⚠️ INCOMPLETE
+   - Display total bonuses: Force, Vitesse, Agilité, Résistance, etc.
+   - Sum all item modifiers: "2 Force (épaulettes) + 3 Force (plastron) = 5 Force"
+   - Show at top of inventory page
+4. **Magic/Competences Page** ⚠️ BROKEN
+   - New design exists BUT logic not fully imported
+   - Some sections don't work
+   - Linking to competences page NOT operational:
+     - ✅ Parchemins (scrolls) work
+     - ❌ Alice competences - broken/incomplete
+     - ❌ Weapon competences - broken/incomplete
+     - ❌ Meister competences - broken/incomplete
+   - 📝 **TODO: Review with dydy** - Get written spec of her vision
+5. **Character Sheets** (Issue #14)
    - Polish Alice tab UI
    - Sorcery magic system
    - Eater soul counter
+
+---
+
+## ⚠️ Known Issues & Incomplete Features
+
+### 🔴 Broken/Incomplete (DO NOT USE YET)
+
+**Magic/Competences System**
+- Status: ⚠️ **PARTIALLY BROKEN**
+- Issue: New design exists, but logic not fully ported
+- What works: ✅ Parchemins (scrolls)
+- What's broken:
+  - ❌ Alice competences integration
+  - ❌ Weapon/Meister competences
+  - ❌ Linking between magic page and competences page
+- Action needed: 📝 Get written specs from dydy before touching this
+
+**Inventory Stats Summary**
+- Status: ❌ **MISSING FEATURE**
+- What's needed: Display total stat bonuses from all equipped items
+- Example:
+  ```
+  Force: 5 (+2 épaulettes, +3 plastron)
+  Vitesse: 3 (+3 bottes)
+  Agilité: 7 (+4 gants, +3 cape)
+  Résistance: 8 (+5 armure, +3 heaume)
+  ```
+- Should appear at top of inventory page
+- Auto-calculate by summing all item modifiers
+
+### 📋 Development Philosophy
+
+**⚠️ CRITICAL: Focus on ONE page at a time!**
+
+**DO:**
+- ✅ Choose one feature/page
+- ✅ Finish it 100% (design + logic + testing)
+- ✅ Verify all sections work
+- ✅ Document what was done
+- ✅ THEN move to next feature
+
+**DON'T:**
+- ❌ Scatter across multiple features
+- ❌ Leave half-finished work
+- ❌ Assume old code still works
+- ❌ Skip testing sections
+
+**Why:** Scattering leads to:
+- Forgotten logic/data
+- Broken integrations
+- Missing features
+- Technical debt
 
 ---
 
@@ -148,6 +216,8 @@
 - [ ] Password reset UI
 - [ ] Character deactivation UI in admin
 - [ ] Search & filter improvements
+- [ ] **Fix Magic/Competences page** - Get dydy specs first
+- [ ] **Add Inventory stats summary** - Calculate total item bonuses
 
 ---
 
