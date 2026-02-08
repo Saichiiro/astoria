@@ -6,6 +6,7 @@ import {
     writeSession,
     refreshSessionTimestamp
 } from './session-store.js';
+import { logActivity, ActionTypes } from './activity-logger.js';
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -62,6 +63,16 @@ export async function login(username, password) {
         };
 
         writeSession(session);
+
+        // Log login activity
+        await logActivity({
+            actionType: ActionTypes.USER_LOGIN,
+            actionData: {
+                username: user.username,
+                role: user.role
+            },
+            userId: user.id
+        });
 
         return { success: true, user: session.user };
     } catch (error) {
@@ -122,6 +133,16 @@ export async function register(username, password) {
         writeSession(session);
         clearActiveCharacter();
 
+        // Log registration activity
+        await logActivity({
+            actionType: ActionTypes.USER_REGISTER,
+            actionData: {
+                username: data.username,
+                role: data.role
+            },
+            userId: data.id
+        });
+
         return { success: true, user: session.user };
     } catch (error) {
         console.error('Register error:', error);
@@ -129,9 +150,24 @@ export async function register(username, password) {
     }
 }
 
-export function logout() {
+export async function logout() {
+    const session = readSession();
+    const user = session?.user;
+
     clearSession();
     clearActiveCharacter();
+
+    // Log logout activity
+    if (user) {
+        await logActivity({
+            actionType: ActionTypes.USER_LOGOUT,
+            actionData: {
+                username: user.username,
+                role: user.role
+            },
+            userId: user.id
+        });
+    }
 }
 
 export function isAuthenticated() {

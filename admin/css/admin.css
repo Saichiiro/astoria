@@ -789,7 +789,7 @@
 }
 
 [data-page="users"] .table tbody td.text-muted {
-    color: rgba(255, 255, 255, 0.6) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
 }
 
 [data-page="users"] .table thead th {
