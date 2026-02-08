@@ -21,7 +21,7 @@ export async function login(username, password) {
 
         const { data: users, error: queryError } = await supabase
             .from('users')
-            .select('id, username, password_hash, role')
+            .select('id, username, password_hash, role, is_active')
             .eq('username', username)
             .limit(1);
 
@@ -35,6 +35,11 @@ export async function login(username, password) {
         }
 
         const user = users[0];
+
+        // Check if account is active
+        if (user.is_active === false) {
+            return { success: false, error: 'Compte désactivé' };
+        }
 
         const passwordHash = await simpleHash(password);
         if (passwordHash !== user.password_hash) {
@@ -338,6 +343,58 @@ async function simpleHash(str) {
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function toggleUserActive(userId, isActive) {
+    if (!isAdmin()) {
+        return { success: false, error: 'Accès non autorisé' };
+    }
+
+    try {
+        const supabase = await getSupabaseClient();
+        const { data, error } = await supabase
+            .from('users')
+            .update({ is_active: isActive })
+            .eq('id', userId)
+            .select('id, username, is_active')
+            .single();
+
+        if (error) {
+            console.error('Error toggling user active status:', error);
+            return { success: false, error: 'Impossible de modifier le statut' };
+        }
+
+        return { success: true, user: data };
+    } catch (error) {
+        console.error('Error in toggleUserActive:', error);
+        return { success: false, error: 'Impossible de modifier le statut' };
+    }
+}
+
+export async function toggleCharacterActive(characterId, isActive) {
+    if (!isAdmin()) {
+        return { success: false, error: 'Accès non autorisé' };
+    }
+
+    try {
+        const supabase = await getSupabaseClient();
+        const { data, error } = await supabase
+            .from('characters')
+            .update({ is_active: isActive })
+            .eq('id', characterId)
+            .select('id, name, is_active')
+            .single();
+
+        if (error) {
+            console.error('Error toggling character active status:', error);
+            return { success: false, error: 'Impossible de modifier le statut' };
+        }
+
+        return { success: true, character: data };
+    } catch (error) {
+        console.error('Error in toggleCharacterActive:', error);
+        return { success: false, error: 'Impossible de modifier le statut' };
+    }
 }
 
 export async function createAdminUser(username, password) {

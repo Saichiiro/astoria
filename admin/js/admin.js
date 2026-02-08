@@ -302,10 +302,12 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                     role,
                     created_at,
                     last_login,
+                    is_active,
                     characters (
                         id,
                         name,
-                        kaels
+                        kaels,
+                        is_active
                     )
                 `)
                 .order('last_login', { ascending: false, nullsLast: true });
@@ -380,9 +382,15 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                         <td>${kaelsDisplay}</td>
                         <td class="text-muted small">${lastLogin}</td>
                         <td>
-                            <span class="badge bg-success">
-                                <i class="ti ti-circle-check me-1"></i> Actif
-                            </span>
+                            ${user.is_active !== false ? `
+                                <span class="badge bg-success">
+                                    <i class="ti ti-circle-check me-1"></i> Actif
+                                </span>
+                            ` : `
+                                <span class="badge bg-danger">
+                                    <i class="ti ti-circle-x me-1"></i> Désactivé
+                                </span>
+                            `}
                         </td>
                         <td class="text-end">
                             <div class="btn-list">
@@ -391,6 +399,11 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                                         <i class="ti ti-mask"></i>
                                     </button>
                                 ` : ''}
+                                <button class="btn btn-sm ${user.is_active !== false ? 'btn-ghost-danger' : 'btn-ghost-success'}"
+                                        onclick="toggleUserActiveStatus('${user.id}', ${user.is_active !== false})"
+                                        title="${user.is_active !== false ? 'Désactiver' : 'Activer'}">
+                                    <i class="ti ${user.is_active !== false ? 'ti-lock' : 'ti-lock-open'}"></i>
+                                </button>
                                 <button class="btn btn-sm btn-ghost-warning" onclick="changeUserRole('${user.id}', '${user.role}')" title="Changer le rôle">
                                     <i class="ti ti-user-cog"></i>
                                 </button>
@@ -455,6 +468,31 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
         } catch (err) {
             console.error('[Admin] Failed to change role:', err);
             showToast('Erreur lors du changement de rôle', 'error');
+        }
+    };
+
+    /**
+     * Toggle user active status
+     */
+    window.toggleUserActiveStatus = async function(userId, currentlyActive) {
+        const action = currentlyActive ? 'désactiver' : 'activer';
+        const confirm = window.confirm(`Voulez-vous ${action} ce compte utilisateur ?`);
+
+        if (!confirm) return;
+
+        try {
+            const { toggleUserActive } = await import('../../js/api/auth-service.js');
+            const result = await toggleUserActive(userId, !currentlyActive);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Échec de la modification');
+            }
+
+            showToast(`Compte ${currentlyActive ? 'désactivé' : 'activé'} avec succès`, 'success');
+            loadUsers();
+        } catch (err) {
+            console.error('[Admin] Failed to toggle user active:', err);
+            showToast('Erreur lors de la modification du statut', 'error');
         }
     };
 
