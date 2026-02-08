@@ -165,6 +165,12 @@ export async function setActiveCharacter(characterId) {
             return { success: false };
         }
 
+        // Check if character is active
+        if (data.is_active === false) {
+            console.warn('Attempted to select inactive character:', characterId);
+            return { success: false, error: 'Ce personnage est désactivé' };
+        }
+
         setActiveCharacterLocal(data);
         return { success: true };
     } catch (error) {
