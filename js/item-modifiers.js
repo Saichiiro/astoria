@@ -70,8 +70,25 @@
 
     function getModifiers(item) {
         if (!item || typeof item !== "object") return [];
-        const explicit = dedupeModifiers(item.modifiers);
-        if (explicit.length) return explicit;
+
+        // Priority 1: Read from modifiers field (structured JSONB data)
+        if (item.modifiers && Array.isArray(item.modifiers) && item.modifiers.length > 0) {
+            return dedupeModifiers(item.modifiers);
+        }
+
+        // Priority 2: Parse modifiers from string if it's a JSON string
+        if (typeof item.modifiers === 'string' && item.modifiers !== '[]' && item.modifiers !== '') {
+            try {
+                const parsed = JSON.parse(item.modifiers);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return dedupeModifiers(parsed);
+                }
+            } catch (e) {
+                // Not valid JSON, continue to fallback
+            }
+        }
+
+        // Priority 3: Fallback to parsing effect text (backward compatibility)
         return parseEffectModifiers(item.effect || item.effet || "");
     }
 
