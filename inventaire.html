@@ -1509,6 +1509,7 @@
 
 
     <script src="js/item-modifiers.js"></script>
+    <script src="js/inventory-stats.js"></script>
 
 
 
@@ -9475,7 +9476,11 @@
 
             });
 
-
+            // Calculate and display total stats from all items
+            if (window.InventoryStats) {
+                const stats = window.InventoryStats.calculateTotalStats(inventoryItems);
+                window.InventoryStats.updateStatsDisplay(stats);
+            }
 
         }
 
