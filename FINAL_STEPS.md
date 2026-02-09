@@ -108,10 +108,11 @@ Don't scatter - finish one feature completely before moving to the next.
    - Add ranking field to characters
    - Display star badges
    - Link to competences/permissions
-3. **Inventory Stats Summary** ⚠️ INCOMPLETE
+3. **Inventory Stats Summary** ✅ COMPLETE
    - Display total bonuses: Force, Vitesse, Agilité, Résistance, etc.
-   - Sum all item modifiers: "2 Force (épaulettes) + 3 Force (plastron) = 5 Force"
-   - Show at top of inventory page
+   - Sum all item modifiers automatically
+   - Updates on equip/unequip/add/remove items
+   - Shows in character sidebar (beside inventory grid)
 4. **Magic/Competences Page** ⚠️ BROKEN
    - New design exists BUT logic not fully imported
    - Some sections don't work
@@ -143,17 +144,15 @@ Don't scatter - finish one feature completely before moving to the next.
 - Action needed: 📝 Get written specs from dydy before touching this
 
 **Inventory Stats Summary**
-- Status: ❌ **MISSING FEATURE**
-- What's needed: Display total stat bonuses from all equipped items
-- Example:
-  ```
-  Force: 5 (+2 épaulettes, +3 plastron)
-  Vitesse: 3 (+3 bottes)
-  Agilité: 7 (+4 gants, +3 cape)
-  Résistance: 8 (+5 armure, +3 heaume)
-  ```
-- Should appear at top of inventory page
-- Auto-calculate by summing all item modifiers
+- Status: ✅ **COMPLETE**
+- Implementation: js/inventory-stats.js module
+- Features:
+  - Auto-calculates total bonuses from ALL items (inventory + equipped)
+  - Updates in real-time on equip/unequip
+  - Normalizes stat names (Force/Strength/STR → force)
+  - Shows in character sidebar beside inventory
+  - Integrates with existing item-modifiers.js
+- Simple, clean, not overkill - just works!
 
 ### 📋 Development Philosophy
 
@@ -217,7 +216,7 @@ Don't scatter - finish one feature completely before moving to the next.
 - [ ] Character deactivation UI in admin
 - [ ] Search & filter improvements
 - [ ] **Fix Magic/Competences page** - Get dydy specs first
-- [ ] **Add Inventory stats summary** - Calculate total item bonuses
+- [x] ~~Add Inventory stats summary~~ - ✅ DONE
 
 ---
 
