@@ -12,7 +12,15 @@
      * @returns {Object} Total stats by category
      */
     function calculateTotalStats(items) {
+        console.log('[Inventory Stats] Calculating stats from items:', items);
+
         if (!items || !Array.isArray(items)) {
+            console.warn('[Inventory Stats] No items array provided, returning empty stats');
+            return getEmptyStats();
+        }
+
+        if (items.length === 0) {
+            console.log('[Inventory Stats] Items array is empty, returning empty stats');
             return getEmptyStats();
         }
 
@@ -25,6 +33,10 @@
             // Get modifiers for this item using the existing system
             const itemMods = window.astoriaItemModifiers?.getModifiers(item) || [];
 
+            if (itemMods.length > 0) {
+                console.log(`[Inventory Stats] Item "${item.name}" has modifiers:`, itemMods);
+            }
+
             // Add source information for tracking
             itemMods.forEach(mod => {
                 allModifiers.push({
@@ -34,6 +46,8 @@
                 });
             });
         });
+
+        console.log('[Inventory Stats] Total modifiers collected:', allModifiers.length);
 
         // Aggregate modifiers using the existing system
         const aggregated = window.astoriaItemModifiers?.aggregateModifiers(allModifiers) || [];
@@ -186,6 +200,8 @@
     function updateStatsDisplay(stats) {
         if (!stats) stats = getEmptyStats();
 
+        console.log('[Inventory Stats] Updating display with:', stats);
+
         // Update stat values in the UI
         const updates = {
             'statAttack': stats.attaque,
@@ -199,6 +215,7 @@
         Object.entries(updates).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
+                console.log(`[Inventory Stats] Setting #${id} to ${value}`);
                 element.textContent = value;
 
                 // Add visual feedback for bonuses
@@ -207,6 +224,8 @@
                 } else {
                     element.classList.remove('stat-bonus');
                 }
+            } else {
+                console.warn(`[Inventory Stats] Element #${id} not found`);
             }
         });
 

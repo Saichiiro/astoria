@@ -46,9 +46,15 @@
         .inventory-sidebar {
             align-self: start !important;
             margin-top: 40px !important;
-            position: sticky !important;
-            top: 24px !important;
             display: block !important;
+        }
+
+        /* Sticky only on desktop, not mobile */
+        @media (min-width: 992px) {
+            .inventory-sidebar {
+                position: sticky !important;
+                top: 24px !important;
+            }
         }
 
         .inventory-main {
