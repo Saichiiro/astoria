@@ -12,15 +12,11 @@
      * @returns {Object} Total stats by category
      */
     function calculateTotalStats(items) {
-        console.log('[DEBUG] calculateTotalStats called with', items?.length, 'items');
-
         if (!items || !Array.isArray(items)) {
-            console.warn('[DEBUG] No items array');
             return getEmptyStats();
         }
 
         if (items.length === 0) {
-            console.log('[DEBUG] Items array is empty');
             return getEmptyStats();
         }
 
@@ -33,8 +29,6 @@
             // Get modifiers for this item using the existing system
             const itemMods = window.astoriaItemModifiers?.getModifiers(item) || [];
 
-            console.log(`[DEBUG] Item "${item.name}" has ${itemMods.length} modifiers:`, itemMods);
-
             // Add source information for tracking
             itemMods.forEach(mod => {
                 allModifiers.push({
@@ -45,12 +39,8 @@
             });
         });
 
-        console.log('[DEBUG] Total modifiers collected:', allModifiers.length, allModifiers);
-
         // Aggregate modifiers using the existing system
         const aggregated = window.astoriaItemModifiers?.aggregateModifiers(allModifiers) || [];
-
-        console.log('[DEBUG] Aggregated:', aggregated);
 
         // Group by stat type
         const stats = {
@@ -90,14 +80,9 @@
             const statKey = normalizeStatKey(mod.stat);
             const value = mod.value || 0;
 
-            console.log(`[DEBUG] Processing "${mod.stat}" → "${statKey}" = ${value}`);
-
             // Add to total
             if (stats.hasOwnProperty(statKey)) {
                 stats[statKey] += value;
-                console.log(`[DEBUG] ✓ Added to ${statKey}, new total: ${stats[statKey]}`);
-            } else {
-                console.warn(`[DEBUG] ⚠️ "${statKey}" not in stats object`);
             }
 
             // Track breakdown for tooltips
@@ -110,8 +95,6 @@
                 source: mod.itemName || mod.source
             });
         });
-
-        console.log('[DEBUG] Final stats:', stats);
 
         return stats;
     }
@@ -233,8 +216,6 @@
     function updateStatsDisplay(stats) {
         if (!stats) stats = getEmptyStats();
 
-        console.log('[DEBUG] updateStatsDisplay called with:', stats);
-
         // Update stat values in the UI
         const updates = {
             'statAttack': stats.attaque,
@@ -245,12 +226,9 @@
             'statStrength': stats.force
         };
 
-        console.log('[DEBUG] UI updates:', updates);
-
         Object.entries(updates).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
-                console.log(`[DEBUG] Setting #${id} to ${value}`);
                 element.textContent = value;
 
                 // Add visual feedback for bonuses
@@ -259,8 +237,6 @@
                 } else {
                     element.classList.remove('stat-bonus');
                 }
-            } else {
-                console.error(`[DEBUG] Element #${id} NOT FOUND`);
             }
         });
 

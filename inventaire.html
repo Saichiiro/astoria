@@ -9484,15 +9484,14 @@
 
             });
 
-            // Calculate and display total stats from ALL items (inventory + equipped)
+            // Calculate and display total stats from EQUIPPED items only
             if (window.InventoryStats) {
-                // Combine inventory items with equipped items
+                // Get equipped items for stat calculation
                 const equippedItems = Object.values(equippedSlots || {}).filter(item => item);
-                const allItems = [...inventoryItems, ...equippedItems];
 
-                console.log('[Inventory] Calculating stats from', inventoryItems.length, 'inventory items +', equippedItems.length, 'equipped items');
+                console.log('[Inventory] Calculating stats from', equippedItems.length, 'equipped items');
 
-                const stats = window.InventoryStats.calculateTotalStats(allItems);
+                const stats = window.InventoryStats.calculateTotalStats(equippedItems);
                 window.InventoryStats.updateStatsDisplay(stats);
             }
 
