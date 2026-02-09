@@ -20,6 +20,7 @@ const dom = {
     nameInput: document.getElementById('adminItemName'),
     categoryInput: document.getElementById('adminItemCategory'),
     rarityInput: document.getElementById('adminItemRarity'),
+    rankInput: document.getElementById('adminItemRank'),
     buyInput: document.getElementById('adminItemBuy'),
     sellInput: document.getElementById('adminItemSell'),
     descriptionInput: document.getElementById('adminItemDescription'),
@@ -417,6 +418,9 @@ async function openAdminModal(item) {
         if (dom.rarityInput) {
             dom.rarityInput.value = editingItem.rarity || '';
         }
+        if (dom.rankInput) {
+            dom.rankInput.value = editingItem.rank || '';
+        }
         // Show/hide equipment slot field based on category
         const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
         const eqSlotEl = document.getElementById('adminItemEquipmentSlot');
@@ -667,6 +671,7 @@ async function saveItem(event) {
     const equipmentSlotVal = equipmentSlotEl ? equipmentSlotEl.value.trim() : '';
 
     const rarityVal = dom.rarityInput ? dom.rarityInput.value.trim() : '';
+    const rankVal = dom.rankInput ? dom.rankInput.value.trim() : '';
 
     const payload = {
         name,
@@ -676,6 +681,7 @@ async function saveItem(event) {
         price_kaels: parsePrice(dom.sellInput.value),
         equipment_slot: equipmentSlotVal || null,
         rarity: rarityVal || null,
+        rank: rankVal || null,
         modifiers: currentModifiers.length > 0 ? currentModifiers : null
     };
 
@@ -887,6 +893,17 @@ async function init() {
     dom.deleteBtn?.addEventListener('click', openDeleteModal);
     dom.deleteCancel?.addEventListener('click', closeDeleteModal);
     dom.deleteConfirm?.addEventListener('click', confirmDelete);
+
+    // Close modals on backdrop click
+    dom.backdrop?.addEventListener('click', (e) => {
+        if (e.target === dom.backdrop) closeAdminModal();
+    });
+    dom.deleteBackdrop?.addEventListener('click', (e) => {
+        if (e.target === dom.deleteBackdrop) closeDeleteModal();
+    });
+    dom.cropperBackdrop?.addEventListener('click', (e) => {
+        if (e.target === dom.cropperBackdrop) closeCropper();
+    });
 
     // Modifier management
     dom.addModifierBtn?.addEventListener('click', () => {
