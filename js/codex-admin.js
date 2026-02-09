@@ -949,6 +949,20 @@ async function init() {
         }
     });
 
+    // Aspect ratio buttons
+    document.querySelectorAll('.cropper-aspect-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!cropper) return;
+            const ratio = parseFloat(btn.dataset.ratio);
+            if (Number.isFinite(ratio)) {
+                cropper.setAspectRatio(ratio);
+                // Update active state
+                document.querySelectorAll('.cropper-aspect-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        });
+    });
+
     // Wire up cropper controls
     dom.cropperZoomIn?.addEventListener('click', () => {
         if (cropper) cropper.zoom(0.1);

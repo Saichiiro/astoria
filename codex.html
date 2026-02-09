@@ -214,8 +214,20 @@
                             </select>
                         </div>
                         <div class="codex-admin-field">
-                            <label class="codex-admin-label" for="adminItemRank">Rang</label>
-                            <input class="codex-admin-input tw-input" id="adminItemRank" name="rank" placeholder="ex: Novice, Expert, 5">
+                            <label class="codex-admin-label" for="adminItemRank">Rang requis</label>
+                            <select class="codex-admin-input tw-input" id="adminItemRank" name="rank">
+                                <option value="">Aucun</option>
+                                <option value="F">F</option>
+                                <option value="E">E</option>
+                                <option value="D">D</option>
+                                <option value="C">C</option>
+                                <option value="B">B</option>
+                                <option value="A">A</option>
+                                <option value="S">S</option>
+                                <option value="S+">S+</option>
+                                <option value="SS">SS</option>
+                                <option value="SSS">SSS</option>
+                            </select>
                         </div>
                         <div class="codex-admin-field">
                             <label class="codex-admin-label" for="adminItemBuy">Prix achat</label>
