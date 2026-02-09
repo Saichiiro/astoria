@@ -19,6 +19,7 @@ const dom = {
     error: document.getElementById('adminItemError'),
     nameInput: document.getElementById('adminItemName'),
     categoryInput: document.getElementById('adminItemCategory'),
+    rarityInput: document.getElementById('adminItemRarity'),
     buyInput: document.getElementById('adminItemBuy'),
     sellInput: document.getElementById('adminItemSell'),
     descriptionInput: document.getElementById('adminItemDescription'),
@@ -413,6 +414,9 @@ async function openAdminModal(item) {
         dom.sellInput.value = editingItem.sellPrice || '';
         dom.descriptionInput.value = editingItem.description || '';
         dom.effectInput.value = editingItem.effect || '';
+        if (dom.rarityInput) {
+            dom.rarityInput.value = editingItem.rarity || '';
+        }
         // Show/hide equipment slot field based on category
         const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
         const eqSlotEl = document.getElementById('adminItemEquipmentSlot');
@@ -662,6 +666,8 @@ async function saveItem(event) {
     const equipmentSlotEl = document.getElementById('adminItemEquipmentSlot');
     const equipmentSlotVal = equipmentSlotEl ? equipmentSlotEl.value.trim() : '';
 
+    const rarityVal = dom.rarityInput ? dom.rarityInput.value.trim() : '';
+
     const payload = {
         name,
         description: dom.descriptionInput.value.trim(),
@@ -669,6 +675,7 @@ async function saveItem(event) {
         category: dom.categoryInput.value.trim().toLowerCase(),
         price_kaels: parsePrice(dom.sellInput.value),
         equipment_slot: equipmentSlotVal || null,
+        rarity: rarityVal || null,
         modifiers: currentModifiers.length > 0 ? currentModifiers : null
     };
 

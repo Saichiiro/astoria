@@ -27,7 +27,7 @@
 
     function filterItems(items, options) {
         const list = Array.isArray(items) ? items : [];
-        const query = String(options?.query || '').toLowerCase();
+        const query = normalizeText(options?.query || '');
         const category = options?.category || '';
         const getCategory = options?.getCategory || ((item) => item?.category);
         const fields = Array.isArray(options?.fields) ? options.fields : [];
@@ -40,7 +40,7 @@
 
         if (query && fields.length) {
             filtered = filtered.filter((item) =>
-                fields.some((field) => String(readField(item, field) || '').toLowerCase().includes(query))
+                fields.some((field) => normalizeText(readField(item, field) || '').includes(query))
             );
         }
 
