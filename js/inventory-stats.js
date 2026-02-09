@@ -52,6 +52,9 @@
         // Aggregate modifiers using the existing system
         const aggregated = window.astoriaItemModifiers?.aggregateModifiers(allModifiers) || [];
 
+        console.log('[Inventory Stats] Aggregated modifiers:', aggregated);
+        console.log('[Inventory Stats] Aggregated stat names:', aggregated.map(m => m.stat));
+
         // Group by stat type
         const stats = {
             // Combat stats
@@ -76,6 +79,12 @@
             mana: 0,
             manaMax: 0,
 
+            // Element and special stats
+            glace: 0,
+            puissance: 0,
+            charme: 0,
+            prestance: 0,
+
             // Detailed breakdown for tooltips
             breakdown: {}
         };
@@ -84,9 +93,14 @@
             const statKey = normalizeStatKey(mod.stat);
             const value = mod.value || 0;
 
+            console.log(`[Inventory Stats] Processing: "${mod.stat}" → normalized: "${statKey}" → value: ${value}`);
+
             // Add to total
             if (stats.hasOwnProperty(statKey)) {
                 stats[statKey] += value;
+                console.log(`[Inventory Stats] ✓ Added ${value} to ${statKey} (new total: ${stats[statKey]})`);
+            } else {
+                console.warn(`[Inventory Stats] ⚠️ Stat "${statKey}" not found in stats object`);
             }
 
             // Track breakdown for tooltips
@@ -99,6 +113,8 @@
                 source: mod.itemName || mod.source
             });
         });
+
+        console.log('[Inventory Stats] Final calculated stats:', stats);
 
         return stats;
     }
@@ -165,7 +181,23 @@
             'mp': 'mana',
 
             'manamax': 'manaMax',
-            'mpmax': 'manaMax'
+            'mpmax': 'manaMax',
+
+            // Additional stats found in items
+            'glace': 'glace',
+            'ice': 'glace',
+
+            'puissance': 'puissance',
+            'power': 'puissance',
+            'pow': 'puissance',
+
+            'charme': 'charme',
+            'charm': 'charme',
+            'cha': 'charme',
+
+            'prestance': 'prestance',
+            'presence': 'prestance',
+            'pre': 'prestance'
         };
 
         return mapping[normalized] || normalized;
@@ -190,6 +222,10 @@
             hpMax: 0,
             mana: 0,
             manaMax: 0,
+            glace: 0,
+            puissance: 0,
+            charme: 0,
+            prestance: 0,
             breakdown: {}
         };
     }
