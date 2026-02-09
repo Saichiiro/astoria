@@ -472,7 +472,7 @@ body.quest-board {
 .quest-card-media img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     user-select: none;
     -webkit-user-drag: none;
 }

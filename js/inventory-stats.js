@@ -148,6 +148,7 @@
 
             'endurance': 'endurance',
             'end': 'endurance',
+            'durance': 'endurance', // Typo fix
 
             'hp': 'hp',
             'pv': 'hp',
