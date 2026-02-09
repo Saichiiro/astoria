@@ -12,15 +12,11 @@
      * @returns {Object} Total stats by category
      */
     function calculateTotalStats(items) {
-        console.log('[Inventory Stats] Calculating stats from items:', items);
-
         if (!items || !Array.isArray(items)) {
-            console.warn('[Inventory Stats] No items array provided, returning empty stats');
             return getEmptyStats();
         }
 
         if (items.length === 0) {
-            console.log('[Inventory Stats] Items array is empty, returning empty stats');
             return getEmptyStats();
         }
 
@@ -33,10 +29,6 @@
             // Get modifiers for this item using the existing system
             const itemMods = window.astoriaItemModifiers?.getModifiers(item) || [];
 
-            if (itemMods.length > 0) {
-                console.log(`[Inventory Stats] Item "${item.name}" has modifiers:`, itemMods);
-            }
-
             // Add source information for tracking
             itemMods.forEach(mod => {
                 allModifiers.push({
@@ -47,13 +39,8 @@
             });
         });
 
-        console.log('[Inventory Stats] Total modifiers collected:', allModifiers.length);
-
         // Aggregate modifiers using the existing system
         const aggregated = window.astoriaItemModifiers?.aggregateModifiers(allModifiers) || [];
-
-        console.log('[Inventory Stats] Aggregated modifiers:', aggregated);
-        console.log('[Inventory Stats] Aggregated stat names:', aggregated.map(m => m.stat));
 
         // Group by stat type
         const stats = {
@@ -93,14 +80,9 @@
             const statKey = normalizeStatKey(mod.stat);
             const value = mod.value || 0;
 
-            console.log(`[Inventory Stats] Processing: "${mod.stat}" → normalized: "${statKey}" → value: ${value}`);
-
             // Add to total
             if (stats.hasOwnProperty(statKey)) {
                 stats[statKey] += value;
-                console.log(`[Inventory Stats] ✓ Added ${value} to ${statKey} (new total: ${stats[statKey]})`);
-            } else {
-                console.warn(`[Inventory Stats] ⚠️ Stat "${statKey}" not found in stats object`);
             }
 
             // Track breakdown for tooltips
@@ -113,8 +95,6 @@
                 source: mod.itemName || mod.source
             });
         });
-
-        console.log('[Inventory Stats] Final calculated stats:', stats);
 
         return stats;
     }
@@ -236,8 +216,6 @@
     function updateStatsDisplay(stats) {
         if (!stats) stats = getEmptyStats();
 
-        console.log('[Inventory Stats] Updating display with:', stats);
-
         // Update stat values in the UI
         const updates = {
             'statAttack': stats.attaque,
@@ -251,7 +229,6 @@
         Object.entries(updates).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
-                console.log(`[Inventory Stats] Setting #${id} to ${value}`);
                 element.textContent = value;
 
                 // Add visual feedback for bonuses
@@ -260,8 +237,6 @@
                 } else {
                     element.classList.remove('stat-bonus');
                 }
-            } else {
-                console.warn(`[Inventory Stats] Element #${id} not found`);
             }
         });
 
@@ -302,10 +277,7 @@
     function displayStatsBreakdown(breakdown) {
         // This can be enhanced later to show tooltips like:
         // Force: 5 (+2 épaulettes, +3 plastron)
-        // For now, just log it for debugging
-        if (Object.keys(breakdown).length > 0) {
-            console.log('[Inventory Stats] Breakdown:', breakdown);
-        }
+        // Currently just tracking breakdown for future enhancement
     }
 
     /**
