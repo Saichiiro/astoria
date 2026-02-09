@@ -2247,12 +2247,14 @@ async function handleEditorSubmit(event) {
 }
 
 function handleAddImage() {
-    const url = dom.imageUrlInput.value.trim();
-    if (url) {
-        state.editor.images.push(url);
-        dom.imageUrlInput.value = "";
-        renderEditorLists();
-        return;
+    if (dom.imageUrlInput) {
+        const url = dom.imageUrlInput.value.trim();
+        if (url) {
+            state.editor.images.push(url);
+            dom.imageUrlInput.value = "";
+            renderEditorLists();
+            return;
+        }
     }
     if (dom.imageFileInput) {
         dom.imageFileInput.click();

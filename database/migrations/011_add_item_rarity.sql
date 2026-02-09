@@ -14,8 +14,7 @@ DROP CONSTRAINT IF EXISTS items_rarity_check;
 ALTER TABLE public.items
 ADD CONSTRAINT items_rarity_check CHECK (
     rarity IS NULL OR rarity IN (
-        'F', 'E', 'D', 'C', 'B', 'A',
-        'S', 'S+', 'SS', 'SSS'
+        'commun', 'rare', 'epique', 'mythique', 'legendaire'
     )
 );
 
@@ -24,10 +23,10 @@ CREATE INDEX IF NOT EXISTS idx_items_rarity ON public.items(rarity);
 
 -- Comment
 COMMENT ON COLUMN public.items.rarity IS
-'Item rarity/tier: F (lowest) to SSS (highest). Tiers: F, E, D, C, B, A, S, S+, SS, SSS';
+'Item rarity/tier: commun (common) to legendaire (legendary). Tiers: commun, rare, epique, mythique, legendaire';
 
 -- Log completion
 DO $$
 BEGIN
-    RAISE NOTICE 'Added rarity column to items table with tiers: F, E, D, C, B, A, S, S+, SS, SSS';
+    RAISE NOTICE 'Added rarity column to items table with tiers: commun, rare, epique, mythique, legendaire';
 END $$;
