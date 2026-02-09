@@ -360,9 +360,30 @@ function setImagePreview(url) {
     dom.imageTag.src = url;
 }
 
-function openAdminModal(item) {
+async function openAdminModal(item) {
     const dbMatch = getDbMatch(item);
-    editingItem = dbMatch || item || null;
+    let editingItemData = dbMatch || item || null;
+
+    // If item exists in database, fetch fresh data to get modifiers
+    if (editingItemData && editingItemData._dbId && supabase) {
+        try {
+            const { data, error } = await supabase
+                .from('items')
+                .select('*')
+                .eq('id', editingItemData._dbId)
+                .single();
+
+            if (!error && data) {
+                editingItemData = data;
+                editingItemData._dbId = data.id; // Preserve _dbId
+            }
+        } catch (err) {
+            console.warn('[CodexAdmin] Failed to fetch item:', err);
+            // Continue with cached data if fetch fails
+        }
+    }
+
+    editingItem = editingItemData;
     imageMeta = null;
     setError('');
     if (dom.note) dom.note.textContent = '';
@@ -486,10 +507,10 @@ async function confirmDelete() {
 }
 
 // Global function for edit button in table rows
-window.openEditModal = function(globalIndex) {
+window.openEditModal = async function(globalIndex) {
     const item = window.astoriaCodex?.getItemByIndex(globalIndex);
     if (!item) return;
-    openAdminModal(item);
+    await openAdminModal(item);
 };
 
 function destroyCropper(keepPreview = false) {
@@ -821,11 +842,11 @@ function updateEditButton(detail) {
         dom.modalActions.hidden = false;
         dom.editBtn.hidden = false;
         dom.editBtn.textContent = (item._dbId || dbMatch) ? 'Modifier' : 'Importer pour modifier';
-        dom.editBtn.onclick = () => {
+        dom.editBtn.onclick = async () => {
             if (typeof window.closeItemModal === 'function') {
                 window.closeItemModal();
             }
-            openAdminModal(item);
+            await openAdminModal(item);
         };
     } else {
         dom.modalActions.hidden = true;
@@ -852,7 +873,7 @@ async function init() {
         renderCategoryOptions();
     }
 
-    dom.addBtn.addEventListener('click', () => openAdminModal(null));
+    dom.addBtn.addEventListener('click', async () => await openAdminModal(null));
     dom.closeBtn?.addEventListener('click', closeAdminModal);
     dom.cancelBtn?.addEventListener('click', closeAdminModal);
     dom.form?.addEventListener('submit', saveItem);
