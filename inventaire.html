@@ -8578,7 +8578,8 @@
 
                 // Log unequip activity
                 if (window.astoriaActivityLogger) {
-                    const characterId = activeCharacter?.id || currentUser?.activeCharacterId;
+                    const currentChar = authApi?.getActiveCharacter?.();
+                    const characterId = currentChar?.id;
                     if (characterId) {
                         window.astoriaActivityLogger.logActivity({
                             actionType: window.astoriaActivityLogger.ActionTypes.INVENTORY_UNEQUIP,
@@ -8718,7 +8719,8 @@
 
             // Log equip activity
             if (window.astoriaActivityLogger) {
-                const characterId = activeCharacter?.id || currentUser?.activeCharacterId;
+                const currentChar = authApi?.getActiveCharacter?.();
+                const characterId = currentChar?.id;
                 if (characterId) {
                     window.astoriaActivityLogger.logActivity({
                         actionType: window.astoriaActivityLogger.ActionTypes.INVENTORY_EQUIP,
@@ -9482,9 +9484,15 @@
 
             });
 
-            // Calculate and display total stats from all items
+            // Calculate and display total stats from ALL items (inventory + equipped)
             if (window.InventoryStats) {
-                const stats = window.InventoryStats.calculateTotalStats(inventoryItems);
+                // Combine inventory items with equipped items
+                const equippedItems = Object.values(equippedSlots || {}).filter(item => item);
+                const allItems = [...inventoryItems, ...equippedItems];
+
+                console.log('[Inventory] Calculating stats from', inventoryItems.length, 'inventory items +', equippedItems.length, 'equipped items');
+
+                const stats = window.InventoryStats.calculateTotalStats(allItems);
                 window.InventoryStats.updateStatsDisplay(stats);
             }
 
