@@ -22,27 +22,31 @@ USING (
 );
 
 -- Policy: Any authenticated user can INSERT logs
--- Uses both USING and WITH CHECK for complete permission
+-- INSERT policies ONLY use WITH CHECK (no USING clause)
 CREATE POLICY "activity_logs_authenticated_insert"
 ON public.activity_logs
 FOR INSERT
 TO authenticated
-USING (true)  -- Allow reading for insert operation
-WITH CHECK (true);  -- Allow the actual insert
+WITH CHECK (true);  -- Allow any authenticated user to insert
 
 -- Policy: Service role can INSERT (for server-side logging)
 CREATE POLICY "activity_logs_service_insert"
 ON public.activity_logs
 FOR INSERT
 TO service_role
-USING (true)
 WITH CHECK (true);
 
--- Verify grants
+-- Verify grants on table
 GRANT SELECT ON public.activity_logs TO authenticated;
 GRANT INSERT ON public.activity_logs TO authenticated;
 GRANT ALL ON public.activity_logs TO service_role;
 
+-- Grant usage on sequence (needed for id generation)
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- Grant select on users table (needed for policy checks)
+GRANT SELECT ON public.users TO authenticated;
+
 -- Comment
 COMMENT ON POLICY "activity_logs_authenticated_insert" ON public.activity_logs IS
-'Allows any authenticated user to insert activity logs. Both USING and WITH CHECK set to true for permissive access.';
+'Allows any authenticated user to insert activity logs. WITH CHECK set to true for permissive access.';
