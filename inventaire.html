@@ -1343,7 +1343,54 @@
 
     </div>
 
-
+    <!-- Items Selection Modal -->
+    <div class="quest-items-modal-backdrop" id="questItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Sélectionner des objets</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-categories">
+                <button class="quest-items-category-btn active tw-press" data-category="all">
+                    <span class="quest-items-category-icon">📦</span>
+                    <span class="quest-items-category-label">Tous</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="agricole">
+                    <span class="quest-items-category-icon">🌾</span>
+                    <span class="quest-items-category-label">Agricole</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="consommable">
+                    <span class="quest-items-category-icon">🧪</span>
+                    <span class="quest-items-category-label">Consommable</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="equipement">
+                    <span class="quest-items-category-icon">⚔️</span>
+                    <span class="quest-items-category-label">Équipement</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="materiau">
+                    <span class="quest-items-category-icon">⚒️</span>
+                    <span class="quest-items-category-label">Matériaux</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="quete">
+                    <span class="quest-items-category-icon">✨</span>
+                    <span class="quest-items-category-label">Quêtes</span>
+                </button>
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items générés dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Ajouter à l'inventaire</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Delete confirmation modal -->
 
@@ -1591,7 +1638,8 @@
         window.astoriaActivityLogger = { logActivity, ActionTypes };
     </script>
 
-
+    <!-- Items Modal -->
+    <script type="module" src="js/inventory-items-modal.js"></script>
 
     <!-- Inventory-specific JS -->
 
@@ -5518,11 +5566,18 @@
 
 
 
-        // Attach event listeners for add panel
+        // Attach event listeners for add panel (now uses modal)
 
 
 
-        openAddBtn.addEventListener('click', openAddPanel);
+        openAddBtn.addEventListener('click', () => {
+            if (window.astoriaItemsModal) {
+                window.astoriaItemsModal.open();
+            } else {
+                console.warn('[Inventory] Items modal not ready, falling back to panel');
+                openAddPanel();
+            }
+        });
 
 
 

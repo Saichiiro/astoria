@@ -224,6 +224,17 @@ function mapDbItem(row) {
     const images = safeJson(row.images);
     const primary = images.primary || images.url || '';
     const priceText = row.price_kaels ? `${row.price_kaels} kaels` : '';
+
+    // Parse modifiers if it's a string (JSONB from DB)
+    let modifiers = row.modifiers;
+    if (typeof modifiers === 'string') {
+        try {
+            modifiers = JSON.parse(modifiers);
+        } catch (e) {
+            modifiers = null;
+        }
+    }
+
     return {
         id: row.id,
         _dbId: row.id,
@@ -236,7 +247,10 @@ function mapDbItem(row) {
         buyPrice: priceText,
         sellPrice: priceText,
         image: primary,
-        images: images
+        images: images,
+        modifiers: modifiers || null,
+        rarity: row.rarity || null,
+        rank: row.rank || null
     };
 }
 
