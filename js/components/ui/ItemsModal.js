@@ -5,9 +5,6 @@
 
 import { getSupabaseClient } from '../../api/supabase-client.js';
 import { showItemDetailsPopover } from '../../item-details-popover.js';
-import { ItemCard } from './ItemCard.js';
-import { QuantityControl } from './QuantityControl.js';
-import { CategoryFilter } from './CategoryFilter.js';
 
 /**
  * Helper to safely parse JSON
@@ -45,7 +42,7 @@ export class ItemsModal {
             onConfirm: config.onConfirm || null,
             onCancel: config.onCancel || null,
             itemFilter: config.itemFilter || null,
-            categories: config.categories || Object.keys(CategoryFilter.CATEGORIES),
+            categories: config.categories || ['all', 'agricole', 'consommable', 'equipement', 'materiau', 'quete', 'monnaie'],
             showPrice: config.showPrice !== false,
             persistSelection: config.persistSelection !== false,
         };
@@ -233,47 +230,144 @@ export class ItemsModal {
      * @private
      */
     _renderItemRow(item) {
-        const row = document.createElement('div');
-        row.className = 'quest-items-modal-item';
-
-        // Item card
-        const card = ItemCard.create(item, {
-            onMoreClick: (item, btn) => showItemDetailsPopover(item, btn),
-            showPrice: this.config.showPrice,
-            className: this.state.selectedItems.has(item.name) ? 'selected' : '',
-        });
-
-        // Quantity control
         const quantity = this.state.selectedItems.get(item.name) || 0;
-        const qtyControl = QuantityControl.create({
-            value: quantity,
-            onChange: (newQty) => this._handleQuantityChange(item.name, newQty, card),
-            className: 'quest-items-modal-item-qty',
-        });
+        const isSelected = quantity > 0;
+        const firstLetter = item.name ? item.name[0].toUpperCase() : '?';
 
-        this.quantityControls.set(item.name, qtyControl);
+        const itemEl = document.createElement('div');
+        itemEl.className = `quest-items-modal-item${isSelected ? ' selected' : ''}`;
+        itemEl.dataset.itemName = item.name;
 
-        row.appendChild(card);
-        row.appendChild(qtyControl.element);
-
-        return row;
-    }
-
-    /**
-     * Handle quantity change
-     * @private
-     */
-    _handleQuantityChange(itemName, quantity, cardElement) {
-        if (quantity > 0) {
-            this.state.selectedItems.set(itemName, quantity);
-            ItemCard.setSelected(cardElement, true);
+        // Thumbnail
+        const thumb = document.createElement('div');
+        thumb.className = 'quest-items-modal-item-thumb';
+        if (item.image) {
+            const img = document.createElement('img');
+            img.src = item.image;
+            img.alt = item.name;
+            img.loading = 'lazy';
+            thumb.appendChild(img);
         } else {
-            this.state.selectedItems.delete(itemName);
-            ItemCard.setSelected(cardElement, false);
+            const letter = document.createElement('div');
+            letter.className = 'quest-items-modal-item-thumb-letter';
+            letter.textContent = firstLetter;
+            thumb.appendChild(letter);
         }
 
-        this._updateSelectedCount();
+        // Info section
+        const info = document.createElement('div');
+        info.className = 'quest-items-modal-item-info';
+
+        const name = document.createElement('div');
+        name.className = 'quest-items-modal-item-name';
+        name.textContent = item.name;
+        name.title = item.name;
+
+        const category = document.createElement('div');
+        category.className = 'quest-items-modal-item-category';
+        category.textContent = item.category;
+
+        const descContainer = document.createElement('div');
+        descContainer.className = 'quest-items-modal-item-desc-container';
+
+        const desc = document.createElement('div');
+        desc.className = 'quest-items-modal-item-desc';
+        desc.textContent = item.description || 'Aucune description disponible';
+
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'quest-items-modal-more-btn';
+        moreBtn.textContent = 'Plus';
+        moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showItemDetailsPopover(item, moreBtn);
+        });
+
+        descContainer.appendChild(desc);
+        descContainer.appendChild(moreBtn);
+
+        info.appendChild(name);
+        info.appendChild(category);
+        if (item.description) {
+            info.appendChild(descContainer);
+        }
+
+        if (this.config.showPrice && item.price > 0) {
+            const price = document.createElement('div');
+            price.className = 'quest-items-modal-item-price';
+            price.textContent = `${item.price} kaels`;
+            info.appendChild(price);
+        }
+
+        // Quantity controls
+        const qtyControls = document.createElement('div');
+        qtyControls.className = 'quest-items-modal-item-qty';
+
+        const minusBtn = document.createElement('button');
+        minusBtn.type = 'button';
+        minusBtn.className = 'quest-items-modal-qty-btn';
+        minusBtn.textContent = '-';
+        minusBtn.disabled = quantity <= 0;
+
+        const qtyInput = document.createElement('input');
+        qtyInput.type = 'number';
+        qtyInput.className = 'quest-items-modal-qty-input';
+        qtyInput.min = '0';
+        qtyInput.max = '999';
+        qtyInput.value = quantity;
+
+        const plusBtn = document.createElement('button');
+        plusBtn.type = 'button';
+        plusBtn.className = 'quest-items-modal-qty-btn';
+        plusBtn.textContent = '+';
+
+        qtyControls.appendChild(minusBtn);
+        qtyControls.appendChild(qtyInput);
+        qtyControls.appendChild(plusBtn);
+
+        itemEl.appendChild(thumb);
+        itemEl.appendChild(info);
+        itemEl.appendChild(qtyControls);
+
+        // Quantity change handler
+        const updateQuantity = (newQty) => {
+            const qty = Math.max(0, Math.min(999, newQty));
+            qtyInput.value = qty;
+            minusBtn.disabled = qty <= 0;
+
+            if (qty > 0) {
+                this.state.selectedItems.set(item.name, qty);
+                itemEl.classList.add('selected');
+            } else {
+                this.state.selectedItems.delete(item.name);
+                itemEl.classList.remove('selected');
+            }
+            this._updateSelectedCount();
+        };
+
+        minusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(qtyInput.value || 0) - 1);
+        });
+
+        plusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(qtyInput.value || 0) + 1);
+        });
+
+        qtyInput.addEventListener('input', (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(e.target.value || 0));
+        });
+
+        qtyInput.addEventListener('change', (e) => {
+            e.stopPropagation();
+            updateQuantity(parseInt(e.target.value || 0));
+        });
+
+        return itemEl;
     }
+
 
     /**
      * Update selected count display
