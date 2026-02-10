@@ -69,9 +69,17 @@ export async function initInventoryItemsModal() {
     });
 
     // Connect to inventory's add button (if exists)
-    const addButton = document.getElementById('inventoryAddItemBtn');
+    const addButton = document.getElementById('openAddPanel');
     if (addButton) {
-        addButton.addEventListener('click', () => itemsModal.open());
+        console.log('[Inventory Items Modal] Connecting to openAddPanel button');
+        addButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('[Inventory Items Modal] Opening modal...');
+            itemsModal.open();
+        });
+    } else {
+        console.warn('[Inventory Items Modal] openAddPanel button not found!');
     }
 
     // Expose to global scope for inventory script
