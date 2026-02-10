@@ -115,7 +115,7 @@
     gap: 6px;
     padding: 8px 14px;
     border-radius: 20px;
-    border: 2px solid rgba(255, 106, 162, 0.25);
+    border: 2px solid rgba(255, 106, 162, 0.3);
     background: #fff;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -124,27 +124,33 @@
 
 .quest-items-category-btn:hover {
     border-color: var(--quest-pink);
-    background: rgba(255, 106, 162, 0.05);
+    background: rgba(255, 106, 162, 0.08);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 106, 162, 0.15);
 }
 
 .quest-items-category-btn.active {
     background: var(--quest-pink);
     border-color: var(--quest-pink);
+    box-shadow: 0 2px 8px rgba(255, 106, 162, 0.3);
 }
 
 .quest-items-category-icon {
     font-size: 1rem;
     line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
 }
 
 .quest-items-category-label {
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #4c3a63;
+    text-shadow: 0 0 1px rgba(255,255,255,0.5);
 }
 
 .quest-items-category-btn.active .quest-items-category-label {
     color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .quest-items-modal-body {

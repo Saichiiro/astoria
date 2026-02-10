@@ -91,13 +91,13 @@ export class ItemsModal {
 
         // Find modal container within backdrop
         this.dom.modal = this.dom.backdrop.querySelector('.modal-container, .quest-items-modal');
-        this.dom.title = this.dom.backdrop.querySelector('.modal-title, .quest-items-modal-title');
-        this.dom.close = this.dom.backdrop.querySelector('.modal-close, .quest-items-modal-close');
-        this.dom.search = this.dom.backdrop.querySelector('.modal-search-input, .quest-items-search-input');
-        this.dom.body = this.dom.backdrop.querySelector('.modal-body, .quest-items-modal-body');
-        this.dom.selectedCount = this.dom.backdrop.querySelector('.modal-selected-count, .quest-items-selected-count');
-        this.dom.cancel = this.dom.backdrop.querySelector('.modal-cancel, .quest-items-modal-cancel');
-        this.dom.confirm = this.dom.backdrop.querySelector('.modal-confirm, .quest-items-modal-confirm');
+        this.dom.title = this.dom.backdrop.querySelector('.modal-title, .quest-items-modal-title, #questItemsModalTitle');
+        this.dom.close = this.dom.backdrop.querySelector('.modal-close, .quest-items-modal-close, #questItemsModalClose');
+        this.dom.search = this.dom.backdrop.querySelector('.modal-search-input, .quest-items-search-input, #questItemsSearch');
+        this.dom.body = this.dom.backdrop.querySelector('.modal-body, .quest-items-modal-body, #questItemsModalBody');
+        this.dom.selectedCount = this.dom.backdrop.querySelector('.modal-selected-count, .quest-items-selected-count, #questItemsSelectedCount');
+        this.dom.cancel = this.dom.backdrop.querySelector('#questItemsModalCancel, .quest-items-modal-btn--cancel');
+        this.dom.confirm = this.dom.backdrop.querySelector('#questItemsModalConfirm, .quest-items-modal-btn--confirm');
 
         // Set title
         if (this.dom.title) {
