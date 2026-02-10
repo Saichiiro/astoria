@@ -2,6 +2,10 @@
    Modal de sélection des récompenses
    ============================================================================ */
 
+:root {
+    --quest-pink: #ff6aa2;
+}
+
 .quest-items-modal-backdrop {
     position: fixed !important;
     inset: 0 !important;

@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
     <!-- Custom overrides -->
     <link rel="stylesheet" href="css/admin.css">
+    <!-- Items Modal CSS -->
+    <link rel="stylesheet" href="../css/quetes-items-modal.css?v=1770708000">
+    <link rel="stylesheet" href="../css/item-details-popover.css?v=1770708000">
+    <link rel="stylesheet" href="../css/components-ui.css?v=1770708000">
 </head>
 <body class="theme-dark">
     <div class="page">
@@ -499,6 +503,11 @@
                                                 <i class="ti ti-send me-1"></i> Appliquer
                                             </button>
                                         </form>
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-success w-100" id="giveItemsBtn">
+                                                <i class="ti ti-gift me-1"></i> Donner des objets
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -964,10 +973,59 @@
         </div>
     </div>
 
+    <!-- Admin Items Modal Backdrop -->
+    <div class="quest-items-modal-backdrop" id="adminItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Donner des objets</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-categories">
+                <button class="quest-items-category-btn active tw-press" data-category="all">
+                    <span class="quest-items-category-icon">📦</span>
+                    <span class="quest-items-category-label">Tous</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="equipement">
+                    <span class="quest-items-category-icon">⚔️</span>
+                    <span class="quest-items-category-label">Équipement</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="consommable">
+                    <span class="quest-items-category-icon">🧪</span>
+                    <span class="quest-items-category-label">Consommable</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="materiau">
+                    <span class="quest-items-category-icon">⚒️</span>
+                    <span class="quest-items-category-label">Matériaux</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="quete">
+                    <span class="quest-items-category-icon">✨</span>
+                    <span class="quest-items-category-label">Quêtes</span>
+                </button>
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items generated dynamically -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Donner les objets</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <!-- Modal Manager -->
+    <script src="../js/components/modal-manager.js?v=1770708000"></script>
+    <!-- Admin Items Modal -->
+    <script type="module" src="js/admin-items-modal.js?v=1770708000"></script>
     <!-- Admin JS -->
-    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/admin.js?v=1770708000"></script>
     <!-- Activity Logs -->
     <script type="module" src="js/activity-logs.js"></script>
 </body>

@@ -5,6 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
+import { adminItemsModal } from './admin-items-modal.js';
 
 (function() {
     'use strict';
@@ -559,6 +560,9 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                             <button class="btn btn-sm btn-ghost-warning" data-action="edit-kaels" data-char-id="${char.id}" title="Modifier Kaels">
                                 <i class="ti ti-coin"></i>
                             </button>
+                            <button class="btn btn-sm btn-ghost-success" data-action="give-items" data-char-id="${char.id}" title="Donner des objets">
+                                <i class="ti ti-gift"></i>
+                            </button>
                             <button class="btn btn-sm btn-ghost-danger" data-action="delete" data-char-id="${char.id}" title="Supprimer">
                                 <i class="ti ti-trash"></i>
                             </button>
@@ -652,6 +656,14 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                     break;
                 case 'edit-kaels':
                     openKaelsModal(char);
+                    break;
+                case 'give-items':
+                    console.log('[Admin] Give items clicked, charId:', charId, 'char:', char);
+                    await adminItemsModal.openForCharacter(charId, (charId, items) => {
+                        console.log(`Items given to character ${charId}:`, items);
+                        renderCharactersTable(allCharacters);
+                        loadDashboardStats();
+                    });
                     break;
                 case 'delete':
                     openDeleteModal(char);
@@ -806,6 +818,26 @@ import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
                 console.error('[Admin] Failed to give kaels:', err);
                 showToast('Erreur lors de l\'envoi', 'error');
             }
+        });
+    }
+
+    // Give Items button handler
+    const giveItemsBtn = document.getElementById('giveItemsBtn');
+    if (giveItemsBtn) {
+        giveItemsBtn.addEventListener('click', async () => {
+            const charSelect = document.getElementById('kaelsCharacterSelect');
+            const characterId = charSelect?.value;
+
+            if (!characterId) {
+                alert('Veuillez sélectionner un personnage');
+                return;
+            }
+
+            adminItemsModal.openForCharacter(characterId, (charId, items) => {
+                console.log(`Items given to character ${charId}:`, items);
+                renderCharactersTable(allCharacters);
+                loadDashboardStats();
+            });
         });
     }
 
