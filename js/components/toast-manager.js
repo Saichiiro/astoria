@@ -127,6 +127,10 @@ class ToastManager {
 // Instance globale
 const toastManager = new ToastManager();
 
+if (typeof window !== 'undefined') {
+    window.toastManager = toastManager;
+}
+
 // Export pour modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = toastManager;

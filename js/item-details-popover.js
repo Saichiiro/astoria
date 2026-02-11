@@ -5,8 +5,6 @@
 let currentPopover = null;
 
 export function showItemDetailsPopover(item, anchorElement) {
-    console.log('[Popover] showItemDetailsPopover called', { item, anchorElement });
-
     // Fermer le popover existant s'il y en a un
     if (currentPopover) {
         closeItemDetailsPopover();
@@ -14,13 +12,8 @@ export function showItemDetailsPopover(item, anchorElement) {
 
     // Créer le popover
     const popover = createPopoverElement(item);
-    console.log('[Popover] Popover created', popover);
-
-    // Ajouter au backdrop du modal items pour qu'il soit par-dessus le modal blanc
-    const modalBackdrop = document.getElementById('questItemsModalBackdrop') || document.body;
-    modalBackdrop.appendChild(popover);
-    console.log('[Popover] Popover appended to:', modalBackdrop);
-
+    // Toujours monter dans document.body pour éviter tout conflit de stacking context
+    document.body.appendChild(popover);
     // Position the popover next to the anchor element
     positionPopover(popover, anchorElement);
     currentPopover = popover;
@@ -28,8 +21,6 @@ export function showItemDetailsPopover(item, anchorElement) {
     // Afficher le popover
     popover.style.opacity = '1';
     popover.style.pointerEvents = 'auto';
-    console.log('[Popover] Popover shown with simple positioning');
-
     // Event listeners
     const closeBtn = popover.querySelector('.item-details-popover-close');
     if (closeBtn) {
@@ -77,7 +68,8 @@ function positionPopover(popover, anchorElement) {
     const popoverRect = popover.getBoundingClientRect();
 
     // Get modal body for scroll position (if inside modal)
-    const modalBody = document.querySelector('.quest-items-modal-body');
+    const modalRoot = anchorElement.closest('.quest-items-modal');
+    const modalBody = modalRoot?.querySelector('.quest-items-modal-body') || null;
     const hasScroll = modalBody && modalBody.scrollHeight > modalBody.clientHeight;
 
     // Calculate available space
@@ -125,11 +117,9 @@ function positionPopover(popover, anchorElement) {
     popover.style.position = 'fixed';
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
-    popover.style.zIndex = '10000';
+    popover.style.zIndex = '2147483647';
     popover.style.maxHeight = `${window.innerHeight - 40}px`;
     popover.style.overflowY = 'auto'; // Allow scrolling if content is too long
-
-    console.log('[Popover] Positioned:', { placement, left, top, hasScroll });
 }
 
 function createPopoverElement(item) {

@@ -5,7 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
-import { adminItemsModal } from './admin-items-modal.js';
+import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
 
 (function() {
     'use strict';
@@ -658,7 +658,6 @@ import { adminItemsModal } from './admin-items-modal.js';
                     openKaelsModal(char);
                     break;
                 case 'give-items':
-                    console.log('[Admin] Give items clicked, charId:', charId, 'char:', char);
                     await adminItemsModal.openForCharacter(charId, (charId, items) => {
                         console.log(`Items given to character ${charId}:`, items);
                         renderCharactersTable(allCharacters);

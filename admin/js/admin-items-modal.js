@@ -4,19 +4,21 @@
  */
 
 import { ItemsModal } from '../../js/components/ui/index.js';
+import { getAllItems } from '../../js/auth.js';
+import { getInventoryRows, setInventoryItem } from '../../js/api/inventory-service.js';
 
 export class AdminItemsModal {
     constructor() {
         this.modal = null;
         this.currentCharacterId = null;
         this.onItemsGiven = null;
+        this.itemCatalogByNormalizedName = new Map();
+        this.itemCatalogLoaded = false;
         this._initPromise = this._init();
     }
 
     async _init() {
-        // Wait for Supabase
-        const { getSupabaseClient } = await import('../../js/api/supabase-client.js');
-        this.supabase = await getSupabaseClient();
+        await this._ensureItemCatalog();
 
         // Create modal instance
         this.modal = new ItemsModal({
@@ -36,61 +38,131 @@ export class AdminItemsModal {
         console.log('[Admin Items Modal] Initialized');
     }
 
+    _notify(type, message, fallbackToAlert = false) {
+        const safeType = ['success', 'error', 'info', 'warning'].includes(type) ? type : 'info';
+
+        try {
+            if (typeof toastManager !== 'undefined' && toastManager && typeof toastManager[safeType] === 'function') {
+                toastManager[safeType](message);
+                return;
+            }
+        } catch (_) {
+            // Ignore and fallback below.
+        }
+
+        if (typeof window !== 'undefined' && window.toastManager && typeof window.toastManager[safeType] === 'function') {
+            window.toastManager[safeType](message);
+            return;
+        }
+
+        if (fallbackToAlert) {
+            alert(message);
+        }
+    }
+
+    _normalizeItemKey(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+    }
+
+    async _ensureItemCatalog() {
+        if (this.itemCatalogLoaded) return;
+
+        try {
+            const items = await getAllItems();
+            this.itemCatalogByNormalizedName.clear();
+
+            (items || []).forEach((item, index) => {
+                const name = String(item?.name || '').trim();
+                const normalized = this._normalizeItemKey(name);
+                if (!normalized || this.itemCatalogByNormalizedName.has(normalized)) return;
+
+                this.itemCatalogByNormalizedName.set(normalized, {
+                    name,
+                    index: Number.isFinite(index) ? index : null,
+                });
+            });
+        } catch (error) {
+            console.warn('[Admin Items Modal] Failed to preload item catalog:', error);
+        } finally {
+            this.itemCatalogLoaded = true;
+        }
+    }
+
     async _handleConfirm(selectedItems) {
-        if (!this.currentCharacterId) {
-            alert('Erreur: Aucun personnage sélectionné');
+        const characterId = this.currentCharacterId;
+
+        if (!characterId) {
+            this._notify('error', 'Erreur: Aucun personnage selectionne', true);
             return;
         }
 
         try {
-            // Get character inventory
-            const { data: charData, error: charError } = await this.supabase
-                .from('characters')
-                .select('inventory')
-                .eq('id', this.currentCharacterId)
-                .single();
+            await this._ensureItemCatalog();
 
-            if (charError) throw charError;
+            const currentRows = await getInventoryRows(characterId);
+            const rowByNormalizedKey = new Map();
 
-            // Parse current inventory
-            let inventory = [];
-            try {
-                inventory = typeof charData.inventory === 'string'
-                    ? JSON.parse(charData.inventory)
-                    : (charData.inventory || []);
-            } catch (e) {
-                console.warn('[Admin Items Modal] Error parsing inventory, using empty array');
-                inventory = [];
-            }
-
-            // Add each selected item
-            selectedItems.forEach((qty, itemName) => {
-                // Check if item already exists
-                const existingItem = inventory.find(i => i.name === itemName);
-                if (existingItem) {
-                    existingItem.quantity = (existingItem.quantity || 0) + qty;
-                } else {
-                    inventory.push({
-                        name: itemName,
-                        quantity: qty
-                    });
-                }
+            (currentRows || []).forEach((row) => {
+                const normalized = this._normalizeItemKey(row?.item_key);
+                if (!normalized || rowByNormalizedKey.has(normalized)) return;
+                rowByNormalizedKey.set(normalized, row);
             });
 
-            // Update character inventory
-            const { error: updateError } = await this.supabase
-                .from('characters')
-                .update({ inventory: JSON.stringify(inventory) })
-                .eq('id', this.currentCharacterId);
+            const updates = [];
 
-            if (updateError) throw updateError;
+            selectedItems.forEach((qty, itemName) => {
+                const safeQty = Math.floor(Number(qty) || 0);
+                if (safeQty <= 0) return;
 
-            // Show success
-            alert(`${selectedItems.size} objet(s) donnés avec succès!`);
+                const normalized = this._normalizeItemKey(itemName);
+                if (!normalized) return;
+
+                const existingRow = rowByNormalizedKey.get(normalized);
+                if (existingRow) {
+                    const nextQty = Math.floor(Number(existingRow.qty) || 0) + safeQty;
+                    updates.push(
+                        setInventoryItem(characterId, String(existingRow.item_key), existingRow.item_index, nextQty)
+                    );
+                    existingRow.qty = nextQty;
+                    return;
+                }
+
+                const catalogEntry = this.itemCatalogByNormalizedName.get(normalized);
+                const canonicalName = String(catalogEntry?.name || itemName || '').trim();
+                if (!canonicalName) return;
+
+                const canonicalIndex = Number.isFinite(catalogEntry?.index) ? catalogEntry.index : null;
+                updates.push(setInventoryItem(characterId, canonicalName, canonicalIndex, safeQty));
+
+                rowByNormalizedKey.set(normalized, {
+                    item_key: canonicalName,
+                    item_index: canonicalIndex,
+                    qty: safeQty,
+                });
+            });
+
+            if (updates.length === 0) {
+                this._notify('warning', 'Aucun objet valide a ajouter.', true);
+                return;
+            }
+
+            await Promise.all(updates);
+
+            const totalUnits = Array.from(selectedItems.values()).reduce((sum, qty) => {
+                return sum + Math.max(0, Math.floor(Number(qty) || 0));
+            }, 0);
+            const uniqueItems = selectedItems.size;
+            const unitLabel = totalUnits > 1 ? 'objets' : 'objet';
+            const typeLabel = uniqueItems > 1 ? ` (${uniqueItems} types)` : '';
+            this._notify('success', `${totalUnits} ${unitLabel} donnes avec succes${typeLabel}!`, true);
 
             // Callback for UI refresh
             if (this.onItemsGiven) {
-                this.onItemsGiven(this.currentCharacterId, selectedItems);
+                this.onItemsGiven(characterId, selectedItems);
             }
 
             // Clear selection
@@ -98,7 +170,8 @@ export class AdminItemsModal {
 
         } catch (error) {
             console.error('[Admin Items Modal] Error giving items:', error);
-            alert(`Erreur: ${error.message}`);
+            this._notify('error', `Erreur: ${error.message}`, true);
+            throw error;
         }
     }
 
@@ -108,10 +181,8 @@ export class AdminItemsModal {
      * @param {Function} callback - Optional callback when items are given
      */
     async openForCharacter(characterId, callback = null) {
-        console.log('[Admin Items Modal] openForCharacter called with:', characterId, typeof characterId);
-
         if (!characterId) {
-            alert('Erreur: Aucun personnage sélectionné');
+            this._notify('error', 'Erreur: Aucun personnage selectionne', true);
             console.error('[Admin Items Modal] No character ID provided');
             return;
         }
@@ -120,7 +191,7 @@ export class AdminItemsModal {
         await this._initPromise;
 
         if (!this.modal) {
-            alert('Erreur: Modal non initialisé');
+            this._notify('error', 'Erreur: Modal non initialise', true);
             console.error('[Admin Items Modal] Modal not initialized');
             return;
         }

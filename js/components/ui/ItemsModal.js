@@ -53,6 +53,7 @@ export class ItemsModal {
             allItems: [],
             currentCategory: 'all',
             searchQuery: '',
+            isSubmitting: false,
         };
 
         // DOM references
@@ -381,7 +382,7 @@ export class ItemsModal {
         }
 
         if (this.dom.confirm) {
-            this.dom.confirm.disabled = count === 0;
+            this.dom.confirm.disabled = count === 0 || this.state.isSubmitting;
         }
     }
 
@@ -389,16 +390,28 @@ export class ItemsModal {
      * Handle confirm button
      * @private
      */
-    _handleConfirm() {
-        if (this.config.onConfirm) {
-            this.config.onConfirm(new Map(this.state.selectedItems));
-        }
+    async _handleConfirm() {
+        if (this.state.isSubmitting) return;
 
-        if (!this.config.persistSelection) {
-            this.state.selectedItems.clear();
-        }
+        this.state.isSubmitting = true;
+        this._updateSelectedCount();
 
-        this.close();
+        try {
+            if (this.config.onConfirm) {
+                await Promise.resolve(this.config.onConfirm(new Map(this.state.selectedItems)));
+            }
+
+            if (!this.config.persistSelection) {
+                this.state.selectedItems.clear();
+            }
+
+            this.close();
+        } catch (error) {
+            console.error('[ItemsModal] Confirm action failed:', error);
+        } finally {
+            this.state.isSubmitting = false;
+            this._updateSelectedCount();
+        }
     }
 
     /**

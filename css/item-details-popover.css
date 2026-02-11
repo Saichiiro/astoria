@@ -3,8 +3,8 @@
    ============================================================================ */
 
 .item-details-popover {
-    position: fixed;
-    z-index: 9999999;
+    position: fixed !important;
+    z-index: 2147483647 !important;
     background: #fff;
     border-radius: 16px;
     box-shadow: 0 10px 40px rgba(120, 38, 70, 0.3),
