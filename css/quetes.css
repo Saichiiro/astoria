@@ -389,6 +389,20 @@ body.quest-board {
     opacity: 0.7;
 }
 
+.quest-page.quest-perf-lite .quest-card {
+    animation: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.quest-page.quest-perf-lite .quest-card::before {
+    filter: none;
+    opacity: 0.28;
+}
+
+.quest-page.quest-perf-lite .quest-card:hover {
+    transform: translateY(-3px);
+}
+
 .quest-card:hover::after {
     opacity: 0.9;
     transform: translateY(0) scale(1);

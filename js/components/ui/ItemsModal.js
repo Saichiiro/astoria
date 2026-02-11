@@ -27,7 +27,7 @@ export class ItemsModal {
      * Create an items modal instance
      * @param {Object} config - Modal configuration
      * @param {string} config.backdropId - ID of the backdrop element
-     * @param {string} config.title - Modal title (default: "Sélectionner des objets")
+     * @param {string} config.title - Modal title (default: "Selectionner des objets")
      * @param {Function} config.onConfirm - Callback when confirmed (selectedItems: Map) => {}
      * @param {Function} config.onCancel - Callback when canceled
      * @param {Function} config.itemFilter - Optional filter function (item) => boolean
@@ -38,7 +38,7 @@ export class ItemsModal {
     constructor(config) {
         this.config = {
             backdropId: config.backdropId || 'itemsModalBackdrop',
-            title: config.title || 'Sélectionner des objets',
+            title: config.title || 'Selectionner des objets',
             onConfirm: config.onConfirm || null,
             onCancel: config.onCancel || null,
             itemFilter: config.itemFilter || null,
@@ -214,7 +214,7 @@ export class ItemsModal {
         if (filtered.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'modal-empty-state';
-            empty.textContent = 'Aucun objet trouvé';
+            empty.textContent = 'Aucun objet trouve';
             this.dom.body.appendChild(empty);
             return;
         }

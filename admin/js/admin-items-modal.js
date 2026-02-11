@@ -125,9 +125,10 @@ export class AdminItemsModal {
                 if (existingRow) {
                     const nextQty = Math.floor(Number(existingRow.qty) || 0) + safeQty;
                     updates.push(
-                        setInventoryItem(characterId, String(existingRow.item_key), existingRow.item_index, nextQty)
+                        setInventoryItem(characterId, String(existingRow.item_key), null, nextQty)
                     );
                     existingRow.qty = nextQty;
+                    existingRow.item_index = null;
                     return;
                 }
 
@@ -135,12 +136,11 @@ export class AdminItemsModal {
                 const canonicalName = String(catalogEntry?.name || itemName || '').trim();
                 if (!canonicalName) return;
 
-                const canonicalIndex = Number.isFinite(catalogEntry?.index) ? catalogEntry.index : null;
-                updates.push(setInventoryItem(characterId, canonicalName, canonicalIndex, safeQty));
+                updates.push(setInventoryItem(characterId, canonicalName, null, safeQty));
 
                 rowByNormalizedKey.set(normalized, {
                     item_key: canonicalName,
-                    item_index: canonicalIndex,
+                    item_index: null,
                     qty: safeQty,
                 });
             });

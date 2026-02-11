@@ -2,7 +2,16 @@ import { getSupabaseClient } from './supabase-client.js';
 import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
 import { isAdmin } from './auth-service.js';
 
+function isAbortLikeError(error) {
+    if (!error) return false;
+    if (error.name === 'AbortError') return true;
+    const msg = String(error.message || '').toLowerCase();
+    return msg.includes('signal is aborted') || msg.includes('aborted');
+}
+
 export async function getUserCharacters(userId) {
+    if (!userId) return [];
+
     try {
         const supabase = await getSupabaseClient();
 
@@ -13,13 +22,17 @@ export async function getUserCharacters(userId) {
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('Error fetching characters:', error);
+            if (!isAbortLikeError(error)) {
+                console.error('Error fetching characters:', error);
+            }
             return [];
         }
 
         return data || [];
     } catch (error) {
-        console.error('Error in getUserCharacters:', error);
+        if (!isAbortLikeError(error)) {
+            console.error('Error in getUserCharacters:', error);
+        }
         return [];
     }
 }
@@ -36,13 +49,17 @@ export async function getAllCharacters() {
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('Error fetching all characters:', error);
+            if (!isAbortLikeError(error)) {
+                console.error('Error fetching all characters:', error);
+            }
             return [];
         }
 
         return data || [];
     } catch (error) {
-        console.error('Error in getAllCharacters:', error);
+        if (!isAbortLikeError(error)) {
+            console.error('Error in getAllCharacters:', error);
+        }
         return [];
     }
 }

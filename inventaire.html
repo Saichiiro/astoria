@@ -26,7 +26,7 @@
 
 
 
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2026021106">
 
 
 
@@ -2132,6 +2132,10 @@
 
 
             const character = authApi.getActiveCharacter?.();
+            if (!character?.id) {
+                console.warn('[Inventory Storage] Missing active character, sync ignored');
+                return;
+            }
 
 
 
@@ -2548,85 +2552,32 @@
 
 
         function resolveItemByKey(itemKey, itemIndex) {
+            // Use the full source list for stable index mapping.
+            const sourceItems = Array.isArray(window.inventoryData) ? window.inventoryData : [];
 
-
-
-            const allItems = getAllItems();
-
-
-
-            const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
-
-
-
-            if (numericIndex != null && numericIndex >= 0 && allItems[numericIndex]) {
-
-
-
-                return { item: allItems[numericIndex], index: numericIndex };
-
-
-
+            // item_key is the canonical identifier: prefer it over index.
+            const normalizedKey = normalizeItemName(itemKey);
+            if (normalizedKey) {
+                const byName = sourceItems.findIndex((entry) =>
+                    normalizeItemName(entry?.name || entry?.nom || '') === normalizedKey
+                );
+                if (byName >= 0) {
+                    return { item: sourceItems[byName], index: byName };
+                }
             }
 
-
+            // Legacy fallback: old rows may only have a numeric index.
+            const numericIndex = Number.isFinite(Number(itemIndex)) ? Number(itemIndex) : null;
+            if (numericIndex != null && numericIndex >= 0 && sourceItems[numericIndex]) {
+                return { item: sourceItems[numericIndex], index: numericIndex };
+            }
 
             const numericKey = Number.isFinite(Number(itemKey)) ? Number(itemKey) : null;
-
-
-
-            if (numericKey != null && numericKey >= 0 && allItems[numericKey]) {
-
-
-
-                return { item: allItems[numericKey], index: numericKey };
-
-
-
+            if (numericKey != null && numericKey >= 0 && sourceItems[numericKey]) {
+                return { item: sourceItems[numericKey], index: numericKey };
             }
-
-
-
-            const normalizedKey = normalizeItemName(itemKey);
-
-
-
-            if (normalizedKey) {
-
-
-
-                const byName = allItems.findIndex((entry) =>
-
-
-
-                    normalizeItemName(entry?.name || entry?.nom || '') === normalizedKey
-
-
-
-                );
-
-
-
-                if (byName >= 0) {
-
-
-
-                    return { item: allItems[byName], index: byName };
-
-
-
-                }
-
-
-
-            }
-
-
 
             return { item: null, index: -1 };
-
-
-
         }
 
 
@@ -2887,7 +2838,9 @@
 
 
 
-            if (!Array.isArray(window.inventoryData)) return;
+            if (!Array.isArray(window.inventoryData)) {
+                window.inventoryData = [];
+            }
 
 
 
@@ -4211,10 +4164,9 @@
 
 
             if (inventoryStorageMode !== 'character' || !authApi || !inventoryApi) {
-
-
-
-                loadFromLocalStorage();
+                inventoryItems = [];
+                syncCurrencyItem();
+                renderInventory();
 
 
 
@@ -4270,7 +4222,7 @@
 
 
 
-                const rows = await inventoryApi.getInventoryRows?.(character?.id);
+                const rows = await inventoryApi.getInventoryRows?.(character.id);
 
 
 
@@ -4312,60 +4264,10 @@
 
                     }
 
-
-
-                    if (!hasMigrated) {
-
-
-
-                        loadFromLocalStorage();
-
-
-
-                        if (inventoryItems.length > 0) {
-
-
-
-                            console.log('Migrating local inventory to character_inventory...');
-
-
-
-                            await saveInventoryToBackend();
-
-
-
-                            return;
-
-
-
-                        }
-
-
-
-                    } else {
-
-
-
-                        try {
-
-
-
-                            localStorage.removeItem('astoriaInventory');
-
-
-
-                        } catch {
-
-
-
-                            // ignore cleanup failures
-
-
-
-                        }
-
-
-
+                    try {
+                        localStorage.removeItem('astoriaInventory');
+                    } catch {
+                        // ignore cleanup failures
                     }
 
 
@@ -4383,10 +4285,11 @@
 
 
             } catch (error) {
-
-
-
-                console.warn('Inventory load error (character_inventory):', error);
+                const msg = String(error?.message || '').toLowerCase();
+                const isAbort = error?.name === 'AbortError' || msg.includes('signal is aborted') || msg.includes('aborted');
+                if (!isAbort) {
+                    console.warn('Inventory load error (character_inventory):', error);
+                }
 
 
 
@@ -10838,7 +10741,7 @@
     </script>
 
 
-
+    <script src="js/ui/performance-mode.js?v=2026021106"></script>
     <script src="js/sidebar.js"></script>
 
 
@@ -10848,5 +10751,3 @@
 
 
 </html>
-
-

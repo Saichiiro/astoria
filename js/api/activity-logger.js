@@ -4,6 +4,7 @@
  */
 
 import { getSupabaseClient } from './supabase-client.js';
+import { readSession } from './session-store.js';
 
 /**
  * Action types for categorization
@@ -45,6 +46,81 @@ export const ActionTypes = {
     ADMIN_ACTION: 'admin_action'
 };
 
+let activityLoggingBlocked = false;
+
+function isAbortLikeError(error) {
+    if (!error) return false;
+    if (error.name === 'AbortError') return true;
+    const message = String(error.message || '').toLowerCase();
+    const details = String(error.details || '').toLowerCase();
+    const hint = String(error.hint || '').toLowerCase();
+    return (
+        message.includes('signal is aborted') ||
+        message.includes('aborted') ||
+        details.includes('aborterror') ||
+        hint.includes('request was aborted')
+    );
+}
+
+function isAuthLikeError(error) {
+    const code = String(error?.code || '').toLowerCase();
+    const status = Number(error?.status || 0);
+    if (status === 401 || status === 403) return true;
+    const message = String(error?.message || '').toLowerCase();
+    const details = String(error?.details || '').toLowerCase();
+    const hint = String(error?.hint || '').toLowerCase();
+    const full = String(error || '').toLowerCase();
+    return (
+        code === '42501' ||
+        code === '401' ||
+        message.includes('unauthorized') ||
+        message.includes('jwt') ||
+        message.includes('not authenticated') ||
+        message.includes('row-level security') ||
+        message.includes('permission denied') ||
+        details.includes('unauthorized') ||
+        details.includes('permission denied') ||
+        hint.includes('unauthorized') ||
+        hint.includes('rls')
+        || full.includes('401')
+        || full.includes('unauthorized')
+    );
+}
+
+function getResolvedUserId(fallbackUserId) {
+    if (fallbackUserId) return fallbackUserId;
+    const sessionUserId = readSession?.()?.user?.id;
+    if (sessionUserId) return sessionUserId;
+    try {
+        return window?.astoriaSessionUser?.id || null;
+    } catch {
+        return null;
+    }
+}
+
+function buildMetadata(metadata = {}) {
+    return {
+        ...metadata,
+        timestamp: new Date().toISOString(),
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        url: typeof window !== 'undefined' ? window.location.href : ''
+    };
+}
+
+async function insertActivityWithFallbacks(supabase, logEntry) {
+    const payload = {};
+    Object.entries(logEntry || {}).forEach(([key, value]) => {
+        if (value !== undefined) payload[key] = value;
+    });
+
+    const { error } = await supabase
+        .from('activity_logs')
+        .insert([payload]);
+
+    if (!error) return { success: true };
+    return { success: false, error };
+}
+
 /**
  * Log an activity to the database
  * @param {Object} params
@@ -56,14 +132,12 @@ export const ActionTypes = {
  * @returns {Promise<boolean>} Success status
  */
 export async function logActivity({ actionType, actionData, userId = null, characterId = null, metadata = {} }) {
+    if (activityLoggingBlocked) return false;
     try {
         const supabase = await getSupabaseClient();
 
-        // Get current user if not provided
-        if (!userId) {
-            const { data: { user } } = await supabase.auth.getUser();
-            userId = user?.id || null;
-        }
+        // Prefer app session user (this project does not rely on Supabase Auth sessions).
+        userId = getResolvedUserId(userId);
 
         // Prepare log entry
         const logEntry = {
@@ -71,21 +145,19 @@ export async function logActivity({ actionType, actionData, userId = null, chara
             character_id: characterId,
             action_type: actionType,
             action_data: actionData,
-            metadata: {
-                ...metadata,
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                url: window.location.href
-            }
+            metadata: buildMetadata(metadata)
         };
 
-        // Insert into activity_logs table
-        const { error } = await supabase
-            .from('activity_logs')
-            .insert([logEntry]);
+        const result = await insertActivityWithFallbacks(supabase, logEntry);
 
-        if (error) {
-            console.error('[ActivityLogger] Failed to log activity:', error);
+        if (!result.success) {
+            const error = result.error;
+            if (isAuthLikeError(error)) {
+                activityLoggingBlocked = true;
+            }
+            if (!isAbortLikeError(error) && !isAuthLikeError(error)) {
+                console.error('[ActivityLogger] Failed to log activity:', error);
+            }
             return false;
         }
 
@@ -104,39 +176,53 @@ export async function logActivity({ actionType, actionData, userId = null, chara
  * @returns {Promise<boolean>} Success status
  */
 export async function logActivitiesBatch(activities) {
+    if (activityLoggingBlocked) return false;
     try {
+        if (!Array.isArray(activities) || !activities.length) return true;
         const supabase = await getSupabaseClient();
-
-        const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id || null;
+        const userId = getResolvedUserId(null);
 
         const logEntries = activities.map(activity => ({
             user_id: activity.userId || userId,
             character_id: activity.characterId || null,
             action_type: activity.actionType,
             action_data: activity.actionData,
-            metadata: {
-                ...(activity.metadata || {}),
-                timestamp: new Date().toISOString(),
-                user_agent: navigator.userAgent,
-                url: window.location.href
-            }
+            metadata: buildMetadata(activity.metadata || {})
         }));
 
-        const { error } = await supabase
-            .from('activity_logs')
-            .insert(logEntries);
-
-        if (error) {
-            console.error('[ActivityLogger] Failed to batch log activities:', error);
+        // Keep batch robust even if schema differs; fallback to one-by-one.
+        const { error } = await supabase.from('activity_logs').insert(logEntries);
+        if (!error) {
+            console.log('[ActivityLogger] Batch logged:', activities.length, 'activities');
+            return true;
+        }
+        if (isAbortLikeError(error) || isAuthLikeError(error)) {
+            if (isAuthLikeError(error)) {
+                activityLoggingBlocked = true;
+            }
             return false;
         }
 
-        console.log('[ActivityLogger] Batch logged:', activities.length, 'activities');
-        return true;
+        let successCount = 0;
+        for (const entry of logEntries) {
+            const res = await insertActivityWithFallbacks(supabase, entry);
+            if (res.success) successCount += 1;
+        }
+
+        if (successCount === 0) {
+            if (isAuthLikeError(error)) {
+                activityLoggingBlocked = true;
+            }
+            console.error('[ActivityLogger] Failed to batch log activities:', error);
+            return false;
+        }
+        console.log('[ActivityLogger] Batch fallback logged:', successCount, '/', activities.length);
+        return successCount === activities.length;
 
     } catch (err) {
-        console.error('[ActivityLogger] Batch exception:', err);
+        if (!isAbortLikeError(err)) {
+            console.error('[ActivityLogger] Batch exception:', err);
+        }
         return false;
     }
 }
@@ -195,14 +281,18 @@ export async function queryActivityLogs(filters = {}) {
         const { data, error } = await query;
 
         if (error) {
-            console.error('[ActivityLogger] Failed to query logs:', error);
+            if (!isAbortLikeError(error) && !isAuthLikeError(error)) {
+                console.error('[ActivityLogger] Failed to query logs:', error);
+            }
             return [];
         }
 
         return data || [];
 
     } catch (err) {
-        console.error('[ActivityLogger] Query exception:', err);
+        if (!isAbortLikeError(err)) {
+            console.error('[ActivityLogger] Query exception:', err);
+        }
         return [];
     }
 }
@@ -233,7 +323,9 @@ export async function getActivityStats(filters = {}) {
         const { data, error } = await query;
 
         if (error) {
-            console.error('[ActivityLogger] Failed to get stats:', error);
+            if (!isAbortLikeError(error) && !isAuthLikeError(error)) {
+                console.error('[ActivityLogger] Failed to get stats:', error);
+            }
             return {};
         }
 
@@ -256,7 +348,9 @@ export async function getActivityStats(filters = {}) {
         return stats;
 
     } catch (err) {
-        console.error('[ActivityLogger] Stats exception:', err);
+        if (!isAbortLikeError(err)) {
+            console.error('[ActivityLogger] Stats exception:', err);
+        }
         return {};
     }
 }

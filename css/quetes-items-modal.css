@@ -412,3 +412,13 @@
         flex: 1;
     }
 }
+
+body.perf-lite .quest-items-modal-backdrop {
+    backdrop-filter: none;
+}
+
+body.perf-lite .quest-items-modal,
+body.perf-lite .quest-items-modal-btn,
+body.perf-lite .quest-items-category-btn {
+    transition: none !important;
+}

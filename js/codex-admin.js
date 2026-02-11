@@ -249,8 +249,8 @@ function mapDbItem(row) {
         image: primary,
         images: images,
         modifiers: modifiers || null,
-        rarity: row.rarity || null,
-        rank: row.rank || null
+        rarity: normalizeRarity(row.rarity) || null,
+        rank: normalizeRank(row.rank) || null
     };
 }
 
@@ -305,6 +305,66 @@ function renderCategoryOptions(selectedValue) {
 function parsePrice(raw) {
     const digits = String(raw || '').replace(/[^0-9]/g, '');
     return digits ? parseInt(digits, 10) : 0;
+}
+
+const RARITY_CANONICAL_MAP = Object.freeze({
+    commun: 'commun',
+    common: 'commun',
+    rare: 'rare',
+    epique: 'epique',
+    epic: 'epique',
+    mythique: 'mythique',
+    mythic: 'mythique',
+    legendaire: 'legendaire',
+    legendary: 'legendaire'
+});
+
+const RARITY_ALT_MAP = Object.freeze({
+    commun: 'common',
+    rare: 'rare',
+    epique: 'epic',
+    mythique: 'mythic',
+    legendaire: 'legendary'
+});
+
+function normalizeRarity(value) {
+    const key = String(value || '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+    return RARITY_CANONICAL_MAP[key] || '';
+}
+
+function toAlternateRarity(value) {
+    const canonical = normalizeRarity(value);
+    return canonical ? (RARITY_ALT_MAP[canonical] || canonical) : '';
+}
+
+function normalizeRank(value) {
+    const rank = String(value || '').trim().toUpperCase();
+    const allowed = new Set(['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS']);
+    return allowed.has(rank) ? rank : '';
+}
+
+async function saveItemRow(payload, isUpdate, targetId) {
+    if (isUpdate) {
+        const { data, error } = await supabase
+            .from('items')
+            .update(payload)
+            .eq('id', targetId)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+    const { data, error } = await supabase
+        .from('items')
+        .insert([payload])
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
 }
 
 function openBackdrop(backdrop) {
@@ -410,7 +470,7 @@ async function openAdminModal(item) {
         if (item && dbMatch && dom.note) {
             dom.note.textContent = "Objet deja en base: modification directe.";
         } else if (editingItem && !isDbItem && dom.note) {
-            dom.note.textContent = "Objet local: l'enregistrement creera une copie modifiable en base.";
+            dom.note.textContent = "Objet sans ID base: enregistrement direct dans la base.";
         }
     }
     if (dom.form) dom.form.reset();
@@ -430,10 +490,10 @@ async function openAdminModal(item) {
         dom.descriptionInput.value = editingItem.description || '';
         dom.effectInput.value = editingItem.effect || '';
         if (dom.rarityInput) {
-            dom.rarityInput.value = editingItem.rarity || '';
+            dom.rarityInput.value = normalizeRarity(editingItem.rarity) || '';
         }
         if (dom.rankInput) {
-            dom.rankInput.value = editingItem.rank || '';
+            dom.rankInput.value = normalizeRank(editingItem.rank) || '';
         }
         // Show/hide equipment slot field based on category
         const eqSlotField = document.getElementById('adminItemEquipmentSlotField');
@@ -684,8 +744,8 @@ async function saveItem(event) {
     const equipmentSlotEl = document.getElementById('adminItemEquipmentSlot');
     const equipmentSlotVal = equipmentSlotEl ? equipmentSlotEl.value.trim() : '';
 
-    const rarityVal = dom.rarityInput ? dom.rarityInput.value.trim() : '';
-    const rankVal = dom.rankInput ? dom.rankInput.value.trim() : '';
+    const rarityVal = dom.rarityInput ? normalizeRarity(dom.rarityInput.value) : '';
+    const rankVal = dom.rankInput ? normalizeRank(dom.rankInput.value) : '';
 
     const payload = {
         name,
@@ -705,23 +765,15 @@ async function saveItem(event) {
         let row = null;
         const isUpdate = editingItem && editingItem._dbId;
 
-        if (isUpdate) {
-            const { data, error } = await supabase
-                .from('items')
-                .update(payload)
-                .eq('id', editingItem._dbId)
-                .select()
-                .single();
-            if (error) throw error;
-            row = data;
-        } else {
-            const { data, error } = await supabase
-                .from('items')
-                .insert([payload])
-                .select()
-                .single();
-            if (error) throw error;
-            row = data;
+        try {
+            row = await saveItemRow(payload, isUpdate, editingItem?._dbId);
+        } catch (error) {
+            const isRarityError = String(error?.message || '').includes('items_rarity_check');
+            if (!isRarityError || !payload.rarity) throw error;
+
+            const altRarity = toAlternateRarity(payload.rarity);
+            if (!altRarity || altRarity === payload.rarity) throw error;
+            row = await saveItemRow({ ...payload, rarity: altRarity }, isUpdate, editingItem?._dbId);
         }
 
         // Upload image if present
@@ -781,7 +833,7 @@ async function loadDbItems() {
     console.log('[LOAD] Loading items from database...');
     const { data, error } = await supabase
         .from('items')
-        .select('id, name, description, effect, category, price_kaels, images, enabled, created_at, equipment_slot')
+        .select('id, name, description, effect, category, price_kaels, images, enabled, created_at, equipment_slot, rarity, rank, modifiers')
         .order('created_at', { ascending: true });
 
     if (error) {
@@ -895,10 +947,7 @@ async function init() {
     supabase = await getSupabaseClient();
     dom.addBtn.hidden = false;
 
-    if (typeof inventoryData !== 'undefined' && Array.isArray(inventoryData)) {
-        collectCategories(inventoryData);
-        renderCategoryOptions();
-    }
+    renderCategoryOptions();
 
     dom.addBtn.addEventListener('click', async () => await openAdminModal(null));
     dom.closeBtn?.addEventListener('click', closeAdminModal);

@@ -83,13 +83,25 @@ export const inventairePanel = {
         }
 
         const previewRows = Array.isArray(rows) ? rows.slice(0, 12) : [];
+        const normalizeName = (value) =>
+          String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9]+/g, "")
+            .toLowerCase();
         previewRows.forEach((row) => {
-          const rawIndex = row?.item_index ?? row?.item_key;
-          const idx = Number(rawIndex);
           const qty = Math.max(0, Math.floor(safeNumber(row?.qty) || 0));
           if (!Number.isFinite(qty) || qty <= 0) return;
 
-          let item = Number.isFinite(idx) ? baseItems[idx] : null;
+          let item = null;
+          const keyNorm = normalizeName(row?.item_key);
+          if (keyNorm && Array.isArray(baseItems) && baseItems.length) {
+            item = baseItems.find((entry) => normalizeName(entry?.name || entry?.nom || "") === keyNorm) || null;
+          }
+          if (!item) {
+            const idx = Number(row?.item_index);
+            item = Number.isFinite(idx) ? baseItems[idx] : null;
+          }
           if (!item && dbItemsByName && row?.item_key) {
             item = dbItemsByName.get(String(row.item_key).toLowerCase()) || null;
           }

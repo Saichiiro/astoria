@@ -1,8 +1,9 @@
-﻿import { getActiveCharacter, getAllItems, getCurrentUser, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
+import { getActiveCharacter, getAllItems, getCurrentUser, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
 import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
+import { initSkillsRewardsModal } from "./quetes-skills-modal.js";
 import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
 import { logQuestJoin, logActivity, ActionTypes } from "./api/activity-logger.js";
 
@@ -15,7 +16,7 @@ function clean(value) {
     return String(value || '');
 }
 
-const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation"];
+const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation", "Evenementiel"];
 const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
 const STATUS_META = {
     available: { label: "Disponible", color: "#6aa7ff" },
@@ -85,6 +86,16 @@ const state = {
     isValidating: false,
     adminNotes: {}
 };
+
+let questRealtimeChannel = null;
+let questRealtimeRefreshTimer = null;
+let questRealtimePollingTimer = null;
+let isQuestRealtimeRefreshing = false;
+const SHOULD_REDUCE_QUEST_EFFECTS = Boolean(
+    (window.astoriaPerformanceMode && window.astoriaPerformanceMode.enabled)
+    || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    || (Number(navigator.hardwareConcurrency) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+);
 
 const questStorage = (() => {
     const memory = new Map();
@@ -258,6 +269,15 @@ function sanitizeText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function formatHistoryDate(value) {
+    if (!value) return "";
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString("fr-FR");
+    }
+    return String(value);
+}
+
 function formatCategory(value) {
     const raw = String(value || "").trim();
     if (!raw) return "";
@@ -331,10 +351,23 @@ function ensureRewardElement(reward) {
 
 function formatRewardLabel(reward, options = {}) {
     if (!reward) return "";
+    if (reward.type === "competence") {
+        const category = String(reward.categoryLabel || reward.categoryId || "").trim();
+        const fallback = String(reward.name || reward.skillName || "").trim();
+        return category || fallback || "Competence";
+    }
     const showElement = options.showElement !== false;
     const name = String(reward.name || "");
     const element = showElement && reward.element ? ` (${reward.element})` : "";
     return `${name}${element}`;
+}
+
+function rewardIdentityKey(reward) {
+    if (!reward) return "";
+    if (reward.type === "competence") {
+        return `competence:${normalizeText(reward.categoryId)}`;
+    }
+    return `item:${normalizeText(reward.name)}`;
 }
 
 function stripRewardElement(reward) {
@@ -389,6 +422,17 @@ function buildParticipant(label, id) {
     const safeLabel = String(label || "Invite");
     const key = id ? `id:${id}` : `name:${normalize(safeLabel)}`;
     return { key, label: safeLabel, id: id || null };
+}
+
+function participantKeyFromId(id) {
+    const safeId = String(id || "").trim();
+    return safeId ? `id:${safeId}` : "";
+}
+
+function normalizeCharacterId(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw.startsWith("id:") ? raw.slice(3) : raw;
 }
 
 function resolveParticipant() {
@@ -484,35 +528,12 @@ function parseJsonArray(value) {
 }
 
 function loadStoredState() {
-    try {
-        const questsRaw = questStorage.getItem(QUEST_STORAGE_KEY);
-        const historyRaw = questStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
-        const quests = questsRaw ? JSON.parse(questsRaw) : null;
-        const history = historyRaw ? JSON.parse(historyRaw) : null;
-        if (Array.isArray(quests) && quests.length) {
-            state.quests = quests.map((quest) => ({
-                ...quest,
-                participants: Array.isArray(quest.participants)
-                    ? Array.from(new Map(quest.participants.map((entry) => [entry.key, entry])).values())
-                    : []
-            }));
-        }
-        if (Array.isArray(history)) {
-            state.history = history;
-        }
-    } catch (error) {
-        console.warn("[Quetes] Failed to load stored quests:", error);
-    }
+    // Backend is the single source of truth for quests/history.
 }
 
 function persistState() {
-    try {
-        state.history = dedupeHistory(state.history);
-        questStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify(state.quests));
-        questStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify(state.history));
-    } catch (error) {
-        console.warn("[Quetes] Failed to persist quests:", error);
-    }
+    // Keep in-memory list deduplicated but do not persist quests/history locally.
+    state.history = dedupeHistory(state.history);
 }
 
 function dedupeHistory(list) {
@@ -534,7 +555,7 @@ function mapQuestRow(row) {
     return {
         id: row.id,
         name: row.name,
-        type: row.type,
+        type: normalizeQuestType(row.type),
         rank: row.rank,
         status: row.status,
         repeatable: Boolean(row.repeatable),
@@ -553,13 +574,24 @@ function mapHistoryRow(row) {
     return {
         id: row.id,
         date: row.date,
-        type: row.type,
+        type: normalizeQuestType(row.type),
         rank: row.rank,
         name: row.name,
         gains: row.gains,
-        characterId: row.character_id ?? row.characterId ?? null,
+        characterId: normalizeCharacterId(row.character_id ?? row.characterId ?? null) || null,
         characterLabel: row.character_label ?? row.characterLabel ?? ""
     };
+}
+
+function normalizeQuestType(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return QUEST_TYPES[0];
+    const normalized = normalizeText(raw);
+    if (normalized === "event" || normalized === "evenement" || normalized === "evenementiel") {
+        return "Evenementiel";
+    }
+    const existing = QUEST_TYPES.find((type) => normalizeText(type) === normalized);
+    return existing || raw;
 }
 
 async function loadParticipantsForQuests() {
@@ -587,7 +619,7 @@ async function loadParticipantsForQuests() {
                 }
                 participantsMap.get(row.quest_id).push({
                     id: row.character_id,
-                    key: row.character_id,
+                    key: participantKeyFromId(row.character_id),
                     label: row.characters?.name || "Unknown",
                     joinedAt: new Date(row.joined_at).getTime()
                 });
@@ -614,11 +646,9 @@ async function loadQuestsFromDb() {
             .select("*")
             .order("created_at", { ascending: true });
         if (error) throw error;
-        if (Array.isArray(data) && data.length) {
-            state.quests = data.map(mapQuestRow);
-            await loadParticipantsForQuests();
-            return true;
-        }
+        state.quests = Array.isArray(data) ? data.map(mapQuestRow) : [];
+        await loadParticipantsForQuests();
+        return true;
     } catch (error) {
         console.warn("[Quetes] Failed to load quests from DB:", error);
     }
@@ -633,10 +663,8 @@ async function loadHistoryFromDb() {
             .select("*")
             .order("date", { ascending: false });
         if (error) throw error;
-        if (Array.isArray(data) && data.length) {
-            state.history = dedupeHistory(data.map(mapHistoryRow));
-            return true;
-        }
+        state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
+        return true;
     } catch (error) {
         console.warn("[Quetes] Failed to load history from DB:", error);
     }
@@ -658,9 +686,13 @@ async function upsertQuestParticipants(questId, participants) {
         if (participants.length > 0) {
             const payload = participants.map(p => ({
                 quest_id: questId,
-                character_id: p.id || p.key,
+                character_id: resolveParticipantId(p),
                 joined_at: p.joinedAt ? new Date(p.joinedAt).toISOString() : new Date().toISOString()
-            }));
+            })).filter((row) => Boolean(row.character_id));
+
+            if (!payload.length) {
+                return true;
+            }
 
             const { error } = await supabase
                 .from("quest_participants")
@@ -682,7 +714,7 @@ async function upsertQuestToDb(quest) {
         const payload = {
             id: quest.id,
             name: quest.name,
-            type: quest.type,
+            type: normalizeQuestType(quest.type),
             rank: quest.rank,
             status: quest.status,
             repeatable: quest.repeatable,
@@ -731,112 +763,229 @@ async function insertHistoryToDb(entry) {
         const basePayload = {
             id: entry.id,
             date: entry.date,
-            type: entry.type,
+            type: normalizeQuestType(entry.type),
             rank: entry.rank,
             name: entry.name,
-            gains: entry.gains
-        };
-        const payload = {
-            ...basePayload,
+            gains: entry.gains || null,
             character_id: entry.characterId || null,
             character_label: entry.characterLabel || null
         };
-        let { error } = await supabase
-            .from(QUEST_HISTORY_TABLE)
-            .upsert([payload], { onConflict: "id" });
-        if (error) {
-            ({ error } = await supabase
+
+        // Keep history inserts resilient across live schema variants.
+        const attempts = [
+            basePayload,
+            { ...basePayload, character_label: undefined },
+            { ...basePayload, gains: undefined },
+            { ...basePayload, gains: undefined, character_label: undefined },
+            { ...basePayload, character_id: undefined, character_label: undefined },
+            { id: basePayload.id, date: basePayload.date, type: basePayload.type, rank: basePayload.rank, name: basePayload.name }
+        ];
+
+        let lastError = null;
+        let saved = false;
+        for (const attempt of attempts) {
+            const payload = {};
+            Object.entries(attempt).forEach(([key, value]) => {
+                if (value !== undefined) payload[key] = value;
+            });
+
+            const { error } = await supabase
                 .from(QUEST_HISTORY_TABLE)
-                .upsert([basePayload], { onConflict: "id" }));
+                .upsert([payload], { onConflict: "id" });
+
+            if (!error) {
+                saved = true;
+                break;
+            }
+            lastError = error;
+            const code = String(error?.code || "").toUpperCase();
+            const message = String(error?.message || "").toLowerCase();
+            const details = String(error?.details || "").toLowerCase();
+            const missingColumn = code === "PGRST204"
+                || message.includes("column")
+                || message.includes("does not exist")
+                || details.includes("column");
+            if (!missingColumn) {
+                break;
+            }
         }
-        if (error) throw error;
+
+        if (!saved && lastError) throw lastError;
         entry.synced = true;
     } catch (error) {
         console.warn("[Quetes] Failed to insert history:", error);
     }
 }
 
-async function syncLocalItemsToDb() {
-    if (!state.isAdmin) return;
-    const localItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryData))
-        ? inventoryData
-        : (Array.isArray(window.inventoryData) ? window.inventoryData : []);
-    if (!localItems.length) return;
+async function refreshQuestStateFromBackend() {
+    if (isQuestRealtimeRefreshing) return false;
+    if (dom.editorModal?.classList.contains("open")) return false;
+    isQuestRealtimeRefreshing = true;
+    try {
+        const activeQuestId = state.activeQuestId;
+        const detailOpen = dom.detailModal?.classList.contains("open");
+        const questsLoaded = await loadQuestsFromDb();
+        const historyLoaded = await loadHistoryFromDb();
+        if (!questsLoaded && !historyLoaded) {
+            return false;
+        }
+        state.history = dedupeHistory(state.history);
+        renderQuestList();
+        renderHistory();
+        renderQuestProgressPanel();
+        if (detailOpen && activeQuestId) {
+            const quest = state.quests.find((item) => item.id === activeQuestId);
+            if (quest) {
+                state.activeQuestId = activeQuestId;
+                renderDetail(quest);
+            } else {
+                closeModal(dom.detailModal);
+                state.activeQuestId = null;
+            }
+        }
+        return true;
+    } finally {
+        isQuestRealtimeRefreshing = false;
+    }
+}
 
+function scheduleQuestRealtimeRefresh(delayMs = 180) {
+    if (questRealtimeRefreshTimer) {
+        window.clearTimeout(questRealtimeRefreshTimer);
+    }
+    questRealtimeRefreshTimer = window.setTimeout(() => {
+        questRealtimeRefreshTimer = null;
+        void refreshQuestStateFromBackend();
+    }, Math.max(0, delayMs));
+}
+
+function startQuestPollingFallback() {
+    if (questRealtimePollingTimer) return;
+    questRealtimePollingTimer = window.setInterval(() => {
+        void refreshQuestStateFromBackend();
+    }, 15000);
+}
+
+function stopQuestPollingFallback() {
+    if (!questRealtimePollingTimer) return;
+    window.clearInterval(questRealtimePollingTimer);
+    questRealtimePollingTimer = null;
+}
+
+async function initQuestRealtimeSync() {
     try {
         const supabase = await getSupabaseClient();
-        const dbItems = await getAllItems();
-        const dbNames = new Set(dbItems.map((item) => normalizeText(item?.name)));
-
-        const payload = localItems
-            .filter((item) => item?.name)
-            .filter((item) => !dbNames.has(normalizeText(item.name)))
-            .map((item) => ({
-                name: item.name,
-                description: item.description || "",
-                effect: item.effect || "",
-                category: String(item.category || "").toLowerCase(),
-                price_kaels: item.price || null,
-                images: item.image ? { primary: item.image } : null
-            }));
-
-        if (!payload.length) return;
-        let { error } = await supabase.from("items").insert(payload);
-        if (error) {
-            const fallback = payload.map(({ name, description, effect, category }) => ({
-                name,
-                description,
-                effect,
-                category
-            }));
-            ({ error } = await supabase.from("items").insert(fallback));
+        if (!supabase?.channel) {
+            startQuestPollingFallback();
+            return;
         }
-        if (error) throw error;
+
+        if (questRealtimeChannel) {
+            try {
+                supabase.removeChannel(questRealtimeChannel);
+            } catch {}
+        }
+
+        questRealtimeChannel = supabase
+            .channel("astoria-quests-live")
+            .on("postgres_changes", { event: "*", schema: "public", table: QUESTS_TABLE }, () => {
+                scheduleQuestRealtimeRefresh();
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: "quest_participants" }, () => {
+                scheduleQuestRealtimeRefresh();
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: QUEST_HISTORY_TABLE }, () => {
+                scheduleQuestRealtimeRefresh();
+            })
+            .subscribe((status) => {
+                if (status === "SUBSCRIBED") {
+                    stopQuestPollingFallback();
+                    return;
+                }
+                if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+                    startQuestPollingFallback();
+                }
+            });
+
+        window.addEventListener("beforeunload", () => {
+            stopQuestPollingFallback();
+            if (questRealtimeChannel) {
+                try {
+                    supabase.removeChannel(questRealtimeChannel);
+                } catch {}
+                questRealtimeChannel = null;
+            }
+        }, { once: true });
     } catch (error) {
-        console.warn("[Quetes] Local items sync failed:", error);
+        console.warn("[Quetes] Realtime unavailable, enabling polling fallback:", error);
+        startQuestPollingFallback();
     }
+}
+
+async function syncLocalItemsToDb() {
+    // Disabled on purpose: codex/items are managed directly from backend.
 }
 
 function resolveParticipantId(participant) {
     if (!participant) return null;
     if (participant.id) return participant.id;
-    const key = String(participant.key || "");
+    const key = String(participant.key || "").trim();
     if (key.startsWith("id:")) {
         return key.slice(3);
+    }
+    // Legacy format: key stored as raw UUID without id: prefix.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+        return key;
     }
     return null;
 }
 
+function normalizeParticipantCompletionKeys(participant) {
+    const out = new Set();
+    if (!participant) return out;
+    const rawKey = String(participant.key || "").trim();
+    if (rawKey) out.add(rawKey);
+    const id = resolveParticipantId(participant);
+    if (id) {
+        out.add(id);
+        out.add(participantKeyFromId(id));
+    }
+    return out;
+}
+
+function hasQuestBeenCompletedByParticipant(quest, participant) {
+    const completed = Array.isArray(quest?.completedBy) ? quest.completedBy : [];
+    if (!completed.length) return false;
+    const keys = normalizeParticipantCompletionKeys(participant);
+    for (const key of keys) {
+        if (completed.includes(key)) return true;
+    }
+    return false;
+}
+
 async function loadItemCatalog() {
-    const base = (typeof inventoryData !== "undefined" && Array.isArray(inventoryData))
-        ? inventoryData
-        : (Array.isArray(window.inventoryData) ? window.inventoryData : []);
-    state.items = Array.isArray(base) ? base.map((item) => ({ ...item })) : [];
+    state.items = [];
 
     if (typeof getAllItems !== "function") return;
     try {
         const rows = await getAllItems();
         if (!Array.isArray(rows) || rows.length === 0) return;
-        rows.forEach((row) => {
-            const name = String(row?.name || "").trim();
-            if (!name) return;
-            const existing = state.items.find((item) => normalizeText(item?.name) === normalizeText(name));
-            if (existing) {
-                existing.id = row.id ?? existing.id;
-                existing.images = row.images ?? existing.images;
-                return;
-            }
-            state.items.push({
-                id: row.id,
-                name,
-                category: row.category,
-                rarity: row.rarity,
-                description: row.description,
-                effect: row.effect,
-                price: row.price_kaels || 0,
-                images: row.images
-            });
-        });
+        state.items = rows
+            .map((row) => {
+                const name = String(row?.name || "").trim();
+                if (!name) return null;
+                return {
+                    id: row.id,
+                    name,
+                    category: row.category,
+                    rarity: row.rarity,
+                    description: row.description,
+                    effect: row.effect,
+                    price: row.price_kaels || 0,
+                    images: row.images
+                };
+            })
+            .filter(Boolean);
     } catch (error) {
         console.warn("[Quetes] Items load failed:", error);
     }
@@ -1060,7 +1209,9 @@ async function applyInventoryDelta(characterId, itemName, delta) {
     if (!Array.isArray(rows)) return false;
 
     const item = resolveItemByName(itemName) || { name: itemName };
-    const sourceIndex = resolveSourceIndex(item);
+    // Keep backend key authoritative. item_index can drift between datasets,
+    // so avoid forcing a potentially wrong index when granting rewards.
+    const sourceIndex = null;
     const normalized = normalizeText(itemName);
     const entry = rows.find((row) =>
         normalizeText(row?.item_key) === normalized ||
@@ -1076,7 +1227,7 @@ async function applyInventoryDelta(characterId, itemName, delta) {
         if (entry) {
             entry.qty = nextQty;
             entry.item_key = itemKey;
-            entry.item_index = Number.isFinite(Number(sourceIndex)) ? Number(sourceIndex) : entry.item_index;
+            entry.item_index = null;
         } else if (updated) {
             rows.push({
                 id: updated.id,
@@ -1112,6 +1263,49 @@ async function applyKaelsDelta(characterId, delta) {
     const result = await updateCharacter(characterId, { kaels: next });
     if (result?.success && active && active.id === characterId) {
         document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { kaels: next } }));
+    }
+    return Boolean(result?.success);
+}
+
+async function applyCompetenceDelta(characterId, categoryId, delta) {
+    const safeDelta = Math.trunc(Number(delta) || 0);
+    const safeCategoryId = String(categoryId || "").trim();
+    if (!characterId || !safeCategoryId || !safeDelta) return false;
+
+    const active = getActiveCharacter?.();
+    let profileData = null;
+    if (active && active.id === characterId && active.profile_data) {
+        profileData = active.profile_data;
+    }
+    if (!profileData) {
+        const row = await getCharacterById(characterId);
+        profileData = row?.profile_data || null;
+    }
+
+    const nextProfile = profileData && typeof profileData === "object" ? { ...profileData } : {};
+    const competences = nextProfile.competences && typeof nextProfile.competences === "object"
+        ? { ...nextProfile.competences }
+        : {};
+
+    const pointsByCategory = competences.pointsByCategory && typeof competences.pointsByCategory === "object"
+        ? { ...competences.pointsByCategory }
+        : {};
+    const current = Math.floor(Number(pointsByCategory[safeCategoryId]) || 0);
+    const next = current + safeDelta;
+    if (next < 0) return false;
+    pointsByCategory[safeCategoryId] = next;
+
+    competences.version = Number(competences.version) || 1;
+    competences.baseValuesByCategory = competences.baseValuesByCategory || {};
+    competences.pointsByCategory = pointsByCategory;
+    competences.allocationsByCategory = competences.allocationsByCategory || {};
+    competences.locksByCategory = competences.locksByCategory || {};
+    competences.customSkillsByCategory = competences.customSkillsByCategory || {};
+    nextProfile.competences = competences;
+
+    const result = await updateCharacter(characterId, { profile_data: nextProfile });
+    if (result?.success && active && active.id === characterId) {
+        document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { profile_data: nextProfile } }));
     }
     return Boolean(result?.success);
 }
@@ -1171,6 +1365,10 @@ async function applyRewardsToParticipants(quest, participantsOverride = null, re
         if (!characterId) continue;
         const scrollEntries = [];
         for (const reward of rewards) {
+            if (reward?.type === "competence") {
+                await applyCompetenceDelta(characterId, reward.categoryId, reward.qty || 0);
+                continue;
+            }
             const rewardName = String(reward?.name || "").trim();
             if (!rewardName) continue;
             if (normalizeText(rewardName) === "kaels") {
@@ -1480,10 +1678,24 @@ function renderQuestList() {
 }
 
 function renderHistory() {
-    const activeCharacterId = state.participant?.id || getActiveCharacter?.()?.id || null;
-    const scoped = activeCharacterId
-        ? state.history.filter((item) => item.characterId === activeCharacterId)
-        : state.history;
+    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+    const activeCharacterLabel = normalizeText(
+        state.participant?.label
+        || getActiveCharacter?.()?.name
+        || ""
+    );
+    const scoped = state.isAdmin
+        ? state.history
+        : (activeCharacterId
+            ? state.history.filter((item) => {
+                const itemCharacterId = normalizeCharacterId(item.characterId);
+                if (itemCharacterId && itemCharacterId === activeCharacterId) return true;
+                if (!itemCharacterId && activeCharacterLabel) {
+                    return normalizeText(item.characterLabel || "") === activeCharacterLabel;
+                }
+                return false;
+            })
+            : state.history);
     const filtered = state.filters.historyType === "all"
         ? scoped
         : scoped.filter((item) => item.type === state.filters.historyType);
@@ -1493,7 +1705,7 @@ function renderHistory() {
 
     dom.historyBody.innerHTML = filtered.map((entry) => `
         <tr>
-            <td>${clean(entry.date)}</td>
+            <td>${clean(formatHistoryDate(entry.date))}</td>
             <td>${clean(entry.type)}</td>
             <td>${clean(entry.rank)}</td>
             <td>${clean(entry.name)}</td>
@@ -1546,7 +1758,12 @@ function renderDetail(quest) {
     dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${clean(loc)}</li>`).join("");
     if (quest.rewards.length) {
         dom.detailRewards.innerHTML = quest.rewards
-            .map((reward) => `<li>${clean(formatRewardLabel(reward, { showElement: false }))} x${reward.qty}</li>`)
+            .map((reward) => {
+                const amount = reward?.type === "competence"
+                    ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+                    : `x${reward.qty}`;
+                return `<li>${clean(formatRewardLabel(reward, { showElement: false }))} ${clean(amount)}</li>`;
+            })
             .join("");
     } else {
         dom.detailRewards.innerHTML = "<li>Aucune recompense</li>";
@@ -1647,7 +1864,7 @@ function buildJoinNote(quest) {
         const missingPrereqs = quest.prerequisites.filter(prereqId => {
             const prereqQuest = state.quests.find(q => q.id === prereqId);
             if (!prereqQuest) return true; // If quest not found, consider it missing
-            return !prereqQuest.completedBy.includes(participant.key);
+            return !hasQuestBeenCompletedByParticipant(prereqQuest, participant);
         });
 
         if (missingPrereqs.length > 0) {
@@ -1655,7 +1872,7 @@ function buildJoinNote(quest) {
         }
     }
 
-    if (!quest.repeatable && quest.completedBy.includes(participant.key)) {
+    if (!quest.repeatable && hasQuestBeenCompletedByParticipant(quest, participant)) {
         return "Qu\u00EAte d\u00E9j\u00E0 r\u00E9alis\u00E9e (non r\u00E9p\u00E9titive).";
     }
     if (quest.status === "locked") {
@@ -1684,9 +1901,10 @@ function renderJoinButton(quest) {
     dom.joinBtn.disabled = !canJoin;
 }
 
-function toggleParticipation() {
+async function toggleParticipation() {
     const quest = state.quests.find((item) => item.id === state.activeQuestId);
     if (!quest || !state.participant || !state.participant.id) return;
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
     const already = isParticipant(quest);
 
     if (!already) {
@@ -1714,11 +1932,20 @@ function toggleParticipation() {
         });
     }
 
+    const saved = await upsertQuestToDb(quest);
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible de synchroniser la participation.");
+        return;
+    }
+
     renderDetail(quest);
     renderQuestList();
     renderQuestProgressPanel();
-    persistState();
-    upsertQuestToDb(quest);
+    scheduleQuestRealtimeRefresh(80);
 }
 
 async function validateQuest() {
@@ -1734,49 +1961,51 @@ async function validateQuest() {
         return;
     }
 
-    const recipients = quest.participants.length
-        ? quest.participants
-        : (state.participant && state.participant.id ? [state.participant] : []);
-    const date = new Date().toLocaleString("fr-FR");
+    const recipients = (Array.isArray(quest.participants) ? quest.participants : [])
+        .filter((participant) => Boolean(resolveParticipantId(participant)));
+    if (!recipients.length) {
+        toastManager.warning("Aucun participant valide pour cette quete.");
+        state.isValidating = false;
+        return;
+    }
+    const date = new Date().toISOString();
     const appliedRewards = Array.isArray(quest.rewards)
         ? quest.rewards.map((reward) => {
             const baseReward = stripRewardElement(reward) || {};
+            if (baseReward.type === "competence") {
+                return { ...baseReward };
+            }
             return ensureRewardElement({ ...baseReward });
         })
         : [];
     const gains = appliedRewards.length
-        ? appliedRewards.map((reward) => `${formatRewardLabel(reward)} x${reward.qty}`).join(", ")
+        ? appliedRewards.map((reward) => {
+            const amount = reward?.type === "competence"
+                ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+                : `x${reward.qty}`;
+            return `${formatRewardLabel(reward)} ${amount}`;
+        }).join(", ")
         : "Aucun gain";
     const timestamp = Date.now();
-    const historyEntries = recipients.length
-        ? recipients.map((participant, index) => ({
-            id: `history-${timestamp}-${index}`,
-            date,
-            type: quest.type,
-            rank: quest.rank,
-            name: quest.name,
-            gains,
-            characterId: resolveParticipantId(participant),
-            characterLabel: participant.label || ""
-        }))
-        : [{
-            id: `history-${timestamp}`,
-            date,
-            type: quest.type,
-            rank: quest.rank,
-            name: quest.name,
-            gains,
-            characterId: null,
-            characterLabel: ""
-        }];
+    const historyEntries = recipients.map((participant, index) => ({
+        id: `history-${timestamp}-${index}`,
+        date,
+        type: normalizeQuestType(quest.type),
+        rank: quest.rank,
+        name: quest.name,
+        gains,
+        characterId: resolveParticipantId(participant),
+        characterLabel: participant.label || ""
+    }));
 
     state.history.unshift(...historyEntries);
 
     await applyRewardsToParticipants(quest, recipients, appliedRewards);
 
     recipients.forEach((participant) => {
-        if (!quest.completedBy.includes(participant.key)) {
-            quest.completedBy.push(participant.key);
+        const completionKey = participantKeyFromId(resolveParticipantId(participant)) || String(participant.key || "").trim();
+        if (completionKey && !quest.completedBy.includes(completionKey)) {
+            quest.completedBy.push(completionKey);
         }
     });
     quest.participants = [];
@@ -1787,7 +2016,6 @@ async function validateQuest() {
     renderQuestList();
     renderHistory();
     renderQuestProgressPanel();
-    persistState();
     await upsertQuestToDb(quest);
     for (const entry of historyEntries) {
         await insertHistoryToDb(entry);
@@ -1813,6 +2041,7 @@ async function validateQuest() {
 
     const recipientNames = recipients.map(r => r.label || r.name).filter(Boolean).join(', ') || 'les participants';
     toastManager.success(`Quête validée pour ${recipientNames}`);
+    scheduleQuestRealtimeRefresh(80);
 
     state.isValidating = false;
 }
@@ -1838,16 +2067,23 @@ function getTrackStep() {
 }
 
 function updateCarouselParallax() {
-    const cards = Array.from(dom.track.querySelectorAll(".quest-card"));
+    const cards = Array.isArray(state.carousel.cards) ? state.carousel.cards : Array.from(dom.track.querySelectorAll(".quest-card"));
     if (!cards.length) return;
-    const trackRect = dom.track.getBoundingClientRect();
-    cards.forEach((card) => {
+    if (SHOULD_REDUCE_QUEST_EFFECTS) {
+        cards.forEach((card) => {
+            const img = card.querySelector("img");
+            if (img) img.style.transform = "translateX(0px) scale(1.01)";
+        });
+        return;
+    }
+    const step = Number(state.carousel.step) || getTrackStep();
+    if (!step) return;
+    const centerIndex = Math.round((state.carousel.maxX - state.carousel.x) / step);
+    cards.forEach((card, index) => {
         const img = card.querySelector("img");
         if (!img) return;
-        const rect = card.getBoundingClientRect();
-        const center = rect.left + rect.width / 2;
-        const offset = (center - (trackRect.left + trackRect.width / 2)) / trackRect.width;
-        const translate = Math.max(-1, Math.min(1, offset)) * 16;
+        const offset = index - centerIndex;
+        const translate = Math.max(-16, Math.min(16, offset * -8));
         img.style.transform = `translateX(${translate}px) scale(1.02)`;
     });
 }
@@ -1914,6 +2150,7 @@ function updateCarouselMetrics() {
     const trackWidth = cards.length ? (cards.length * step) - gap : viewportWidth;
     const centerOffset = (viewportWidth - cardWidth) / 2;
     state.carousel.step = step;
+    state.carousel.cards = cards;
     state.carousel.maxX = centerOffset;
     state.carousel.minX = centerOffset - (step * (cards.length - 1));
     if (!Number.isFinite(state.carousel.minX)) state.carousel.minX = 0;
@@ -2104,12 +2341,29 @@ function bindMediaDrag() {
 function openEditor(quest) {
     state.editor.questId = quest ? quest.id : null;
     state.editor.images = quest ? [...quest.images] : [];
-    state.editor.rewards = quest ? quest.rewards.map((reward) => stripRewardElement(reward)) : [];
+    state.editor.rewards = quest
+        ? quest.rewards.map((reward) => {
+            const next = stripRewardElement(reward) || {};
+            if (next.type === "competence") {
+                return {
+                    type: "competence",
+                    categoryId: String(next.categoryId || "").trim(),
+                    categoryLabel: String(next.categoryLabel || "").trim(),
+                    qty: Math.max(1, Number(next.qty) || 1),
+                };
+            }
+            return {
+                type: "item",
+                name: String(next.name || "").trim(),
+                qty: Math.max(1, Number(next.qty) || 1),
+            };
+        }).filter((reward) => (reward.type === "competence" ? reward.categoryId : reward.name))
+        : [];
     state.currentQuest.prerequisites = quest ? [...(quest.prerequisites || [])] : [];
     dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
     dom.nameInput.value = quest ? quest.name : "";
-    dom.typeInput.value = quest ? quest.type : QUEST_TYPES[0];
+    dom.typeInput.value = quest ? normalizeQuestType(quest.type) : QUEST_TYPES[0];
     dom.rankInput.value = quest ? quest.rank : QUEST_RANKS[0];
     dom.statusInput.value = quest ? quest.status : "available";
     dom.descInput.value = quest ? quest.description : "";
@@ -2143,12 +2397,14 @@ function renderEditorLists() {
     `).join("");
 
     dom.rewardsList.innerHTML = state.editor.rewards.map((reward, idx) => {
-        const item = resolveItemByName(reward.name);
         const label = formatRewardLabel(reward, { showElement: false });
+        const qtyLabel = reward?.type === "competence"
+            ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+            : `x${reward.qty}`;
         // Tooltip désactivé - causait des glitches dans la liste
         return `
         <div class="quest-editor-item">
-            <span>${clean(label)} x${reward.qty}</span>
+            <span>${clean(label)} ${clean(qtyLabel)}</span>
             <button type="button" data-remove-reward="${idx}">Retirer</button>
         </div>
         `;
@@ -2210,7 +2466,7 @@ async function handleEditorSubmit(event) {
     const questData = {
         id: state.editor.questId || `quest-${Date.now()}`,
         name,
-        type: dom.typeInput.value,
+        type: normalizeQuestType(dom.typeInput.value),
         rank: dom.rankInput.value,
         status: dom.statusInput.value,
         repeatable: dom.repeatableInput.checked,
@@ -2233,14 +2489,11 @@ async function handleEditorSubmit(event) {
 
     renderQuestList();
     closeModal(dom.editorModal);
-    persistState();
     const saved = await upsertQuestToDb(questData);
-    if (!saved && questStorage.mode === "memory") {
-        console.warn("[Quetes] Quest saved in memory only (storage blocked).");
-        toastManager.warning('Quête sauvegardée en mémoire uniquement');
-    } else if (saved) {
+    if (saved) {
         const isUpdate = state.editor.questId;
         toastManager.success(isUpdate ? `"${name}" mis à jour` : `"${name}" ajouté`);
+        scheduleQuestRealtimeRefresh(80);
     } else {
         toastManager.error('Échec de la sauvegarde');
     }
@@ -2493,11 +2746,13 @@ function handleAddReward(itemName = null, itemQty = null) {
     const name = itemName || dom.rewardSelect?.value || "";
     const qty = itemQty !== null ? Math.max(1, Number(itemQty)) : Math.max(1, Number(dom.rewardQtyInput?.value) || 1);
     if (!name) return;
-    const existing = state.editor.rewards.find((reward) => normalizeText(reward.name) === normalizeText(name));
+    const incoming = { type: "item", name, qty };
+    const incomingKey = rewardIdentityKey(incoming);
+    const existing = state.editor.rewards.find((reward) => rewardIdentityKey(reward) === incomingKey);
     if (existing) {
         existing.qty = Math.max(1, Number(existing.qty) || 0) + qty;
     } else {
-        state.editor.rewards.push({ name, qty });
+        state.editor.rewards.push(incoming);
     }
     if (!itemName && dom.rewardSelect) {
         dom.rewardSelect.value = "";
@@ -2507,6 +2762,28 @@ function handleAddReward(itemName = null, itemQty = null) {
     }
     if (!itemQty && dom.rewardQtyInput) {
         dom.rewardQtyInput.value = "1";
+    }
+    renderEditorLists();
+}
+
+function handleAddCompetenceReward(categoryId, points = 1, categoryLabel = "") {
+    const safeCategoryId = String(categoryId || "").trim();
+    const safeCategoryLabel = String(categoryLabel || "").trim();
+    const safePoints = Math.max(1, Math.floor(Number(points) || 1));
+    if (!safeCategoryId) return;
+
+    const incoming = {
+        type: "competence",
+        categoryId: safeCategoryId,
+        categoryLabel: safeCategoryLabel,
+        qty: safePoints
+    };
+    const incomingKey = rewardIdentityKey(incoming);
+    const existing = state.editor.rewards.find((reward) => rewardIdentityKey(reward) === incomingKey);
+    if (existing) {
+        existing.qty = Math.max(1, Number(existing.qty) || 0) + safePoints;
+    } else {
+        state.editor.rewards.push(incoming);
     }
     renderEditorLists();
 }
@@ -2775,33 +3052,35 @@ async function initQuestPanelShortcuts() {
 async function init() {
     await refreshSessionUser?.();
     await initCharacterSummary({ enableDropdown: true, showKaels: true });
+    if (SHOULD_REDUCE_QUEST_EFFECTS) {
+        document.querySelector(".quest-page")?.classList.add("quest-perf-lite");
+    }
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
     state.adminNotes = loadAdminNotesMap();
 
     const dbLoaded = await loadQuestsFromDb();
     const historyLoaded = await loadHistoryFromDb();
-    if (!dbLoaded || !historyLoaded) {
-        loadStoredState();
-    }
+    if (!dbLoaded) state.quests = [];
+    if (!historyLoaded) state.history = [];
     await loadItemCatalog();
     // populateRewardSelect(); // DEPRECATED - Old dropdown system
-    seedData();
     state.history = dedupeHistory(state.history);
     fillFilters();
     syncAdminUI();
     // Initialiser le modal de sélection des récompenses AVANT bindEvents
     // pour que le modal remplace le bouton trigger avant que l'ancien listener soit attaché
     initItemsModal({ dom, resolveItemByName, addReward: handleAddReward });
+    initSkillsRewardsModal({ addCompetenceReward: handleAddCompetenceReward });
 
     // Initialiser le modal de sélection des prérequis
     initPrerequisitesModal({ state, renderPrerequisitesList });
 
     bindEvents();
     await initQuestPanelShortcuts();
+    await initQuestRealtimeSync();
     renderQuestList();
     renderHistory();
-    syncLocalItemsToDb();
 }
 
 init();

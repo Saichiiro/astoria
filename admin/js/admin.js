@@ -5,7 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
-import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
+import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 
 (function() {
     'use strict';
@@ -585,6 +585,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
                 allCharacters = await getAllCharacters() || [];
             }
             renderCharactersTable(allCharacters);
+            loadCharactersForKaels();
         } catch (err) {
             console.error('[Admin] Failed to load characters:', err);
             tbody.innerHTML = `
@@ -710,13 +711,72 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
      * Show toast notification
      */
     function showToast(message, type = 'info') {
-        // Simple console log for now - could add actual toast UI later
+        const safeType = String(type || 'info').toLowerCase();
+        const toastApi = (typeof window !== 'undefined' && window.toastManager) ? window.toastManager : null;
+        if (toastApi && typeof toastApi[safeType] === 'function') {
+            toastApi[safeType](message);
+            return;
+        }
         console.log(`[Admin Toast - ${type}] ${message}`);
     }
 
     // =================================================================
     // ECONOMY
     // =================================================================
+
+    function formatKaelsTransferMessage(amount, charName) {
+        if (amount > 0) {
+            return `${amount} kaels donnés à ${charName}`;
+        }
+        return `${Math.abs(amount)} kaels retirés à ${charName}`;
+    }
+
+    async function applyKaelsTransfer({ charId, amount, reason = '', source = 'admin_panel' }) {
+        const parsedAmount = parseInt(amount, 10);
+        if (!charId || Number.isNaN(parsedAmount) || parsedAmount === 0) {
+            return { success: false, error: 'INVALID_INPUT' };
+        }
+
+        const char = allCharacters.find(c => c.id === charId);
+        if (!char) {
+            return { success: false, error: 'CHARACTER_NOT_FOUND' };
+        }
+
+        const previousKaels = Number(char.kaels) || 0;
+        const newKaels = previousKaels + parsedAmount;
+        if (newKaels < 0) {
+            return { success: false, error: 'INSUFFICIENT_KAELS' };
+        }
+
+        const result = await updateCharacter(charId, { kaels: newKaels });
+        if (!result || !result.success) {
+            return { success: false, error: 'UPDATE_FAILED' };
+        }
+
+        char.kaels = newKaels;
+        renderCharactersTable(allCharacters);
+        loadDashboardStats();
+        loadCharactersForKaels();
+
+        const reasonText = reason?.trim() || 'Aucune raison spécifiée';
+        await logActivity({
+            actionType: ActionTypes.KAELS_ADMIN_GRANT,
+            characterId: charId,
+            actionData: {
+                amount: parsedAmount,
+                previous_balance: previousKaels,
+                new_balance: newKaels,
+                reason: reasonText,
+                source
+            }
+        });
+
+        return {
+            success: true,
+            char,
+            amount: parsedAmount
+        };
+    }
 
     /**
      * Load characters for kaels dropdown
@@ -751,71 +811,142 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
     function initQuickKaelsForm() {
         const select = document.getElementById('quickKaelsCharacter');
         const amountInput = document.getElementById('quickKaelsAmount');
+        const reasonInput = document.getElementById('quickKaelsReason');
         const submitBtn = document.getElementById('quickKaelsSubmit');
 
         if (!select || !amountInput || !submitBtn) return;
 
-        // Enable/disable submit based on form validity
         function updateSubmitState() {
             const hasCharacter = select.value !== '';
-            const hasAmount = parseInt(amountInput.value, 10) > 0;
+            const amount = parseInt(amountInput.value, 10);
+            const hasAmount = !Number.isNaN(amount) && amount > 0;
             submitBtn.disabled = !(hasCharacter && hasAmount);
         }
 
         select.addEventListener('change', updateSubmitState);
         amountInput.addEventListener('input', updateSubmitState);
 
-        // Handle submit
         submitBtn.addEventListener('click', async () => {
             const charId = select.value;
             const amount = parseInt(amountInput.value, 10);
-            const reason = document.getElementById('quickKaelsReason')?.value || '';
-
-            if (!charId || !amount || amount <= 0) return;
-
-            const char = allCharacters.find(c => c.id === charId);
-            if (!char) return;
-
-            const newKaels = (char.kaels || 0) + amount;
+            const reason = reasonInput?.value || '';
 
             try {
-                const result = await updateCharacter(charId, { kaels: newKaels });
-                if (result && result.success) {
-                    // Update local data
-                    char.kaels = newKaels;
-                    renderCharactersTable(allCharacters);
-                    loadDashboardStats();
-                    loadCharactersForKaels();
+                const result = await applyKaelsTransfer({
+                    charId,
+                    amount,
+                    reason,
+                    source: 'quick_actions_modal'
+                });
 
-                    // Log admin action
-                    const reasonText = document.getElementById('quickKaelsReason')?.value || 'Aucune raison spécifiée';
-                    await logActivity({
-                        actionType: ActionTypes.KAELS_ADMIN_GRANT,
-                        characterId: charId,
-                        actionData: {
-                            amount: amount,
-                            previous_balance: char.kaels - amount,
-                            new_balance: newKaels,
-                            reason: reasonText
-                        }
-                    });
-
-                    // Close modal and reset form
-                    const modal = document.getElementById('giveKaelsModal');
-                    bootstrap.Modal.getInstance(modal)?.hide();
-                    select.value = '';
-                    amountInput.value = '';
-                    if (document.getElementById('quickKaelsReason')) {
-                        document.getElementById('quickKaelsReason').value = '';
+                if (!result.success) {
+                    if (result.error === 'INSUFFICIENT_KAELS') {
+                        showToast('Solde insuffisant pour ce retrait', 'error');
+                    } else {
+                        showToast('Erreur lors de l\'envoi', 'error');
                     }
-                    submitBtn.disabled = true;
-
-                    showToast(`${amount} kaels donnés à ${char.name}`, 'success');
-                    console.log('[Admin] Kaels given:', { charId, amount, reason });
+                    return;
                 }
+
+                const modal = document.getElementById('giveKaelsModal');
+                bootstrap.Modal.getInstance(modal)?.hide();
+                select.value = '';
+                amountInput.value = '';
+                if (reasonInput) reasonInput.value = '';
+                submitBtn.disabled = true;
+
+                showToast(formatKaelsTransferMessage(result.amount, result.char.name || 'Sans nom'), 'success');
+                console.log('[Admin] Kaels updated via quick modal:', { charId, amount, reason });
             } catch (err) {
                 console.error('[Admin] Failed to give kaels:', err);
                 showToast('Erreur lors de l\'envoi', 'error');
+            }
+        });
+    }
+
+    /**
+     * Initialize economy kaels form
+     */
+    function initEconomyKaelsForm() {
+        const form = document.getElementById('kaelsForm');
+        const select = document.getElementById('kaelsCharacterSelect');
+        const amountInput = document.getElementById('kaelsAmount');
+        const reasonInput = document.getElementById('kaelsReason');
+        const submitBtn = form?.querySelector('button[type="submit"]');
+
+        if (!form || !select || !amountInput || !submitBtn) return;
+
+        function updateSubmitState() {
+            const hasCharacter = select.value !== '';
+            const amount = parseInt(amountInput.value, 10);
+            const hasAmount = !Number.isNaN(amount) && amount !== 0;
+            submitBtn.disabled = !(hasCharacter && hasAmount);
+        }
+
+        select.addEventListener('change', updateSubmitState);
+        amountInput.addEventListener('input', updateSubmitState);
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const charId = select.value;
+            const amount = parseInt(amountInput.value, 10);
+            const reason = reasonInput?.value || '';
+
+            try {
+                const result = await applyKaelsTransfer({
+                    charId,
+                    amount,
+                    reason,
+                    source: 'economy_page'
+                });
+
+                if (!result.success) {
+                    if (result.error === 'INSUFFICIENT_KAELS') {
+                        showToast('Solde insuffisant pour ce retrait', 'error');
+                    } else {
+                        showToast('Action impossible, vérifie personnage et montant', 'error');
+                    }
+                    return;
+                }
+
+                amountInput.value = '';
+                if (reasonInput) reasonInput.value = '';
+                updateSubmitState();
+                showToast(formatKaelsTransferMessage(result.amount, result.char.name || 'Sans nom'), 'success');
+            } catch (err) {
+                console.error('[Admin] Failed to apply kaels from economy form:', err);
+                showToast('Erreur de mise à jour', 'error');
+            }
+        });
+
+        updateSubmitState();
+    }
+
+    /**
+     * Link quick-actions Kaels button to the same main give-kaels modal
+     */
+    function initQuickActionsBridge() {
+        const quickActionGiveKaels = document.getElementById('quickActionGiveKaels');
+        if (!quickActionGiveKaels) return;
+
+        quickActionGiveKaels.addEventListener('click', (event) => {
+            event.preventDefault();
+
+            const quickModalEl = document.getElementById('quickActionsModal');
+            const giveKaelsModalEl = document.getElementById('giveKaelsModal');
+            if (!giveKaelsModalEl) return;
+
+            const openGiveKaelsModal = () => {
+                const giveKaelsModal = bootstrap.Modal.getOrCreateInstance(giveKaelsModalEl);
+                giveKaelsModal.show();
+            };
+
+            if (quickModalEl && quickModalEl.classList.contains('show')) {
+                quickModalEl.addEventListener('hidden.bs.modal', openGiveKaelsModal, { once: true });
+                bootstrap.Modal.getOrCreateInstance(quickModalEl).hide();
+            } else {
+                openGiveKaelsModal();
             }
         });
     }
@@ -952,6 +1083,8 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021102';
         initCharacterActions();
         initModals();
         initQuickKaelsForm();
+        initEconomyKaelsForm();
+        initQuickActionsBridge();
 
         // Logout handler
         const logoutBtn = document.getElementById('logoutBtn');

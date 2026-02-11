@@ -211,6 +211,20 @@ export const adminPanel = {
 
 
 
+    function isAbortLikeError(error) {
+      if (!error) return false;
+      if (error.name === "AbortError") return true;
+      const message = String(error.message || "").toLowerCase();
+      const details = String(error.details || "").toLowerCase();
+      const hint = String(error.hint || "").toLowerCase();
+      return (
+        message.includes("signal is aborted") ||
+        message.includes("aborted") ||
+        details.includes("aborterror") ||
+        hint.includes("request was aborted")
+      );
+    }
+
     let activeUser = null;
 
     function updateStaffUi() {
@@ -242,13 +256,17 @@ export const adminPanel = {
           .eq("id", userId)
           .single();
         if (error) {
-          console.error("Admin panel: unable to load user.", error);
+          if (!isAbortLikeError(error)) {
+            console.error("Admin panel: unable to load user.", error);
+          }
           activeUser = null;
         } else {
           activeUser = data;
         }
       } catch (error) {
-        console.error("Admin panel: unable to load user.", error);
+        if (!isAbortLikeError(error)) {
+          console.error("Admin panel: unable to load user.", error);
+        }
         activeUser = null;
       }
       updateStaffUi();

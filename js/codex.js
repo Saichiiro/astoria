@@ -25,10 +25,7 @@ async function initAdminFlag() {
 
 initAdminFlag();
 
-let allItems = (typeof inventoryData !== "undefined" && Array.isArray(inventoryData))
-    ? inventoryData.slice()
-    : [];
-const localItems = allItems.slice();
+let allItems = [];
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 
 async function getItemTombstones() {
@@ -162,7 +159,9 @@ function mapDbItem(row) {
         sellPrice: priceText,
         modifiers: Array.isArray(modifiers) ? modifiers : [],
         image: primary,
-        images: images
+        images: images,
+        rarity: row.rarity || "",
+        rank: row.rank || ""
     };
 }
 
@@ -175,12 +174,15 @@ function getItemModifiers(item) {
 function getModifierBadgesHtml(item, max = 3) {
     const tools = window.astoriaItemModifiers;
     if (!tools?.toBadgeModel) return "";
-    const badges = tools.toBadgeModel(getItemModifiers(item));
+    const badges = [
+        ...tools.toBadgeModel(getItemModifiers(item)),
+        ...getItemRequirementBadges(item)
+    ];
     if (!badges.length) return "";
     const visible = badges.slice(0, Math.max(1, max));
     const html = visible
         .map((badge) => {
-            const cls = badge.positive ? "is-positive" : "is-negative";
+            const cls = badge.positive ? "is-positive" : (badge.negative ? "is-negative" : "is-positive");
             return `<span class="codex-mod-badge ${cls}">${clean(badge.label)}</span>`;
         })
         .join("");
@@ -192,15 +194,28 @@ function getModifierBadgesHtml(item, max = 3) {
 function getModifierListHtml(item) {
     const tools = window.astoriaItemModifiers;
     if (!tools?.toBadgeModel) return "";
-    const badges = tools.toBadgeModel(getItemModifiers(item));
+    const badges = [
+        ...tools.toBadgeModel(getItemModifiers(item)),
+        ...getItemRequirementBadges(item)
+    ];
     if (!badges.length) return "";
     const rows = badges
         .map((badge) => {
-            const cls = badge.positive ? "is-positive" : "is-negative";
+            const cls = badge.positive ? "is-positive" : (badge.negative ? "is-negative" : "is-positive");
             return `<li class="codex-mod-line ${cls}">${clean(badge.label)}</li>`;
         })
         .join("");
     return `<span class="modal-label">Modificateurs :</span><ul class="codex-mod-list">${rows}</ul>`;
+}
+
+function getItemRequirementBadges(item) {
+    const rank = String(item?.rank || "").trim().toUpperCase();
+    if (!rank) return [];
+    return [{
+        key: `rank-${rank}`,
+        label: `Rang ${rank}`,
+        positive: true
+    }];
 }
 
 function getModifierSearchText(item) {
@@ -211,7 +226,7 @@ function getModifierSearchText(item) {
 }
 
 function mergeLocalItems(dbItems, disabledNames) {
-    if (!Array.isArray(dbItems)) return localItems.slice();
+    if (!Array.isArray(dbItems)) return [];
     const merged = [];
     const seenNames = new Set();
     const disabledSet = disabledNames instanceof Set ? disabledNames : new Set();
@@ -227,7 +242,6 @@ function mergeLocalItems(dbItems, disabledNames) {
         merged.push(item);
     };
     dbItems.forEach(addItem);
-    localItems.forEach(addItem);
     return merged;
 }
 
@@ -1267,8 +1281,7 @@ window.astoriaCodex = {
         populateCategoryCounts();
     },
     setDbItems(items) {
-        const merged = mergeLocalItems(items);
-        replaceItems(merged);
+        replaceItems(Array.isArray(items) ? items : []);
         applyFilters();
         populateCategoryCounts();
     },

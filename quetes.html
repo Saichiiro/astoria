@@ -7,11 +7,11 @@
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Yeseva+One&display=swap">
-    <link rel="stylesheet" href="css/style.css?v=1770112863">
-    <link rel="stylesheet" href="css/quetes.css?v=1770112863">
-    <link rel="stylesheet" href="css/quetes-items-modal.css?v=1770701077">
+    <link rel="stylesheet" href="css/style.css?v=2026021106">
+    <link rel="stylesheet" href="css/quetes.css?v=2026021106">
+    <link rel="stylesheet" href="css/quetes-items-modal.css?v=2026021106">
     <link rel="stylesheet" href="css/components-ui.css?v=202602100">
-    <link rel="stylesheet" href="css/item-details-popover.css?v=2026021101">
+    <link rel="stylesheet" href="css/item-details-popover.css?v=2026021106">
     <link rel="stylesheet" href="css/cropper-controls.css?v=202602032">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
@@ -204,6 +204,10 @@
             <span class="tw-press-icon">+</span>
             S&#233;lectionner des objets
         </button>
+        <button id="questOpenSkillsModalBtn" type="button" class="tw-press tw-press--primary">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des comp&#233;tences
+        </button>
     </div>
     <div class="quest-editor-list" id="questRewardsList"></div>
     <div class="quest-editor-hint">Relier &#224; l'inventaire au moment de l'int&#233;gration.</div>
@@ -256,11 +260,11 @@
                             <h4>Type de qu&#234;te</h4>
                             <select id="questTypeInput" class="quest-editor-select" required>
                                 <option value="">S&#233;lectionner un type</option>
-                                <option value="standard">Standard</option>
-                                <option value="event">&#201;v&#233;nement</option>
-                                <option value="daily">Quotidienne</option>
-                                <option value="weekly">Hebdomadaire</option>
-                                <option value="story">Histoire</option>
+                                <option value="Exp&#233;dition">Exp&#233;dition</option>
+                                <option value="Chasse">Chasse</option>
+                                <option value="Assistance">Assistance</option>
+                                <option value="Investigation">Investigation</option>
+                                <option value="Evenementiel">Evenementiel</option>
                             </select>
                         </div>
                         <label class="quest-editor-field quest-editor-field--wide">
@@ -377,6 +381,29 @@
             </div>
         </div>
     </div>
+    <!-- Modal de selection des recompenses de competences -->
+    <div class="quest-items-modal-backdrop" id="questSkillsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questSkillsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questSkillsModalTitle">S&#233;lectionner des comp&#233;tences</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questSkillsModalClose" aria-label="Fermer">&times;</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questSkillsSearch" class="quest-items-search-input" placeholder="Rechercher une comp&#233;tence..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-body" id="questSkillsModalBody">
+                <!-- Categories generees dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questSkillsSelectedCount">0 cat&#233;gorie(s) s&#233;lectionn&#233;e(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questSkillsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questSkillsModalConfirm">Ajouter les r&#233;compenses</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/ui/performance-mode.js?v=2026021106"></script>
     <!-- External Libraries (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
@@ -404,7 +431,7 @@
 
     <script src="js/data.js?v=1770112863"></script>
     <script src="js/ui/searchbar.js?v=1770112863"></script>
-    <script type="module" src="js/quetes.js?v=1770701077"></script>
+    <script type="module" src="js/quetes.js?v=2026021106"></script>
     <script src="js/sidebar.js?v=1770112863"></script>
 </body>
 </html>

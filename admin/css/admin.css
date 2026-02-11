@@ -955,3 +955,20 @@
     color: #f48fb1 !important;
     text-shadow: 0 1px 3px rgba(244, 143, 177, 0.3);
 }
+
+/* =================================================================
+   PERFORMANCE MODE
+   ================================================================= */
+body.perf-lite .admin-page.active {
+    animation: none;
+}
+
+body.perf-lite .btn,
+body.perf-lite .card,
+body.perf-lite .nav-link {
+    transition: none !important;
+}
+
+body.perf-lite .btn::before {
+    display: none !important;
+}

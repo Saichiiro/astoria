@@ -186,6 +186,14 @@ async function updateKaels() {
     if (!kaelsBadge) return;
 
     try {
+        const auth = await loadAuthModule();
+        const user = auth?.getCurrentUser?.();
+        const activeCharacter = auth?.getActiveCharacter?.();
+        if (!user?.id || !activeCharacter?.id) {
+            kaelsBadge.hidden = true;
+            return;
+        }
+
         // Import dynamique du module market
         const market = await import("../market.js");
         if (!market || !market.getMyProfile) {
