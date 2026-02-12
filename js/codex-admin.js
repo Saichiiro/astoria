@@ -620,6 +620,9 @@ async function saveItemRow(payload, isUpdate, targetId) {
 
 function openBackdrop(backdrop) {
     if (!backdrop) return;
+    if (backdrop.parentElement !== document.body) {
+        document.body.appendChild(backdrop);
+    }
     backdrop.removeAttribute('aria-hidden');
     backdrop.classList.add('open');
 }

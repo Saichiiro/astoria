@@ -125,6 +125,18 @@
     z-index: var(--z-modal);
 }
 
+.codex-admin-backdrop {
+    z-index: calc(var(--z-modal) + 20);
+}
+
+.codex-skills-picker-backdrop {
+    z-index: calc(var(--z-modal) + 30);
+}
+
+.codex-cropper-backdrop {
+    z-index: calc(var(--z-modal) + 40);
+}
+
 .codex-admin-backdrop.open,
 .codex-cropper-backdrop.open,
 .codex-skills-picker-backdrop.open {
@@ -402,7 +414,7 @@
 }
 
 .codex-skills-picker-backdrop {
-    z-index: calc(var(--z-modal) + 10);
+    z-index: calc(var(--z-modal) + 30);
 }
 
 .codex-skills-picker-modal {
@@ -734,7 +746,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--space-6);
-    z-index: var(--z-modal);
+    z-index: calc(var(--z-modal) + 50);
 }
 
 .codex-delete-backdrop[aria-hidden="false"] {
@@ -996,7 +1008,7 @@
     background-image: linear-gradient(120deg, rgba(216, 27, 96, 0.04) 0 40%, transparent 40% 100%);
 }
 
-.codex-shell > * {
+.codex-shell > *:not(.codex-admin-backdrop):not(.codex-cropper-backdrop):not(.codex-skills-picker-backdrop):not(.codex-delete-backdrop) {
     position: relative;
     z-index: 1;
 }

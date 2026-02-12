@@ -243,7 +243,7 @@ function getAttributesSummaryHtml(item) {
     const helper = window.astoriaItemDisplayMeta;
     const lines = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 4) : [];
     if (!lines.length) return "";
-    return `<span class="modal-label">Attributs :</span><div class="modal-attrs">${lines.map((line) => `<span class="item-attr-chip">${clean(line)}</span>`).join("")}</div>`;
+    return `<span class="modal-label">Effets passifs :</span><div class="modal-attrs">${lines.map((line) => `<span class="item-attr-chip">${clean(line)}</span>`).join("")}</div>`;
 }
 
 function mergeLocalItems(dbItems, disabledNames) {
