@@ -1,36 +1,24 @@
-/**
+﻿/**
  * Inventory Stats Calculator
- * Calculates total stat bonuses from all items in inventory
+ * Calculates total stat bonuses from equipped items.
  */
 
-(function() {
+(function () {
     'use strict';
 
-    /**
-     * Calculate total stats from inventory items
-     * @param {Array} items - Array of inventory items
-     * @returns {Object} Total stats by category
-     */
+    const HIDDEN_STATS = new Set(['hp', 'hpmax', 'mana', 'manamax']);
+
     function calculateTotalStats(items) {
-        if (!items || !Array.isArray(items)) {
+        if (!Array.isArray(items) || !items.length) {
             return getEmptyStats();
         }
 
-        if (items.length === 0) {
-            return getEmptyStats();
-        }
-
-        // Collect all modifiers from all items
         const allModifiers = [];
 
-        items.forEach(item => {
+        items.forEach((item) => {
             if (!item) return;
-
-            // Get modifiers for this item using the existing system
             const itemMods = window.astoriaItemModifiers?.getModifiers(item) || [];
-
-            // Add source information for tracking
-            itemMods.forEach(mod => {
+            itemMods.forEach((mod) => {
                 allModifiers.push({
                     ...mod,
                     itemName: item.name || 'Item inconnu',
@@ -39,274 +27,186 @@
             });
         });
 
-        // Aggregate modifiers using the existing system
         const aggregated = window.astoriaItemModifiers?.aggregateModifiers(allModifiers) || [];
+        const stats = getEmptyStats();
 
-        // Group by stat type
-        const stats = {
-            // Combat stats
-            attaque: 0,
-            defense: 0,
-            magie: 0,
-
-            // Secondary stats
-            vitesse: 0,
-            critique: 0,
-            force: 0,
-
-            // Additional stats
-            agilite: 0,
-            resistance: 0,
-            intelligence: 0,
-            endurance: 0,
-
-            // HP/Mana
-            hp: 0,
-            hpMax: 0,
-            mana: 0,
-            manaMax: 0,
-
-            // Element and special stats
-            glace: 0,
-            puissance: 0,
-            charme: 0,
-            prestance: 0,
-
-            // Detailed breakdown for tooltips
-            breakdown: {},
-
-            // Total flat points from equipped items
-            totalPoints: 0
-        };
-
-        aggregated.forEach(mod => {
+        aggregated.forEach((mod) => {
             const statKey = normalizeStatKey(mod.stat);
-            const value = mod.value || 0;
+            const value = Number(mod.value) || 0;
+            if (!statKey || !Number.isFinite(value)) return;
 
-            // Add to total
-            if (stats.hasOwnProperty(statKey)) {
-                stats[statKey] += value;
+            if (!Object.prototype.hasOwnProperty.call(stats, statKey)) {
+                stats[statKey] = 0;
             }
+            stats[statKey] += value;
 
             if (mod.type !== 'percent') {
                 stats.totalPoints += value;
             }
 
-            // Track breakdown for tooltips
             if (!stats.breakdown[statKey]) {
                 stats.breakdown[statKey] = [];
             }
             stats.breakdown[statKey].push({
-                value: value,
+                value,
                 type: mod.type,
-                source: mod.itemName || mod.source
+                source: mod.itemName || mod.source,
+                rawStat: mod.stat
             });
         });
 
         return stats;
     }
 
-    /**
-     * Normalize stat names to consistent keys
-     */
     function normalizeStatKey(stat) {
         const normalized = String(stat || '')
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z]/g, '');
 
-        // Map variations to standard keys
         const mapping = {
-            'attaque': 'attaque',
-            'attack': 'attaque',
-            'atk': 'attaque',
-
-            'defense': 'defense',
-            'defence': 'defense',
-            'def': 'defense',
-
-            'magie': 'magie',
-            'magic': 'magie',
-            'mag': 'magie',
-
-            'vitesse': 'vitesse',
-            'speed': 'vitesse',
-            'spd': 'vitesse',
-
-            'critique': 'critique',
-            'crit': 'critique',
-            'critical': 'critique',
-
-            'force': 'force',
-            'strength': 'force',
-            'str': 'force',
-
-            'agilite': 'agilite',
-            'agility': 'agilite',
-            'agi': 'agilite',
-
-            'resistance': 'resistance',
-            'resist': 'resistance',
-            'res': 'resistance',
-
-            'intelligence': 'intelligence',
-            'int': 'intelligence',
-
-            'endurance': 'endurance',
-            'end': 'endurance',
-            'durance': 'endurance', // Typo fix
-
-            'hp': 'hp',
-            'pv': 'hp',
-            'vie': 'hp',
-
-            'hpmax': 'hpMax',
-            'pvmax': 'hpMax',
-            'viemax': 'hpMax',
-
-            'mana': 'mana',
-            'mp': 'mana',
-
-            'manamax': 'manaMax',
-            'mpmax': 'manaMax',
-
-            // Additional stats found in items
-            'glace': 'glace',
-            'ice': 'glace',
-
-            'puissance': 'puissance',
-            'power': 'puissance',
-            'pow': 'puissance',
-
-            'charme': 'charme',
-            'charm': 'charme',
-            'cha': 'charme',
-
-            'prestance': 'prestance',
-            'presence': 'prestance',
-            'pre': 'prestance'
+            attaque: 'attaque',
+            attack: 'attaque',
+            atk: 'attaque',
+            defense: 'defense',
+            defence: 'defense',
+            def: 'defense',
+            magie: 'magie',
+            magic: 'magie',
+            mag: 'magie',
+            vitesse: 'vitesse',
+            speed: 'vitesse',
+            spd: 'vitesse',
+            critique: 'critique',
+            crit: 'critique',
+            critical: 'critique',
+            force: 'force',
+            strength: 'force',
+            str: 'force',
+            agilite: 'agilite',
+            agility: 'agilite',
+            agi: 'agilite',
+            resistance: 'resistance',
+            resist: 'resistance',
+            res: 'resistance',
+            intelligence: 'intelligence',
+            int: 'intelligence',
+            endurance: 'endurance',
+            end: 'endurance',
+            durance: 'endurance',
+            hp: 'hp',
+            pv: 'hp',
+            vie: 'hp',
+            hpmax: 'hpMax',
+            pvmax: 'hpMax',
+            viemax: 'hpMax',
+            mana: 'mana',
+            mp: 'mana',
+            manamax: 'manaMax',
+            mpmax: 'manaMax',
+            glace: 'glace',
+            ice: 'glace',
+            puissance: 'puissance',
+            power: 'puissance',
+            pow: 'puissance',
+            charme: 'charme',
+            charm: 'charme',
+            cha: 'charme',
+            prestance: 'prestance',
+            presence: 'prestance',
+            pre: 'prestance'
         };
 
         return mapping[normalized] || normalized;
     }
 
-    /**
-     * Get empty stats object
-     */
     function getEmptyStats() {
         return {
-            attaque: 0,
-            defense: 0,
-            magie: 0,
-            vitesse: 0,
-            critique: 0,
-            force: 0,
-            agilite: 0,
-            resistance: 0,
-            intelligence: 0,
-            endurance: 0,
-            hp: 0,
-            hpMax: 0,
-            mana: 0,
-            manaMax: 0,
-            glace: 0,
-            puissance: 0,
-            charme: 0,
-            prestance: 0,
             breakdown: {},
             totalPoints: 0
         };
     }
 
-    /**
-     * Update stats display in the UI
-     */
+    function isHiddenStat(statKey) {
+        return HIDDEN_STATS.has(String(statKey || '').toLowerCase());
+    }
+
+    function getStatLabel(statKey, breakdown) {
+        const raw = breakdown?.[0]?.rawStat ? String(breakdown[0].rawStat) : String(statKey || '');
+        const clean = raw.replace(/\s+/g, ' ').trim();
+        if (!clean) return String(statKey || '');
+        return clean.charAt(0).toUpperCase() + clean.slice(1);
+    }
+
+    function getStatIcon() {
+        return '*';
+    }
+
+    function formatStatValue(statKey, value) {
+        const rounded = Number.isInteger(value) ? value : Number(value.toFixed(2));
+        const sign = rounded > 0 ? '+' : '';
+        if (statKey === 'critique') {
+            return `${sign}${rounded}%`;
+        }
+        return `${sign}${rounded}`;
+    }
+
+    function sortStatEntries(entries) {
+        entries.sort((a, b) => {
+            const labelCmp = a.label.localeCompare(b.label, 'fr');
+            if (labelCmp !== 0) return labelCmp;
+            return String(a.key).localeCompare(String(b.key), 'fr');
+        });
+        return entries;
+    }
+
     function updateStatsDisplay(stats) {
         if (!stats) stats = getEmptyStats();
 
-        // Update stat values in the UI
-        const updates = {
-            'statAttack': stats.attaque,
-            'statDefense': stats.defense,
-            'statMagic': stats.magie,
-            'statSpeed': stats.vitesse,
-            'statCrit': stats.critique + '%',
-            'statStrength': stats.force
-        };
+        const dynamicContainer = document.getElementById('statsDynamicList');
+        if (dynamicContainer) {
+            const entries = Object.entries(stats)
+                .filter(([key]) => key !== 'breakdown' && key !== 'totalPoints')
+                .filter(([, value]) => typeof value === 'number' && value !== 0 && Number.isFinite(value))
+                .filter(([key]) => !isHiddenStat(key))
+                .map(([key, value]) => ({
+                    key,
+                    value,
+                    label: getStatLabel(key, stats.breakdown?.[key]),
+                    icon: getStatIcon(key)
+                }));
 
-        Object.entries(updates).forEach(([id, value]) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
+            sortStatEntries(entries);
 
-                // Add visual feedback for bonuses
-                if (typeof value === 'number' && value > 0) {
-                    element.classList.add('stat-bonus');
-                } else {
-                    element.classList.remove('stat-bonus');
-                }
-            }
-        });
-
-        const pointsEl = document.getElementById('statsPointsAvailable');
-        if (pointsEl) {
-            const total = Number.isFinite(stats.totalPoints) ? Math.round(stats.totalPoints) : 0;
-            const sign = total > 0 ? '+' : '';
-            pointsEl.textContent = `${sign}${total} pts equip.`;
-        }
-
-        // Update HP/Mana if bonuses exist
-        if (stats.hpMax > 0) {
-            const hpValue = document.getElementById('hpValue');
-            if (hpValue) {
-                const currentText = hpValue.textContent;
-                const match = currentText.match(/(\d+)\s*\/\s*(\d+)/);
-                if (match) {
-                    const current = parseInt(match[1]);
-                    const newMax = parseInt(match[2]) + stats.hpMax;
-                    hpValue.textContent = `${current} / ${newMax}`;
-                }
+            if (!entries.length) {
+                dynamicContainer.innerHTML = '<div class="stats-dynamic-empty">Aucun bonus d\'equipement actif.</div>';
+            } else {
+                dynamicContainer.innerHTML = entries
+                    .map((entry) => `
+                        <div class="stat-row">
+                            <span class="stat-label"><span class="stat-icon">${entry.icon}</span> ${entry.label}</span>
+                            <span class="stat-value stat-bonus">${formatStatValue(entry.key, entry.value)}</span>
+                        </div>
+                    `)
+                    .join('');
             }
         }
 
-        if (stats.manaMax > 0) {
-            const manaValue = document.getElementById('manaValue');
-            if (manaValue) {
-                const currentText = manaValue.textContent;
-                const match = currentText.match(/(\d+)\s*\/\s*(\d+)/);
-                if (match) {
-                    const current = parseInt(match[1]);
-                    const newMax = parseInt(match[2]) + stats.manaMax;
-                    manaValue.textContent = `${current} / ${newMax}`;
-                }
-            }
-        }
-
-        // Show breakdown tooltip (optional enhancement)
         displayStatsBreakdown(stats.breakdown);
     }
 
-    /**
-     * Display detailed stats breakdown (for hover tooltips)
-     */
-    function displayStatsBreakdown(breakdown) {
-        // This can be enhanced later to show tooltips like:
-        // Force: 5 (+2 épaulettes, +3 plastron)
-        // Currently just tracking breakdown for future enhancement
+    function displayStatsBreakdown() {
+        // Reserved for future tooltip details.
     }
 
-    /**
-     * Format stat breakdown for display
-     * Example: "Force: 5 (+2 épaulettes, +3 plastron)"
-     */
     function formatStatBreakdown(statName, breakdown) {
-        if (!breakdown || breakdown.length === 0) return null;
+        if (!breakdown || !breakdown.length) return null;
 
         const total = breakdown.reduce((sum, item) => sum + item.value, 0);
         const details = breakdown
-            .filter(item => item.value !== 0)
-            .map(item => {
+            .filter((item) => item.value !== 0)
+            .map((item) => {
                 const sign = item.value > 0 ? '+' : '';
                 return `${sign}${item.value} ${item.source}`;
             })
@@ -315,7 +215,6 @@
         return `${statName}: ${total} (${details})`;
     }
 
-    // Export functions to global scope
     window.InventoryStats = {
         calculateTotalStats,
         updateStatsDisplay,

@@ -366,7 +366,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px;
         }
 
@@ -419,6 +419,27 @@
         .stat-value {
             font-weight: 700;
             color: #6a2b5a;
+        }
+
+        .stat-bonus {
+            color: #1f7a38;
+        }
+
+        .stat-box--dynamic {
+            min-height: 96px;
+        }
+
+        .stats-dynamic-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stats-dynamic-empty {
+            color: #8e7484;
+            font-size: 0.76rem;
+            font-style: italic;
+            padding: 4px 0;
         }
 
         .stat-bar-container {
@@ -486,6 +507,11 @@
         .inventory-item--draggable.is-dragging {
             cursor: grabbing;
             opacity: 0.72;
+        }
+
+        .inventory-item--rank-locked {
+            opacity: 0.66;
+            filter: grayscale(0.08);
         }
 
         .silhouette-cropper-backdrop {
@@ -731,8 +757,8 @@
                         </div>
 
                         <div class="character-rank">
-                            <label for="characterRankSelect">Rang :</label>
-                            <select id="characterRankSelect" class="character-rank-select" aria-label="Rang du personnage">
+                            <label for="characterRankSelect">Rang (comp.) :</label>
+                            <select id="characterRankSelect" class="character-rank-select" aria-label="Rang du personnage (calcule depuis les competences)">
                                 <option value="F">F</option>
                                 <option value="E">E</option>
                                 <option value="D">D</option>
@@ -751,57 +777,11 @@
                     <div class="character-stats" id="characterStats">
                         <div class="stats-header">
                             <h3 class="stats-title">Attributs</h3>
-                            <span class="stats-points" id="statsPointsAvailable">0 pts dispo</span>
                         </div>
-
-                        <!-- HP / Mana bars -->
-                        <div class="stat-bar-container">
-                            <div class="stat-bar-row">
-                                <span class="stat-bar-label">HP</span>
-                                <div class="stat-bar">
-                                    <div class="stat-bar-fill stat-bar-fill--hp" id="hpBar" style="width: 75%;"></div>
-                                </div>
-                                <span class="stat-bar-value" id="hpValue">750 / 1000</span>
-                            </div>
-                            <div class="stat-bar-row">
-                                <span class="stat-bar-label">Mana</span>
-                                <div class="stat-bar">
-                                    <div class="stat-bar-fill stat-bar-fill--mana" id="manaBar" style="width: 60%;"></div>
-                                </div>
-                                <span class="stat-bar-value" id="manaValue">600 / 1000</span>
-                            </div>
-                        </div>
-
                         <div class="stats-grid">
-                            <div class="stat-box">
-                                <h4 class="stat-box-title">Principal</h4>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#9876;</span> Attaque</span>
-                                    <span class="stat-value" id="statAttack">150</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#128737;</span> Defense</span>
-                                    <span class="stat-value" id="statDefense">120</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#10024;</span> Magie</span>
-                                    <span class="stat-value" id="statMagic">85</span>
-                                </div>
-                            </div>
-                            <div class="stat-box">
-                                <h4 class="stat-box-title">Secondaire</h4>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#9889;</span> Vitesse</span>
-                                    <span class="stat-value" id="statSpeed">45</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#127919;</span> Critique</span>
-                                    <span class="stat-value" id="statCrit">12%</span>
-                                </div>
-                                <div class="stat-row">
-                                    <span class="stat-label"><span class="stat-icon">&#128170;</span> Force</span>
-                                    <span class="stat-value" id="statStrength">60</span>
-                                </div>
+                            <div class="stat-box stat-box--dynamic">
+                                <h4 class="stat-box-title">Bonus equipement</h4>
+                                <div class="stats-dynamic-list" id="statsDynamicList"></div>
                             </div>
                         </div>
                     </div>
@@ -1864,10 +1844,33 @@
 
         let inventoryMigrated = false;
         let currentCharacterRank = 'F';
+        let currentCharacterRankScore = 0;
+        let currentCharacterRankSource = 'fallback';
 
         const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
         const CHARACTER_RANK_STORAGE_KEY = 'astoriaInventoryCharacterRank';
-        const CHARACTER_RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
+        const COMPETENCE_STORAGE_KEYS = Object.freeze([
+            'skillsPointsByCategory',
+            'skillsAllocationsByCategory',
+            'skillsBaseValuesByCategory',
+            'skillsLocksByCategory',
+            'skillsCustomByCategory'
+        ]);
+        const RANK_COMPETENCE_CATEGORY_IDS = Object.freeze(['combat', 'pouvoirs']);
+        // Source: "Tableau Ratio Par Rang - Rang joueur.csv"
+        const CHARACTER_RANK_RULES = Object.freeze([
+            { rank: 'F', min: 0, max: 230, points: 230 },
+            { rank: 'E', min: 231, max: 510, points: 280 },
+            { rank: 'D', min: 511, max: 840, points: 330 },
+            { rank: 'C', min: 841, max: 1220, points: 380 },
+            { rank: 'B', min: 1221, max: 1650, points: 430 },
+            { rank: 'A', min: 1651, max: 2130, points: 480 },
+            { rank: 'S', min: 2131, max: 2670, points: 540 },
+            { rank: 'S+', min: 2671, max: 3270, points: 600 },
+            { rank: 'SS', min: 3271, max: 3920, points: 650 },
+            { rank: 'SSS', min: 3921, max: 4600, points: 680 }
+        ]);
+        const CHARACTER_RANKS = CHARACTER_RANK_RULES.map((entry) => entry.rank);
         const EQUIPMENT_SLOT_DEFS = [
             { key: 'head', label: 'Casque', icon: '🪖' },
             { key: 'cape', label: 'Cape', icon: '🧣' },
@@ -2189,6 +2192,7 @@
 
 
             await loadInventory();
+            await refreshCharacterRankFromCompetences({ enforce: true, silent: true, persist: false });
 
 
 
@@ -2205,54 +2209,138 @@
 
 
         window.addEventListener('storage', (event) => {
+            if (!event.key) return;
 
-
-
-            if (event.key !== INVENTORY_SYNC_KEY || !event.newValue) return;
-
-
-
-            try {
-
-
-
-                const payload = JSON.parse(event.newValue);
-
-
-
-                void handleInventorySync(payload);
-
-
-
-            } catch {
-
-
-
-                // ignore invalid payloads
-
-
-
+            if (event.key === INVENTORY_SYNC_KEY && event.newValue) {
+                try {
+                    const payload = JSON.parse(event.newValue);
+                    void handleInventorySync(payload);
+                } catch {
+                    // ignore invalid payloads
+                }
+                return;
             }
 
-
-
+            if (!isCompetenceStorageKey(event.key)) return;
+            void refreshCharacterRankFromCompetences({ enforce: true, silent: true }).then(() => {
+                renderInventory();
+            });
         });
 
-
-
-        function normalizeCharacterRank(value) {
-            const rank = String(value || '').trim().toUpperCase();
-            return CHARACTER_RANKS.includes(rank) ? rank : 'F';
+        function normalizeRankText(value) {
+            return String(value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
-        function applyCharacterRank(rank) {
-            currentCharacterRank = normalizeCharacterRank(rank);
-            if (characterRankSelect) {
-                characterRankSelect.value = currentCharacterRank;
+        function isCompetenceStorageKey(key) {
+            return COMPETENCE_STORAGE_KEYS.some((rawKey) => key === rawKey || key.endsWith(`:${rawKey}`));
+        }
+
+        function loadScopedJson(rawKey, characterId) {
+            const scoped = characterId ? `astoria_competences_${characterId}:${rawKey}` : rawKey;
+            const candidates = [scoped, rawKey];
+            for (const key of candidates) {
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        return parsed;
+                    }
+                } catch {}
             }
+            return {};
         }
 
-        async function loadCharacterRank() {
+        function getRankCompetenceCategoryIds() {
+            const categories = Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+            const selected = new Set();
+
+            categories.forEach((category) => {
+                const id = String(category?.id || '').trim();
+                const idNorm = normalizeRankText(id);
+                const labelNorm = normalizeRankText(category?.label || '');
+                if (!id) return;
+
+                if (RANK_COMPETENCE_CATEGORY_IDS.includes(idNorm)) {
+                    selected.add(id);
+                    return;
+                }
+
+                const isCombat = labelNorm.includes('combat') && labelNorm.includes('defense');
+                const isPowers = labelNorm.includes('pouvoirs') && labelNorm.includes('alice');
+                if (isCombat || isPowers) {
+                    selected.add(id);
+                }
+            });
+
+            if (selected.size) return Array.from(selected);
+            return Array.from(RANK_COMPETENCE_CATEGORY_IDS);
+        }
+
+        function getCompetencesSnapshot() {
+            const character = authApi?.getActiveCharacter?.();
+            const fromProfile = character?.profile_data?.competences;
+            if (fromProfile && typeof fromProfile === 'object') {
+                return fromProfile;
+            }
+
+            const characterId = character?.id ? String(character.id) : '';
+            return {
+                pointsByCategory: loadScopedJson('skillsPointsByCategory', characterId),
+                allocationsByCategory: loadScopedJson('skillsAllocationsByCategory', characterId),
+                baseValuesByCategory: loadScopedJson('skillsBaseValuesByCategory', characterId),
+                locksByCategory: loadScopedJson('skillsLocksByCategory', characterId),
+                customSkillsByCategory: loadScopedJson('skillsCustomByCategory', characterId)
+            };
+        }
+
+        function getCategoryCompetenceTotal(snapshot, categoryId) {
+            const baseValues = snapshot?.baseValuesByCategory?.[categoryId];
+            const allocations = snapshot?.allocationsByCategory?.[categoryId];
+            const baseObj = (baseValues && typeof baseValues === 'object') ? baseValues : {};
+            const allocObj = (allocations && typeof allocations === 'object') ? allocations : {};
+            const keys = new Set([...Object.keys(baseObj), ...Object.keys(allocObj)]);
+
+            let total = 0;
+            keys.forEach((skillName) => {
+                const base = Number(baseObj[skillName]) || 0;
+                const alloc = Number(allocObj[skillName]) || 0;
+                const value = base + alloc;
+                if (Number.isFinite(value) && value > 0) {
+                    total += value;
+                }
+            });
+            return total;
+        }
+
+        function getRankFromScore(score) {
+            const numeric = Number(score) || 0;
+            const byRange = CHARACTER_RANK_RULES.find((entry) => numeric >= entry.min && numeric <= entry.max);
+            if (byRange) return byRange.rank;
+            if (numeric > CHARACTER_RANK_RULES[CHARACTER_RANK_RULES.length - 1].max) {
+                return CHARACTER_RANK_RULES[CHARACTER_RANK_RULES.length - 1].rank;
+            }
+            return CHARACTER_RANK_RULES[0].rank;
+        }
+
+        function hasRankCompetenceData(snapshot, categoryIds) {
+            return categoryIds.some((categoryId) => {
+                const base = snapshot?.baseValuesByCategory?.[categoryId];
+                const alloc = snapshot?.allocationsByCategory?.[categoryId];
+                return (
+                    base && typeof base === 'object' && Object.keys(base).length > 0
+                ) || (
+                    alloc && typeof alloc === 'object' && Object.keys(alloc).length > 0
+                );
+            });
+        }
+
+        function readFallbackCharacterRank() {
             let rank = '';
 
             if (inventoryStorageMode === 'character' && authApi?.getActiveCharacter) {
@@ -2264,12 +2352,34 @@
                     rank = String(localStorage.getItem(CHARACTER_RANK_STORAGE_KEY) || '');
                 } catch {}
             }
+            return rank;
+        }
 
-            applyCharacterRank(rank || 'F');
+        function normalizeCharacterRank(value) {
+            const rank = String(value || '').trim().toUpperCase();
+            return CHARACTER_RANKS.includes(rank) ? rank : 'F';
+        }
+
+        function applyCharacterRank(rank, options = {}) {
+            currentCharacterRank = normalizeCharacterRank(rank);
+            const score = Number(options.score);
+            if (Number.isFinite(score)) {
+                currentCharacterRankScore = Math.max(0, Math.floor(score));
+            }
+
+            if (characterRankSelect) {
+                characterRankSelect.value = currentCharacterRank;
+                const categoryLabel = (options.categoryLabels && options.categoryLabels.length)
+                    ? options.categoryLabels.join(' + ')
+                    : 'Combat + Pouvoirs';
+                characterRankSelect.title = `Rang calcule depuis ${categoryLabel} (score: ${currentCharacterRankScore})`;
+            }
         }
 
         async function persistCharacterRank() {
             const rank = normalizeCharacterRank(currentCharacterRank);
+            const score = Math.max(0, Math.floor(Number(currentCharacterRankScore) || 0));
+            const source = String(currentCharacterRankSource || 'fallback');
 
             try {
                 localStorage.setItem(CHARACTER_RANK_STORAGE_KEY, rank);
@@ -2283,7 +2393,12 @@
             if (!character?.id) return;
 
             const currentProfileData = character.profile_data || {};
-            const inventoryData = { ...(currentProfileData.inventory || {}), characterRank: rank };
+            const inventoryData = {
+                ...(currentProfileData.inventory || {}),
+                characterRank: rank,
+                characterRankScore: score,
+                characterRankSource: source
+            };
             const nextProfileData = { ...currentProfileData, inventory: inventoryData };
 
             try {
@@ -2293,15 +2408,95 @@
             }
         }
 
+        async function refreshCharacterRankFromCompetences(options = {}) {
+            const categoryIds = getRankCompetenceCategoryIds();
+            const categories = Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+            const categoryLabels = categoryIds.map((id) => {
+                const match = categories.find((entry) => String(entry?.id || '') === String(id));
+                return match?.label || id;
+            });
+            const snapshot = getCompetencesSnapshot();
+            const canCompute = hasRankCompetenceData(snapshot, categoryIds);
+
+            let nextRank = 'F';
+            let nextScore = 0;
+            let source = 'fallback';
+            if (canCompute) {
+                nextScore = categoryIds.reduce((sum, categoryId) => {
+                    return sum + getCategoryCompetenceTotal(snapshot, categoryId);
+                }, 0);
+                nextRank = getRankFromScore(nextScore);
+                source = 'competences';
+            } else {
+                nextRank = readFallbackCharacterRank() || 'F';
+            }
+
+            const normalizedRank = normalizeCharacterRank(nextRank);
+            const normalizedScore = Math.max(0, Math.floor(Number(nextScore) || 0));
+            const didChange = normalizedRank !== currentCharacterRank || normalizedScore !== currentCharacterRankScore || source !== currentCharacterRankSource;
+
+            currentCharacterRankSource = source;
+            applyCharacterRank(normalizedRank, { score: normalizedScore, categoryLabels });
+
+            if (didChange && options.persist !== false) {
+                void persistCharacterRank();
+            }
+            if (options.enforce) {
+                enforceRankOnEquippedSlots({ silent: options.silent === true });
+            }
+
+            return { rank: currentCharacterRank, score: currentCharacterRankScore, source: currentCharacterRankSource };
+        }
+
         function initCharacterRankControl() {
             if (!characterRankSelect) return;
 
-            if (!characterRankSelect.dataset.bound) {
-                characterRankSelect.addEventListener('change', () => {
-                    applyCharacterRank(characterRankSelect.value);
-                    void persistCharacterRank();
-                });
-                characterRankSelect.dataset.bound = '1';
+            characterRankSelect.innerHTML = CHARACTER_RANK_RULES
+                .map((entry) => `<option value="${entry.rank}">${entry.rank}</option>`)
+                .join('');
+
+            characterRankSelect.disabled = true;
+            characterRankSelect.setAttribute('aria-readonly', 'true');
+        }
+
+        function getRankIndex(rank) {
+            return CHARACTER_RANKS.indexOf(normalizeCharacterRank(rank));
+        }
+
+        function getItemRank(item) {
+            const helper = window.astoriaItemDisplayMeta;
+            const rawRank = item?.rank || item?.rank_required || item?.required_rank || item?.requiredRank || '';
+            const normalized = helper?.getRank ? helper.getRank(rawRank) : String(rawRank || '').trim().toUpperCase();
+            return normalizeCharacterRank(normalized || 'F');
+        }
+
+        function canCharacterEquipItemByRank(item) {
+            if (!item) return false;
+            const charIndex = getRankIndex(currentCharacterRank);
+            const itemIndex = getRankIndex(getItemRank(item));
+            if (charIndex < 0 || itemIndex < 0) return true;
+            return itemIndex <= charIndex;
+        }
+
+        function enforceRankOnEquippedSlots(options = {}) {
+            const silent = options?.silent === true;
+            const blockedSlots = [];
+
+            Object.entries(equippedSlots || {}).forEach(([slotKey, item]) => {
+                if (!item) return;
+                if (!canCharacterEquipItemByRank(item)) {
+                    blockedSlots.push(slotKey);
+                }
+            });
+
+            if (!blockedSlots.length) return;
+
+            blockedSlots.forEach((slotKey) => unequipSlot(slotKey, false));
+            persistInventory();
+            renderInventory();
+
+            if (!silent) {
+                toastManager.warning(`${blockedSlots.length} item(s) desequipé(s): rang trop élevé`);
             }
         }
 
@@ -2355,7 +2550,7 @@
 
             await initInventoryStorage();
             initCharacterRankControl();
-            await loadCharacterRank();
+            await refreshCharacterRankFromCompetences({ enforce: false, silent: true });
 
 
 
@@ -2380,6 +2575,7 @@
 
 
             await loadInventory();
+            await refreshCharacterRankFromCompetences({ enforce: true, silent: true });
 
 
 
@@ -3560,6 +3756,8 @@
 
 
                 characterRank: currentCharacterRank,
+                characterRankScore: currentCharacterRankScore,
+                characterRankSource: currentCharacterRankSource,
 
 
 
@@ -7503,17 +7701,8 @@
         function refreshCharacterStatsPanel(previewItem = statsPreviewItem) {
             if (!window.InventoryStats) return;
             const equippedItems = getEquippedItemsForStats();
-            const baseStats = window.InventoryStats.calculateTotalStats(equippedItems);
-
-            let projectedStats = baseStats;
-            if (previewItem && !previewItem?.isCurrency) {
-                const alreadyEquipped = equippedItems.some((equippedItem) => isSameItemRef(equippedItem, previewItem));
-                if (!alreadyEquipped) {
-                    projectedStats = window.InventoryStats.calculateTotalStats([...equippedItems, { ...previewItem, quantity: 1 }]);
-                }
-            }
-
-            window.InventoryStats.updateStatsDisplay(projectedStats);
+            const equippedStats = window.InventoryStats.calculateTotalStats(equippedItems);
+            window.InventoryStats.updateStatsDisplay(equippedStats);
         }
 
         function setStatsPreviewItem(item) {
@@ -7689,6 +7878,7 @@
          * Returns slot key or null if no slot available
          */
         function findAvailableSlot(item) {
+            if (!canCharacterEquipItemByRank(item)) return null;
             const slot = getItemSlot(item);
             const rawSlot = getRawSlot(item);
             if (!slot) return null;
@@ -8075,6 +8265,12 @@
 
             if (!isItemEquippable(item)) return;
 
+            if (!canCharacterEquipItemByRank(item)) {
+                const neededRank = getItemRank(item);
+                toastManager.error(`Rang insuffisant: ${currentCharacterRank} ne permet pas d'equiper un item ${neededRank}`);
+                return;
+            }
+
 
 
             // Validate slot compatibility - STRICT: items must have equipmentSlot
@@ -8220,6 +8416,7 @@
          * Highlight valid target slots for a dragged item
          */
         function highlightValidSlots(item) {
+            if (!canCharacterEquipItemByRank(item)) return;
             const rawSlot = getRawSlot(item);
             if (!rawSlot) return;
 
@@ -8993,7 +9190,9 @@
 
 
 
-            if (isItemEquippable(item)) {
+            const canEquipByRank = canCharacterEquipItemByRank(item);
+
+            if (isItemEquippable(item) && canEquipByRank) {
 
 
 
@@ -9087,6 +9286,12 @@
 
 
 
+            }
+
+            if (isItemEquippable(item) && !canEquipByRank) {
+                const requiredRank = getItemRank(item);
+                card.classList.add('inventory-item--rank-locked');
+                card.title = `Rang requis: ${requiredRank} (rang actuel: ${currentCharacterRank})`;
             }
 
 
@@ -10721,7 +10926,7 @@
 
 
                 await loadCharacterSilhouette();
-                await loadCharacterRank();
+                await refreshCharacterRankFromCompetences({ enforce: true, silent: true });
 
 
 
