@@ -110,7 +110,9 @@
 
     function aggregateModifiers(modifiers) {
         const map = new Map();
-        dedupeModifiers(modifiers).forEach((modifier) => {
+        (Array.isArray(modifiers) ? modifiers : []).forEach((raw) => {
+            const modifier = normalizeModifier(raw);
+            if (!modifier) return;
             const key = `${normalizeKey(modifier.stat)}|${modifier.type}`;
             const current = map.get(key) || { stat: modifier.stat, type: modifier.type, value: 0 };
             current.value += modifier.value;

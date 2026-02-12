@@ -126,15 +126,89 @@
 }
 
 .codex-admin-backdrop {
-    z-index: calc(var(--z-modal) + 20);
+    z-index: 1000000;
 }
 
 .codex-skills-picker-backdrop {
-    z-index: calc(var(--z-modal) + 30);
+    z-index: 1000010;
+}
+
+.codex-skills-detail-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.52);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    z-index: 1000020;
+}
+
+.codex-skills-detail-backdrop.open {
+    display: flex;
+}
+
+.codex-skills-detail-modal {
+    width: min(520px, 100%);
+    background: #fff;
+    border-radius: 14px;
+    border: 2px solid rgba(216, 27, 96, 0.24);
+    box-shadow: var(--shadow-2xl);
+    overflow: hidden;
+}
+
+.codex-skills-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid rgba(216, 27, 96, 0.16);
+}
+
+.codex-skills-detail-title {
+    margin: 0;
+    color: #8b1c54;
+    font-size: var(--text-lg);
+}
+
+.codex-skills-detail-close {
+    border: none;
+    background: transparent;
+    color: #8b1c54;
+    font-size: 1.15rem;
+    cursor: pointer;
+}
+
+.codex-skills-detail-body {
+    padding: var(--space-4) var(--space-5);
+}
+
+.codex-skills-detail-name {
+    font-weight: 800;
+    color: #5f1e46;
+}
+
+.codex-skills-detail-category {
+    margin-top: 4px;
+    font-size: 0.86rem;
+    color: #83506c;
+}
+
+.codex-skills-detail-text {
+    margin: var(--space-3) 0 0;
+    color: #6a2b5a;
+}
+
+.codex-skills-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-5) var(--space-4);
 }
 
 .codex-cropper-backdrop {
-    z-index: calc(var(--z-modal) + 40);
+    z-index: 1000030;
 }
 
 .codex-admin-backdrop.open,
@@ -414,7 +488,7 @@
 }
 
 .codex-skills-picker-backdrop {
-    z-index: calc(var(--z-modal) + 30);
+    z-index: 1000010;
 }
 
 .codex-skills-picker-modal {
@@ -746,7 +820,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--space-6);
-    z-index: calc(var(--z-modal) + 50);
+    z-index: 1000040;
 }
 
 .codex-delete-backdrop[aria-hidden="false"] {
@@ -1008,7 +1082,7 @@
     background-image: linear-gradient(120deg, rgba(216, 27, 96, 0.04) 0 40%, transparent 40% 100%);
 }
 
-.codex-shell > *:not(.codex-admin-backdrop):not(.codex-cropper-backdrop):not(.codex-skills-picker-backdrop):not(.codex-delete-backdrop) {
+.codex-shell > *:not(.codex-admin-backdrop):not(.codex-cropper-backdrop):not(.codex-skills-picker-backdrop):not(.codex-skills-detail-backdrop):not(.codex-delete-backdrop) {
     position: relative;
     z-index: 1;
 }

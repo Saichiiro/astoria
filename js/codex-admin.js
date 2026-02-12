@@ -42,6 +42,12 @@ const dom = {
     skillsPickerCustomName: document.getElementById('codexSkillsPickerCustomName'),
     skillsPickerCustomType: document.getElementById('codexSkillsPickerCustomType'),
     skillsPickerCustomApply: document.getElementById('codexSkillsPickerCustomApply'),
+    skillsDetailBackdrop: document.getElementById('codexSkillsDetailBackdrop'),
+    skillsDetailClose: document.getElementById('codexSkillsDetailClose'),
+    skillsDetailName: document.getElementById('codexSkillsDetailName'),
+    skillsDetailCategory: document.getElementById('codexSkillsDetailCategory'),
+    skillsDetailFlat: document.getElementById('codexSkillsDetailFlat'),
+    skillsDetailPercent: document.getElementById('codexSkillsDetailPercent'),
     imageBtn: document.getElementById('adminItemImageBtn'),
     imageInput: document.getElementById('adminItemImageInput'),
     imagePreview: document.getElementById('adminItemImagePreview'),
@@ -87,6 +93,7 @@ let currentModifiers = [];
 let modifierSkillsCatalog = [];
 let modifierSkillCategories = [];
 const modifierSkillsState = { query: '', category: 'all' };
+let selectedSkillDetailStat = '';
 const DEFAULT_MODIFIER_STATS = Object.freeze([
     'Force', 'Agilite', 'Defense', 'Attaque', 'Magie', 'Vitesse', 'Critique',
     'Endurance', 'Resistance', 'Perception', 'Intelligence', 'Puissance',
@@ -317,6 +324,7 @@ function renderModifierSkillsList() {
                 <div class="codex-skills-picker-item-actions">
                     <button type="button" class="codex-skills-picker-item-btn" data-action="pick-flat" data-stat="${escapeHtml(entry.stat)}">Points</button>
                     <button type="button" class="codex-skills-picker-item-btn alt" data-action="pick-percent" data-stat="${escapeHtml(entry.stat)}">%</button>
+                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="details" data-stat="${escapeHtml(entry.stat)}" data-category="${escapeHtml(entry.categoryLabel)}">Plus</button>
                 </div>
             </div>
         `)
@@ -329,6 +337,10 @@ function renderModifierSkillsList() {
             if (!stat) return;
 
             if (actionButton) {
+                if (actionButton.dataset.action === 'details') {
+                    openSkillDetailModal(stat, actionButton.dataset.category || row.querySelector('.codex-skills-picker-item-category')?.textContent || '');
+                    return;
+                }
                 const type = actionButton.dataset.action === 'pick-percent' ? 'percent' : 'flat';
                 applySkillToModifierInput(stat, type);
                 closeModifierSkillsPicker();
@@ -353,7 +365,21 @@ function openModifierSkillsPicker() {
 }
 
 function closeModifierSkillsPicker() {
+    closeSkillDetailModal();
     closeBackdrop(dom.skillsPickerBackdrop);
+}
+
+function openSkillDetailModal(stat, categoryLabel) {
+    selectedSkillDetailStat = String(stat || '').trim();
+    if (!selectedSkillDetailStat || !dom.skillsDetailBackdrop) return;
+    if (dom.skillsDetailName) dom.skillsDetailName.textContent = selectedSkillDetailStat;
+    if (dom.skillsDetailCategory) dom.skillsDetailCategory.textContent = String(categoryLabel || '').trim();
+    openBackdrop(dom.skillsDetailBackdrop);
+}
+
+function closeSkillDetailModal() {
+    selectedSkillDetailStat = '';
+    closeBackdrop(dom.skillsDetailBackdrop);
 }
 
 function renderModifierPickers(items = []) {
@@ -623,12 +649,24 @@ function openBackdrop(backdrop) {
     if (backdrop.parentElement !== document.body) {
         document.body.appendChild(backdrop);
     }
+    if (typeof modalManager !== 'undefined' && modalManager?.open) {
+        modalManager.open(backdrop, {
+            closeOnBackdropClick: true,
+            closeOnEsc: true,
+            openClass: 'open'
+        });
+        return;
+    }
     backdrop.removeAttribute('aria-hidden');
     backdrop.classList.add('open');
 }
 
 function closeBackdrop(backdrop) {
     if (!backdrop) return;
+    if (typeof modalManager !== 'undefined' && modalManager?.close) {
+        modalManager.close(backdrop);
+        return;
+    }
     backdrop.classList.remove('open');
     backdrop.setAttribute('aria-hidden', 'true');
 }
@@ -1232,6 +1270,9 @@ async function init() {
     dom.skillsPickerBackdrop?.addEventListener('click', (e) => {
         if (e.target === dom.skillsPickerBackdrop) closeModifierSkillsPicker();
     });
+    dom.skillsDetailBackdrop?.addEventListener('click', (e) => {
+        if (e.target === dom.skillsDetailBackdrop) closeSkillDetailModal();
+    });
 
     dom.openModifierSkillsPickerBtn?.addEventListener('click', (event) => {
         event.preventDefault();
@@ -1245,6 +1286,19 @@ async function init() {
     });
     dom.skillsPickerClose?.addEventListener('click', closeModifierSkillsPicker);
     dom.skillsPickerCancel?.addEventListener('click', closeModifierSkillsPicker);
+    dom.skillsDetailClose?.addEventListener('click', closeSkillDetailModal);
+    dom.skillsDetailFlat?.addEventListener('click', () => {
+        if (!selectedSkillDetailStat) return;
+        applySkillToModifierInput(selectedSkillDetailStat, 'flat');
+        closeSkillDetailModal();
+        closeModifierSkillsPicker();
+    });
+    dom.skillsDetailPercent?.addEventListener('click', () => {
+        if (!selectedSkillDetailStat) return;
+        applySkillToModifierInput(selectedSkillDetailStat, 'percent');
+        closeSkillDetailModal();
+        closeModifierSkillsPicker();
+    });
     dom.skillsPickerSearch?.addEventListener('input', (event) => {
         modifierSkillsState.query = String(event.target?.value || '');
         renderModifierSkillsList();

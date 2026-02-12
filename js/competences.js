@@ -39,6 +39,16 @@
         ...category,
         skills: Array.isArray(category.skills) ? category.skills.map((skill) => ({ ...skill })) : []
     }));
+    const baseSkillNameSetsByCategory = new Map(
+        baseCategories.map((category) => {
+            const names = new Set(
+                (Array.isArray(category?.skills) ? category.skills : [])
+                    .map((skill) => String(skill?.name || "").trim().toLowerCase())
+                    .filter(Boolean)
+            );
+            return [String(category?.id || ""), names];
+        })
+    );
 
     const MAX_SKILL_POINTS = 40;
 
@@ -292,6 +302,143 @@
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         return true;
+    }
+
+    function isBaseSkill(categoryId, skillName) {
+        const set = baseSkillNameSetsByCategory.get(String(categoryId || ""));
+        if (!set) return false;
+        return set.has(String(skillName || "").trim().toLowerCase());
+    }
+
+    function syncCustomSkillRecord(categoryId, skillName, patch = null) {
+        skillsState.customSkillsByCategory = skillsState.customSkillsByCategory || {};
+        const list = Array.isArray(skillsState.customSkillsByCategory[categoryId])
+            ? skillsState.customSkillsByCategory[categoryId]
+            : [];
+        const idx = list.findIndex((entry) => normalizeSkillName(entry?.name) === normalizeSkillName(skillName));
+        if (idx < 0) return false;
+
+        if (patch === null) {
+            list.splice(idx, 1);
+        } else {
+            list[idx] = { ...list[idx], ...patch };
+        }
+        skillsState.customSkillsByCategory[categoryId] = list;
+        saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
+        return true;
+    }
+
+    function moveSkillStateKeys(categoryId, fromName, toName) {
+        if (!categoryId || !fromName || !toName || fromName === toName) return;
+        const allocations = getCategoryAllocations(categoryId);
+        const baseValues = skillsState.baseValuesByCategory[categoryId] || {};
+        if (Object.prototype.hasOwnProperty.call(allocations, fromName)) {
+            allocations[toName] = allocations[fromName];
+            delete allocations[fromName];
+        }
+        if (Object.prototype.hasOwnProperty.call(baseValues, fromName)) {
+            baseValues[toName] = baseValues[fromName];
+            delete baseValues[fromName];
+        }
+        skillsState.baseValuesByCategory[categoryId] = baseValues;
+        saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+    }
+
+    function deleteSkillState(categoryId, skillName) {
+        const allocations = getCategoryAllocations(categoryId);
+        const baseValues = skillsState.baseValuesByCategory[categoryId] || {};
+        delete allocations[skillName];
+        delete baseValues[skillName];
+        skillsState.baseValuesByCategory[categoryId] = baseValues;
+        saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+    }
+
+    function openAdminSkillEditor(category, skill) {
+        if (!skillsState.isAdmin || !category || !skill) return;
+        const skillName = String(skill.name || "").trim();
+        if (!skillName) return;
+        const categoryId = category.id;
+        const isCoreSkill = isBaseSkill(categoryId, skillName);
+        const action = prompt(
+            "Action admin: points | cap | renommer | supprimer",
+            "points"
+        );
+        if (!action) return;
+        const normalizedAction = normalizeSkillName(action);
+
+        if (normalizedAction === "points" || normalizedAction === "point") {
+            const currentBase = Number(skillsState.baseValuesByCategory?.[categoryId]?.[skillName]) || 0;
+            const nextRaw = prompt(`Base de "${skillName}"`, String(currentBase));
+            if (nextRaw == null) return;
+            const nextValue = Number(nextRaw);
+            if (!Number.isFinite(nextValue) || nextValue < 0) {
+                updateFeedback("Valeur invalide.");
+                return;
+            }
+            skillsState.baseValuesByCategory[categoryId] = skillsState.baseValuesByCategory[categoryId] || {};
+            skillsState.baseValuesByCategory[categoryId][skillName] = Math.floor(nextValue);
+            saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+            renderSkillsCategory(getActiveCategory());
+            updateFeedback(`Base mise a jour: ${skillName}.`);
+            return;
+        }
+
+        if (normalizedAction === "cap") {
+            const currentCap = getSkillCap(skill);
+            const nextRaw = prompt(`Cap de "${skillName}"`, String(currentCap));
+            if (nextRaw == null) return;
+            const nextCap = Number(nextRaw);
+            if (!Number.isFinite(nextCap) || nextCap <= 0) {
+                updateFeedback("Cap invalide.");
+                return;
+            }
+            skill.cap = Math.floor(nextCap);
+            syncCustomSkillRecord(categoryId, skillName, { cap: skill.cap });
+            renderSkillsCategory(getActiveCategory());
+            updateFeedback(`Cap mis a jour: ${skillName}.`);
+            return;
+        }
+
+        if (normalizedAction === "renommer") {
+            if (isCoreSkill) {
+                updateFeedback("Renommage des competences natives: bloc global a faire.");
+                return;
+            }
+            const nextName = prompt("Nouveau nom", skillName);
+            if (!nextName) return;
+            const cleanName = String(nextName).trim();
+            if (!cleanName || cleanName === skillName) return;
+            if ((category.skills || []).some((entry) => normalizeSkillName(entry?.name) === normalizeSkillName(cleanName))) {
+                updateFeedback("Nom deja utilise.");
+                return;
+            }
+            moveSkillStateKeys(categoryId, skillName, cleanName);
+            syncCustomSkillRecord(categoryId, skillName, { name: cleanName });
+            skill.name = cleanName;
+            renderSkillsCategory(getActiveCategory());
+            updateFeedback(`Competence renommee en "${cleanName}".`);
+            return;
+        }
+
+        if (normalizedAction === "supprimer") {
+            if (isCoreSkill) {
+                updateFeedback("Suppression des competences natives: bloc global a faire.");
+                return;
+            }
+            if (!confirm(`Supprimer "${skillName}" ?`)) return;
+            const list = Array.isArray(category.skills) ? category.skills : [];
+            category.skills = list.filter((entry) => normalizeSkillName(entry?.name) !== normalizeSkillName(skillName));
+            deleteSkillState(categoryId, skillName);
+            syncCustomSkillRecord(categoryId, skillName, null);
+            renderSkillsTabs();
+            renderSkillsCategory(getActiveCategory());
+            updateFeedback(`Competence supprimee: ${skillName}.`);
+            return;
+        }
+
+        updateFeedback("Action inconnue.");
     }
 
     function buildDefaultCompetences() {
@@ -608,6 +755,19 @@
             });
 
             controls.append(decBtn, value, incBtn);
+            if (skillsState.isAdmin) {
+                const editBtn = document.createElement("button");
+                editBtn.type = "button";
+                editBtn.className = "skills-admin-edit-btn";
+                editBtn.textContent = "Modifier";
+                editBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
+                editBtn.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openAdminSkillEditor(category, skill);
+                });
+                controls.append(editBtn);
+            }
             li.append(icon, name, controls);
             bindBonusTooltip(li, {
                 natif: base + allocation,
@@ -976,7 +1136,7 @@
             if (!entry) return;
             const sourceLabel = entry?.name || entry?.item_key || "Consommable";
             if (Array.isArray(entry.modifiers)) {
-                applyModifiers(tools.dedupeModifiers ? tools.dedupeModifiers(entry.modifiers) : entry.modifiers, sourceLabel);
+                applyModifiers(entry.modifiers, sourceLabel);
                 return;
             }
             const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
