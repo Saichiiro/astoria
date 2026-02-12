@@ -113,7 +113,8 @@
 }
 
 .codex-admin-backdrop,
-.codex-cropper-backdrop {
+.codex-cropper-backdrop,
+.codex-skills-picker-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
@@ -125,7 +126,8 @@
 }
 
 .codex-admin-backdrop.open,
-.codex-cropper-backdrop.open {
+.codex-cropper-backdrop.open,
+.codex-skills-picker-backdrop.open {
     display: flex;
 }
 
@@ -138,6 +140,28 @@
     border: 2px solid var(--color-primary-light);
     padding: var(--space-4) var(--space-4) var(--space-3);
     box-shadow: var(--shadow-2xl);
+}
+
+.codex-admin-modal {
+    max-height: min(92vh, 980px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#adminItemForm {
+    max-height: calc(92vh - 140px);
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+#adminItemForm::-webkit-scrollbar {
+    width: 8px;
+}
+
+#adminItemForm::-webkit-scrollbar-thumb {
+    background: rgba(216, 27, 96, 0.35);
+    border-radius: 999px;
 }
 
 .codex-admin-header,
@@ -351,6 +375,239 @@
     font-style: italic;
 }
 
+.codex-admin-modifier-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.codex-admin-modifier-tools {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.codex-modifier-quick-btn {
+    border: 1px solid rgba(216, 27, 96, 0.32);
+    background: rgba(255, 255, 255, 0.85);
+    color: #7a1242;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.codex-modifier-quick-btn:hover {
+    background: rgba(255, 106, 162, 0.14);
+}
+
+.codex-skills-picker-backdrop {
+    z-index: calc(var(--z-modal) + 10);
+}
+
+.codex-skills-picker-modal {
+    width: min(960px, 100%);
+    max-height: min(88vh, 920px);
+    background: #fff;
+    border-radius: 14px;
+    border: 2px solid rgba(216, 27, 96, 0.24);
+    box-shadow: var(--shadow-2xl);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.codex-skills-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-bottom: 1px solid rgba(216, 27, 96, 0.16);
+}
+
+.codex-skills-picker-title {
+    margin: 0;
+    font-size: var(--text-lg);
+    color: #8b1c54;
+}
+
+.codex-skills-picker-close {
+    border: none;
+    background: transparent;
+    color: #8b1c54;
+    font-size: 1.15rem;
+    cursor: pointer;
+}
+
+.codex-skills-picker-toolbar {
+    padding: 0 var(--space-5) var(--space-3);
+    border-bottom: 1px solid rgba(216, 27, 96, 0.14);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.codex-skills-picker-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    max-height: 88px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.codex-skills-picker-chip {
+    border: 1px solid rgba(216, 27, 96, 0.26);
+    background: rgba(255, 255, 255, 0.92);
+    color: #7a1242;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.16s ease;
+}
+
+.codex-skills-picker-chip:hover {
+    transform: translateY(-1px);
+}
+
+.codex-skills-picker-chip.active {
+    background: linear-gradient(135deg, #e91e63, #ff6aa2);
+    border-color: transparent;
+    color: #fff;
+}
+
+.codex-skills-picker-chip-icon {
+    font-size: 0.85rem;
+}
+
+.codex-skills-picker-list {
+    flex: 1;
+    min-height: 180px;
+    overflow-y: auto;
+    padding: var(--space-3) var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.codex-skills-picker-item {
+    border: 1px solid rgba(216, 27, 96, 0.18);
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.codex-skills-picker-item:hover {
+    border-color: rgba(216, 27, 96, 0.34);
+    background: rgba(252, 228, 236, 0.5);
+}
+
+.codex-skills-picker-item-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.codex-skills-picker-item-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(216, 27, 96, 0.2);
+    background: rgba(255, 255, 255, 0.8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+}
+
+.codex-skills-picker-item-info {
+    min-width: 0;
+}
+
+.codex-skills-picker-item-name {
+    color: #5a2544;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.codex-skills-picker-item-category {
+    color: #8d627a;
+    font-size: 0.76rem;
+    margin-top: 2px;
+}
+
+.codex-skills-picker-item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.codex-skills-picker-item-btn {
+    border: 1px solid rgba(216, 27, 96, 0.32);
+    background: #fff;
+    color: #7a1242;
+    border-radius: 9px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.codex-skills-picker-item-btn.alt {
+    color: #4a2c8f;
+    border-color: rgba(110, 64, 212, 0.35);
+}
+
+.codex-skills-picker-empty {
+    color: #7a5a71;
+    font-size: 0.88rem;
+    border: 1px dashed rgba(216, 27, 96, 0.26);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+
+.codex-skills-picker-custom {
+    border-top: 1px solid rgba(216, 27, 96, 0.15);
+    padding: var(--space-3) var(--space-5);
+    background: rgba(252, 244, 248, 0.74);
+}
+
+.codex-skills-picker-custom-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #7a1242;
+    margin-bottom: var(--space-2);
+}
+
+.codex-skills-picker-custom-row {
+    display: grid;
+    grid-template-columns: 1.8fr 0.8fr auto;
+    gap: var(--space-2);
+}
+
+.codex-skills-picker-actions {
+    border-top: 1px solid rgba(216, 27, 96, 0.12);
+    padding: var(--space-3) var(--space-5);
+    display: flex;
+    justify-content: flex-end;
+}
+
 .codex-admin-image {
     display: flex;
     align-items: center;
@@ -561,6 +818,53 @@
     margin-left: 6px;
 }
 
+.modal-meta-line {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: 6px;
+}
+
+.item-rank-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: rgba(123, 46, 82, 0.1);
+    color: #7b2e52;
+    border: 1px solid rgba(123, 46, 82, 0.35);
+    font-weight: 700;
+    font-size: 0.82rem;
+}
+
+.item-rarity-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--rarity-color, #8b5bff) 18%, #ffffff);
+    color: #4d2a48;
+    border: 1px solid color-mix(in srgb, var(--rarity-color, #8b5bff) 60%, #ffffff);
+    font-weight: 700;
+    font-size: 0.82rem;
+    box-shadow: 0 0 14px color-mix(in srgb, var(--rarity-color, #8b5bff) 45%, transparent);
+}
+
+.modal-attrs {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.item-attr-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(106, 43, 90, 0.2);
+    background: rgba(106, 43, 90, 0.08);
+    color: #6a2b5a;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
 .codex-mod-badges {
     display: flex;
     flex-wrap: wrap;
@@ -602,6 +906,40 @@
 .effect-summary {
     font-size: 0.8rem;
     color: var(--color-gray-700);
+}
+
+.effect-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.effect-group + .effect-group {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(216, 27, 96, 0.2);
+}
+
+.effect-group-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #7a1242;
+}
+
+.codex-effect-list {
+    margin: 8px 0 0;
+    padding-left: 18px;
+}
+
+.codex-effect-line {
+    margin-bottom: 6px;
+    color: #5a4256;
+}
+
+.codex-effect-text {
+    color: #5a4256;
 }
 
 .codex-mod-list {
@@ -745,6 +1083,25 @@
     gap: 10px;
 }
 
+.item-meta-row {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.name-cell .item-rarity-badge,
+.name-cell .item-rank-badge {
+    font-size: 0.74rem;
+    padding: 2px 8px;
+}
+
+.name-cell .item-attr-chip {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+}
+
 .desc-text {
     font-size: 0.84rem;
 }
@@ -781,9 +1138,39 @@
         grid-template-columns: 1fr;
     }
 
+    .codex-admin-modifiers-inputs {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .codex-modifier-type {
+        grid-column: 1;
+    }
+
+    .codex-modifier-add {
+        grid-column: 2;
+        width: 100%;
+    }
+
     .codex-admin-image {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .codex-skills-picker-modal {
+        max-height: 92vh;
+    }
+
+    .codex-skills-picker-header,
+    .codex-skills-picker-toolbar,
+    .codex-skills-picker-list,
+    .codex-skills-picker-custom,
+    .codex-skills-picker-actions {
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
+    }
+
+    .codex-skills-picker-custom-row {
+        grid-template-columns: 1fr;
     }
 }
 

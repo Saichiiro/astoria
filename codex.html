@@ -253,7 +253,7 @@
                         <div class="codex-admin-modifiers-list" id="adminItemModifiersList"></div>
                         <div class="codex-admin-modifiers-form">
                             <div class="codex-admin-modifiers-inputs">
-                                <input type="text" class="codex-admin-input tw-input codex-modifier-stat" id="modifierStatInput" placeholder="Stat (ex: Force, Vitesse)">
+                                <input type="text" class="codex-admin-input tw-input codex-modifier-stat" id="modifierStatInput" list="modifierStatSuggestions" placeholder="Choisir une compétence..." readonly>
                                 <input type="number" class="codex-admin-input tw-input codex-modifier-value" id="modifierValueInput" placeholder="Valeur" step="1">
                                 <select class="codex-admin-input tw-input codex-modifier-type" id="modifierTypeInput">
                                     <option value="flat">Points</option>
@@ -261,6 +261,11 @@
                                 </select>
                                 <button type="button" class="codex-admin-button secondary tw-press codex-modifier-add" id="addModifierBtn">+ Ajouter</button>
                             </div>
+                            <div class="codex-admin-modifier-tools">
+                                <button type="button" class="codex-admin-button secondary tw-press" id="openModifierSkillsPicker">Choisir depuis compétences</button>
+                            </div>
+                            <div class="codex-admin-modifier-quick" id="modifierQuickPicks"></div>
+                            <datalist id="modifierStatSuggestions"></datalist>
                             <div class="codex-admin-modifiers-hint">Ajoutez des modificateurs de statistiques comme "+5 Force" ou "+10% Vitesse"</div>
                         </div>
                     </div>
@@ -288,6 +293,33 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+    <div class="codex-skills-picker-backdrop" id="codexSkillsPickerBackdrop" aria-hidden="true">
+        <div class="codex-skills-picker-modal" role="dialog" aria-modal="true" aria-labelledby="codexSkillsPickerTitle">
+            <div class="codex-skills-picker-header">
+                <h2 class="codex-skills-picker-title" id="codexSkillsPickerTitle">Selectionner une compétence</h2>
+                <button type="button" class="codex-skills-picker-close tw-press" id="codexSkillsPickerClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="codex-skills-picker-toolbar">
+                <input type="search" class="codex-admin-input tw-input" id="codexSkillsPickerSearch" placeholder="Rechercher une compétence...">
+                <div class="codex-skills-picker-categories" id="codexSkillsPickerCategories"></div>
+            </div>
+            <div class="codex-skills-picker-list" id="codexSkillsPickerList"></div>
+            <div class="codex-skills-picker-custom">
+                <div class="codex-skills-picker-custom-title">Cas extrême / custom</div>
+                <div class="codex-skills-picker-custom-row">
+                    <input type="text" class="codex-admin-input tw-input" id="codexSkillsPickerCustomName" placeholder="Nom personnalisé">
+                    <select class="codex-admin-input tw-input" id="codexSkillsPickerCustomType">
+                        <option value="flat">Points</option>
+                        <option value="percent">Pourcentage</option>
+                    </select>
+                    <button type="button" class="codex-admin-button secondary tw-press" id="codexSkillsPickerCustomApply">Utiliser</button>
+                </div>
+            </div>
+            <div class="codex-skills-picker-actions">
+                <button type="button" class="codex-admin-button secondary tw-press" id="codexSkillsPickerCancel">Fermer</button>
+            </div>
         </div>
     </div>
     <div class="codex-cropper-backdrop" id="itemCropperBackdrop" aria-hidden="true">
@@ -375,6 +407,7 @@
     <script src="js/image-helpers.js"></script>
     <script src="js/data.js"></script>
     <script src="js/item-modifiers.js"></script>
+    <script src="js/item-display-meta.js"></script>
     <!-- External Libraries (CDN) - MUST LOAD FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>

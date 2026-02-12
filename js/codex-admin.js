@@ -30,6 +30,18 @@ const dom = {
     modifierValueInput: document.getElementById('modifierValueInput'),
     modifierTypeInput: document.getElementById('modifierTypeInput'),
     addModifierBtn: document.getElementById('addModifierBtn'),
+    modifierQuickPicks: document.getElementById('modifierQuickPicks'),
+    modifierStatSuggestions: document.getElementById('modifierStatSuggestions'),
+    openModifierSkillsPickerBtn: document.getElementById('openModifierSkillsPicker'),
+    skillsPickerBackdrop: document.getElementById('codexSkillsPickerBackdrop'),
+    skillsPickerClose: document.getElementById('codexSkillsPickerClose'),
+    skillsPickerCancel: document.getElementById('codexSkillsPickerCancel'),
+    skillsPickerSearch: document.getElementById('codexSkillsPickerSearch'),
+    skillsPickerCategories: document.getElementById('codexSkillsPickerCategories'),
+    skillsPickerList: document.getElementById('codexSkillsPickerList'),
+    skillsPickerCustomName: document.getElementById('codexSkillsPickerCustomName'),
+    skillsPickerCustomType: document.getElementById('codexSkillsPickerCustomType'),
+    skillsPickerCustomApply: document.getElementById('codexSkillsPickerCustomApply'),
     imageBtn: document.getElementById('adminItemImageBtn'),
     imageInput: document.getElementById('adminItemImageInput'),
     imagePreview: document.getElementById('adminItemImagePreview'),
@@ -72,13 +84,48 @@ const knownCategories = new Set();
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 let dbItemsByKey = new Map();
 let currentModifiers = [];
+let modifierSkillsCatalog = [];
+let modifierSkillCategories = [];
+const modifierSkillsState = { query: '', category: 'all' };
+const DEFAULT_MODIFIER_STATS = Object.freeze([
+    'Force', 'Agilite', 'Defense', 'Attaque', 'Magie', 'Vitesse', 'Critique',
+    'Endurance', 'Resistance', 'Perception', 'Intelligence', 'Puissance',
+    'Precision', 'Maitrise d\'arme', 'Leadership', 'Raffinement', 'Intimidation',
+    'Durance', 'Charme', 'Prestance'
+]);
+
+function normalizeSearchText(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getSkillsCategories() {
+    return Array.isArray(window.skillsCategories) ? window.skillsCategories : [];
+}
+
+function isSkillsPickerOpen() {
+    return Boolean(dom.skillsPickerBackdrop?.classList.contains('open'));
+}
 
 // Modifier management functions
 function addModifier(stat, value, type = 'flat') {
     if (!stat || !stat.trim() || value === 0 || isNaN(value)) return;
+    const normalizedStat = String(stat).trim();
 
     const modifier = {
-        stat: stat.trim(),
+        stat: normalizedStat,
         value: parseFloat(value),
         type: type
     };
@@ -110,7 +157,7 @@ function renderModifiers() {
         return `
             <div class="${className}">
                 <span>${label}</span>
-                <button type="button" class="codex-modifier-pill-remove" data-index="${index}">×</button>
+                <button type="button" class="codex-modifier-pill-remove" data-index="${index}">&times;</button>
             </div>
         `;
     }).join('');
@@ -128,6 +175,210 @@ function clearModifierInputs() {
     if (dom.modifierStatInput) dom.modifierStatInput.value = '';
     if (dom.modifierValueInput) dom.modifierValueInput.value = '';
     if (dom.modifierTypeInput) dom.modifierTypeInput.value = 'flat';
+}
+
+function buildModifierStatCatalog(items = []) {
+    const set = new Set(DEFAULT_MODIFIER_STATS);
+    getSkillsCategories().forEach((category) => {
+        (Array.isArray(category?.skills) ? category.skills : []).forEach((skill) => {
+            const skillName = String(skill?.name || '').trim();
+            if (skillName) set.add(skillName);
+        });
+    });
+    (items || []).forEach((item) => {
+        const mods = Array.isArray(item?.modifiers) ? item.modifiers : [];
+        mods.forEach((mod) => {
+            const stat = String(mod?.stat || '').trim();
+            if (stat) set.add(stat);
+        });
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fr'));
+}
+
+function buildModifierSkillsCatalog(items = []) {
+    const categories = [];
+    const entries = [];
+    const seenStats = new Set();
+    const categoryById = new Map();
+
+    getSkillsCategories().forEach((category) => {
+        const categoryId = String(category?.id || '').trim() || `cat-${categories.length}`;
+        const categoryLabel = String(category?.label || categoryId).trim();
+        const iconText = String(category?.icon || '').trim();
+        const icon = (iconText && iconText.length <= 3) ? iconText : (categoryLabel.charAt(0).toUpperCase() || '*');
+        const categoryEntry = { id: categoryId, label: categoryLabel, icon };
+        categories.push(categoryEntry);
+        categoryById.set(categoryId, categoryEntry);
+
+        (Array.isArray(category?.skills) ? category.skills : []).forEach((skill) => {
+            const stat = String(skill?.name || '').trim();
+            if (!stat) return;
+            const normalized = normalizeSearchText(stat);
+            if (seenStats.has(normalized)) return;
+            seenStats.add(normalized);
+            entries.push({
+                stat,
+                categoryId,
+                categoryLabel,
+                icon
+            });
+        });
+    });
+
+    buildModifierStatCatalog(items).forEach((stat) => {
+        const normalized = normalizeSearchText(stat);
+        if (seenStats.has(normalized)) return;
+        seenStats.add(normalized);
+        entries.push({
+            stat,
+            categoryId: 'other',
+            categoryLabel: 'Autres',
+            icon: '*'
+        });
+    });
+
+    if (!categoryById.has('other') && entries.some((entry) => entry.categoryId === 'other')) {
+        categories.push({ id: 'other', label: 'Autres', icon: '*' });
+    }
+
+    modifierSkillCategories = categories.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+    modifierSkillsCatalog = entries.sort((a, b) => {
+        const byCategory = a.categoryLabel.localeCompare(b.categoryLabel, 'fr');
+        if (byCategory !== 0) return byCategory;
+        return a.stat.localeCompare(b.stat, 'fr');
+    });
+}
+
+function applySkillToModifierInput(stat, type = 'flat') {
+    if (dom.modifierStatInput) {
+        dom.modifierStatInput.value = String(stat || '').trim();
+    }
+    if (dom.modifierTypeInput) {
+        dom.modifierTypeInput.value = type === 'percent' ? 'percent' : 'flat';
+    }
+    dom.modifierValueInput?.focus();
+}
+
+function getFilteredModifierSkills() {
+    const query = normalizeSearchText(modifierSkillsState.query);
+    return modifierSkillsCatalog.filter((entry) => {
+        if (modifierSkillsState.category !== 'all' && entry.categoryId !== modifierSkillsState.category) {
+            return false;
+        }
+        if (!query) return true;
+        return normalizeSearchText(`${entry.stat} ${entry.categoryLabel}`).includes(query);
+    });
+}
+
+function renderModifierSkillsCategories() {
+    if (!dom.skillsPickerCategories) return;
+
+    const categories = [{ id: 'all', label: 'Toutes', icon: 'T' }, ...modifierSkillCategories];
+    dom.skillsPickerCategories.innerHTML = categories
+        .map((category) => `
+            <button
+                type="button"
+                class="codex-skills-picker-chip${modifierSkillsState.category === category.id ? ' active' : ''}"
+                data-category="${escapeHtml(category.id)}">
+                <span class="codex-skills-picker-chip-icon">${escapeHtml(category.icon)}</span>
+                <span>${escapeHtml(category.label)}</span>
+            </button>
+        `)
+        .join('');
+
+    dom.skillsPickerCategories.querySelectorAll('.codex-skills-picker-chip').forEach((button) => {
+        button.addEventListener('click', () => {
+            modifierSkillsState.category = button.dataset.category || 'all';
+            renderModifierSkillsCategories();
+            renderModifierSkillsList();
+        });
+    });
+}
+
+function renderModifierSkillsList() {
+    if (!dom.skillsPickerList) return;
+    const rows = getFilteredModifierSkills();
+
+    if (!rows.length) {
+        dom.skillsPickerList.innerHTML = '<div class="codex-skills-picker-empty">Aucune competence trouvee.</div>';
+        return;
+    }
+
+    dom.skillsPickerList.innerHTML = rows
+        .map((entry) => `
+            <div class="codex-skills-picker-item" data-stat="${escapeHtml(entry.stat)}">
+                <div class="codex-skills-picker-item-main">
+                    <div class="codex-skills-picker-item-icon">${escapeHtml(entry.icon)}</div>
+                    <div class="codex-skills-picker-item-info">
+                        <div class="codex-skills-picker-item-name">${escapeHtml(entry.stat)}</div>
+                        <div class="codex-skills-picker-item-category">${escapeHtml(entry.categoryLabel)}</div>
+                    </div>
+                </div>
+                <div class="codex-skills-picker-item-actions">
+                    <button type="button" class="codex-skills-picker-item-btn" data-action="pick-flat" data-stat="${escapeHtml(entry.stat)}">Points</button>
+                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="pick-percent" data-stat="${escapeHtml(entry.stat)}">%</button>
+                </div>
+            </div>
+        `)
+        .join('');
+
+    dom.skillsPickerList.querySelectorAll('.codex-skills-picker-item').forEach((row) => {
+        row.addEventListener('click', (event) => {
+            const actionButton = event.target.closest('.codex-skills-picker-item-btn');
+            const stat = actionButton?.dataset.stat || row.dataset.stat || '';
+            if (!stat) return;
+
+            if (actionButton) {
+                const type = actionButton.dataset.action === 'pick-percent' ? 'percent' : 'flat';
+                applySkillToModifierInput(stat, type);
+                closeModifierSkillsPicker();
+                return;
+            }
+
+            applySkillToModifierInput(stat, 'flat');
+            closeModifierSkillsPicker();
+        });
+    });
+}
+
+function openModifierSkillsPicker() {
+    buildModifierSkillsCatalog(Array.from(dbItemsByKey.values()));
+    modifierSkillsState.query = '';
+    modifierSkillsState.category = 'all';
+    if (dom.skillsPickerSearch) dom.skillsPickerSearch.value = '';
+    renderModifierSkillsCategories();
+    renderModifierSkillsList();
+    openBackdrop(dom.skillsPickerBackdrop);
+    dom.skillsPickerSearch?.focus();
+}
+
+function closeModifierSkillsPicker() {
+    closeBackdrop(dom.skillsPickerBackdrop);
+}
+
+function renderModifierPickers(items = []) {
+    const stats = buildModifierStatCatalog(items);
+    buildModifierSkillsCatalog(items);
+
+    if (dom.modifierStatSuggestions) {
+        dom.modifierStatSuggestions.innerHTML = stats
+            .map((stat) => `<option value="${escapeHtml(stat)}"></option>`)
+            .join('');
+    }
+
+    if (dom.modifierQuickPicks) {
+        const quick = stats.slice(0, 12);
+        dom.modifierQuickPicks.innerHTML = quick
+            .map((stat) => `<button type="button" class="codex-modifier-quick-btn" data-stat="${escapeHtml(stat)}">${escapeHtml(stat)}</button>`)
+            .join('');
+
+        dom.modifierQuickPicks.querySelectorAll('.codex-modifier-quick-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                if (!dom.modifierStatInput) return;
+                applySkillToModifierInput(btn.dataset.stat || '', dom.modifierTypeInput?.value || 'flat');
+            });
+        });
+    }
 }
 
 function loadModifiersFromItem(item) {
@@ -520,10 +771,12 @@ async function openAdminModal(item) {
     }
 
     openBackdrop(dom.backdrop);
+    dom.form?.scrollTo({ top: 0, behavior: 'auto' });
     dom.nameInput?.focus();
 }
 
 function closeAdminModal() {
+    closeModifierSkillsPicker();
     closeBackdrop(dom.backdrop);
     resetImagePreview();
     imageBlob = null;
@@ -746,11 +999,15 @@ async function saveItem(event) {
 
     const rarityVal = dom.rarityInput ? normalizeRarity(dom.rarityInput.value) : '';
     const rankVal = dom.rankInput ? normalizeRank(dom.rankInput.value) : '';
+    const normalizedEffect = dom.effectInput.value
+        .trim()
+        .replace(/^(?:effets?\s*:\s*)+/i, '')
+        .trim();
 
     const payload = {
         name,
         description: dom.descriptionInput.value.trim(),
-        effect: dom.effectInput.value.trim(),
+        effect: normalizedEffect,
         category: dom.categoryInput.value.trim().toLowerCase(),
         price_kaels: parsePrice(dom.sellInput.value),
         equipment_slot: equipmentSlotVal || null,
@@ -903,6 +1160,7 @@ async function loadDbItems() {
             .filter(([key]) => key)
     );
     collectCategories(mapped);
+    renderModifierPickers(mapped);
     renderCategoryOptions();
     if (typeof window.astoriaCodex.setDbItems === 'function') {
         window.astoriaCodex.setDbItems(mapped);
@@ -948,6 +1206,7 @@ async function init() {
     dom.addBtn.hidden = false;
 
     renderCategoryOptions();
+    renderModifierPickers();
 
     dom.addBtn.addEventListener('click', async () => await openAdminModal(null));
     dom.closeBtn?.addEventListener('click', closeAdminModal);
@@ -966,6 +1225,42 @@ async function init() {
     });
     dom.cropperBackdrop?.addEventListener('click', (e) => {
         if (e.target === dom.cropperBackdrop) closeCropper();
+    });
+    dom.skillsPickerBackdrop?.addEventListener('click', (e) => {
+        if (e.target === dom.skillsPickerBackdrop) closeModifierSkillsPicker();
+    });
+
+    dom.openModifierSkillsPickerBtn?.addEventListener('click', (event) => {
+        event.preventDefault();
+        openModifierSkillsPicker();
+    });
+    dom.modifierStatInput?.addEventListener('click', () => openModifierSkillsPicker());
+    dom.modifierStatInput?.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openModifierSkillsPicker();
+    });
+    dom.skillsPickerClose?.addEventListener('click', closeModifierSkillsPicker);
+    dom.skillsPickerCancel?.addEventListener('click', closeModifierSkillsPicker);
+    dom.skillsPickerSearch?.addEventListener('input', (event) => {
+        modifierSkillsState.query = String(event.target?.value || '');
+        renderModifierSkillsList();
+    });
+    dom.skillsPickerCustomApply?.addEventListener('click', () => {
+        const customStat = String(dom.skillsPickerCustomName?.value || '').trim();
+        if (!customStat) {
+            dom.skillsPickerCustomName?.focus();
+            return;
+        }
+        const customType = dom.skillsPickerCustomType?.value === 'percent' ? 'percent' : 'flat';
+        applySkillToModifierInput(customStat, customType);
+        if (dom.skillsPickerCustomName) dom.skillsPickerCustomName.value = '';
+        closeModifierSkillsPicker();
+    });
+    dom.skillsPickerCustomName?.addEventListener('keypress', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        dom.skillsPickerCustomApply?.click();
     });
 
     // Modifier management
@@ -1089,12 +1384,14 @@ async function init() {
 
     document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape') return;
-        if (dom.deleteBackdrop?.classList.contains('open')) {
+        if (isSkillsPickerOpen()) {
+            closeModifierSkillsPicker();
+        } else if (dom.deleteBackdrop?.classList.contains('open')) {
             closeDeleteModal();
-        } else if (dom.backdrop?.classList.contains('open')) {
-            closeAdminModal();
         } else if (dom.cropperBackdrop?.classList.contains('open')) {
             closeCropper();
+        } else if (dom.backdrop?.classList.contains('open')) {
+            closeAdminModal();
         }
     });
 
@@ -1102,3 +1399,4 @@ async function init() {
 }
 
 init();
+

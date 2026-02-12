@@ -666,6 +666,9 @@ body.quest-board {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .quest-history-filter {
@@ -722,8 +725,23 @@ body.quest-board {
     font-size: 0.95rem;
 }
 
+.quest-history-table-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 106, 162, 0.2);
+}
+
 .quest-history-table thead {
     background: rgba(255, 106, 162, 0.2);
+}
+
+.quest-history-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: rgba(255, 206, 226, 0.95);
 }
 
 .quest-history-table th,
@@ -860,6 +878,8 @@ body.quest-board {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-height: 280px;
+    overflow-y: auto;
 }
 
 .quest-modal-panel li {

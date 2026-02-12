@@ -1214,6 +1214,7 @@ async function applyInventoryDelta(characterId, itemName, delta) {
     const sourceIndex = null;
     const normalized = normalizeText(itemName);
     const entry = rows.find((row) =>
+        (item?.id && row?.item_id && String(row.item_id) === String(item.id)) ||
         normalizeText(row?.item_key) === normalized ||
         normalizeText(row?.name) === normalized
     ) || null;
@@ -1223,14 +1224,20 @@ async function applyInventoryDelta(characterId, itemName, delta) {
 
     const itemKey = item?.name ? String(item.name) : String(itemName || "");
     try {
-        const updated = await setInventoryItem(characterId, itemKey, sourceIndex, nextQty);
+        const updated = await setInventoryItem(characterId, {
+            item_key: itemKey,
+            item_id: item?.id || entry?.item_id || null,
+            item_index: sourceIndex
+        }, nextQty);
         if (entry) {
             entry.qty = nextQty;
             entry.item_key = itemKey;
+            entry.item_id = item?.id || entry?.item_id || null;
             entry.item_index = null;
         } else if (updated) {
             rows.push({
                 id: updated.id,
+                item_id: updated.item_id,
                 item_key: updated.item_key,
                 item_index: updated.item_index,
                 qty: updated.qty

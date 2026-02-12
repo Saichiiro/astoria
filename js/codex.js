@@ -1,4 +1,4 @@
-// On récupère les données depuis data.js (inventoryData)
+﻿// On rÃ©cupÃ¨re les donnÃ©es depuis data.js (inventoryData)
 // Safe sanitizer wrapper with fallback
 function clean(value) {
     if (window.sanitizer?.clean) {
@@ -225,6 +225,27 @@ function getModifierSearchText(item) {
     return badges.map((badge) => badge.label).join(" ");
 }
 
+function getRarityBadgeHtml(item) {
+    const helper = window.astoriaItemDisplayMeta;
+    const rarity = helper?.getRarityMeta ? helper.getRarityMeta(item?.rarity) : null;
+    if (!rarity) return "";
+    return `<span class="item-rarity-badge item-rarity-badge--${clean(rarity.key)}" style="--rarity-color:${clean(rarity.color)}">${clean(rarity.label)}</span>`;
+}
+
+function getRankBadgeHtml(item) {
+    const helper = window.astoriaItemDisplayMeta;
+    const rank = helper?.getRank ? helper.getRank(item?.rank) : "";
+    if (!rank) return "";
+    return `<span class="item-rank-badge">Rang ${clean(rank)}</span>`;
+}
+
+function getAttributesSummaryHtml(item) {
+    const helper = window.astoriaItemDisplayMeta;
+    const lines = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 4) : [];
+    if (!lines.length) return "";
+    return `<span class="modal-label">Attributs :</span><div class="modal-attrs">${lines.map((line) => `<span class="item-attr-chip">${clean(line)}</span>`).join("")}</div>`;
+}
+
 function mergeLocalItems(dbItems, disabledNames) {
     if (!Array.isArray(dbItems)) return [];
     const merged = [];
@@ -283,7 +304,7 @@ const rowCache = new Map();
 
 function replaceItems(nextItems) {
     allItems = Array.isArray(nextItems) ? nextItems.slice() : [];
-    // Trier par ordre alphabétique du nom
+    // Trier par ordre alphabÃ©tique du nom
     allItems.sort((a, b) => {
         const nameA = (a.name || a.nom || "").toLowerCase();
         const nameB = (b.name || b.nom || "").toLowerCase();
@@ -314,7 +335,7 @@ function getOrCreateItemMeta(item, fallbackIndex) {
 
 allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));
 
-// IMAGE FIX : choix du bon visuel + galerie si disponible (via helper partagé)
+// IMAGE FIX : choix du bon visuel + galerie si disponible (via helper partagÃ©)
 function resolveImages(item) {
     const helpers = window.astoriaImageHelpers || {};
 
@@ -325,7 +346,7 @@ function resolveImages(item) {
         }
     }
 
-    // Fallback local (au cas où le helper n'est pas disponible)
+    // Fallback local (au cas oÃ¹ le helper n'est pas disponible)
     const rawImage = (item && (item.image || item.img)) || placeholderImage;
     return {
         primary: rawImage || placeholderImage,
@@ -333,7 +354,7 @@ function resolveImages(item) {
     };
 }
 
-// // CAPE CAROUSEL : navigation image suivante/précédente
+// // CAPE CAROUSEL : navigation image suivante/prÃ©cÃ©dente
 function updateCarouselView(nameForAlt) {
     const altText = nameForAlt || currentCarouselTitle || "Illustration";
     if (!currentCarouselImages || !currentCarouselImages.length) {
@@ -413,7 +434,7 @@ function formatPrice(item) {
 
 function summarizeEffect(effect) {
     if (!effect) return "";
-    const plain = effect.replace(/\s+/g, " ").trim();
+    const plain = String(effect).replace(/\s+/g, " ").trim();
     const maxLen = 110;
     const dotIndex = plain.indexOf(".");
 
@@ -425,12 +446,36 @@ function summarizeEffect(effect) {
     }
 
     if (summary.length < plain.length) {
-        summary += " …";
+        summary += " ...";
     }
     return summary;
 }
 
-// Extrait la première phrase seulement (pour tooltips)
+function normalizeEffectText(effect) {
+    return String(effect || "")
+        .replace(/^(?:effets?\s*:\s*)+/i, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function getEffectEntries(effect) {
+    const normalized = normalizeEffectText(effect);
+    if (!normalized) return [];
+
+    const explicitSplit = normalized
+        .split(/\n+|•|;/g)
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    if (explicitSplit.length > 1) return explicitSplit;
+    return [normalized];
+}
+
+function getEffectLabel(entries) {
+    return (Array.isArray(entries) && entries.length > 1) ? "Effets" : "Effet";
+}
+
+// Extrait la premiÃ¨re phrase seulement (pour tooltips)
 function getFirstSentence(text) {
     if (!text) return "";
     const plain = text.replace(/\s+/g, " ").trim();
@@ -439,19 +484,19 @@ function getFirstSentence(text) {
     if (dotIndex > 0) {
         return plain.slice(0, dotIndex + 1);
     }
-    // Si pas de point, limite à 80 caractères
-    return plain.slice(0, 80) + (plain.length > 80 ? "…" : "");
+    // Si pas de point, limite Ã  80 caractÃ¨res
+    return plain.slice(0, 80) + (plain.length > 80 ? "..." : "");
 }
 
 function getCategoryIcon(category) {
     const icons = {
-        'agricole': '🌾',
-        'consommable': '🧪',
-        'equipement': '⚔️',
-        'materiau': '⚒️',
-        'quete': '✨'
+        agricole: "\uD83C\uDF3E",
+        consommable: "\uD83E\uDDEA",
+        equipement: "\u2694\uFE0F",
+        materiau: "\u2692\uFE0F",
+        quete: "\u2728"
     };
-    return icons[category?.toLowerCase()] || '📦';
+    return icons[category?.toLowerCase()] || "\uD83D\uDCE6";
 }
 
 function buildRow(item, globalIndex) {
@@ -464,8 +509,18 @@ function buildRow(item, globalIndex) {
     const priceText = formatPrice(item);
     const buyLine = buy ? `${buy} (achat)` : "-";
     const sellLine = sell ? `${sell} (vente)` : "-";
-    const effectSummary = summarizeEffect(effect);
+    const effectEntries = getEffectEntries(effect);
+    const effectSummary = summarizeEffect(effectEntries[0] || "");
+    const effectLabel = getEffectLabel(effectEntries);
     const modifiersHtml = getModifierBadgesHtml(item, 2);
+    const rarityBadge = getRarityBadgeHtml(item);
+    const rankBadge = getRankBadgeHtml(item);
+    const attrChips = (() => {
+        const helper = window.astoriaItemDisplayMeta;
+        const lines = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 2) : [];
+        if (!lines.length) return "";
+        return `<span class="item-attr-chip">${clean(lines.join(" | "))}</span>`;
+    })();
     const images = resolveImages(item);
     const meta = getOrCreateItemMeta(item, globalIndex);
     const keyAttr = clean(meta.key);
@@ -513,6 +568,7 @@ function buildRow(item, globalIndex) {
                 <span class="category-icon" title="${clean(category || 'Autre')}">${categoryIcon}</span>
                 ${nameContent}
                 ${badgesHtml}
+                ${(rarityBadge || rankBadge || attrChips) ? `<div class="item-meta-row">${rarityBadge}${rankBadge}${attrChips}</div>` : ""}
             </td>
             <td class="desc-cell" data-label="Description">
                 <div class="desc-container">
@@ -524,7 +580,11 @@ function buildRow(item, globalIndex) {
                 <span class="commerce-line">${highlightedBuyLine}</span>
                 <span class="commerce-line">${highlightedSellLine}</span>
             </td>
-            <td class="effect-cell" data-label="Effet">${modifiersHtml || (highlightedEffect ? `<div class="effect-summary">${highlightedEffect}</div>` : "")}</td>
+            <td class="effect-cell" data-label="Effet">
+                ${highlightedEffect ? `<div class="effect-group"><span class="effect-group-label">${effectLabel}</span><div class="effect-summary">${highlightedEffect}</div></div>` : ""}
+                ${modifiersHtml ? `<div class="effect-group"><span class="effect-group-label">Modificateurs</span>${modifiersHtml}</div>` : ""}
+                ${(!highlightedEffect && !modifiersHtml) ? `<span class="text-muted">-</span>` : ""}
+            </td>
             <td class="action-cell" data-label="Action">
                 ${window.astoriaIsAdmin
                     ? `<button class="edit-btn" type="button" data-edit-index="${globalIndex}" title="Modifier l'objet">Modifier</button>`
@@ -536,7 +596,7 @@ function buildRow(item, globalIndex) {
     return rowHtml;
 }
 
-// DEPRECATED - Tooltip supprimé, on utilise seulement le bouton "Plus"
+// DEPRECATED - Tooltip supprimÃ©, on utilise seulement le bouton "Plus"
 // function setupTooltipHandlers() { ... }
 
 function getOrCreateRowElement(item, globalIndex) {
@@ -589,9 +649,9 @@ function loadTable(data, searchQuery) {
             <tr>
                 <td colspan="6" class="empty-state-cell">
                     <div class="empty-state">
-                        <div class="empty-state-icon">🔍</div>
-                        <div class="empty-state-title">Aucun objet trouvé</div>
-                        <div class="empty-state-message">Essayez de modifier vos critères de recherche</div>
+                        <div class="empty-state-icon">\uD83D\uDD0D</div>
+                        <div class="empty-state-title">Aucun objet trouve</div>
+                        <div class="empty-state-message">Essayez de modifier vos criteres de recherche</div>
                     </div>
                 </td>
             </tr>
@@ -607,7 +667,7 @@ function loadTable(data, searchQuery) {
         fragment.appendChild(row);
     });
     tableBody.replaceChildren(fragment);
-    // setupTooltipHandlers(); // DEPRECATED - Tooltip supprimé
+    // setupTooltipHandlers(); // DEPRECATED - Tooltip supprimÃ©
 }
 
 // Modal : ouverture / fermeture
@@ -627,6 +687,11 @@ function openItemModal(index) {
     const priceText = formatPrice(item);
     const resolvedImages = resolveImages(item);
     const modifiersHtml = getModifierListHtml(item);
+    const effectEntries = getEffectEntries(effect);
+    const effectLabel = getEffectLabel(effectEntries);
+    const rarityBadge = getRarityBadgeHtml(item);
+    const rankBadge = getRankBadgeHtml(item);
+    const attrsSummary = getAttributesSummaryHtml(item);
 
     modalName.textContent = name;
     currentCarouselImages =
@@ -641,9 +706,10 @@ function openItemModal(index) {
     const slotBadge = equipSlot
         ? ` <span class="modal-slot-badge">${clean(equipSlot.replace(/-/g, ' '))}</span>`
         : '';
+    const metaLine = [rarityBadge, rankBadge].filter(Boolean).join(" ");
     modalCategory.innerHTML = category
-        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${clean(category)}</span>${slotBadge}`
-        : (slotBadge ? `<span class="modal-label">Slot :</span>${slotBadge}` : '');
+        ? `<span class="modal-label">Catégorie :</span> <span class="modal-category-badge">${clean(category)}</span>${slotBadge}${metaLine ? `<span class="modal-meta-line">${metaLine}</span>` : ""}`
+        : ((slotBadge || metaLine) ? `<span class="modal-label">Meta :</span>${slotBadge}${metaLine ? `<span class="modal-meta-line">${metaLine}</span>` : ""}` : "");
     modalDescription.innerHTML = description
         ? `<span class="modal-label">Description :</span> ${clean(description)}`
         : "";
@@ -651,12 +717,13 @@ function openItemModal(index) {
         ? `<span class="modal-label">Prix :</span> ${clean(priceText)}`
         : "";
     if (modalModifiers) {
-        modalModifiers.innerHTML = modifiersHtml;
-        modalModifiers.style.display = modifiersHtml ? "" : "none";
+        modalModifiers.innerHTML = `${attrsSummary}${modifiersHtml}`;
+        modalModifiers.style.display = (attrsSummary || modifiersHtml) ? "" : "none";
     }
-    // Only show plain-text effect if no structured modifiers exist (avoid redundancy)
-    modalEffect.innerHTML = (!modifiersHtml && effect)
-        ? `<span class="modal-label">Effet :</span> ${clean(effect)}`
+    modalEffect.innerHTML = effectEntries.length
+        ? (effectEntries.length > 1
+            ? `<span class="modal-label">${effectLabel} :</span><ul class="codex-effect-list">${effectEntries.map((entry) => `<li class="codex-effect-line">${clean(entry)}</li>`).join("")}</ul>`
+            : `<span class="modal-label">${effectLabel} :</span> <span class="codex-effect-text">${clean(effectEntries[0])}</span>`)
         : "";
 
     modal.classList.add("open");
@@ -864,7 +931,7 @@ function copyToClipboard(text, button) {
             showCopyFeedback(button);
         });
     } else {
-        // Fallback très simple
+        // Fallback trÃ¨s simple
         const textarea = document.createElement("textarea");
         textarea.value = text;
         document.body.appendChild(textarea);
@@ -875,7 +942,7 @@ function copyToClipboard(text, button) {
     }
 }
 
-// Filtrage dynamique par catégorie
+// Filtrage dynamique par catÃ©gorie
 let currentCategory = '';
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
@@ -907,14 +974,14 @@ function filterByCategory() {
     if (!select) return;
     currentCategory = select.value;
 
-    // Mise à jour du titre
+    // Mise Ã  jour du titre
     const titles = {
         '': 'Codex d\'Astoria',
         'agricole': 'Agricole',
         'consommable': 'Consommables',
         'equipement': '\u00c9quipements',
-        'materiau': 'Matériaux',
-        'quete': 'Quêtes'
+        'materiau': 'Materiaux',
+        'quete': 'Quetes'
     };
     if (pageTitle) {
         pageTitle.textContent = titles[currentCategory] || 'Codex d\'Astoria';
@@ -1001,7 +1068,7 @@ function updateCategoryCounts() {
     if (countQuete) countQuete.textContent = counts['quete'];
 }
 
-// Override: filter chips without "Réinitialiser filtres" action chip
+// Override: filter chips without "RÃ©initialiser filtres" action chip
 function updateFilterChips(searchQuery = '') {
     const chipsContainer = filterChips;
     if (!chipsContainer) return;
@@ -1021,13 +1088,13 @@ function updateFilterChips(searchQuery = '') {
         chip.className = 'filter-chip';
         chip.innerHTML = `
             <span>${categoryNames[currentCategory] || ''}</span>
-            <button type="button" class="chip-remove" data-chip-action="clear-category">×</button>
+            <button type="button" class="chip-remove" data-chip-action="clear-category">\u00D7</button>
         `;
         chipsContainer.appendChild(chip);
     }
 }
 
-// Combine recherche + catégorie + tri
+// Combine recherche + catÃ©gorie + tri
 function applyFilters() {
     const searchQuery = (searchInput?.value || '').toLowerCase();
 
@@ -1230,14 +1297,14 @@ function updateSortIndicators() {
         const header = document.querySelector(`th[data-sort="${currentSortColumn}"]`);
         if (header) {
             const indicator = header.querySelector('.sort-indicator');
-            indicator.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
+            indicator.textContent = currentSortDirection === 'asc' ? 'â–²' : 'â–¼';
             indicator.classList.add('active');
             header.setAttribute('aria-sort', currentSortDirection === 'asc' ? 'ascending' : 'descending');
         }
     }
 }
 
-// Initialisation depuis URL (paramètre ?category présent)
+// Initialisation depuis URL (paramÃ¨tre ?category prÃ©sent)
 function initFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const urlCategory = params.get('category');

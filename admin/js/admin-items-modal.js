@@ -81,6 +81,7 @@ export class AdminItemsModal {
                 if (!normalized || this.itemCatalogByNormalizedName.has(normalized)) return;
 
                 this.itemCatalogByNormalizedName.set(normalized, {
+                    id: item?.id || null,
                     name,
                     index: Number.isFinite(index) ? index : null,
                 });
@@ -125,7 +126,11 @@ export class AdminItemsModal {
                 if (existingRow) {
                     const nextQty = Math.floor(Number(existingRow.qty) || 0) + safeQty;
                     updates.push(
-                        setInventoryItem(characterId, String(existingRow.item_key), null, nextQty)
+                        setInventoryItem(characterId, {
+                            item_key: String(existingRow.item_key),
+                            item_id: existingRow.item_id || null,
+                            item_index: null
+                        }, nextQty)
                     );
                     existingRow.qty = nextQty;
                     existingRow.item_index = null;
@@ -133,12 +138,18 @@ export class AdminItemsModal {
                 }
 
                 const catalogEntry = this.itemCatalogByNormalizedName.get(normalized);
+                const itemId = catalogEntry?.id || null;
                 const canonicalName = String(catalogEntry?.name || itemName || '').trim();
                 if (!canonicalName) return;
 
-                updates.push(setInventoryItem(characterId, canonicalName, null, safeQty));
+                updates.push(setInventoryItem(characterId, {
+                    item_key: canonicalName,
+                    item_id: itemId,
+                    item_index: null
+                }, safeQty));
 
                 rowByNormalizedKey.set(normalized, {
+                    item_id: itemId,
                     item_key: canonicalName,
                     item_index: null,
                     qty: safeQty,

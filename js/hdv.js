@@ -570,6 +570,7 @@ function mapInventoryRows(rows) {
         items.push({
             ...item,
             sourceIndex: Number.isFinite(idx) && idx >= 0 ? idx : null,
+            itemId: row?.item_id ? String(row.item_id) : null,
             itemKey: row?.item_key ? String(row.item_key) : String(item?.name || idx),
             quantity: qty
         });
@@ -616,19 +617,36 @@ async function applyInventoryDelta(itemId, delta) {
     if (nextQty < 0) return false;
 
     const canonicalKey = baseItem?.name ? String(baseItem.name) : String(itemId || '');
+    const canonicalItemId = baseItem?.id ? String(baseItem.id) : (entry?.itemId || null);
     const existingKey = entry?.itemKey ? String(entry.itemKey) : null;
     const itemKey = canonicalKey || existingKey || String(sourceIndex);
 
     try {
         if (existingKey && canonicalKey && existingKey !== canonicalKey) {
             if (nextQty > 0) {
-                await setInventoryItem(state.character.id, existingKey, sourceIndex, 0);
-                await setInventoryItem(state.character.id, canonicalKey, sourceIndex, nextQty);
+                await setInventoryItem(state.character.id, {
+                    item_key: existingKey,
+                    item_id: entry?.itemId || null,
+                    item_index: sourceIndex
+                }, 0);
+                await setInventoryItem(state.character.id, {
+                    item_key: canonicalKey,
+                    item_id: canonicalItemId,
+                    item_index: sourceIndex
+                }, nextQty);
             } else {
-                await setInventoryItem(state.character.id, existingKey, sourceIndex, 0);
+                await setInventoryItem(state.character.id, {
+                    item_key: existingKey,
+                    item_id: entry?.itemId || null,
+                    item_index: sourceIndex
+                }, 0);
             }
         } else {
-            await setInventoryItem(state.character.id, itemKey, sourceIndex, nextQty);
+            await setInventoryItem(state.character.id, {
+                item_key: itemKey,
+                item_id: canonicalItemId,
+                item_index: sourceIndex
+            }, nextQty);
         }
     } catch (error) {
         console.error('Inventory update error:', error);
@@ -642,10 +660,12 @@ async function applyInventoryDelta(itemId, delta) {
         if (canonicalKey && existingKey && canonicalKey !== existingKey) {
             entry.itemKey = canonicalKey;
         }
+        entry.itemId = canonicalItemId;
     } else {
         state.inventory.push({
             ...baseItem,
             sourceIndex,
+            itemId: canonicalItemId,
             itemKey,
             quantity: nextQty
         });

@@ -152,11 +152,32 @@
 
         .character-rank {
             grid-column: 1 / -1;
-            text-align: center;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
             font-weight: 600;
             color: var(--inv-text);
             font-size: 0.9rem;
             white-space: nowrap;
+        }
+
+        .character-rank-select {
+            min-width: 86px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(228, 132, 184, 0.65);
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--inv-text);
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .character-rank-select:focus-visible {
+            outline: 2px solid rgba(216, 27, 96, 0.45);
+            outline-offset: 2px;
         }
 
         .character-slot {
@@ -709,7 +730,21 @@
                             </div>
                         </div>
 
-                        <div class="character-rank">Rang : 3</div>
+                        <div class="character-rank">
+                            <label for="characterRankSelect">Rang :</label>
+                            <select id="characterRankSelect" class="character-rank-select" aria-label="Rang du personnage">
+                                <option value="F">F</option>
+                                <option value="E">E</option>
+                                <option value="D">D</option>
+                                <option value="C">C</option>
+                                <option value="B">B</option>
+                                <option value="A">A</option>
+                                <option value="S">S</option>
+                                <option value="S+">S+</option>
+                                <option value="SS">SS</option>
+                                <option value="SSS">SSS</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Stats Section -->
@@ -1339,6 +1374,7 @@
 
 
     <script src="js/item-modifiers.js"></script>
+    <script src="js/item-display-meta.js"></script>
     <script src="js/inventory-stats.js"></script>
 
 
@@ -1766,6 +1802,7 @@
 
 
         let selectedItemIndex = null;
+        let statsPreviewItem = null;
 
 
 
@@ -1826,8 +1863,11 @@
 
 
         let inventoryMigrated = false;
+        let currentCharacterRank = 'F';
 
         const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
+        const CHARACTER_RANK_STORAGE_KEY = 'astoriaInventoryCharacterRank';
+        const CHARACTER_RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
         const EQUIPMENT_SLOT_DEFS = [
             { key: 'head', label: 'Casque', icon: '🪖' },
             { key: 'cape', label: 'Cape', icon: '🧣' },
@@ -1909,6 +1949,7 @@
 
 
         const inventoryContent = document.querySelector('.inventory-content');
+        const characterRankSelect = document.getElementById('characterRankSelect');
 
 
 
@@ -2199,6 +2240,71 @@
 
 
 
+        function normalizeCharacterRank(value) {
+            const rank = String(value || '').trim().toUpperCase();
+            return CHARACTER_RANKS.includes(rank) ? rank : 'F';
+        }
+
+        function applyCharacterRank(rank) {
+            currentCharacterRank = normalizeCharacterRank(rank);
+            if (characterRankSelect) {
+                characterRankSelect.value = currentCharacterRank;
+            }
+        }
+
+        async function loadCharacterRank() {
+            let rank = '';
+
+            if (inventoryStorageMode === 'character' && authApi?.getActiveCharacter) {
+                rank = String(authApi.getActiveCharacter()?.profile_data?.inventory?.characterRank || '');
+            }
+
+            if (!rank) {
+                try {
+                    rank = String(localStorage.getItem(CHARACTER_RANK_STORAGE_KEY) || '');
+                } catch {}
+            }
+
+            applyCharacterRank(rank || 'F');
+        }
+
+        async function persistCharacterRank() {
+            const rank = normalizeCharacterRank(currentCharacterRank);
+
+            try {
+                localStorage.setItem(CHARACTER_RANK_STORAGE_KEY, rank);
+            } catch {}
+
+            if (inventoryStorageMode !== 'character' || !authApi?.getActiveCharacter || !authApi?.updateCharacter) {
+                return;
+            }
+
+            const character = authApi.getActiveCharacter();
+            if (!character?.id) return;
+
+            const currentProfileData = character.profile_data || {};
+            const inventoryData = { ...(currentProfileData.inventory || {}), characterRank: rank };
+            const nextProfileData = { ...currentProfileData, inventory: inventoryData };
+
+            try {
+                await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
+            } catch (error) {
+                console.warn('Character rank save error:', error);
+            }
+        }
+
+        function initCharacterRankControl() {
+            if (!characterRankSelect) return;
+
+            if (!characterRankSelect.dataset.bound) {
+                characterRankSelect.addEventListener('change', () => {
+                    applyCharacterRank(characterRankSelect.value);
+                    void persistCharacterRank();
+                });
+                characterRankSelect.dataset.bound = '1';
+            }
+        }
+
         // =================================================================
 
 
@@ -2248,6 +2354,8 @@
 
 
             await initInventoryStorage();
+            initCharacterRankControl();
+            await loadCharacterRank();
 
 
 
@@ -2551,9 +2659,19 @@
 
 
 
-        function resolveItemByKey(itemKey, itemIndex) {
+        function resolveItemByKey(itemKey, itemIndex, itemId) {
             // Use the full source list for stable index mapping.
             const sourceItems = Array.isArray(window.inventoryData) ? window.inventoryData : [];
+
+            const normalizedItemId = String(itemId || '').trim().toLowerCase();
+            if (normalizedItemId) {
+                const byId = sourceItems.findIndex((entry) =>
+                    String(entry?.id || '').trim().toLowerCase() === normalizedItemId
+                );
+                if (byId >= 0) {
+                    return { item: sourceItems[byId], index: byId };
+                }
+            }
 
             // item_key is the canonical identifier: prefer it over index.
             const normalizedKey = normalizeItemName(itemKey);
@@ -2626,7 +2744,7 @@
 
 
 
-                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index, row?.item_id);
 
 
 
@@ -2670,7 +2788,11 @@
 
 
 
-                    updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+                    updates.push(inventoryApi.setInventoryItem(characterId, {
+                        item_key: String(row.item_key),
+                        item_id: row?.item_id || null,
+                        item_index: row?.item_index
+                    }, 0));
 
 
 
@@ -2686,11 +2808,19 @@
 
 
 
-                updates.push(inventoryApi.setInventoryItem(characterId, String(row.item_key), row?.item_index, 0));
+                updates.push(inventoryApi.setInventoryItem(characterId, {
+                    item_key: String(row.item_key),
+                    item_id: row?.item_id || null,
+                    item_index: row?.item_index
+                }, 0));
 
 
 
-                updates.push(inventoryApi.setInventoryItem(characterId, canonicalKey, resolved.index, row?.qty));
+                updates.push(inventoryApi.setInventoryItem(characterId, {
+                    item_key: canonicalKey,
+                    item_id: resolved?.item?.id || null,
+                    item_index: resolved.index
+                }, row?.qty));
 
 
 
@@ -2702,6 +2832,7 @@
 
 
 
+                    item_id: resolved?.item?.id || row?.item_id || null,
                     item_key: canonicalKey,
 
 
@@ -2819,6 +2950,8 @@
 
 
                 images: images,
+                rarity: row.rarity || row.rarete || '',
+                rank: row.rank || row.rank_required || row.required_rank || '',
 
 
 
@@ -3149,6 +3282,7 @@
 
 
                     id: nextItemId++,
+                    item_id: sourceItem?.id || row?.item_id || null,
 
 
 
@@ -3240,7 +3374,7 @@
 
 
 
-                const resolved = resolveItemByKey(row?.item_key, row?.item_index);
+                const resolved = resolveItemByKey(row?.item_key, row?.item_index, row?.item_id);
 
 
 
@@ -3324,7 +3458,7 @@
 
 
 
-                    const resolved = resolveItemByKey(item?.name, item?.sourceIndex);
+                    const resolved = resolveItemByKey(item?.name, item?.sourceIndex, item?.item_id || item?.dbItemId || item?.id);
 
 
 
@@ -3333,6 +3467,10 @@
 
 
                     const itemKey = item?.name || resolved.item?.name;
+                    const maybeUuid = String(item?.item_id || item?.dbItemId || '').trim();
+                    const itemId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(maybeUuid)
+                        ? maybeUuid
+                        : null;
 
 
 
@@ -3348,6 +3486,7 @@
 
 
 
+                        item_id: itemId,
                         item_key: String(itemKey),
 
 
@@ -3417,6 +3556,10 @@
 
 
                 totalQty,
+
+
+
+                characterRank: currentCharacterRank,
 
 
 
@@ -4325,7 +4468,11 @@
 
 
 
-                return inventoryApi.setInventoryItem(characterId, String(key), row?.item_index, 0);
+                return inventoryApi.setInventoryItem(characterId, {
+                    item_key: String(key),
+                    item_id: row?.item_id || null,
+                    item_index: row?.item_index
+                }, 0);
 
 
 
@@ -7319,6 +7466,61 @@
 
         }
 
+        function getItemDisplayMeta(item) {
+            const helper = window.astoriaItemDisplayMeta;
+            const rawRank = item?.rank || item?.rank_required || item?.required_rank || item?.requiredRank || '';
+            const rankRaw = helper?.getRank ? helper.getRank(rawRank) : String(rawRank).trim().toUpperCase();
+            const rankLabel = rankRaw && rankRaw !== 'AUCUN' ? rankRaw : '';
+            const rawRarity = item?.rarity || item?.rarete || item?.item_rarity || '';
+            const rarity = helper?.getRarityMeta ? helper.getRarityMeta(rawRarity) : null;
+            const attrs = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 4) : [];
+            return { rankLabel, rarity, attrs: Array.isArray(attrs) ? attrs : [] };
+        }
+
+        function getStableItemRef(item) {
+            if (!item) return '';
+            return String(
+                item.item_id ||
+                item._dbId ||
+                item.dbItemId ||
+                item.id ||
+                item.itemKey ||
+                item.name ||
+                ''
+            ).trim().toLowerCase();
+        }
+
+        function isSameItemRef(a, b) {
+            const left = getStableItemRef(a);
+            const right = getStableItemRef(b);
+            return Boolean(left && right && left === right);
+        }
+
+        function getEquippedItemsForStats() {
+            return Object.values(equippedSlots || {}).filter((item) => item);
+        }
+
+        function refreshCharacterStatsPanel(previewItem = statsPreviewItem) {
+            if (!window.InventoryStats) return;
+            const equippedItems = getEquippedItemsForStats();
+            const baseStats = window.InventoryStats.calculateTotalStats(equippedItems);
+
+            let projectedStats = baseStats;
+            if (previewItem && !previewItem?.isCurrency) {
+                const alreadyEquipped = equippedItems.some((equippedItem) => isSameItemRef(equippedItem, previewItem));
+                if (!alreadyEquipped) {
+                    projectedStats = window.InventoryStats.calculateTotalStats([...equippedItems, { ...previewItem, quantity: 1 }]);
+                }
+            }
+
+            window.InventoryStats.updateStatsDisplay(projectedStats);
+        }
+
+        function setStatsPreviewItem(item) {
+            statsPreviewItem = item || null;
+            refreshCharacterStatsPanel(statsPreviewItem);
+        }
+
 
 
         function isItemEquippable(item) {
@@ -7516,11 +7718,11 @@
 
 
 
-        function buildEquippedItem(itemKey, itemIndex) {
+        function buildEquippedItem(itemKey, itemIndex, itemId) {
 
 
 
-            const resolved = resolveItemByKey(itemKey, itemIndex);
+            const resolved = resolveItemByKey(itemKey, itemIndex, itemId);
 
 
 
@@ -7537,6 +7739,7 @@
 
 
                 sourceIndex: Number.isFinite(resolved.index) ? resolved.index : null,
+                item_id: sourceItem?.id || itemId || null,
 
 
 
@@ -7561,6 +7764,8 @@
 
 
                 effect: sourceItem.effect,
+                rarity: sourceItem.rarity || sourceItem.rarete || '',
+                rank: sourceItem.rank || sourceItem.rank_required || sourceItem.required_rank || '',
 
 
 
@@ -7601,7 +7806,11 @@
 
 
 
-                const equippedItem = buildEquippedItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
+                const equippedItem = buildEquippedItem(
+                    entry.item_key || entry.name,
+                    entry.item_index ?? entry.sourceIndex,
+                    entry.item_id || null
+                );
 
 
 
@@ -7645,6 +7854,7 @@
 
 
 
+                    item_id: item.item_id || item.dbItemId || null,
                     item_key: item.name,
 
 
@@ -7821,11 +8031,11 @@
                         window.astoriaActivityLogger.logActivity({
                             actionType: window.astoriaActivityLogger.ActionTypes.INVENTORY_UNEQUIP,
                             characterId: characterId,
-                            actionData: {
-                                item_name: equippedItem.name,
-                                item_id: equippedItem.sourceIndex,
-                                slot: slotKey
-                            }
+                        actionData: {
+                            item_name: equippedItem.name,
+                            item_id: equippedItem.item_id || equippedItem.sourceIndex,
+                            slot: slotKey
+                        }
                         }).catch(err => console.warn('[Inventory] Failed to log unequip:', err));
                     }
                 }
@@ -7936,12 +8146,15 @@
 
             equippedSlots[slotKey] = {
                 sourceIndex: Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null,
+                item_id: item.item_id || item.dbItemId || item.id || null,
                 name: item.name,
                 category: item.category,
                 image: item.image,
                 images: item.images,
                 description: item.description,
                 effect: item.effect,
+                rarity: item.rarity || item.rarete || '',
+                rank: item.rank || item.rank_required || item.required_rank || '',
                 modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
                 buyPrice: item.buyPrice,
                 sellPrice: item.sellPrice,
@@ -7964,7 +8177,7 @@
                         characterId: characterId,
                         actionData: {
                             item_name: item.name,
-                            item_id: item.sourceIndex,
+                            item_id: item.item_id || item.dbItemId || item.sourceIndex,
                             slot: slotKey
                         }
                     }).catch(err => console.warn('[Inventory] Failed to log equip:', err));
@@ -8308,6 +8521,7 @@
                 slotEl.addEventListener('click', () => {
                     const equipped = equippedSlots?.[slotKey];
                     if (equipped) {
+                        setStatsPreviewItem(equipped);
                         showItemDetail(equipped);
                     }
                 });
@@ -8721,16 +8935,7 @@
 
             });
 
-            // Calculate and display total stats from EQUIPPED items only
-            if (window.InventoryStats) {
-                // Get equipped items for stat calculation
-                const equippedItems = Object.values(equippedSlots || {}).filter(item => item);
-
-                console.log('[Inventory] Calculating stats from', equippedItems.length, 'equipped items');
-
-                const stats = window.InventoryStats.calculateTotalStats(equippedItems);
-                window.InventoryStats.updateStatsDisplay(stats);
-            }
+            refreshCharacterStatsPanel(statsPreviewItem);
 
         }
 
@@ -8891,14 +9096,24 @@
 
 
             const imageSrc = resolveImage(item);
-
-
-
             const modifiersHtml = renderModifierBadges(getItemModifiers(item), 2);
+            const displayMeta = getItemDisplayMeta(item);
+            const rankLabel = displayMeta.rankLabel;
+            const rankToken = rankLabel ? String(rankLabel).trim().slice(0, 2).toUpperCase() : '';
+            const rarityBadge = displayMeta.rarity
+                ? `<div class="item-rarity-badge" style="--rarity-color:${escapeHtml(displayMeta.rarity.color)}">${escapeHtml(displayMeta.rarity.label)}</div>`
+                : '';
 
 
 
             const isCurrency = item?.isCurrency === true;
+            if (displayMeta.rarity?.color) {
+                card.classList.add('has-rarity');
+                card.style.setProperty('--item-rarity-color', displayMeta.rarity.color);
+            } else {
+                card.classList.remove('has-rarity');
+                card.style.removeProperty('--item-rarity-color');
+            }
 
 
 
@@ -9026,6 +9241,7 @@
 
 
 
+                ${rankToken ? `<div class="item-rank-corner" title="Rang ${escapeHtml(rankLabel)}">${escapeHtml(rankToken)}</div>` : ''}
                 <div class="item-image">
 
 
@@ -9052,6 +9268,7 @@
 
                 <div class="item-info">
                     <div class="item-name">${escapeHtml(item.name)}</div>
+                    ${rarityBadge}
                     ${isCurrency ? `<div class="item-currency-badge">${item.quantity} &#x1FA99;</div>` : ''}
                     ${!isCurrency && item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
                     ${modifiersHtml}
@@ -9140,6 +9357,7 @@
 
 
             selectedItemIndex = item.id;
+            setStatsPreviewItem(item);
 
 
 
@@ -9176,6 +9394,11 @@
 
 
         function showItemDetail(item) {
+
+            if (item) {
+                statsPreviewItem = item;
+                refreshCharacterStatsPanel(statsPreviewItem);
+            }
 
 
 
@@ -9372,6 +9595,14 @@
 
 
             const modifiersSectionHtml = renderModifierLines(getItemModifiers(item));
+            const displayMeta = getItemDisplayMeta(item);
+            const rankLabel = displayMeta.rankLabel;
+            const rarityHeader = displayMeta.rarity
+                ? `<span class="detail-rarity-badge" style="--rarity-color:${escapeHtml(displayMeta.rarity.color)}">${escapeHtml(displayMeta.rarity.label)}</span>`
+                : '';
+            const attrsSectionHtml = displayMeta.attrs.length
+                ? `<div class="detail-section"><span class="detail-label">Attributs</span><div class="detail-attrs">${displayMeta.attrs.map((line) => `<span class="detail-attr-chip">${escapeHtml(line)}</span>`).join('')}</div></div>`
+                : '';
 
 
 
@@ -9412,6 +9643,8 @@
 
 
                         <span class="detail-category">${categoryLabels[item.category] || 'Autre'}</span>
+                        ${rarityHeader}
+                        ${rankLabel ? `<span class="detail-rank-badge">Rang ${escapeHtml(rankLabel)}</span>` : ''}
                         ${item.equipment_slot ? `<span class="detail-slot-badge">${escapeHtml(getSlotDisplayName(item.equipment_slot))}</span>` : ''}
 
 
@@ -9471,6 +9704,8 @@
                     </div>
 
 
+
+                    ${attrsSectionHtml}
 
                     ${modifiersSectionHtml || (item.effect ? `
                     <div class="detail-section">
@@ -9625,6 +9860,7 @@
 
 
             currentScrollItem = null;
+            setStatsPreviewItem(null);
 
 
 
@@ -10485,6 +10721,7 @@
 
 
                 await loadCharacterSilhouette();
+                await loadCharacterRank();
 
 
 

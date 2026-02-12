@@ -73,7 +73,10 @@
             prestance: 0,
 
             // Detailed breakdown for tooltips
-            breakdown: {}
+            breakdown: {},
+
+            // Total flat points from equipped items
+            totalPoints: 0
         };
 
         aggregated.forEach(mod => {
@@ -83,6 +86,10 @@
             // Add to total
             if (stats.hasOwnProperty(statKey)) {
                 stats[statKey] += value;
+            }
+
+            if (mod.type !== 'percent') {
+                stats.totalPoints += value;
             }
 
             // Track breakdown for tooltips
@@ -207,7 +214,8 @@
             puissance: 0,
             charme: 0,
             prestance: 0,
-            breakdown: {}
+            breakdown: {},
+            totalPoints: 0
         };
     }
 
@@ -240,6 +248,13 @@
                 }
             }
         });
+
+        const pointsEl = document.getElementById('statsPointsAvailable');
+        if (pointsEl) {
+            const total = Number.isFinite(stats.totalPoints) ? Math.round(stats.totalPoints) : 0;
+            const sign = total > 0 ? '+' : '';
+            pointsEl.textContent = `${sign}${total} pts equip.`;
+        }
 
         // Update HP/Mana if bonuses exist
         if (stats.hpMax > 0) {

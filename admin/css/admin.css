@@ -149,6 +149,35 @@
     background-color: rgba(233, 30, 99, 0.02);
 }
 
+.table-sheet {
+    max-height: min(64vh, 560px);
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(210, 75, 143, 0.22);
+    scrollbar-gutter: stable;
+}
+
+.table-sheet .table {
+    margin-bottom: 0;
+}
+
+.table-sheet .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, rgba(252, 234, 244, 0.98), rgba(246, 220, 236, 0.98));
+    backdrop-filter: blur(4px);
+}
+
+.theme-dark .table-sheet {
+    border-color: rgba(210, 75, 143, 0.32);
+    background: rgba(31, 20, 48, 0.45);
+}
+
+.theme-dark .table-sheet .table thead th {
+    background: linear-gradient(180deg, rgba(50, 33, 74, 0.98), rgba(37, 24, 54, 0.98));
+}
+
 /* =================================================================
    ACTIVITY LIST
    ================================================================= */

@@ -1976,6 +1976,9 @@ body.sidebar-layout.sidebar-open .panel-backdrop {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
     gap: var(--space-2);
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .panel-inventory-item {
@@ -2678,6 +2681,9 @@ button:hover .shortcut-icon {
     display: grid;
     gap: var(--space-3);
     margin-top: var(--space-2);
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .panel-user-row {
@@ -2701,6 +2707,9 @@ button:hover .shortcut-icon {
 .panel-mini-list {
     display: grid;
     gap: var(--space-2);
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 .panel-mini-section {
