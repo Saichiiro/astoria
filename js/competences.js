@@ -96,6 +96,7 @@
         locksByCategory: loadFromStorage(skillsLocksKey),
         customSkillsByCategory: loadFromStorage(skillsCustomKey),
         isAdmin: document.body.dataset.admin === "true",
+        adminEditor: { categoryId: "", skillName: "" },
     };
 
     await initPersistence();
@@ -358,90 +359,94 @@
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
     }
 
+    function isEditingSkill(categoryId, skillName) {
+        return normalizeSkillName(skillsState.adminEditor?.categoryId) === normalizeSkillName(categoryId)
+            && normalizeSkillName(skillsState.adminEditor?.skillName) === normalizeSkillName(skillName);
+    }
+
     function openAdminSkillEditor(category, skill) {
-        if (!skillsState.isAdmin || !category || !skill) return;
-        const skillName = String(skill.name || "").trim();
-        if (!skillName) return;
+        if (!skillsState.isAdmin || !category || !skill?.name) return;
+        const alreadyOpen = isEditingSkill(category.id, skill.name);
+        skillsState.adminEditor = alreadyOpen
+            ? { categoryId: "", skillName: "" }
+            : { categoryId: category.id, skillName: skill.name };
+        renderSkillsCategory(getActiveCategory());
+    }
+
+    function saveInlineSkillEditor(category, skill, panel) {
+        if (!category || !skill || !panel) return;
         const categoryId = category.id;
-        const isCoreSkill = isBaseSkill(categoryId, skillName);
-        const action = prompt(
-            "Action admin: points | cap | renommer | supprimer",
-            "points"
-        );
-        if (!action) return;
-        const normalizedAction = normalizeSkillName(action);
+        const originalName = String(skill.name || "").trim();
+        const isCore = isBaseSkill(categoryId, originalName);
 
-        if (normalizedAction === "points" || normalizedAction === "point") {
-            const currentBase = Number(skillsState.baseValuesByCategory?.[categoryId]?.[skillName]) || 0;
-            const nextRaw = prompt(`Base de "${skillName}"`, String(currentBase));
-            if (nextRaw == null) return;
-            const nextValue = Number(nextRaw);
-            if (!Number.isFinite(nextValue) || nextValue < 0) {
-                updateFeedback("Valeur invalide.");
-                return;
-            }
-            skillsState.baseValuesByCategory[categoryId] = skillsState.baseValuesByCategory[categoryId] || {};
-            skillsState.baseValuesByCategory[categoryId][skillName] = Math.floor(nextValue);
-            saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
-            renderSkillsCategory(getActiveCategory());
-            updateFeedback(`Base mise a jour: ${skillName}.`);
+        const nameInput = panel.querySelector("[data-field='name']");
+        const baseInput = panel.querySelector("[data-field='base']");
+        const capInput = panel.querySelector("[data-field='cap']");
+
+        const nextName = String(nameInput?.value || "").trim();
+        const nextBaseRaw = Number(baseInput?.value);
+        const nextCapRaw = Number(capInput?.value);
+
+        if (!nextName) {
+            updateFeedback("Nom invalide.");
+            return;
+        }
+        if (!Number.isFinite(nextBaseRaw) || nextBaseRaw < 0) {
+            updateFeedback("Base invalide.");
+            return;
+        }
+        if (!Number.isFinite(nextCapRaw) || nextCapRaw <= 0) {
+            updateFeedback("Cap invalide.");
             return;
         }
 
-        if (normalizedAction === "cap") {
-            const currentCap = getSkillCap(skill);
-            const nextRaw = prompt(`Cap de "${skillName}"`, String(currentCap));
-            if (nextRaw == null) return;
-            const nextCap = Number(nextRaw);
-            if (!Number.isFinite(nextCap) || nextCap <= 0) {
-                updateFeedback("Cap invalide.");
+        let finalName = originalName;
+        if (normalizeSkillName(nextName) !== normalizeSkillName(originalName)) {
+            if (isCore) {
+                updateFeedback("Renommage bloque pour une competence native.");
                 return;
             }
-            skill.cap = Math.floor(nextCap);
-            syncCustomSkillRecord(categoryId, skillName, { cap: skill.cap });
-            renderSkillsCategory(getActiveCategory());
-            updateFeedback(`Cap mis a jour: ${skillName}.`);
-            return;
-        }
-
-        if (normalizedAction === "renommer") {
-            if (isCoreSkill) {
-                updateFeedback("Renommage des competences natives: bloc global a faire.");
-                return;
-            }
-            const nextName = prompt("Nouveau nom", skillName);
-            if (!nextName) return;
-            const cleanName = String(nextName).trim();
-            if (!cleanName || cleanName === skillName) return;
-            if ((category.skills || []).some((entry) => normalizeSkillName(entry?.name) === normalizeSkillName(cleanName))) {
+            const duplicate = (category.skills || []).some((entry) => entry !== skill
+                && normalizeSkillName(entry?.name) === normalizeSkillName(nextName));
+            if (duplicate) {
                 updateFeedback("Nom deja utilise.");
                 return;
             }
-            moveSkillStateKeys(categoryId, skillName, cleanName);
-            syncCustomSkillRecord(categoryId, skillName, { name: cleanName });
-            skill.name = cleanName;
-            renderSkillsCategory(getActiveCategory());
-            updateFeedback(`Competence renommee en "${cleanName}".`);
-            return;
+            moveSkillStateKeys(categoryId, originalName, nextName);
+            syncCustomSkillRecord(categoryId, originalName, { name: nextName });
+            skill.name = nextName;
+            finalName = nextName;
         }
 
-        if (normalizedAction === "supprimer") {
-            if (isCoreSkill) {
-                updateFeedback("Suppression des competences natives: bloc global a faire.");
-                return;
-            }
-            if (!confirm(`Supprimer "${skillName}" ?`)) return;
-            const list = Array.isArray(category.skills) ? category.skills : [];
-            category.skills = list.filter((entry) => normalizeSkillName(entry?.name) !== normalizeSkillName(skillName));
-            deleteSkillState(categoryId, skillName);
-            syncCustomSkillRecord(categoryId, skillName, null);
-            renderSkillsTabs();
-            renderSkillsCategory(getActiveCategory());
-            updateFeedback(`Competence supprimee: ${skillName}.`);
+        const nextCap = Math.floor(nextCapRaw);
+        const nextBase = Math.min(Math.floor(nextBaseRaw), nextCap);
+        skill.cap = nextCap;
+        skillsState.baseValuesByCategory[categoryId] = skillsState.baseValuesByCategory[categoryId] || {};
+        skillsState.baseValuesByCategory[categoryId][finalName] = nextBase;
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+        syncCustomSkillRecord(categoryId, finalName, { cap: nextCap });
+
+        skillsState.adminEditor = { categoryId, skillName: finalName };
+        renderSkillsCategory(getActiveCategory());
+        updateFeedback(`Competence mise a jour: ${finalName}.`);
+    }
+
+    function deleteInlineSkillEditor(category, skill) {
+        if (!category || !skill) return;
+        const categoryId = category.id;
+        const skillName = String(skill.name || "").trim();
+        if (isBaseSkill(categoryId, skillName)) {
+            updateFeedback("Suppression bloquee pour une competence native.");
             return;
         }
-
-        updateFeedback("Action inconnue.");
+        const list = Array.isArray(category.skills) ? category.skills : [];
+        category.skills = list.filter((entry) => normalizeSkillName(entry?.name) !== normalizeSkillName(skillName));
+        deleteSkillState(categoryId, skillName);
+        syncCustomSkillRecord(categoryId, skillName, null);
+        skillsState.adminEditor = { categoryId: "", skillName: "" };
+        renderSkillsTabs();
+        renderSkillsCategory(getActiveCategory());
+        updateFeedback(`Competence supprimee: ${skillName}.`);
     }
 
     function buildDefaultCompetences() {
@@ -719,6 +724,8 @@
             const isMaxed = base + allocation >= cap;
             const li = document.createElement("li");
             li.className = "skills-line";
+            const mainRow = document.createElement("div");
+            mainRow.className = "skills-line-main";
 
             const icon = document.createElement("div");
             icon.className = "skills-icon";
@@ -769,9 +776,54 @@
                     event.stopPropagation();
                     openAdminSkillEditor(category, skill);
                 });
-                li.append(editBtn);
+                controls.append(editBtn);
             }
-            li.append(icon, name, controls);
+            mainRow.append(icon, name, controls);
+            li.append(mainRow);
+
+            if (skillsState.isAdmin && isEditingSkill(category.id, skill.name)) {
+                const editor = document.createElement("div");
+                editor.className = "skills-inline-editor";
+                const isCoreSkill = isBaseSkill(category.id, skill.name);
+                const currentBase = Number(skillsState.baseValuesByCategory?.[category.id]?.[skill.name]) || 0;
+                const safeName = String(skill.name || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+                editor.innerHTML = `
+                    <div class="skills-inline-editor-grid">
+                        <label class="skills-inline-field">
+                            <span>Nom</span>
+                            <input type="text" data-field="name" value="${safeName}" ${isCoreSkill ? "readonly" : ""}>
+                        </label>
+                        <label class="skills-inline-field">
+                            <span>Base</span>
+                            <input type="number" data-field="base" min="0" max="999" value="${currentBase}">
+                        </label>
+                        <label class="skills-inline-field">
+                            <span>Cap</span>
+                            <input type="number" data-field="cap" min="1" max="999" value="${getSkillCap(skill)}">
+                        </label>
+                    </div>
+                    <div class="skills-inline-editor-actions">
+                        <button type="button" class="skills-inline-btn ghost" data-action="cancel">Fermer</button>
+                        <button type="button" class="skills-inline-btn danger" data-action="delete" ${isCoreSkill ? "disabled" : ""}>Supprimer</button>
+                        <button type="button" class="skills-inline-btn primary" data-action="save">Enregistrer</button>
+                    </div>
+                `;
+                editor.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
+                    skillsState.adminEditor = { categoryId: "", skillName: "" };
+                    renderSkillsCategory(getActiveCategory());
+                });
+                editor.querySelector("[data-action='save']")?.addEventListener("click", () => {
+                    saveInlineSkillEditor(category, skill, editor);
+                });
+                editor.querySelector("[data-action='delete']")?.addEventListener("click", () => {
+                    deleteInlineSkillEditor(category, skill);
+                });
+                li.append(editor);
+            }
             bindBonusTooltip(li, {
                 natif: base + allocation,
                 objets: bonusEntry.items || 0,

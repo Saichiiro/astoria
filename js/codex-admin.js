@@ -209,12 +209,34 @@ function buildModifierSkillsCatalog(items = []) {
     const seenStats = new Set();
     const categoryById = new Map();
 
+    const resolveCategoryIconMeta = (category) => {
+        const rawIcon = category?.icon;
+        if (rawIcon && typeof rawIcon === 'object') {
+            return {
+                iconSrc: String(rawIcon.src || '').trim(),
+                iconText: '',
+                iconAlt: String(rawIcon.alt || category?.label || '').trim()
+            };
+        }
+        const iconText = String(rawIcon || '').trim();
+        return {
+            iconSrc: '',
+            iconText: (iconText && iconText.length <= 3) ? iconText : (String(category?.label || '').trim().charAt(0).toUpperCase() || '*'),
+            iconAlt: String(category?.label || '').trim()
+        };
+    };
+
     getSkillsCategories().forEach((category) => {
         const categoryId = String(category?.id || '').trim() || `cat-${categories.length}`;
         const categoryLabel = String(category?.label || categoryId).trim();
-        const iconText = String(category?.icon || '').trim();
-        const icon = (iconText && iconText.length <= 3) ? iconText : (categoryLabel.charAt(0).toUpperCase() || '*');
-        const categoryEntry = { id: categoryId, label: categoryLabel, icon };
+        const iconMeta = resolveCategoryIconMeta(category);
+        const categoryEntry = {
+            id: categoryId,
+            label: categoryLabel,
+            icon: iconMeta.iconText || '*',
+            iconSrc: iconMeta.iconSrc,
+            iconAlt: iconMeta.iconAlt
+        };
         categories.push(categoryEntry);
         categoryById.set(categoryId, categoryEntry);
 
@@ -224,11 +246,14 @@ function buildModifierSkillsCatalog(items = []) {
             const normalized = normalizeSearchText(stat);
             if (seenStats.has(normalized)) return;
             seenStats.add(normalized);
+            const skillIcon = String(skill?.icon || '').trim();
             entries.push({
                 stat,
                 categoryId,
                 categoryLabel,
-                icon
+                icon: (skillIcon && skillIcon.length <= 4) ? skillIcon : categoryEntry.icon,
+                iconSrc: categoryEntry.iconSrc,
+                iconAlt: categoryEntry.iconAlt || categoryLabel
             });
         });
     });
@@ -241,12 +266,14 @@ function buildModifierSkillsCatalog(items = []) {
             stat,
             categoryId: 'other',
             categoryLabel: 'Autres',
-            icon: '*'
+            icon: '*',
+            iconSrc: '',
+            iconAlt: 'Autres'
         });
     });
 
     if (!categoryById.has('other') && entries.some((entry) => entry.categoryId === 'other')) {
-        categories.push({ id: 'other', label: 'Autres', icon: '*' });
+        categories.push({ id: 'other', label: 'Autres', icon: '*', iconSrc: '', iconAlt: 'Autres' });
     }
 
     modifierSkillCategories = categories.sort((a, b) => a.label.localeCompare(b.label, 'fr'));
@@ -288,7 +315,7 @@ function renderModifierSkillsCategories() {
                 type="button"
                 class="codex-skills-picker-chip${modifierSkillsState.category === category.id ? ' active' : ''}"
                 data-category="${escapeHtml(category.id)}">
-                <span class="codex-skills-picker-chip-icon">${escapeHtml(category.icon)}</span>
+                <span class="codex-skills-picker-chip-icon">${category.iconSrc ? `<img src="${escapeHtml(category.iconSrc)}" alt="${escapeHtml(category.iconAlt || category.label)}">` : escapeHtml(category.icon)}</span>
                 <span>${escapeHtml(category.label)}</span>
             </button>
         `)
@@ -316,7 +343,7 @@ function renderModifierSkillsList() {
         .map((entry) => `
             <div class="codex-skills-picker-item" data-stat="${escapeHtml(entry.stat)}">
                 <div class="codex-skills-picker-item-main">
-                    <div class="codex-skills-picker-item-icon">${escapeHtml(entry.icon)}</div>
+                    <div class="codex-skills-picker-item-icon">${entry.icon && entry.icon !== '*' ? escapeHtml(entry.icon) : (entry.iconSrc ? `<img src="${escapeHtml(entry.iconSrc)}" alt="${escapeHtml(entry.iconAlt || entry.categoryLabel)}">` : '*')}</div>
                     <div class="codex-skills-picker-item-info">
                         <div class="codex-skills-picker-item-name">${escapeHtml(entry.stat)}</div>
                         <div class="codex-skills-picker-item-category">${escapeHtml(entry.categoryLabel)}</div>
@@ -325,7 +352,7 @@ function renderModifierSkillsList() {
                 <div class="codex-skills-picker-item-actions">
                     <button type="button" class="codex-skills-picker-item-btn" data-action="pick-flat" data-stat="${escapeHtml(entry.stat)}">Points</button>
                     <button type="button" class="codex-skills-picker-item-btn alt" data-action="pick-percent" data-stat="${escapeHtml(entry.stat)}">%</button>
-                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="details" data-stat="${escapeHtml(entry.stat)}" data-category="${escapeHtml(entry.categoryLabel)}" data-icon="${escapeHtml(entry.icon)}">Plus</button>
+                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="details" data-stat="${escapeHtml(entry.stat)}" data-category="${escapeHtml(entry.categoryLabel)}" data-icon="${escapeHtml(entry.icon)}" data-icon-src="${escapeHtml(entry.iconSrc || '')}" data-icon-alt="${escapeHtml(entry.iconAlt || entry.categoryLabel)}">Plus</button>
                 </div>
             </div>
         `)
@@ -342,7 +369,9 @@ function renderModifierSkillsList() {
                     openSkillDetailModal(
                         stat,
                         actionButton.dataset.category || row.querySelector('.codex-skills-picker-item-category')?.textContent || '',
-                        actionButton.dataset.icon || row.querySelector('.codex-skills-picker-item-icon')?.textContent || '*'
+                        actionButton.dataset.icon || row.querySelector('.codex-skills-picker-item-icon')?.textContent || '*',
+                        actionButton.dataset.iconSrc || '',
+                        actionButton.dataset.iconAlt || actionButton.dataset.category || 'Compétence'
                     );
                     return;
                 }
@@ -374,10 +403,17 @@ function closeModifierSkillsPicker() {
     closeBackdrop(dom.skillsPickerBackdrop);
 }
 
-function openSkillDetailModal(stat, categoryLabel, iconLabel) {
+function openSkillDetailModal(stat, categoryLabel, iconLabel, iconSrc, iconAlt) {
     selectedSkillDetailStat = String(stat || '').trim();
     if (!selectedSkillDetailStat || !dom.skillsDetailBackdrop) return;
-    if (dom.skillsDetailIcon) dom.skillsDetailIcon.textContent = String(iconLabel || '*').trim() || '*';
+    if (dom.skillsDetailIcon) {
+        const src = String(iconSrc || '').trim();
+        if (src) {
+            dom.skillsDetailIcon.innerHTML = `<img src="${escapeHtml(src)}" alt="${escapeHtml(String(iconAlt || 'Compétence'))}">`;
+        } else {
+            dom.skillsDetailIcon.textContent = String(iconLabel || '*').trim() || '*';
+        }
+    }
     if (dom.skillsDetailName) dom.skillsDetailName.textContent = selectedSkillDetailStat;
     if (dom.skillsDetailCategory) dom.skillsDetailCategory.textContent = String(categoryLabel || '').trim();
     openBackdrop(dom.skillsDetailBackdrop);

@@ -202,6 +202,14 @@
     font-size: 1.2rem;
     color: #8b1c54;
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+    overflow: hidden;
+}
+
+.codex-skills-detail-icon img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    display: block;
 }
 
 .codex-skills-detail-name {
@@ -592,6 +600,18 @@
 
 .codex-skills-picker-chip-icon {
     font-size: 0.85rem;
+    width: 18px;
+    height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.codex-skills-picker-chip-icon img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    display: block;
 }
 
 .codex-skills-picker-list {
@@ -639,6 +659,14 @@
     align-items: center;
     justify-content: center;
     font-size: 0.95rem;
+    overflow: hidden;
+}
+
+.codex-skills-picker-item-icon img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    display: block;
 }
 
 .codex-skills-picker-item-info {
