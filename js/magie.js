@@ -1,7 +1,23 @@
 ﻿(function () {
     const STORAGE_KEY_BASE = "magicSheetPages";
     const body = document.body;
-    const isAdmin = body.dataset.admin === "true" || !body.hasAttribute("data-admin");
+    let isAdmin = body.dataset.admin === "true" || !body.hasAttribute("data-admin");
+
+    function getSessionAdminFallback() {
+        try {
+            const raw = localStorage.getItem("astoria_session");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed?.user?.role === "admin") return true;
+            }
+        } catch {}
+        try {
+            if (window?.astoriaSessionUser?.role === "admin") return true;
+        } catch {}
+        return false;
+    }
+
+    isAdmin = isAdmin || getSessionAdminFallback();
 
     const navButtons = Array.from(document.querySelectorAll(".magic-nav-btn"));
     const sections = Array.from(document.querySelectorAll(".magic-section"));
@@ -617,11 +633,15 @@
         }
         const specialization = fields?.magicSpecialization;
         if (specialization) {
-            const fallback = specialization === "alice"
+            const fallback = specialization === "alice" || specialization === "alice-double"
                 ? "Alice"
-                : specialization === "eater" || specialization === "meister"
-                    ? "Eater"
-                    : "Sorcellerie";
+                : specialization === "meister"
+                    ? "Meister"
+                    : specialization === "arme"
+                        ? "Arme"
+                        : specialization === "eater"
+                            ? "Eater"
+                            : "Sorcellerie";
             affinityDisplay.textContent = fields?.magicName || fallback;
             return;
         }
@@ -1013,8 +1033,8 @@
                 aliceStatsMeterEl.style.display = "";
 
                 if (specialization === "alice-double") {
-                    // Pour Alice Double, afficher les stats de l'Alice actif (déterminé par aliceType)
-                    const aliceNumber = currentPage?.fields?.aliceType === 2 ? 2 : 1;
+                    // Pour Alice Double, afficher les stats de l'Alice actif (déterminé par magicAliceType)
+                    const aliceNumber = Number(currentPage?.fields?.magicAliceType) === 2 ? 2 : 1;
                     const stats = getAliceStats(aliceNumber);
                     const aliceLabel = `Alice ${aliceNumber}`;
 
@@ -1269,7 +1289,7 @@
             const isNewSpell = nextLevel === 1;
 
             // Pour alice-double, déterminer quel Alice utiliser (défaut: Alice 1)
-            const aliceNumber = (specialization === "alice-double" && page?.fields?.aliceType === 2) ? 2 : 1;
+            const aliceNumber = (specialization === "alice-double" && Number(page?.fields?.magicAliceType) === 2) ? 2 : 1;
             const stats = getAliceStats(aliceNumber);
             const progress = loadMagicProgress();
 
@@ -1731,15 +1751,21 @@
 
     const specializationLabels = {
         meister: "Meister Arme",
+        arme: "Arme",
         sorcellerie: "Sorcellerie",
         alice: "Alice",
+        "alice-double": "Alice Double",
         eater: "Eater"
     };
 
     function getFallbackMagicName(fields, indexHint = null) {
         const fieldsSafe = fields || {};
         const fromName = String(fieldsSafe.magicName || "").trim();
-        if (fromName) return fromName;
+        if (fromName) {
+            const condensed = normalizeText(fromName).replace(/\s+/g, "");
+            const isAutoMagicName = /^magie\d+$/.test(condensed);
+            if (!isAutoMagicName) return fromName;
+        }
 
         const affinityKey = String(fieldsSafe.magicAffinityKey || "").trim();
         if (affinityKey) {
@@ -2559,13 +2585,21 @@
         }
     }
 
-    if (!isAdmin && adminSection) {
+    function applyAdminContext() {
         const adminNav = document.querySelector(".magic-nav-btn--admin");
         if (adminNav) {
-            adminNav.style.display = "none";
+            adminNav.style.display = isAdmin ? "" : "none";
         }
-        adminSection.hidden = true;
+        if (adminSection) {
+            adminSection.hidden = !isAdmin;
+        }
+        addCapacityButtons.forEach((button) => {
+            if (!button) return;
+            button.hidden = !isAdmin;
+        });
     }
+
+    applyAdminContext();
 
     const openCapacityCreation = () => {
         if (!isAdmin) return;
@@ -2662,9 +2696,6 @@
 
     addCapacityButtons.forEach((button) => {
         if (!button) return;
-        if (!isAdmin) {
-            button.hidden = true;
-        }
         button.addEventListener("click", () => {
             openCapacityCreation();
         });
@@ -2743,6 +2774,16 @@
             authApi = await import("./auth.js");
         } catch (error) {
             authApi = null;
+        }
+
+        if (authApi) {
+            const previousAdmin = isAdmin || getSessionAdminFallback();
+            try {
+                await authApi.refreshSessionUser?.();
+            } catch {}
+            const sessionAdmin = Boolean(authApi.isAdmin?.()) || getSessionAdminFallback();
+            isAdmin = sessionAdmin || previousAdmin;
+            applyAdminContext();
         }
 
         const restored = loadFromStorage();

@@ -53,10 +53,15 @@
     );
 
     const MAX_SKILL_POINTS = 40;
+    const SHIFT_STEP_POINTS = 10;
 
     function getSkillCap(skill) {
         const cap = Number(skill?.cap);
         return Number.isFinite(cap) && cap > 0 ? cap : MAX_SKILL_POINTS;
+    }
+
+    function resolveStepFromClick(event) {
+        return event?.shiftKey ? SHIFT_STEP_POINTS : 1;
     }
 
     const skillsStorageKey = "skillsPointsByCategory";
@@ -946,11 +951,13 @@
             incBtn.setAttribute("aria-label", `Ajouter un point sur ${skill.name}`);
             incBtn.disabled = isMaxed || getCurrentCategoryPoints() <= 0 || isLocked;
 
-            decBtn.addEventListener("click", () => {
-                adjustSkillPoints(category.id, skill, -1, value, decBtn, incBtn);
+            decBtn.addEventListener("click", (event) => {
+                const step = resolveStepFromClick(event);
+                adjustSkillPoints(category.id, skill, -step, value, decBtn, incBtn);
             });
-            incBtn.addEventListener("click", () => {
-                adjustSkillPoints(category.id, skill, 1, value, decBtn, incBtn);
+            incBtn.addEventListener("click", (event) => {
+                const step = resolveStepFromClick(event);
+                adjustSkillPoints(category.id, skill, step, value, decBtn, incBtn);
             });
 
             if (isAdminEditMode) {
@@ -1692,18 +1699,21 @@
         updatePendingHighlights(activeCategory.id);
     }
 
-    skillsPointsPlusEl.addEventListener("click", () => {
+    skillsPointsPlusEl.addEventListener("click", (event) => {
         if (!skillsState.isAdmin) return;
-        const nextValue = Math.min(getCurrentCategoryPoints() + 1, 99);
+        const step = resolveStepFromClick(event);
+        const nextValue = Math.min(getCurrentCategoryPoints() + step, 99);
         setCurrentCategoryPoints(nextValue);
         updateSkillsPointsDisplay();
     });
 
-    skillsPointsMinusEl.addEventListener("click", () => {
+    skillsPointsMinusEl.addEventListener("click", (event) => {
         if (!skillsState.isAdmin) return;
         const current = getCurrentCategoryPoints();
-        if (current > 0) {
-            setCurrentCategoryPoints(current - 1);
+        const step = resolveStepFromClick(event);
+        const next = Math.max(0, current - step);
+        if (next !== current) {
+            setCurrentCategoryPoints(next);
             updateSkillsPointsDisplay();
         }
     });
