@@ -5,6 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
+import { getInventoryRows } from '../../js/api/inventory-service.js';
 import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 
 (function() {
@@ -14,6 +15,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
     let supabase = null;
     let allCharacters = [];
     let allItems = [];
+    let inventoryInspectorCharId = '';
 
     // =================================================================
     // CONFIGURATION
@@ -217,6 +219,10 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             animateCounter('statCharacters', String(allCharacters.length));
             animateCounter('statItems', String(allItems.length));
             animateCounter('statKaels', totalKaels.toLocaleString('fr-FR'));
+
+            if (inventoryInspectorCharId) {
+                void loadCharacterInventoryInspector(inventoryInspectorCharId);
+            }
 
         } catch (err) {
             console.error('[Admin] Failed to load stats:', err);
@@ -563,6 +569,9 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                             <button class="btn btn-sm btn-ghost-success" data-action="give-items" data-char-id="${char.id}" title="Donner des objets">
                                 <i class="ti ti-gift"></i>
                             </button>
+                            <button class="btn btn-sm btn-ghost-info" data-action="view-inventory" data-char-id="${char.id}" title="Voir inventaire">
+                                <i class="ti ti-backpack"></i>
+                            </button>
                             <button class="btn btn-sm btn-ghost-danger" data-action="delete" data-char-id="${char.id}" title="Supprimer">
                                 <i class="ti ti-trash"></i>
                             </button>
@@ -571,6 +580,177 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                 </tr>
             `;
         }).join('');
+    }
+
+    function normalizeItemKey(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+    }
+
+    function getItemCatalogLookups() {
+        const byId = new Map();
+        const byName = new Map();
+
+        (allItems || []).forEach((item) => {
+            const id = String(item?.id || '').trim();
+            const name = String(item?.name || '').trim();
+            if (id && !byId.has(id)) byId.set(id, item);
+            const normalized = normalizeItemKey(name);
+            if (normalized && !byName.has(normalized)) byName.set(normalized, item);
+        });
+
+        return { byId, byName };
+    }
+
+    function populateInventoryInspectorCharacters(characters) {
+        const select = document.getElementById('adminInventoryCharacterSelect');
+        if (!select) return;
+
+        const previous = select.value;
+        select.innerHTML = '<option value="">Selectionner un personnage...</option>';
+
+        (characters || []).forEach((char) => {
+            const option = document.createElement('option');
+            option.value = char.id;
+            option.textContent = `${char.name || 'Sans nom'} (${(char.kaels || 0).toLocaleString('fr-FR')} K)`;
+            select.appendChild(option);
+        });
+
+        if (previous && (characters || []).some((char) => char.id === previous)) {
+            select.value = previous;
+        }
+    }
+
+    function renderInventoryInspectorEquipment(character) {
+        const container = document.getElementById('adminInventoryEquipment');
+        if (!container) return;
+
+        const slotLabels = {
+            head: 'Tete',
+            neck: 'Cou',
+            shoulders: 'Epaules',
+            chest: 'Torse',
+            cloak: 'Cape',
+            gloves: 'Gants',
+            ring1: 'Anneau G',
+            ring2: 'Anneau D',
+            boots: 'Bottes',
+            artifact: 'Artefact',
+            pet: 'Familier',
+            weapon: 'Arme',
+            offhand: 'Main G',
+            mount: 'Monture'
+        };
+
+        const equipped = character?.profile_data?.inventory?.equippedSlots || {};
+        const entries = Object.entries(equipped)
+            .filter(([, item]) => Boolean(item?.item_key || item?.name))
+            .map(([slot, item]) => {
+                const itemName = item.item_key || item.name || 'Inconnu';
+                const slotLabel = slotLabels[slot] || slot;
+                return `<span class="admin-inventory-slot"><strong>${slotLabel}</strong> ${itemName}</span>`;
+            });
+
+        if (!entries.length) {
+            container.innerHTML = '<span class="text-muted">Aucun equipement enregistre.</span>';
+            return;
+        }
+
+        container.innerHTML = entries.join('');
+    }
+
+    function renderInventoryInspectorRows(rows) {
+        const tbody = document.getElementById('adminInventoryRows');
+        if (!tbody) return;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Inventaire vide.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        const { byId, byName } = getItemCatalogLookups();
+        tbody.innerHTML = rows.map((row) => {
+            const itemId = String(row?.item_id || '').trim();
+            const itemKey = String(row?.item_key || '').trim();
+            const byIdMatch = itemId ? byId.get(itemId) : null;
+            const byNameMatch = byName.get(normalizeItemKey(itemKey));
+            const item = byIdMatch || byNameMatch || null;
+            const itemName = item?.name || itemKey || '(item inconnu)';
+            const category = item?.category || '-';
+            const qty = Math.max(0, Math.floor(Number(row?.qty) || 0));
+
+            return `
+                <tr>
+                    <td>${itemName}</td>
+                    <td class="text-muted">${category}</td>
+                    <td><span class="badge bg-primary-lt">${qty}</span></td>
+                    <td class="text-muted"><code>${itemId || '-'}</code></td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function loadCharacterInventoryInspector(characterId) {
+        const summary = document.getElementById('adminInventorySummary');
+        const select = document.getElementById('adminInventoryCharacterSelect');
+        const character = allCharacters.find((char) => char.id === characterId);
+
+        if (!characterId || !character) {
+            inventoryInspectorCharId = '';
+            renderInventoryInspectorRows([]);
+            renderInventoryInspectorEquipment(null);
+            if (summary) {
+                summary.textContent = 'Selectionne un personnage pour afficher son inventaire et son equipement.';
+            }
+            return;
+        }
+
+        inventoryInspectorCharId = characterId;
+        if (select && select.value !== characterId) {
+            select.value = characterId;
+        }
+        if (summary) {
+            summary.textContent = `Chargement de l'inventaire de ${character.name || 'ce personnage'}...`;
+        }
+
+        try {
+            const rows = await getInventoryRows(characterId);
+            renderInventoryInspectorRows(rows);
+            renderInventoryInspectorEquipment(character);
+
+            const totalUnits = (rows || []).reduce((sum, row) => sum + Math.max(0, Math.floor(Number(row?.qty) || 0)), 0);
+            if (summary) {
+                summary.textContent = `${character.name || 'Personnage'}: ${rows.length} type(s) d'objet, ${totalUnits} unite(s).`;
+            }
+        } catch (error) {
+            console.error('[Admin] Failed to load character inventory inspector:', error);
+            renderInventoryInspectorRows([]);
+            if (summary) {
+                summary.textContent = `Erreur de chargement inventaire: ${error.message || 'inconnue'}`;
+            }
+        }
+    }
+
+    function initCharacterInventoryInspector() {
+        const select = document.getElementById('adminInventoryCharacterSelect');
+        const refreshBtn = document.getElementById('adminInventoryRefreshBtn');
+        if (!select || !refreshBtn) return;
+
+        select.addEventListener('change', async () => {
+            await loadCharacterInventoryInspector(select.value);
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            if (!select.value) return;
+            await loadCharacterInventoryInspector(select.value);
+        });
     }
 
     /**
@@ -585,7 +765,11 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                 allCharacters = await getAllCharacters() || [];
             }
             renderCharactersTable(allCharacters);
+            populateInventoryInspectorCharacters(allCharacters);
             loadCharactersForKaels();
+            if (inventoryInspectorCharId) {
+                await loadCharacterInventoryInspector(inventoryInspectorCharId);
+            }
         } catch (err) {
             console.error('[Admin] Failed to load characters:', err);
             tbody.innerHTML = `
@@ -663,6 +847,16 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                         console.log(`Items given to character ${charId}:`, items);
                         renderCharactersTable(allCharacters);
                         loadDashboardStats();
+                        if (inventoryInspectorCharId === charId) {
+                            void loadCharacterInventoryInspector(charId);
+                        }
+                    });
+                    break;
+                case 'view-inventory':
+                    await loadCharacterInventoryInspector(charId);
+                    document.querySelector('.admin-inventory-inspector')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
                     });
                     break;
                 case 'delete':
@@ -1046,6 +1240,10 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                     // Update local data
                     allCharacters = allCharacters.filter(c => c.id !== charId);
                     renderCharactersTable(allCharacters);
+                    populateInventoryInspectorCharacters(allCharacters);
+                    if (inventoryInspectorCharId === charId) {
+                        await loadCharacterInventoryInspector('');
+                    }
                     loadDashboardStats(); // Refresh counts
 
                     bootstrap.Modal.getInstance(modal)?.hide();
@@ -1075,12 +1273,13 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         await loadDashboardStats();
         loadRecentActivity();
         loadUsers();
-        loadCharacters();
+        await loadCharacters();
         loadCharactersForKaels();
 
         // Initialize interactive features
         initCharactersSearch();
         initCharacterActions();
+        initCharacterInventoryInspector();
         initModals();
         initQuickKaelsForm();
         initEconomyKaelsForm();

@@ -420,6 +420,42 @@
                                 </table>
                             </div>
                         </div>
+                        <div class="card mt-3 admin-inventory-inspector">
+                            <div class="card-header">
+                                <h3 class="card-title">Vue inventaire personnage</h3>
+                                <div class="card-actions d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="adminInventoryCharacterSelect">
+                                        <option value="">S&eacute;lectionner un personnage...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="adminInventoryRefreshBtn">
+                                        <i class="ti ti-refresh me-1"></i>Actualiser
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="admin-inventory-summary text-muted mb-3" id="adminInventorySummary">
+                                    S&eacute;lectionne un personnage pour afficher son inventaire et son &eacute;quipement.
+                                </div>
+                                <div class="admin-inventory-equip mb-3" id="adminInventoryEquipment"></div>
+                                <div class="table-responsive table-sheet admin-inventory-table">
+                                    <table class="table table-vcenter card-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Objet</th>
+                                                <th>Cat&eacute;gorie</th>
+                                                <th>Qt&eacute;</th>
+                                                <th>ID item</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="adminInventoryRows">
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">Aucune donn&eacute;e charg&eacute;e.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ================================================

@@ -1,16 +1,18 @@
 /**
  * Modal Manager - Wrapper body-scroll-lock
- * Gère les modals avec accessibility et gestion du scroll
+ * Handles modal open/close, accessibility and scroll locking.
  */
 
 class ModalManager {
     constructor() {
         this.activeModals = new Map(); // Map<element, config>
-        this.modalStack = []; // Stack pour gérer les modals imbriqués
+        this.modalStack = []; // Stack to support nested modals
         this.hasBodyScrollLock = typeof bodyScrollLock !== 'undefined';
+        this.documentLockCount = 0;
+        this.previousDocumentStyles = null;
 
         if (!this.hasBodyScrollLock) {
-            console.warn('[ModalManager] body-scroll-lock library not loaded. Scroll lock disabled.');
+            console.warn('[ModalManager] body-scroll-lock library not loaded. Scroll lock fallback enabled.');
         }
 
         // Bind global ESC handler
@@ -18,14 +20,9 @@ class ModalManager {
     }
 
     /**
-     * Ouvre un modal
-     * @param {HTMLElement} modalElement - Élément du modal (backdrop ou container)
-     * @param {object} options - Options de configuration
-     * @param {function} options.onClose - Callback appelé à la fermeture
-     * @param {HTMLElement} options.focusElement - Élément à focus (default: premier input/button)
-     * @param {boolean} options.closeOnBackdropClick - Fermer sur clic backdrop (default: true)
-     * @param {boolean} options.closeOnEsc - Fermer sur ESC (default: true)
-     * @param {string} options.openClass - Classe CSS pour ouvrir (default: 'open')
+     * Open a modal
+     * @param {HTMLElement} modalElement - Modal element (backdrop/container)
+     * @param {object} options
      */
     open(modalElement, options = {}) {
         if (!modalElement) {
@@ -44,29 +41,31 @@ class ModalManager {
             closeOnBackdropClick: options.closeOnBackdropClick !== false,
             closeOnEsc: options.closeOnEsc !== false,
             openClass: options.openClass || 'open',
-            previousFocus: document.activeElement, // Sauvegarder focus actuel
+            previousFocus: document.activeElement,
+            scrollLockElement:
+                options.scrollLockElement instanceof HTMLElement
+                    ? options.scrollLockElement
+                    : modalElement,
         };
 
-        // Ajouter à la stack
         this.modalStack.push(modalElement);
         this.activeModals.set(modalElement, config);
 
-        // Lock scroll (seulement pour le premier modal)
-        if (this.modalStack.length === 1 && this.hasBodyScrollLock) {
-            bodyScrollLock.disableBodyScroll(modalElement, {
+        // Lock document scroll (native fallback + body-scroll-lock when available)
+        this._lockDocumentScroll();
+        if (this.hasBodyScrollLock) {
+            bodyScrollLock.clearAllBodyScrollLocks();
+            bodyScrollLock.disableBodyScroll(config.scrollLockElement, {
                 reserveScrollBarGap: true,
             });
         }
 
-        // Ouvrir le modal (ajouter classe CSS)
-        modalElement.removeAttribute('hidden'); // Remove hidden boolean attribute
+        modalElement.removeAttribute('hidden');
         modalElement.classList.add(config.openClass);
         modalElement.setAttribute('aria-hidden', 'false');
 
-        // Focus management
         this._setInitialFocus(modalElement, config.focusElement);
 
-        // Backdrop click handler
         if (config.closeOnBackdropClick) {
             modalElement.addEventListener('click', this._handleBackdropClick);
         }
@@ -75,8 +74,8 @@ class ModalManager {
     }
 
     /**
-     * Ferme un modal
-     * @param {HTMLElement} modalElement - Élément du modal à fermer
+     * Close a modal
+     * @param {HTMLElement} modalElement
      */
     close(modalElement) {
         if (!modalElement || !this.activeModals.has(modalElement)) {
@@ -85,33 +84,36 @@ class ModalManager {
 
         const config = this.activeModals.get(modalElement);
 
-        // Remove backdrop click handler
         modalElement.removeEventListener('click', this._handleBackdropClick);
 
-        // Fermer le modal (retirer classe CSS)
         modalElement.classList.remove(config.openClass);
         modalElement.setAttribute('aria-hidden', 'true');
-        modalElement.setAttribute('hidden', ''); // Add back hidden boolean attribute
+        modalElement.setAttribute('hidden', '');
 
-        // Unlock scroll (seulement si c'était le dernier modal)
-        const wasLast = this.modalStack[this.modalStack.length - 1] === modalElement;
-        if (wasLast && this.hasBodyScrollLock) {
-            bodyScrollLock.enableBodyScroll(modalElement);
-        }
-
-        // Retirer de la stack
         const index = this.modalStack.indexOf(modalElement);
         if (index > -1) {
             this.modalStack.splice(index, 1);
         }
         this.activeModals.delete(modalElement);
 
-        // Restore focus
+        // Rebind body-scroll-lock to current top modal, or fully unlock.
+        if (this.hasBodyScrollLock) {
+            bodyScrollLock.clearAllBodyScrollLocks();
+            if (this.modalStack.length > 0) {
+                const topModal = this.modalStack[this.modalStack.length - 1];
+                const topConfig = this.activeModals.get(topModal);
+                bodyScrollLock.disableBodyScroll(topConfig?.scrollLockElement || topModal, {
+                    reserveScrollBarGap: true,
+                });
+            }
+        }
+
+        this._unlockDocumentScroll();
+
         if (config.previousFocus && typeof config.previousFocus.focus === 'function') {
             config.previousFocus.focus();
         }
 
-        // Callback onClose
         if (typeof config.onClose === 'function') {
             config.onClose();
         }
@@ -120,7 +122,7 @@ class ModalManager {
     }
 
     /**
-     * Ferme le modal le plus récent
+     * Close most recently opened modal
      */
     closeTop() {
         if (this.modalStack.length === 0) return;
@@ -129,17 +131,16 @@ class ModalManager {
     }
 
     /**
-     * Ferme tous les modals
+     * Close all modals
      */
     closeAll() {
-        // Clone stack car close() modifie le tableau
         const modals = [...this.modalStack];
-        modals.forEach(modal => this.close(modal));
+        modals.forEach((modal) => this.close(modal));
     }
 
     /**
-     * Vérifie si un modal est ouvert
-     * @param {HTMLElement} modalElement - Élément du modal (optionnel)
+     * Is modal open?
+     * @param {HTMLElement} modalElement
      * @returns {boolean}
      */
     isOpen(modalElement) {
@@ -150,7 +151,7 @@ class ModalManager {
     }
 
     /**
-     * Handler global ESC key
+     * Global ESC handler
      * @private
      */
     _handleEscKey(event) {
@@ -167,30 +168,26 @@ class ModalManager {
     }
 
     /**
-     * Handler clic sur backdrop
+     * Backdrop click handler
      * @private
      */
     _handleBackdropClick = (event) => {
-        // Fermer seulement si clic direct sur backdrop (pas sur enfants)
         if (event.target === event.currentTarget) {
-            const modalElement = event.currentTarget;
-            this.close(modalElement);
+            this.close(event.currentTarget);
         }
     }
 
     /**
-     * Set focus initial dans le modal
+     * Set initial focus in modal
      * @private
      */
     _setInitialFocus(modalElement, customFocusElement) {
-        // Delay focus pour éviter conflit avec animations
         setTimeout(() => {
             if (customFocusElement && typeof customFocusElement.focus === 'function') {
                 customFocusElement.focus();
                 return;
             }
 
-            // Auto-focus sur premier input/button/textarea
             const focusable = modalElement.querySelector(
                 'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
             );
@@ -202,9 +199,9 @@ class ModalManager {
     }
 
     /**
-     * Utilitaire: Toggle modal (open si fermé, close si ouvert)
-     * @param {HTMLElement} modalElement - Élément du modal
-     * @param {object} options - Options (seulement pour open)
+     * Toggle modal
+     * @param {HTMLElement} modalElement
+     * @param {object} options
      */
     toggle(modalElement, options = {}) {
         if (this.isOpen(modalElement)) {
@@ -213,12 +210,68 @@ class ModalManager {
             this.open(modalElement, options);
         }
     }
+
+    /**
+     * Native fallback lock (and extra safety on mobile)
+     * @private
+     */
+    _lockDocumentScroll() {
+        if (this.documentLockCount === 0) {
+            const html = document.documentElement;
+            const body = document.body;
+            this.previousDocumentStyles = {
+                htmlOverflow: html.style.overflow,
+                bodyOverflow: body.style.overflow,
+                htmlOverscroll: html.style.overscrollBehavior,
+                bodyOverscroll: body.style.overscrollBehavior,
+            };
+
+            html.style.overflow = 'hidden';
+            body.style.overflow = 'hidden';
+            html.style.overscrollBehavior = 'none';
+            body.style.overscrollBehavior = 'none';
+            html.classList.add('modal-scroll-locked');
+            body.classList.add('modal-scroll-locked');
+        }
+
+        this.documentLockCount += 1;
+    }
+
+    /**
+     * Restore native fallback lock
+     * @private
+     */
+    _unlockDocumentScroll() {
+        if (this.documentLockCount === 0) return;
+
+        this.documentLockCount = Math.max(0, this.documentLockCount - 1);
+        if (this.documentLockCount > 0) return;
+
+        const html = document.documentElement;
+        const body = document.body;
+
+        if (this.previousDocumentStyles) {
+            html.style.overflow = this.previousDocumentStyles.htmlOverflow || '';
+            body.style.overflow = this.previousDocumentStyles.bodyOverflow || '';
+            html.style.overscrollBehavior = this.previousDocumentStyles.htmlOverscroll || '';
+            body.style.overscrollBehavior = this.previousDocumentStyles.bodyOverscroll || '';
+        } else {
+            html.style.overflow = '';
+            body.style.overflow = '';
+            html.style.overscrollBehavior = '';
+            body.style.overscrollBehavior = '';
+        }
+
+        html.classList.remove('modal-scroll-locked');
+        body.classList.remove('modal-scroll-locked');
+        this.previousDocumentStyles = null;
+    }
 }
 
-// Instance globale
+// Global singleton
 const modalManager = new ModalManager();
 
-// Export pour modules
+// CommonJS export for compatibility
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = modalManager;
 }

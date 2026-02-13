@@ -1001,3 +1001,58 @@ body.perf-lite .nav-link {
 body.perf-lite .btn::before {
     display: none !important;
 }
+
+/* =================================================================
+   INVENTORY INSPECTOR (Characters page)
+   ================================================================= */
+.admin-inventory-inspector .card-actions {
+    align-items: center;
+}
+
+.admin-inventory-inspector #adminInventoryCharacterSelect {
+    min-width: 220px;
+}
+
+.admin-inventory-summary {
+    font-size: 0.9rem;
+}
+
+.admin-inventory-equip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-inventory-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(244, 143, 177, 0.25);
+    background: rgba(244, 143, 177, 0.08);
+    color: #f5d6e8;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.admin-inventory-slot strong {
+    color: #fff;
+}
+
+.admin-inventory-table .table tbody td {
+    font-size: 0.84rem;
+}
+
+@media (max-width: 768px) {
+    .admin-inventory-inspector .card-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-inventory-inspector #adminInventoryCharacterSelect {
+        min-width: 0;
+        width: 100%;
+    }
+}

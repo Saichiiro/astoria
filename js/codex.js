@@ -679,6 +679,7 @@ function loadTable(data, searchQuery) {
 function openItemModal(index) {
     const item = currentData[index];
     if (!item) return;
+    lastFocusedElement = document.activeElement;
 
     // Highlight clicked row
     clearRowHighlights('row-selected');
@@ -735,9 +736,16 @@ function openItemModal(index) {
             : `<span class="modal-label">${effectLabel} :</span> <span class="codex-effect-text">${clean(effectEntries[0])}</span>`)
         : "";
 
-    modal.classList.add("open");
-    lastFocusedElement = document.activeElement;
-
+    if (typeof modalManager !== "undefined" && modalManager?.open) {
+        modalManager.open(modal, {
+            closeOnBackdropClick: true,
+            closeOnEsc: false, // handled by codex keyboard logic below
+            openClass: "open"
+        });
+    } else {
+        modal.classList.add("open");
+        modal.setAttribute("aria-hidden", "false");
+    }
     const focusTarget = modal.querySelector(".modal-close") || modal;
     focusTarget.focus({ preventScroll: true });
 
@@ -785,7 +793,12 @@ if (tableBody && tableBody.dataset.modalBound !== "1") {
 }
 
 function closeItemModal() {
-    modal.classList.remove("open");
+    if (typeof modalManager !== "undefined" && modalManager?.isOpen?.(modal)) {
+        modalManager.close(modal);
+    } else {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+    }
     clearRowHighlights('row-selected');
     if (lastFocusedElement?.focus) lastFocusedElement.focus({ preventScroll: true });
     if (window.dispatchEvent) {
@@ -795,7 +808,7 @@ function closeItemModal() {
 
 window.closeItemModal = closeItemModal;
 
-if (modal) {
+if (modal && !(typeof modalManager !== "undefined" && modalManager?.open)) {
     modal.addEventListener("click", () => closeItemModal());
 }
 if (modalInner) {

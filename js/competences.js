@@ -183,7 +183,11 @@
 
     const closeAddForm = () => {
         if (!skillsAddForm) return;
-        skillsAddForm.hidden = true;
+        if (typeof modalManager !== "undefined" && modalManager?.isOpen?.(skillsAddForm)) {
+            modalManager.close(skillsAddForm);
+        } else {
+            skillsAddForm.hidden = true;
+        }
         document.body.classList.remove(ADD_MODAL_OPEN_CLASS);
         if (skillsAddName) skillsAddName.value = "";
         if (skillsAddIcon) skillsAddIcon.value = "";
@@ -193,7 +197,16 @@
 
     const openAddForm = () => {
         if (!skillsAddForm) return;
-        skillsAddForm.hidden = false;
+        if (typeof modalManager !== "undefined" && modalManager?.open) {
+            modalManager.open(skillsAddForm, {
+                closeOnBackdropClick: false,
+                closeOnEsc: false,
+                openClass: "skills-add-modal-open",
+                focusElement: skillsAddName || null
+            });
+        } else {
+            skillsAddForm.hidden = false;
+        }
         document.body.classList.add(ADD_MODAL_OPEN_CLASS);
         if (skillsAddCategory) {
             skillsAddCategory.value = skillsState.activeCategoryId;

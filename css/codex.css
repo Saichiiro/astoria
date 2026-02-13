@@ -1675,3 +1675,97 @@
         -webkit-line-clamp: 2;
     }
 }
+
+/* =================================================================
+   STABILITY PASS - layering + mobile table readability
+   ================================================================= */
+.codex-shell {
+    overflow: visible;
+    isolation: isolate;
+}
+
+.codex-shell::before {
+    z-index: 0;
+}
+
+.codex-control-panel,
+.codex-toolbar,
+.inventory-search,
+.inventory-search-history,
+.recent-searches-dropdown {
+    position: relative;
+    z-index: 8;
+}
+
+.table-container {
+    position: relative;
+    z-index: 2;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+@media (max-width: 820px) {
+    .codex-shell #inventoryTable {
+        min-width: 0;
+    }
+
+    .codex-shell #inventoryTable thead {
+        display: none;
+    }
+
+    .codex-shell #inventoryTable tbody {
+        display: grid;
+        gap: 12px;
+        padding: 8px;
+    }
+
+    .codex-shell #inventoryTable tbody tr {
+        display: block;
+        border: 1px solid rgba(216, 27, 96, 0.24);
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 8px 18px rgba(216, 27, 96, 0.1);
+        padding: 12px;
+    }
+
+    .codex-shell #inventoryTable tbody td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        border: none;
+        padding: 6px 0;
+    }
+
+    .codex-shell #inventoryTable tbody td::before {
+        content: attr(data-label);
+        min-width: 88px;
+        color: #7a1242;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .codex-shell #inventoryTable .img-cell img {
+        width: 72px;
+        height: 72px;
+    }
+
+    .codex-shell #inventoryTable .name-cell,
+    .codex-shell #inventoryTable .desc-cell,
+    .codex-shell #inventoryTable .effect-cell {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .codex-shell #inventoryTable .action-cell {
+        justify-content: flex-start;
+    }
+
+    .codex-shell #inventoryTable .copy-btn,
+    .codex-shell #inventoryTable .edit-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

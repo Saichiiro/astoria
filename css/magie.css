@@ -2218,3 +2218,103 @@ html {
         align-items: flex-start;
     }
 }
+
+/* =====================================================================
+   SPELL CARD REFRESH - modern visual pass without JS changes
+   ===================================================================== */
+:root {
+    --spell-surface-a: #ffffff;
+    --spell-surface-b: #fff6fb;
+    --spell-border: rgba(216, 27, 96, 0.24);
+    --spell-shadow: 0 14px 28px rgba(216, 27, 96, 0.14);
+    --spell-text: #4f1f3f;
+}
+
+.spell-type-btn {
+    background:
+        radial-gradient(circle at 12% 14%, rgba(255, 255, 255, 0.9), transparent 42%),
+        linear-gradient(170deg, var(--spell-surface-a), var(--spell-surface-b));
+    border-width: 2px;
+    border-radius: 18px;
+    box-shadow: var(--spell-shadow);
+}
+
+.spell-type-btn:hover {
+    transform: translateY(-8px) scale(1.015);
+}
+
+.spell-card-grid,
+.spells-container {
+    gap: 18px;
+}
+
+.flip-card {
+    height: 300px;
+}
+
+.flip-card-front,
+.flip-card-back,
+.spell-card {
+    border-radius: 18px;
+    border: 1px solid var(--spell-border);
+    box-shadow: var(--spell-shadow);
+}
+
+.flip-card-front {
+    background:
+        radial-gradient(circle at 90% 10%, rgba(255, 191, 221, 0.35), transparent 40%),
+        linear-gradient(170deg, #ffffff, #fff8fc);
+}
+
+.flip-card-front::before,
+.spell-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ff7ab8, #e91e63, #ff6aa2);
+    opacity: 0.9;
+}
+
+.spell-card {
+    position: relative;
+    background:
+        radial-gradient(circle at 88% 8%, rgba(255, 191, 221, 0.25), transparent 38%),
+        linear-gradient(170deg, #ffffff, #fff7fb);
+    color: var(--spell-text);
+}
+
+.spell-card-name,
+.spell-card-title-row .spell-card-name {
+    color: #4b1e3c;
+}
+
+.spell-card-level {
+    background: rgba(233, 30, 99, 0.09);
+    color: #8b1c54;
+    border: 1px solid rgba(233, 30, 99, 0.2);
+}
+
+.spell-card-summary {
+    color: #5f3a54;
+}
+
+.spell-card-actions {
+    margin-top: auto;
+}
+
+.spell-btn {
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .flip-card {
+        height: 280px;
+    }
+
+    .spell-type-btn {
+        padding: 24px 16px;
+    }
+}

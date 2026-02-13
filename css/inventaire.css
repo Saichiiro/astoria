@@ -1546,6 +1546,7 @@
 
     .inventory-content {
         grid-template-columns: 1fr;
+        gap: var(--space-4);
     }
 
     .inventory-content.scroll-panel-open {
@@ -1558,6 +1559,8 @@
 
     .scroll-types-panel {
         position: static;
+        width: 100%;
+        max-height: none !important;
     }
 
     .inventory-grid {
@@ -1583,6 +1586,9 @@
     .inventory-grid {
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
         gap: var(--space-3);
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
     }
 
     .inventory-item {
@@ -1606,6 +1612,21 @@
     .inventory-toolbar {
         flex-wrap: wrap;
         align-items: stretch;
+    }
+
+    .inventory-content {
+        gap: var(--space-3);
+    }
+
+    .inventory-grid-container,
+    .inventory-detail,
+    .scroll-types-panel {
+        padding: var(--space-4);
+    }
+
+    .scroll-panel-list {
+        height: auto;
+        max-height: 220px;
     }
 
     .inventory-search {

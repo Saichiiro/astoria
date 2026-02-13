@@ -10383,7 +10383,15 @@
 
 
 
-            deleteModal.classList.add('open');
+            if (typeof modalManager !== 'undefined' && modalManager?.open) {
+                modalManager.open(deleteModal, {
+                    closeOnBackdropClick: true,
+                    closeOnEsc: true,
+                    openClass: 'open'
+                });
+            } else {
+                deleteModal.classList.add('open');
+            }
 
 
 
@@ -10407,7 +10415,11 @@
 
 
 
-            deleteModal.classList.remove('open');
+            if (typeof modalManager !== 'undefined' && modalManager?.isOpen?.(deleteModal)) {
+                modalManager.close(deleteModal);
+            } else {
+                deleteModal.classList.remove('open');
+            }
 
 
 
@@ -11203,3 +11215,4 @@
 
 
 </html>
+

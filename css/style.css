@@ -3475,3 +3475,16 @@ body.perf-lite .tw-hover:hover,
 body.perf-lite .tw-press:hover {
     transform: none !important;
 }
+
+/* =================================================================
+   GLOBAL MODAL SCROLL LOCK SAFETY
+   ================================================================= */
+html.modal-scroll-locked,
+body.modal-scroll-locked {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+}
+
+body.modal-scroll-locked {
+    touch-action: none;
+}
