@@ -21,6 +21,7 @@
 
     const navButtons = Array.from(document.querySelectorAll(".magic-nav-btn"));
     const sections = Array.from(document.querySelectorAll(".magic-section"));
+    const categoryCards = Array.from(document.querySelectorAll(".category-card[data-specialization]"));
     const saveBtn = document.getElementById("magicSaveBtn");
     const saveStatus = document.getElementById("magicSaveStatus");
     const saveRow = document.querySelector(".magic-save-row");
@@ -279,6 +280,59 @@
         if (!data?.hasEater) return "";
         const role = data?.eaterRole || "";
         return role === "meister" || role === "weapon" ? role : "";
+    }
+
+    function hasSorcellerieAccess() {
+        const magicData = getFicheTabData("magic") || getFicheTabData("magie") || {};
+        const specialization = normalizeText(magicData?.specialization || magicData?.magicSpecialization || "");
+        if (magicData?.hasSorcellerie === true || magicData?.sorcellerieEnabled === true) {
+            return true;
+        }
+        if (specialization.includes("sorcellerie")) {
+            return true;
+        }
+
+        const progress = loadMagicProgress();
+        const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
+        const hasUnlockedAffinity = enabled.some((key) => Boolean(progress.affinities?.[key]?.unlocked));
+        if (hasUnlockedAffinity) return true;
+
+        return pages.some((page) => {
+            if (isPageHidden(page)) return false;
+            const spec = String(page?.fields?.magicSpecialization || "").trim();
+            return !spec || spec === "sorcellerie";
+        });
+    }
+
+    function updateCategoryAvailability() {
+        if (!categoryCards.length) return;
+        const aliceStatus = getAliceStatus();
+        const eaterEnabled = getEaterStatus();
+        const eaterRole = getEaterRole();
+        const availability = {
+            sorcellerie: hasSorcellerieAccess(),
+            alice: aliceStatus === "simple" || aliceStatus === "double",
+            meister: eaterEnabled && eaterRole === "meister",
+            arme: eaterEnabled && eaterRole === "weapon"
+        };
+
+        categoryCards.forEach((card) => {
+            const specialization = card.dataset.specialization;
+            const isAvailable = Boolean(availability[specialization]);
+            card.hidden = !isAvailable;
+            card.classList.toggle("category-card--hidden", !isAvailable);
+            card.setAttribute("aria-hidden", isAvailable ? "false" : "true");
+        });
+
+        const hasVisible = categoryCards.some((card) => !card.hidden);
+        if (!hasVisible) {
+            const fallback = categoryCards.find((card) => card.dataset.specialization === "sorcellerie");
+            if (fallback) {
+                fallback.hidden = false;
+                fallback.classList.remove("category-card--hidden");
+                fallback.setAttribute("aria-hidden", "false");
+            }
+        }
     }
 
     function getCapacityTerminology(specialization) {
@@ -1147,6 +1201,9 @@
     }
 
     async function applyScrollCost({ category, affinityKey, cost }) {
+        if (isAdmin) {
+            return { ok: true, reason: "admin-free" };
+        }
         if (!currentCharacter?.id || !affinityKey || !Number.isFinite(cost)) {
             return { ok: false, reason: "missing-data" };
         }
@@ -1281,6 +1338,9 @@
     }
 
     async function consumeAscensionForRank(page, rank, nextLevel) {
+        if (isAdmin) {
+            return true;
+        }
         const specialization = page?.fields?.magicSpecialization;
 
         // Alice validation and consumption
@@ -2793,6 +2853,7 @@
         }
 
         syncPagesWithProgress();
+        updateCategoryAvailability();
 
         if (sanitizeCapacityText()) {
             saveToStorage();
@@ -2832,6 +2893,7 @@
             ensureActivePageVisible();
             applyFormFields(pages[activePageIndex]?.fields || {});
             updateCapacityUI();
+            updateCategoryAvailability();
             renderPageTabs();
             renderPagesOverview();
             updateSpellTypeCounts();
