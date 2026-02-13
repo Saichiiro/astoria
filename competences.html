@@ -573,8 +573,31 @@
             background: #fff;
             transform: translateY(-1px);
         }
+        .skills-admin-mode-btn {
+            border: 1px solid #F48FB1;
+            background: linear-gradient(to bottom, #ffffff, #ffe6f2);
+            color: #7a1242;
+            border-radius: 999px;
+            min-height: 34px;
+            padding: 0 12px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(244, 143, 177, 0.2);
+            transition: all 0.15s ease;
+        }
+        .skills-admin-mode-btn:hover {
+            transform: translateY(-1px);
+            background: #fff;
+        }
+        .skills-admin-mode-btn.is-active {
+            border-color: transparent;
+            color: #fff;
+            background: linear-gradient(135deg, #ff5c9a, #ff3f7e);
+            box-shadow: 0 8px 16px rgba(255, 63, 126, 0.3);
+        }
         .skills-admin-edit-icon {
-            display: none;
             width: 22px;
             height: 22px;
             border-radius: 999px;
@@ -588,14 +611,12 @@
             cursor: pointer;
             flex: 0 0 auto;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+            display: inline-flex;
         }
         .skills-admin-edit-icon:hover {
             transform: translateY(-1px);
             background: #fff;
             box-shadow: 0 3px 8px rgba(216, 27, 96, 0.25);
-        }
-        body[data-admin="true"] .skills-admin-edit-icon {
-            display: inline-flex;
         }
         .skills-line:hover .skills-value {
             background: linear-gradient(135deg, #5a6678, #3d4858);
@@ -663,6 +684,51 @@
         }
         .skills-inline-btn:disabled {
             opacity: .5;
+            cursor: not-allowed;
+        }
+        .skills-admin-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-inline: 8px;
+            flex-wrap: wrap;
+        }
+        .skills-admin-inline input {
+            height: 30px;
+            border-radius: 9px;
+            border: 1px solid #F48FB1;
+            background: #fff;
+            color: #4A148C;
+            font-weight: 700;
+            font-size: 0.74rem;
+            padding: 0 8px;
+        }
+        .skills-admin-inline .admin-name {
+            min-width: 122px;
+            max-width: 170px;
+        }
+        .skills-admin-inline .admin-icon {
+            width: 48px;
+            text-align: center;
+        }
+        .skills-admin-inline .admin-base,
+        .skills-admin-inline .admin-cap {
+            width: 62px;
+            text-align: center;
+        }
+        .skills-admin-inline-delete {
+            height: 30px;
+            border-radius: 999px;
+            border: 1px solid rgba(210, 45, 95, 0.45);
+            background: #fff;
+            color: #a11244;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0 10px;
+            cursor: pointer;
+        }
+        .skills-admin-inline-delete:disabled {
+            opacity: .45;
             cursor: not-allowed;
         }
         /* Transitions fade simples */
@@ -943,6 +1009,15 @@
             .skills-inline-editor-grid {
                 grid-template-columns: 1fr;
             }
+            .skills-admin-inline {
+                width: 100%;
+                margin-inline: 0;
+            }
+            .skills-admin-inline .admin-name {
+                min-width: 100px;
+                max-width: none;
+                flex: 1 1 100%;
+            }
             .skills-add-modal {
                 padding: 12px;
             }
@@ -1025,6 +1100,7 @@
                             </button>
                         </div>
                         <button class="quest-add-btn tw-press" id="skillsAddBtn" type="button" data-admin-only>+ Ajouter</button>
+                        <button class="skills-admin-mode-btn tw-press" id="skillsEditModeBtn" type="button" data-admin-only>Mode édition</button>
                         <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
                     </div>
                 </div>

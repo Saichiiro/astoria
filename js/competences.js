@@ -12,6 +12,7 @@
     const skillsPagePrevEl = document.getElementById("skillsPagePrev");
     const skillsPageNextEl = document.getElementById("skillsPageNext");
     const skillsAddBtn = document.getElementById("skillsAddBtn");
+    const skillsEditModeBtn = document.getElementById("skillsEditModeBtn");
     const skillsAddForm = document.getElementById("skillsAddForm");
     const skillsAddName = document.getElementById("skillsAddName");
     const skillsAddIcon = document.getElementById("skillsAddIcon");
@@ -64,6 +65,7 @@
     const skillsLocksKey = "skillsLocksByCategory";
     const skillsCustomKey = "skillsCustomByCategory";
     const skillsMetaKey = "skillsMetaByCategory";
+    const skillsEditModeKey = "skillsEditModeByCategory";
 
     const DEFAULT_CATEGORY_POINTS = {
         arts: 75,
@@ -83,6 +85,10 @@
         auth: null,
         saveTimer: null,
         inFlight: null,
+        retryTimer: null,
+        retryCount: 0,
+        dirty: false,
+        lastErrorToastAt: 0,
     };
 
     function storageKey(rawKey) {
@@ -97,6 +103,7 @@
         locksByCategory: loadFromStorage(skillsLocksKey),
         customSkillsByCategory: loadFromStorage(skillsCustomKey),
         metaByCategory: loadFromStorage(skillsMetaKey),
+        editModeByCategory: loadFromStorage(skillsEditModeKey),
         isAdmin: document.body.dataset.admin === "true",
         adminEditor: { categoryId: "", skillName: "" },
     };
@@ -112,6 +119,31 @@
                 el.setAttribute("hidden", "true");
             }
         });
+        refreshEditModeButton();
+    }
+
+    function isCategoryEditMode(categoryId) {
+        return Boolean(skillsState.editModeByCategory?.[categoryId]);
+    }
+
+    function setCategoryEditMode(categoryId, enabled) {
+        if (!categoryId) return;
+        skillsState.editModeByCategory = skillsState.editModeByCategory || {};
+        skillsState.editModeByCategory[categoryId] = Boolean(enabled);
+        saveToStorage(skillsEditModeKey, skillsState.editModeByCategory);
+        refreshEditModeButton();
+    }
+
+    function refreshEditModeButton() {
+        if (!skillsEditModeBtn) return;
+        if (!skillsState.isAdmin) {
+            skillsEditModeBtn.hidden = true;
+            return;
+        }
+        skillsEditModeBtn.hidden = false;
+        const enabled = isCategoryEditMode(skillsState.activeCategoryId);
+        skillsEditModeBtn.classList.toggle("is-active", enabled);
+        skillsEditModeBtn.textContent = enabled ? "Edition active" : "Mode édition";
     }
 
     syncAdminUI();
@@ -178,6 +210,15 @@
         });
     }
 
+    if (skillsEditModeBtn) {
+        skillsEditModeBtn.addEventListener("click", () => {
+            if (!skillsState.isAdmin) return;
+            const categoryId = skillsState.activeCategoryId;
+            setCategoryEditMode(categoryId, !isCategoryEditMode(categoryId));
+            renderSkillsCategory(getActiveCategory());
+        });
+    }
+
     if (skillsAddForm) {
         skillsAddForm.addEventListener("click", (event) => {
             const target = event.target;
@@ -222,6 +263,7 @@
             setActiveSkillsCategory(categoryId);
             closeAddForm();
             updateFeedback("CompÃ©tence ajoutÃ©e.");
+            void persistProfileNow();
         });
     }
 
@@ -246,6 +288,7 @@
         }
 
         if (persistState.mode === "character") {
+            persistState.dirty = true;
             scheduleProfileSave();
         }
     }
@@ -275,11 +318,18 @@
         const metaByCategory = skillsState.metaByCategory || {};
         skillsCategories.forEach((category) => {
             const categoryMeta = metaByCategory[category.id] || {};
+            category.skills = (category.skills || []).filter((skill) => {
+                const meta = categoryMeta[normalizeSkillName(skill?.name)];
+                return !Boolean(meta?.deleted);
+            });
             (category.skills || []).forEach((skill) => {
                 const meta = categoryMeta[normalizeSkillName(skill?.name)];
                 if (!meta) return;
                 if (typeof meta.icon === "string") {
                     skill.icon = meta.icon;
+                }
+                if (Number.isFinite(Number(meta.cap)) && Number(meta.cap) > 0) {
+                    skill.cap = Number(meta.cap);
                 }
             });
         });
@@ -391,6 +441,11 @@
         saveToStorage(skillsMetaKey, skillsState.metaByCategory);
     }
 
+    function markSkillDeleted(categoryId, skillName) {
+        if (!categoryId || !skillName) return;
+        setSkillMeta(categoryId, skillName, { deleted: true });
+    }
+
     function moveSkillMetaKey(categoryId, fromName, toName) {
         const categoryMeta = getSkillMetaMap(categoryId);
         const fromKey = normalizeSkillName(fromName);
@@ -423,51 +478,46 @@
         renderSkillsCategory(getActiveCategory());
     }
 
-    function saveInlineSkillEditor(category, skill, panel) {
-        if (!category || !skill || !panel) return;
+    function applySkillAdminEdits(category, skill, draft) {
+        if (!category || !skill || !draft) return { ok: false };
         const categoryId = category.id;
         const originalName = String(skill.name || "").trim();
         const isCore = isBaseSkill(categoryId, originalName);
-
-        const nameInput = panel.querySelector("[data-field='name']");
-        const baseInput = panel.querySelector("[data-field='base']");
-        const capInput = panel.querySelector("[data-field='cap']");
-        const iconInput = panel.querySelector("[data-field='icon']");
-
-        const nextName = String(nameInput?.value || "").trim();
-        const nextBaseRaw = Number(baseInput?.value);
-        const nextCapRaw = Number(capInput?.value);
-        const nextIcon = String(iconInput?.value || "").trim();
+        const nextName = String(draft.name || "").trim();
+        const nextIcon = String(draft.icon || "").trim();
+        const nextBaseRaw = Number(draft.base);
+        const nextCapRaw = Number(draft.cap);
 
         if (!nextName) {
             updateFeedback("Nom invalide.");
-            return;
+            return { ok: false };
         }
         if (!Number.isFinite(nextBaseRaw) || nextBaseRaw < 0) {
             updateFeedback("Base invalide.");
-            return;
+            return { ok: false };
         }
         if (!Number.isFinite(nextCapRaw) || nextCapRaw <= 0) {
             updateFeedback("Cap invalide.");
-            return;
+            return { ok: false };
         }
 
         let finalName = originalName;
         if (normalizeSkillName(nextName) !== normalizeSkillName(originalName)) {
             if (isCore) {
-                updateFeedback("Renommage bloque pour une competence native.");
-                return;
+                updateFeedback("Nom natif conserve, autres champs mis a jour.");
+                finalName = originalName;
+            } else {
+                const duplicate = (category.skills || []).some((entry) => entry !== skill
+                    && normalizeSkillName(entry?.name) === normalizeSkillName(nextName));
+                if (duplicate) {
+                    updateFeedback("Nom deja utilise.");
+                    return { ok: false };
+                }
+                moveSkillStateKeys(categoryId, originalName, nextName);
+                syncCustomSkillRecord(categoryId, originalName, { name: nextName });
+                skill.name = nextName;
+                finalName = nextName;
             }
-            const duplicate = (category.skills || []).some((entry) => entry !== skill
-                && normalizeSkillName(entry?.name) === normalizeSkillName(nextName));
-            if (duplicate) {
-                updateFeedback("Nom deja utilise.");
-                return;
-            }
-            moveSkillStateKeys(categoryId, originalName, nextName);
-            syncCustomSkillRecord(categoryId, originalName, { name: nextName });
-            skill.name = nextName;
-            finalName = nextName;
         }
 
         const nextCap = Math.floor(nextCapRaw);
@@ -478,29 +528,54 @@
         skillsState.baseValuesByCategory[categoryId][finalName] = nextBase;
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
         syncCustomSkillRecord(categoryId, finalName, { cap: nextCap });
-        setSkillMeta(categoryId, finalName, { icon: skill.icon });
+        setSkillMeta(categoryId, finalName, { icon: skill.icon, cap: nextCap });
+        return { ok: true, finalName };
+    }
 
-        skillsState.adminEditor = { categoryId, skillName: finalName };
+    function saveInlineSkillEditor(category, skill, panel) {
+        if (!category || !skill || !panel) return;
+
+        const nameInput = panel.querySelector("[data-field='name']");
+        const baseInput = panel.querySelector("[data-field='base']");
+        const capInput = panel.querySelector("[data-field='cap']");
+        const iconInput = panel.querySelector("[data-field='icon']");
+        const result = applySkillAdminEdits(category, skill, {
+            name: String(nameInput?.value || ""),
+            icon: String(iconInput?.value || ""),
+            base: Number(baseInput?.value),
+            cap: Number(capInput?.value)
+        });
+        if (!result.ok) return;
+        skillsState.adminEditor = { categoryId: category.id, skillName: result.finalName };
         renderSkillsCategory(getActiveCategory());
-        updateFeedback(`Competence mise a jour: ${finalName}.`);
+        updateFeedback(`Competence mise a jour: ${result.finalName}.`);
+        void persistProfileNow();
     }
 
     function deleteInlineSkillEditor(category, skill) {
         if (!category || !skill) return;
         const categoryId = category.id;
         const skillName = String(skill.name || "").trim();
-        if (isBaseSkill(categoryId, skillName)) {
-            updateFeedback("Suppression bloquee pour une competence native.");
-            return;
-        }
         const list = Array.isArray(category.skills) ? category.skills : [];
         category.skills = list.filter((entry) => normalizeSkillName(entry?.name) !== normalizeSkillName(skillName));
-        deleteSkillState(categoryId, skillName);
-        syncCustomSkillRecord(categoryId, skillName, null);
+        if (isBaseSkill(categoryId, skillName)) {
+            const allocations = getCategoryAllocations(categoryId);
+            const baseValues = skillsState.baseValuesByCategory[categoryId] || {};
+            delete allocations[skillName];
+            delete baseValues[skillName];
+            skillsState.baseValuesByCategory[categoryId] = baseValues;
+            saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+            saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+            markSkillDeleted(categoryId, skillName);
+        } else {
+            deleteSkillState(categoryId, skillName);
+            syncCustomSkillRecord(categoryId, skillName, null);
+        }
         skillsState.adminEditor = { categoryId: "", skillName: "" };
         renderSkillsTabs();
         renderSkillsCategory(getActiveCategory());
         updateFeedback(`Competence supprimee: ${skillName}.`);
+        void persistProfileNow();
     }
 
     function buildDefaultCompetences() {
@@ -599,6 +674,16 @@
                 void flushProfileSave();
             }
         });
+
+        window.addEventListener("online", () => {
+            if (persistState.mode !== "character") return;
+            if (!persistState.dirty) return;
+            if (persistState.retryTimer) {
+                clearTimeout(persistState.retryTimer);
+                persistState.retryTimer = null;
+            }
+            void flushProfileSave();
+        });
     }
 
     function scheduleProfileSave() {
@@ -613,12 +698,23 @@
         }, 150);
     }
 
+    function scheduleProfileRetry() {
+        if (persistState.mode !== "character" || !persistState.auth) return;
+        if (persistState.retryTimer) return;
+        const backoffMs = Math.min(10000, 600 * (2 ** Math.min(persistState.retryCount, 4)));
+        persistState.retryTimer = setTimeout(() => {
+            persistState.retryTimer = null;
+            void flushProfileSave();
+        }, backoffMs);
+    }
+
     async function flushProfileSave() {
         if (persistState.mode !== "character" || !persistState.auth) return;
         if (persistState.saveTimer) {
             clearTimeout(persistState.saveTimer);
             persistState.saveTimer = null;
         }
+        if (!persistState.dirty) return;
 
         if (persistState.inFlight) return persistState.inFlight;
 
@@ -641,13 +737,42 @@
 
         persistState.inFlight = (async () => {
             try {
-                await persistState.auth.updateCharacter?.(character.id, { profile_data: nextProfileData });
+                const result = await persistState.auth.updateCharacter?.(character.id, { profile_data: nextProfileData });
+                if (!result || result.success !== true) {
+                    throw new Error("updateCharacter returned success=false");
+                }
+                persistState.dirty = false;
+                persistState.retryCount = 0;
+                if (persistState.retryTimer) {
+                    clearTimeout(persistState.retryTimer);
+                    persistState.retryTimer = null;
+                }
+            } catch (error) {
+                persistState.dirty = true;
+                persistState.retryCount += 1;
+                scheduleProfileRetry();
+                const now = Date.now();
+                if (now - persistState.lastErrorToastAt > 2000) {
+                    persistState.lastErrorToastAt = now;
+                    updateFeedback("Sync backend en attente (reseau).");
+                }
+                throw error;
             } finally {
                 persistState.inFlight = null;
             }
         })();
 
         return persistState.inFlight;
+    }
+
+    async function persistProfileNow() {
+        if (persistState.mode !== "character" || !persistState.auth) return;
+        try {
+            await flushProfileSave();
+        } catch (error) {
+            console.error("[Competences] Failed to flush profile save:", error);
+            updateFeedback("Erreur sync backend: reessayez.");
+        }
     }
 
     // -----------------------------------------------------------------
@@ -782,6 +907,7 @@
             const totalValue = base + allocation + bonus;
             const cap = getSkillCap(skill);
             const isMaxed = base + allocation >= cap;
+            const isAdminEditMode = skillsState.isAdmin && isCategoryEditMode(category.id);
             const li = document.createElement("li");
             li.className = "skills-line";
             const mainRow = document.createElement("div");
@@ -798,18 +924,6 @@
             name.className = "skills-name";
             name.textContent = skill.name;
             nameWrap.append(name);
-            const editIconBtn = document.createElement("button");
-            editIconBtn.type = "button";
-            editIconBtn.className = "skills-admin-edit-icon";
-            editIconBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
-            editIconBtn.title = "Modifier";
-            editIconBtn.textContent = "✏";
-            editIconBtn.addEventListener("click", (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                openAdminSkillEditor(category, skill);
-            });
-            nameWrap.append(editIconBtn);
 
             const controls = document.createElement("div");
             controls.className = "skills-value-group";
@@ -839,57 +953,96 @@
                 adjustSkillPoints(category.id, skill, 1, value, decBtn, incBtn);
             });
 
+            if (isAdminEditMode) {
+                const inline = document.createElement("div");
+                inline.className = "skills-admin-inline";
+
+                const nameInput = document.createElement("input");
+                nameInput.type = "text";
+                nameInput.className = "admin-name";
+                nameInput.value = skill.name || "";
+                nameInput.placeholder = "Nom";
+
+                const iconInput = document.createElement("input");
+                iconInput.type = "text";
+                iconInput.className = "admin-icon";
+                iconInput.maxLength = 8;
+                iconInput.value = String(skill.icon || "");
+                iconInput.placeholder = "Icone";
+
+                const baseInput = document.createElement("input");
+                baseInput.type = "number";
+                baseInput.className = "admin-base";
+                baseInput.min = "0";
+                baseInput.max = "999";
+                baseInput.value = String(base);
+                baseInput.placeholder = "Base";
+
+                const capInput = document.createElement("input");
+                capInput.type = "number";
+                capInput.className = "admin-cap";
+                capInput.min = "1";
+                capInput.max = "999";
+                capInput.value = String(cap);
+                capInput.placeholder = "Cap";
+
+                const deleteBtn = document.createElement("button");
+                deleteBtn.type = "button";
+                deleteBtn.className = "skills-admin-inline-delete";
+                deleteBtn.textContent = "Suppr.";
+                deleteBtn.title = "Supprimer la competence";
+                deleteBtn.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    deleteInlineSkillEditor(category, skill);
+                });
+
+                const commitLine = () => {
+                    const draft = {
+                        name: nameInput.value,
+                        icon: iconInput.value,
+                        base: Number(baseInput.value),
+                        cap: Number(capInput.value)
+                    };
+                    const current = {
+                        name: String(skill.name || ""),
+                        icon: String(skill.icon || ""),
+                        base: Number(skillsState.baseValuesByCategory?.[category.id]?.[skill.name] || 0),
+                        cap: Number(getSkillCap(skill))
+                    };
+                    const changed = normalizeSkillName(draft.name) !== normalizeSkillName(current.name)
+                        || String(draft.icon).trim() !== String(current.icon).trim()
+                        || Number(draft.base) !== Number(current.base)
+                        || Number(draft.cap) !== Number(current.cap);
+                    if (!changed) return;
+                    const result = applySkillAdminEdits(category, skill, draft);
+                    if (!result.ok) {
+                        renderSkillsCategory(getActiveCategory());
+                        return;
+                    }
+                    renderSkillsCategory(getActiveCategory());
+                    updateFeedback(`Competence mise a jour: ${result.finalName}.`);
+                    void persistProfileNow();
+                };
+
+                [nameInput, iconInput, baseInput, capInput].forEach((input) => {
+                    input.addEventListener("keydown", (event) => {
+                        if (event.key === "Enter") {
+                            event.preventDefault();
+                            input.blur();
+                        }
+                    });
+                    input.addEventListener("blur", commitLine);
+                });
+
+                inline.append(nameInput, iconInput, baseInput, capInput, deleteBtn);
+                nameWrap.replaceChildren(inline);
+            }
+
             controls.append(decBtn, value, incBtn);
             mainRow.append(icon, nameWrap, controls);
             li.append(mainRow);
 
-            if (skillsState.isAdmin && isEditingSkill(category.id, skill.name)) {
-                const editor = document.createElement("div");
-                editor.className = "skills-inline-editor";
-                const isCoreSkill = isBaseSkill(category.id, skill.name);
-                const currentBase = Number(skillsState.baseValuesByCategory?.[category.id]?.[skill.name]) || 0;
-                const safeName = String(skill.name || "")
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;");
-                editor.innerHTML = `
-                    <div class="skills-inline-editor-grid">
-                        <label class="skills-inline-field">
-                            <span>Nom</span>
-                            <input type="text" data-field="name" value="${safeName}" ${isCoreSkill ? "readonly" : ""}>
-                        </label>
-                        <label class="skills-inline-field">
-                            <span>Icône / emote</span>
-                            <input type="text" data-field="icon" maxlength="8" value="${String(skill.icon || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}">
-                        </label>
-                        <label class="skills-inline-field">
-                            <span>Base</span>
-                            <input type="number" data-field="base" min="0" max="999" value="${currentBase}">
-                        </label>
-                        <label class="skills-inline-field">
-                            <span>Cap</span>
-                            <input type="number" data-field="cap" min="1" max="999" value="${getSkillCap(skill)}">
-                        </label>
-                    </div>
-                    <div class="skills-inline-editor-actions">
-                        <button type="button" class="skills-inline-btn ghost" data-action="cancel">Fermer</button>
-                        <button type="button" class="skills-inline-btn danger" data-action="delete" ${isCoreSkill ? "disabled" : ""}>Supprimer</button>
-                        <button type="button" class="skills-inline-btn primary" data-action="save">Enregistrer</button>
-                    </div>
-                `;
-                editor.querySelector("[data-action='cancel']")?.addEventListener("click", () => {
-                    skillsState.adminEditor = { categoryId: "", skillName: "" };
-                    renderSkillsCategory(getActiveCategory());
-                });
-                editor.querySelector("[data-action='save']")?.addEventListener("click", () => {
-                    saveInlineSkillEditor(category, skill, editor);
-                });
-                editor.querySelector("[data-action='delete']")?.addEventListener("click", () => {
-                    deleteInlineSkillEditor(category, skill);
-                });
-                li.append(editor);
-            }
             bindBonusTooltip(li, {
                 natif: base + allocation,
                 objets: bonusEntry.items || 0,
@@ -1470,6 +1623,7 @@
 
         const category = skillsCategories.find((c) => c.id === categoryId);
         renderSkillsCategory(category);
+        refreshEditModeButton();
     }
 
     // -----------------------------------------------------------------
@@ -1504,15 +1658,19 @@
 
         skillsListEl.querySelectorAll(".skills-line").forEach((line) => {
             const nameEl = line.querySelector(".skills-name");
+            const adminNameInput = line.querySelector(".skills-admin-inline .admin-name");
             const incBtn = line.querySelector(".skill-point-btn:nth-child(3)");
             const decBtn = line.querySelector(".skill-point-btn:nth-child(1)");
             const valueEl = line.querySelector(".skills-value");
-            if (!nameEl || !incBtn || !decBtn) return;
-            const skill = activeCategory.skills.find((item) => item.name === nameEl.textContent);
-            const savedBase = skillsState.baseValuesByCategory[activeCategory.id]?.[nameEl.textContent];
+            if (!incBtn || !decBtn) return;
+            const skillName = String(nameEl?.textContent || adminNameInput?.value || "").trim();
+            if (!skillName) return;
+            const skill = activeCategory.skills.find((item) => item.name === skillName);
+            if (!skill) return;
+            const savedBase = skillsState.baseValuesByCategory[activeCategory.id]?.[skillName];
             const base = savedBase ?? 0;
-            const allocation = allocations[nameEl.textContent] || 0;
-            const bonusEntry = bonusBySkill[nameEl.textContent] || { total: 0, items: 0, nokorah: 0 };
+            const allocation = allocations[skillName] || 0;
+            const bonusEntry = bonusBySkill[skillName] || { total: 0, items: 0, nokorah: 0 };
             const bonus = bonusEntry.total || 0;
             const total = base + allocation + bonus;
             const cap = getSkillCap(skill);
