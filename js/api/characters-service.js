@@ -1,6 +1,21 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
-import { isAdmin } from './auth-service.js';
+import { isAdmin, refreshSessionUser } from './auth-service.js';
+
+let authRefreshPromise = null;
+
+async function ensureAuthContext() {
+    if (!authRefreshPromise) {
+        authRefreshPromise = refreshSessionUser().catch(() => ({ success: false }));
+        try {
+            await authRefreshPromise;
+        } finally {
+            authRefreshPromise = null;
+        }
+        return;
+    }
+    await authRefreshPromise;
+}
 
 function isAbortLikeError(error) {
     if (!error) return false;
@@ -13,6 +28,7 @@ export async function getUserCharacters(userId) {
     if (!userId) return [];
 
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
@@ -41,6 +57,7 @@ export async function getAllCharacters() {
     if (!isAdmin()) return [];
 
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
@@ -107,6 +124,7 @@ function createDefaultCompetences() {
 
 export async function createCharacter(userId, characterData) {
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const characters = await getUserCharacters(userId);
@@ -147,6 +165,7 @@ export async function createCharacter(userId, characterData) {
 
 export async function getCharacterById(characterId) {
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
@@ -169,6 +188,7 @@ export async function getCharacterById(characterId) {
 
 export async function setActiveCharacter(characterId) {
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
@@ -198,6 +218,7 @@ export async function setActiveCharacter(characterId) {
 
 export async function updateCharacter(characterId, updates) {
     try {
+        await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
