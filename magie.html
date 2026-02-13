@@ -73,7 +73,7 @@
 
             <!-- PAGE 2: Navigation principale -->
             <div class="page" id="page2">
-                <button class="back-btn" onclick="goToPage(1)">
+                <button class="back-btn" id="magicPage2BackBtn" onclick="handleMagicPage2Back()">
                     <span>←</span>
                     <span>Retour</span>
                 </button>
@@ -149,11 +149,6 @@
                         <div class="nav-icon">✨</div>
                     </div>
                 </div>
-                <button type="button" class="back-btn magic-sections-back" id="magicBackToSectionsBtn" hidden>
-                    <span>←</span>
-                    <span>Retour aux sections</span>
-                </button>
-
                 <!-- Save button for summary/params sections -->
                 <div class="magic-save-row" id="magicSaveRow" style="display: none;">
                     <span class="magic-save-status" id="magicSaveStatus">Sauvegarde en attente.</span>

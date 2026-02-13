@@ -48,7 +48,7 @@
     const page4El = document.getElementById("page4");
     const mainNavEl = page2El ? page2El.querySelector(".main-nav") : null;
     const contentBodyEl = document.getElementById("magicContentBody");
-    const backToSectionsBtn = document.getElementById("magicBackToSectionsBtn");
+    const page2BackBtn = document.getElementById("magicPage2BackBtn");
     const page4TitleEl = document.getElementById("page4Title");
     const spellsContainer = document.getElementById("spellsContainer");
     const spellCountMineursEl = document.getElementById("spellCountMineurs");
@@ -108,51 +108,7 @@
 
     const ENABLE_PAGE_ADD = false;
 
-    const defaultCapacities = [
-        {
-            id: "cap-signature",
-            name: "Lame astrale résonante",
-            type: "offensif",
-            rank: "signature",
-            stats: ["Combat", "Pouvoirs"],
-            summary: "Onde astrale en cône qui renverse les ennemis proches.",
-            target: "zone",
-            zoneType: "cone",
-            zoneDetail: "Cône 8m",
-            distance: "moyenne",
-            activationTime: "court",
-            duration: "instantane",
-            cooldown: "moyen",
-            rp: "Le meister fait vibrer son arme et libère une onde astrale qui déchire l'air.",
-            perception: "L'air se met à vibrer, des étincelles bleutées longent la lame.",
-            tell: "Un souffle grave et une posture fixe annoncent la charge.",
-            effect: "Attaque de zone en cône, dégâts moyens, peut déséquilibrer les adversaires proches.",
-            conditions: "Requiert l'arme en main et une posture d'ancrage.",
-            strengths: "Contrôle de zone, bon impact visuel.",
-            weaknesses: "Temps d'activation visible, contrable par bouclier.",
-            cost: "Consomme une grande partie de la réserve magique, utilisable 1 à 2 fois par scène.",
-            limits: "Inefficace contre les protections mentales ou purement spirituelles.",
-            adminNote: "Capacité signature à surveiller selon le niveau global du personnage.",
-            level: 1,
-            upgrades: [],
-            locked: false
-        },
-        {
-            id: "cap-support",
-            name: "Chant de synchronisation",
-            type: "soutien",
-            rank: "mineur",
-            stats: ["Social", "Pouvoirs"],
-            rp: "Une mélodie résonne entre meister et arme, renforçant leur lien.",
-            effect: "Octroie un bonus temporaire aux actions coordonnées meister/arme.",
-            cost: "Nécessite concentration et temps de préparation.",
-            limits: "Interrompu si le lanceur subit des dégâts importants.",
-            adminNote: "",
-            level: 1,
-            upgrades: [],
-            locked: false
-        }
-    ];
+    const defaultCapacities = [];
 
     const CAPACITY_TYPES = [
         { value: "offensif", label: "Offensif" },
@@ -397,11 +353,7 @@
     function updateMagicPageTitle() {
         if (!pageTitleEl) return;
         const fields = pages[activePageIndex]?.fields || {};
-        const specialization = fields.magicSpecialization || "";
-        const labelFromSpec = specialization
-            ? specialization.charAt(0).toUpperCase() + specialization.slice(1)
-            : "Spécification";
-        const finalLabel = String(fields.magicName || "").trim() || labelFromSpec;
+        const finalLabel = getFallbackMagicName(fields, activePageIndex) || "Spécification";
         pageTitleEl.textContent = `Fiche Magie | ${finalLabel}`;
     }
 
@@ -427,9 +379,6 @@
         }
         if (contentBodyEl) {
             contentBodyEl.style.display = "none";
-        }
-        if (backToSectionsBtn) {
-            backToSectionsBtn.hidden = true;
         }
         if (saveRow) {
             saveRow.style.display = "none";
@@ -514,7 +463,7 @@
                         <p><strong>Effet :</strong> ${effect}</p>
                         <p><strong>Coût :</strong> ${cap.cost || "-"}</p>
                         <p><strong>Limites :</strong> ${cap.limits || "-"}</p>
-                        <button type="button" class="magic-btn magic-btn-outline tw-press" data-edit-capacity="${cap.id}">
+                        <button type="button" class="magic-btn magic-btn-outline tw-press" data-edit-capacity="${cap.id}" ${isAdmin ? "" : "hidden"}>
                             Modifier
                         </button>
                     </div>
@@ -548,9 +497,6 @@
         }
         if (contentBodyEl) {
             contentBodyEl.style.display = "block";
-        }
-        if (backToSectionsBtn) {
-            backToSectionsBtn.hidden = false;
         }
         if (saveRow) {
             saveRow.style.display = nextSection === "magic-admin" ? "none" : "flex";
@@ -1790,6 +1736,27 @@
         eater: "Eater"
     };
 
+    function getFallbackMagicName(fields, indexHint = null) {
+        const fieldsSafe = fields || {};
+        const fromName = String(fieldsSafe.magicName || "").trim();
+        if (fromName) return fromName;
+
+        const affinityKey = String(fieldsSafe.magicAffinityKey || "").trim();
+        if (affinityKey) {
+            return getAffinityLabel(affinityKey);
+        }
+
+        const specValue = String(fieldsSafe.magicSpecialization || "").trim();
+        if (specializationLabels[specValue]) {
+            return specializationLabels[specValue];
+        }
+
+        if (typeof indexHint === "number" && Number.isFinite(indexHint)) {
+            return `Magie ${indexHint + 1}`;
+        }
+        return "Magie";
+    }
+
     function renderPagesOverview() {
         if (!pagesOverview) return;
         pagesOverview.innerHTML = "";
@@ -1804,7 +1771,7 @@
         pages.forEach((page, index) => {
             if (isPageHidden(page)) return;
             const fields = page?.fields || {};
-            const name = String(fields.magicName || "").trim() || `Magie ${index + 1}`;
+            const name = getFallbackMagicName(fields, index);
             const specValue = String(fields.magicSpecialization || "").trim();
             const specLabel = specializationLabels[specValue] || "Sans specialisation";
             const affinityKey = fields.magicAffinityKey;
@@ -2107,7 +2074,7 @@
                         : ascensionCost === 0
                             ? "Gratuit"
                             : `${ascensionCost} parchemins`;
-                const canEditCapacity = isAdmin || !cap.locked;
+                const canEditCapacity = isAdmin;
                 const showUpgrades = isSorcelleriePage
                     || currentPage?.fields?.magicSpecialization === "alice"
                     || currentPage?.fields?.magicSpecialization === "meister"
@@ -2408,6 +2375,7 @@
                     if (upgradeSave) {
                         upgradeSave.addEventListener("click", async (event) => {
                             event.stopPropagation();
+                            if (!canEditCapacity) return;
                             const nextName = upgradeName?.value.trim() || cap.name;
                             const nextSummary = upgradeSummary?.value.trim() || "";
                             const nextRp = upgradeRp?.value.trim() || "";
@@ -2417,10 +2385,6 @@
                                 return;
                             }
                             const previousLevel = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1);
-                            const nextRank = upgradeRank?.value || cap.rank;
-                            const nextLevel = previousLevel + 1;
-                            const ok = await consumeAscensionForRank(pages[activePageIndex], nextRank, nextLevel);
-                            if (!ok) return;
                             const snapshot = {
                                 name: cap.name,
                                 type: cap.type,
@@ -2481,6 +2445,7 @@
                             renderCapacities(capacityFilter ? capacityFilter.value : "");
                             saveToStorage();
                             markDirty();
+                            await flushProfilePersist();
                         });
                     }
 
@@ -2603,6 +2568,7 @@
     }
 
     const openCapacityCreation = () => {
+        if (!isAdmin) return;
         goToPageInternal(SCREEN_PAGE.NAVIGATION, null, { persist: false });
         showMagicSectionInternal("magic-capacities", { persist: false });
         if (!capacityForm) return;
@@ -2620,6 +2586,13 @@
     window.showMagicSection = (sectionId) => {
         showMagicSectionInternal(sectionId);
     };
+    window.handleMagicPage2Back = () => {
+        if (isSectionContentOpen) {
+            showMainNavigationOnly();
+            return;
+        }
+        goToPageInternal(SCREEN_PAGE.CATEGORIES);
+    };
 
     navButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -2630,9 +2603,9 @@
         });
     });
 
-    if (backToSectionsBtn) {
-        backToSectionsBtn.addEventListener("click", () => {
-            showMainNavigationOnly();
+    if (page2BackBtn) {
+        page2BackBtn.addEventListener("click", () => {
+            window.handleMagicPage2Back();
         });
     }
 
@@ -2689,6 +2662,9 @@
 
     addCapacityButtons.forEach((button) => {
         if (!button) return;
+        if (!isAdmin) {
+            button.hidden = true;
+        }
         button.addEventListener("click", () => {
             openCapacityCreation();
         });
@@ -2711,20 +2687,20 @@
 
     if (capSaveBtn) {
         capSaveBtn.addEventListener("click", async () => {
+            if (!isAdmin) return;
             const newCap = buildCapacityFromForm();
             if (!newCap) {
                 alert("Ajoutez un nom pour le fragment.");
                 return;
             }
             if (!pages[activePageIndex]) return;
-            const ok = await consumeAscensionForRank(pages[activePageIndex], newCap.rank, newCap.level);
-            if (!ok) return;
             pages[activePageIndex].capacities = pages[activePageIndex].capacities || [];
             pages[activePageIndex].capacities.push(newCap);
             renderCapacities(capacityFilter ? capacityFilter.value : "");
             setCapacityFormOpen(false);
             saveToStorage();
             markDirty();
+            await flushProfilePersist();
         });
     }
 
