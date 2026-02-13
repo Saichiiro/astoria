@@ -63,6 +63,7 @@
     const skillsBaseValuesKey = "skillsBaseValuesByCategory";
     const skillsLocksKey = "skillsLocksByCategory";
     const skillsCustomKey = "skillsCustomByCategory";
+    const skillsMetaKey = "skillsMetaByCategory";
 
     const DEFAULT_CATEGORY_POINTS = {
         arts: 75,
@@ -95,6 +96,7 @@
         baseValuesByCategory: loadFromStorage(skillsBaseValuesKey),
         locksByCategory: loadFromStorage(skillsLocksKey),
         customSkillsByCategory: loadFromStorage(skillsCustomKey),
+        metaByCategory: loadFromStorage(skillsMetaKey),
         isAdmin: document.body.dataset.admin === "true",
         adminEditor: { categoryId: "", skillName: "" },
     };
@@ -269,6 +271,18 @@
                 });
             });
         });
+
+        const metaByCategory = skillsState.metaByCategory || {};
+        skillsCategories.forEach((category) => {
+            const categoryMeta = metaByCategory[category.id] || {};
+            (category.skills || []).forEach((skill) => {
+                const meta = categoryMeta[normalizeSkillName(skill?.name)];
+                if (!meta) return;
+                if (typeof meta.icon === "string") {
+                    skill.icon = meta.icon;
+                }
+            });
+        });
     }
 
     function addCustomSkill(categoryId, skill) {
@@ -347,6 +361,7 @@
         skillsState.baseValuesByCategory[categoryId] = baseValues;
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+        moveSkillMetaKey(categoryId, fromName, toName);
     }
 
     function deleteSkillState(categoryId, skillName) {
@@ -357,6 +372,41 @@
         skillsState.baseValuesByCategory[categoryId] = baseValues;
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+        deleteSkillMetaKey(categoryId, skillName);
+    }
+
+    function getSkillMetaMap(categoryId) {
+        skillsState.metaByCategory = skillsState.metaByCategory || {};
+        if (!skillsState.metaByCategory[categoryId]) {
+            skillsState.metaByCategory[categoryId] = {};
+        }
+        return skillsState.metaByCategory[categoryId];
+    }
+
+    function setSkillMeta(categoryId, skillName, patch) {
+        if (!categoryId || !skillName) return;
+        const categoryMeta = getSkillMetaMap(categoryId);
+        const key = normalizeSkillName(skillName);
+        categoryMeta[key] = { ...(categoryMeta[key] || {}), ...patch };
+        saveToStorage(skillsMetaKey, skillsState.metaByCategory);
+    }
+
+    function moveSkillMetaKey(categoryId, fromName, toName) {
+        const categoryMeta = getSkillMetaMap(categoryId);
+        const fromKey = normalizeSkillName(fromName);
+        const toKey = normalizeSkillName(toName);
+        if (!categoryMeta[fromKey] || fromKey === toKey) return;
+        categoryMeta[toKey] = categoryMeta[fromKey];
+        delete categoryMeta[fromKey];
+        saveToStorage(skillsMetaKey, skillsState.metaByCategory);
+    }
+
+    function deleteSkillMetaKey(categoryId, skillName) {
+        const categoryMeta = getSkillMetaMap(categoryId);
+        const key = normalizeSkillName(skillName);
+        if (!categoryMeta[key]) return;
+        delete categoryMeta[key];
+        saveToStorage(skillsMetaKey, skillsState.metaByCategory);
     }
 
     function isEditingSkill(categoryId, skillName) {
@@ -382,10 +432,12 @@
         const nameInput = panel.querySelector("[data-field='name']");
         const baseInput = panel.querySelector("[data-field='base']");
         const capInput = panel.querySelector("[data-field='cap']");
+        const iconInput = panel.querySelector("[data-field='icon']");
 
         const nextName = String(nameInput?.value || "").trim();
         const nextBaseRaw = Number(baseInput?.value);
         const nextCapRaw = Number(capInput?.value);
+        const nextIcon = String(iconInput?.value || "").trim();
 
         if (!nextName) {
             updateFeedback("Nom invalide.");
@@ -421,10 +473,12 @@
         const nextCap = Math.floor(nextCapRaw);
         const nextBase = Math.min(Math.floor(nextBaseRaw), nextCap);
         skill.cap = nextCap;
+        skill.icon = nextIcon || "";
         skillsState.baseValuesByCategory[categoryId] = skillsState.baseValuesByCategory[categoryId] || {};
         skillsState.baseValuesByCategory[categoryId][finalName] = nextBase;
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
         syncCustomSkillRecord(categoryId, finalName, { cap: nextCap });
+        setSkillMeta(categoryId, finalName, { icon: skill.icon });
 
         skillsState.adminEditor = { categoryId, skillName: finalName };
         renderSkillsCategory(getActiveCategory());
@@ -455,6 +509,7 @@
         const allocationsByCategory = {};
         const locksByCategory = {};
         const customSkillsByCategory = {};
+        const metaByCategory = {};
 
         skillsCategories.forEach((category) => {
             pointsByCategory[category.id] = DEFAULT_CATEGORY_POINTS[category.id] ?? 0;
@@ -462,12 +517,13 @@
             locksByCategory[category.id] = false;
             baseValuesByCategory[category.id] = {};
             customSkillsByCategory[category.id] = [];
+            metaByCategory[category.id] = {};
             (category.skills || []).forEach((skill) => {
                 baseValuesByCategory[category.id][skill.name] = 0;
             });
         });
 
-        return { version: 1, pointsByCategory, allocationsByCategory, baseValuesByCategory, locksByCategory, customSkillsByCategory };
+        return { version: 1, pointsByCategory, allocationsByCategory, baseValuesByCategory, locksByCategory, customSkillsByCategory, metaByCategory };
     }
 
     async function initPersistence() {
@@ -501,6 +557,7 @@
                     baseValuesByCategory: persisted?.baseValuesByCategory || fallback.baseValuesByCategory,
                     locksByCategory: persisted?.locksByCategory || fallback.locksByCategory,
                     customSkillsByCategory: persisted?.customSkillsByCategory || fallback.customSkillsByCategory,
+                    metaByCategory: persisted?.metaByCategory || fallback.metaByCategory,
                 };
 
                 skillsState.pointsByCategory = merged.pointsByCategory;
@@ -508,12 +565,14 @@
                 skillsState.baseValuesByCategory = merged.baseValuesByCategory;
                 skillsState.locksByCategory = merged.locksByCategory;
                 skillsState.customSkillsByCategory = merged.customSkillsByCategory;
+                skillsState.metaByCategory = merged.metaByCategory;
 
                 saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
                 saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
                 saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
                 saveToStorage(skillsLocksKey, skillsState.locksByCategory);
                 saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
+                saveToStorage(skillsMetaKey, skillsState.metaByCategory);
 
                 if (!persisted) {
                     await flushProfileSave();
@@ -576,6 +635,7 @@
                 baseValuesByCategory: skillsState.baseValuesByCategory,
                 locksByCategory: skillsState.locksByCategory,
                 customSkillsByCategory: skillsState.customSkillsByCategory,
+                metaByCategory: skillsState.metaByCategory,
             },
         };
 
@@ -732,9 +792,26 @@
             icon.setAttribute("aria-hidden", "true");
             icon.textContent = skill.icon || "";
 
+            const nameWrap = document.createElement("div");
+            nameWrap.className = "skills-name-wrap";
             const name = document.createElement("div");
             name.className = "skills-name";
             name.textContent = skill.name;
+            nameWrap.append(name);
+            if (skillsState.isAdmin) {
+                const editIconBtn = document.createElement("button");
+                editIconBtn.type = "button";
+                editIconBtn.className = "skills-admin-edit-icon";
+                editIconBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
+                editIconBtn.title = "Modifier";
+                editIconBtn.textContent = "✎";
+                editIconBtn.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openAdminSkillEditor(category, skill);
+                });
+                nameWrap.append(editIconBtn);
+            }
 
             const controls = document.createElement("div");
             controls.className = "skills-value-group";
@@ -765,20 +842,7 @@
             });
 
             controls.append(decBtn, value, incBtn);
-            if (skillsState.isAdmin) {
-                const editBtn = document.createElement("button");
-                editBtn.type = "button";
-                editBtn.className = "skills-admin-edit-btn";
-                editBtn.textContent = "Modifier";
-                editBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
-                editBtn.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openAdminSkillEditor(category, skill);
-                });
-                controls.append(editBtn);
-            }
-            mainRow.append(icon, name, controls);
+            mainRow.append(icon, nameWrap, controls);
             li.append(mainRow);
 
             if (skillsState.isAdmin && isEditingSkill(category.id, skill.name)) {
@@ -796,6 +860,10 @@
                         <label class="skills-inline-field">
                             <span>Nom</span>
                             <input type="text" data-field="name" value="${safeName}" ${isCoreSkill ? "readonly" : ""}>
+                        </label>
+                        <label class="skills-inline-field">
+                            <span>Icône / emote</span>
+                            <input type="text" data-field="icon" maxlength="8" value="${String(skill.icon || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")}">
                         </label>
                         <label class="skills-inline-field">
                             <span>Base</span>

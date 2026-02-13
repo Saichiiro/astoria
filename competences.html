@@ -499,6 +499,13 @@
             font-weight: 600;
             padding-right: 8px;
         }
+        .skills-name-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+            flex: 1 1 auto;
+        }
         .skills-value {
             margin-left: var(--space-3);
             padding: 3px 8px;
@@ -566,6 +573,26 @@
             background: #fff;
             transform: translateY(-1px);
         }
+        .skills-admin-edit-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            border: 1px solid rgba(244, 143, 177, 0.75);
+            background: linear-gradient(180deg, #fff, #ffe6f2);
+            color: #8a1a52;
+            font-size: 0.74rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex: 0 0 auto;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+        }
+        .skills-admin-edit-icon:hover {
+            transform: translateY(-1px);
+            background: #fff;
+        }
         .skills-line:hover .skills-value {
             background: linear-gradient(135deg, #5a6678, #3d4858);
             transform: scale(1.05);
@@ -579,7 +606,7 @@
         }
         .skills-inline-editor-grid {
             display: grid;
-            grid-template-columns: minmax(140px, 1.2fr) minmax(80px, .7fr) minmax(80px, .7fr);
+            grid-template-columns: minmax(120px, 1.2fr) minmax(110px, .9fr) minmax(80px, .7fr) minmax(80px, .7fr);
             gap: 8px;
         }
         .skills-inline-field {
