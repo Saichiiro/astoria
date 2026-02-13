@@ -13,7 +13,7 @@
     const capacityFilter = document.getElementById("magicCapacityFilter");
     const viewToggleButtons = Array.from(document.querySelectorAll(".magic-view-btn"));
     let currentView = "card"; // "card" or "list"
-    const addCapacityBtn = document.getElementById("magicAddCapacityBtn");
+    const addCapacityButtons = Array.from(document.querySelectorAll("#magicAddCapacityBtn, #magicAddCapacityBtnPage4"));
     const capacityForm = document.getElementById("magicCapacityForm");
     const capNameInput = document.getElementById("magicNewCapName");
     const capSummaryInput = document.getElementById("magicNewCapSummary");
@@ -41,6 +41,19 @@
     const adminSection = document.getElementById("magic-admin");
     const pageTabs = document.getElementById("magicPageTabs");
     const addPageBtn = document.getElementById("magicAddPageBtn");
+    const pageNodes = Array.from(document.querySelectorAll(".page"));
+    const pageTitleEl = document.getElementById("magicPageTitle");
+    const page2El = document.getElementById("page2");
+    const page3El = document.getElementById("page3");
+    const page4El = document.getElementById("page4");
+    const mainNavEl = page2El ? page2El.querySelector(".main-nav") : null;
+    const contentBodyEl = document.getElementById("magicContentBody");
+    const backToSectionsBtn = document.getElementById("magicBackToSectionsBtn");
+    const page4TitleEl = document.getElementById("page4Title");
+    const spellsContainer = document.getElementById("spellsContainer");
+    const spellCountMineursEl = document.getElementById("spellCountMineurs");
+    const spellCountSignatureEl = document.getElementById("spellCountSignature");
+    const spellCountUltimesEl = document.getElementById("spellCountUltimes");
     const affinityDisplay = document.getElementById("magicAffinityDisplay");
     const scrollEveilCountEl = document.getElementById("magicEveilCount");
     const scrollAscensionCountEl = document.getElementById("magicAscensionCount");
@@ -66,12 +79,32 @@
     let pages = [];
     let activePageIndex = 0;
     let activeSection = "magic-summary";
+    let activeScreenPage = 1;
+    let currentSpellCategory = "mineurs";
     let currentCharacterKey = "default";
     let currentCharacter = null;
     let storageKey = STORAGE_KEY_BASE;
     let authApi = null;
     let hasPendingChanges = false;
     let summaryModule = null;
+    const persistState = {
+        timer: null,
+        inFlight: null,
+        retryTimer: null,
+        retryCount: 0
+    };
+    const SCREEN_PAGE = {
+        CATEGORIES: 1,
+        NAVIGATION: 2,
+        SPELL_TYPES: 3,
+        SPELL_LIST: 4
+    };
+    const SPELL_CATEGORY_CONFIG = {
+        mineurs: { rank: "mineur", title: "Sorts mineurs" },
+        signature: { rank: "signature", title: "Sorts signature" },
+        ultimes: { rank: "ultime", title: "Sorts ultimes" }
+    };
+    let isSectionContentOpen = false;
 
     const ENABLE_PAGE_ADD = false;
 
@@ -292,6 +325,7 @@
         const currentPage = pages[activePageIndex];
         const specialization = currentPage?.fields?.magicSpecialization || "";
         const terminology = getCapacityTerminology(specialization);
+        const addLabel = `+ Ajouter ${terminology.singular === "Fragment" ? "un fragment" : terminology.singular === "Sort" ? "un sort" : "une capacité"}`;
 
         // Update section title
         const sectionTitleEl = document.querySelector("#magic-capacities .magic-section-title");
@@ -300,14 +334,312 @@
         }
 
         // Update add button text
-        if (addCapacityBtn) {
-            addCapacityBtn.textContent = `+ Ajouter ${terminology.singular === "Fragment" ? "un fragment" : terminology.singular === "Sort" ? "un sort" : "une capacité"}`;
-        }
+        addCapacityButtons.forEach((button) => {
+            if (button) button.textContent = addLabel;
+        });
 
         // Update navigation button text
         const capacitiesNavBtn = document.querySelector('.magic-nav-btn[data-target="magic-capacities"]');
         if (capacitiesNavBtn) {
             capacitiesNavBtn.textContent = terminology.section;
+        }
+    }
+
+    function normalizeSpecializationLabel(value) {
+        const normalized = normalizeText(value || "").replace(/\s+/g, "");
+        if (!normalized) return "";
+        if (normalized.includes("sorcellerie")) return "sorcellerie";
+        if (normalized.includes("alice")) return "alice";
+        if (normalized.includes("arme")) return "arme";
+        if (normalized.includes("meister")) return "meister";
+        if (normalized.includes("eater")) return "eater";
+        return "";
+    }
+
+    function getSpellCategoryConfig(category) {
+        if (!category) return SPELL_CATEGORY_CONFIG.mineurs;
+        if (SPELL_CATEGORY_CONFIG[category]) return SPELL_CATEGORY_CONFIG[category];
+        const normalized = normalizeText(category || "");
+        if (normalized.startsWith("mineur")) return SPELL_CATEGORY_CONFIG.mineurs;
+        if (normalized.startsWith("signature")) return SPELL_CATEGORY_CONFIG.signature;
+        if (normalized.startsWith("ultime")) return SPELL_CATEGORY_CONFIG.ultimes;
+        return SPELL_CATEGORY_CONFIG.mineurs;
+    }
+
+    function getActivePageCapacities() {
+        const currentPage = pages[activePageIndex];
+        if (!currentPage || !Array.isArray(currentPage.capacities)) return [];
+        return currentPage.capacities;
+    }
+
+    function updateSpellTypeCounts() {
+        const capacities = getActivePageCapacities();
+        const counts = capacities.reduce((acc, cap) => {
+            const rank = cap?.rank || "mineur";
+            acc[rank] = (acc[rank] || 0) + 1;
+            return acc;
+        }, { mineur: 0, signature: 0, ultime: 0 });
+
+        if (spellCountMineursEl) {
+            const count = counts.mineur || 0;
+            spellCountMineursEl.textContent = `${count} sort${count > 1 ? "s" : ""}`;
+        }
+        if (spellCountSignatureEl) {
+            const count = counts.signature || 0;
+            spellCountSignatureEl.textContent = `${count} sort${count > 1 ? "s" : ""}`;
+        }
+        if (spellCountUltimesEl) {
+            const count = counts.ultime || 0;
+            spellCountUltimesEl.textContent = `${count} sort${count > 1 ? "s" : ""}`;
+        }
+    }
+
+    function updateMagicPageTitle() {
+        if (!pageTitleEl) return;
+        const fields = pages[activePageIndex]?.fields || {};
+        const specialization = fields.magicSpecialization || "";
+        const labelFromSpec = specialization
+            ? specialization.charAt(0).toUpperCase() + specialization.slice(1)
+            : "Spécification";
+        const finalLabel = String(fields.magicName || "").trim() || labelFromSpec;
+        pageTitleEl.textContent = `Fiche Magie | ${finalLabel}`;
+    }
+
+    function escapeSelectorValue(value) {
+        return String(value || "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    }
+
+    function setScreenPage(pageNumber) {
+        const numericPage = Number(pageNumber) || SCREEN_PAGE.CATEGORIES;
+        activeScreenPage = numericPage;
+        pageNodes.forEach((node) => {
+            const isActive = node?.id === `page${numericPage}`;
+            node.classList.toggle("active", Boolean(isActive));
+        });
+        updateMagicPageTitle();
+    }
+
+    function showMainNavigationOnly({ persist = true } = {}) {
+        setScreenPage(SCREEN_PAGE.NAVIGATION);
+        isSectionContentOpen = false;
+        if (mainNavEl) {
+            mainNavEl.classList.remove("main-nav--hidden");
+        }
+        if (contentBodyEl) {
+            contentBodyEl.style.display = "none";
+        }
+        if (backToSectionsBtn) {
+            backToSectionsBtn.hidden = true;
+        }
+        if (saveRow) {
+            saveRow.style.display = "none";
+        }
+        if (persist) {
+            saveToStorage();
+        }
+    }
+
+    function openCapacityEditor(capId) {
+        if (!capId) return;
+        currentView = "list";
+        viewToggleButtons.forEach((button) => {
+            button.classList.toggle("magic-view-btn--active", button.dataset.view === "list");
+        });
+        showMagicSectionInternal("magic-capacities");
+        renderCapacities(capacityFilter ? capacityFilter.value : "");
+        if (!capacityList) return;
+        const row = capacityList.querySelector(`[data-cap-id="${escapeSelectorValue(capId)}"]`);
+        if (!row) return;
+        const header = row.querySelector(".magic-capacity-header");
+        if (header && !row.classList.contains("magic-capacity-item--open")) {
+            header.click();
+        }
+        const upgradeButton = row.querySelector(`[data-upgrade="${escapeSelectorValue(capId)}"]`);
+        if (upgradeButton && !upgradeButton.disabled) {
+            upgradeButton.click();
+        }
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function renderSpellCardsForCategory(category) {
+        if (!spellsContainer) return;
+        const config = getSpellCategoryConfig(category);
+        const rank = config.rank;
+        const capacities = getActivePageCapacities().filter((cap) => (cap?.rank || "mineur") === rank);
+
+        if (page4TitleEl) {
+            page4TitleEl.textContent = config.title;
+        }
+
+        if (!capacities.length) {
+            spellsContainer.innerHTML = `
+                <article class="magic-card tw-surface tw-hover">
+                    <h3 class="magic-card-title">${config.title}</h3>
+                    <p class="magic-section-help">Aucun sort enregistré pour cette catégorie.</p>
+                </article>
+            `;
+            return;
+        }
+
+        spellsContainer.innerHTML = "";
+        capacities.forEach((cap) => {
+            const card = document.createElement("article");
+            card.className = "flip-card";
+            card.dataset.capacityId = cap.id;
+
+            const typeLabel = CAPACITY_TYPES.find((entry) => entry.value === cap.type)?.label || cap.type || "Inconnu";
+            const rankLabel = CAPACITY_RANKS.find((entry) => entry.value === cap.rank)?.label || cap.rank || "Mineur";
+            const level = Math.max(1, Number(cap.level) || 1);
+            const summary = cap.summary || "Aucune description.";
+            const rp = cap.rp || "Aucune description RP.";
+            const effect = cap.effect || "Aucun effet défini.";
+
+            card.innerHTML = `
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="spell-card-front-header">
+                            <h3 class="spell-card-name">${cap.name || "Sans nom"}</h3>
+                            <span class="spell-card-level">Niv. ${level}</span>
+                        </div>
+                        <div class="spell-card-badges">
+                            <span class="spell-card-badge badge-offensif">${typeLabel}</span>
+                            <span class="spell-card-badge badge-zone">${rankLabel}</span>
+                        </div>
+                        <p class="spell-card-preview">${summary}</p>
+                        <div class="flip-hint">Cliquer pour détails</div>
+                    </div>
+                    <div class="flip-card-back">
+                        <h4 class="spell-card-name">${cap.name || "Sans nom"}</h4>
+                        <p><strong>RP :</strong> ${rp}</p>
+                        <p><strong>Effet :</strong> ${effect}</p>
+                        <p><strong>Coût :</strong> ${cap.cost || "-"}</p>
+                        <p><strong>Limites :</strong> ${cap.limits || "-"}</p>
+                        <button type="button" class="magic-btn magic-btn-outline tw-press" data-edit-capacity="${cap.id}">
+                            Modifier
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            card.addEventListener("click", (event) => {
+                if (event.target.closest("button")) return;
+                card.classList.toggle("flipped");
+            });
+
+            const editButton = card.querySelector(`[data-edit-capacity="${escapeSelectorValue(cap.id)}"]`);
+            if (editButton) {
+                editButton.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    openCapacityEditor(cap.id);
+                });
+            }
+
+            spellsContainer.appendChild(card);
+        });
+    }
+
+    function showMagicSectionInternal(sectionId, { persist = true } = {}) {
+        const nextSection = sectionId || "magic-summary";
+        setScreenPage(SCREEN_PAGE.NAVIGATION);
+        isSectionContentOpen = true;
+        setActiveSection(nextSection);
+        if (mainNavEl) {
+            mainNavEl.classList.add("main-nav--hidden");
+        }
+        if (contentBodyEl) {
+            contentBodyEl.style.display = "block";
+        }
+        if (backToSectionsBtn) {
+            backToSectionsBtn.hidden = false;
+        }
+        if (saveRow) {
+            saveRow.style.display = nextSection === "magic-admin" ? "none" : "flex";
+        }
+        updateCapacityUI();
+        if (nextSection === "magic-capacities") {
+            renderCapacities(capacityFilter ? capacityFilter.value : "");
+        }
+        if (persist) {
+            saveToStorage();
+        }
+    }
+
+    function ensurePageForSpecialization(specializationKey, pageLabel) {
+        if (!specializationKey) return activePageIndex;
+        const matchIndex = pages.findIndex((page) => {
+            if (isPageHidden(page)) return false;
+            const pageSpec = page?.fields?.magicSpecialization || "";
+            if (specializationKey === "sorcellerie") {
+                return !pageSpec || pageSpec === "sorcellerie";
+            }
+            return pageSpec === specializationKey;
+        });
+        if (matchIndex >= 0) return matchIndex;
+
+        const newPage = createDefaultPage();
+        newPage.fields = {
+            ...(newPage.fields || {}),
+            magicSpecialization: specializationKey,
+            magicName: pageLabel || specializationKey
+        };
+        pages.push(newPage);
+        return pages.length - 1;
+    }
+
+    function goToPageInternal(pageNumber, payload, { persist = true } = {}) {
+        const target = Number(pageNumber) || SCREEN_PAGE.CATEGORIES;
+        if (target === SCREEN_PAGE.CATEGORIES) {
+            setScreenPage(SCREEN_PAGE.CATEGORIES);
+            if (persist) {
+                saveToStorage();
+            }
+            return;
+        }
+
+        if (target === SCREEN_PAGE.NAVIGATION) {
+            if (typeof payload === "string" && payload.trim()) {
+                const specialization = normalizeSpecializationLabel(payload);
+                if (specialization) {
+                    const targetIndex = ensurePageForSpecialization(specialization, payload.trim());
+                    if (targetIndex !== activePageIndex) {
+                        setActivePage(targetIndex);
+                    }
+                    const updatedFields = {
+                        ...(pages[activePageIndex]?.fields || {}),
+                        magicSpecialization: specialization
+                    };
+                    if (!updatedFields.magicName) {
+                        updatedFields.magicName = payload.trim();
+                    }
+                    pages[activePageIndex].fields = updatedFields;
+                    applyFormFields(updatedFields);
+                    updateCapacityUI();
+                    markDirty();
+                }
+            }
+            showMainNavigationOnly({ persist });
+            return;
+        }
+
+        if (target === SCREEN_PAGE.SPELL_TYPES) {
+            setScreenPage(SCREEN_PAGE.SPELL_TYPES);
+            updateSpellTypeCounts();
+            if (persist) {
+                saveToStorage();
+            }
+            return;
+        }
+
+        if (target === SCREEN_PAGE.SPELL_LIST) {
+            setScreenPage(SCREEN_PAGE.SPELL_LIST);
+            const config = getSpellCategoryConfig(payload || currentSpellCategory);
+            currentSpellCategory = Object.entries(SPELL_CATEGORY_CONFIG)
+                .find(([, value]) => value.rank === config.rank)?.[0] || "mineurs";
+            updateSpellTypeCounts();
+            renderSpellCardsForCategory(currentSpellCategory);
+            if (persist) {
+                saveToStorage();
+            }
         }
     }
 
@@ -1197,9 +1529,67 @@
         }
     }
 
-    function markDirty() {
+    function clearPersistTimers() {
+        if (persistState.timer) {
+            clearTimeout(persistState.timer);
+            persistState.timer = null;
+        }
+        if (persistState.retryTimer) {
+            clearTimeout(persistState.retryTimer);
+            persistState.retryTimer = null;
+        }
+    }
+
+    async function flushProfilePersist() {
+        if (!authApi?.updateCharacter || !currentCharacter?.id) return false;
+        if (persistState.inFlight) return persistState.inFlight;
+        clearPersistTimers();
+        saveCurrentPage();
+        const payload = saveToStorage();
+
+        const inFlightPromise = (async () => {
+            const ok = await persistToProfile(payload);
+            if (ok) {
+                persistState.retryCount = 0;
+                markSaved();
+                return true;
+            }
+            markDirty({ queuePersist: false });
+            persistState.retryCount += 1;
+            const retryDelay = Math.min(15000, 800 * (2 ** Math.min(5, persistState.retryCount)));
+            persistState.retryTimer = setTimeout(() => {
+                flushProfilePersist();
+            }, retryDelay);
+            return false;
+        })();
+
+        persistState.inFlight = inFlightPromise.finally(() => {
+            persistState.inFlight = null;
+        });
+
+        return persistState.inFlight;
+    }
+
+    function queueProfilePersist(delayMs = 900) {
+        if (!authApi?.updateCharacter || !currentCharacter?.id) return;
+        if (persistState.timer) {
+            clearTimeout(persistState.timer);
+        }
+        if (persistState.retryTimer) {
+            clearTimeout(persistState.retryTimer);
+            persistState.retryTimer = null;
+        }
+        persistState.timer = setTimeout(() => {
+            flushProfilePersist();
+        }, delayMs);
+    }
+
+    function markDirty({ queuePersist = true } = {}) {
         hasPendingChanges = true;
         updateSaveStatus();
+        if (queuePersist) {
+            queueProfilePersist();
+        }
     }
 
     function markSaved() {
@@ -1239,7 +1629,10 @@
         return {
             pages,
             activePageIndex,
-            activeSection
+            activeSection,
+            activeScreenPage,
+            isSectionContentOpen,
+            currentSpellCategory
         };
     }
 
@@ -1264,6 +1657,11 @@
                     pages = profilePayload.pages;
                     activePageIndex = Math.min(Math.max(profilePayload.activePageIndex || 0, 0), pages.length - 1);
                     activeSection = profilePayload.activeSection || activeSection;
+                    activeScreenPage = Math.min(4, Math.max(1, Number(profilePayload.activeScreenPage) || SCREEN_PAGE.CATEGORIES));
+                    isSectionContentOpen = Boolean(profilePayload.isSectionContentOpen);
+                    currentSpellCategory = Object.prototype.hasOwnProperty.call(SPELL_CATEGORY_CONFIG, profilePayload.currentSpellCategory)
+                        ? profilePayload.currentSpellCategory
+                        : "mineurs";
                     localStorage.setItem(storageKey, JSON.stringify(profilePayload));
                     return true;
                 }
@@ -1276,6 +1674,11 @@
             pages = parsed.pages;
             activePageIndex = Math.min(Math.max(parsed.activePageIndex || 0, 0), pages.length - 1);
             activeSection = parsed.activeSection || activeSection;
+            activeScreenPage = Math.min(4, Math.max(1, Number(parsed.activeScreenPage) || SCREEN_PAGE.CATEGORIES));
+            isSectionContentOpen = Boolean(parsed.isSectionContentOpen);
+            currentSpellCategory = Object.prototype.hasOwnProperty.call(SPELL_CATEGORY_CONFIG, parsed.currentSpellCategory)
+                ? parsed.currentSpellCategory
+                : "mineurs";
             return true;
         } catch (error) {
             return false;
@@ -1426,10 +1829,15 @@
         saveCurrentPage();
         activePageIndex = index;
         applyFormFields(pages[activePageIndex].fields || {});
+        updateMagicPageTitle();
         setActiveSection(activeSection);
         setCapacityFormOpen(false);
         updateCapacityUI();
         renderCapacities(capacityFilter ? capacityFilter.value : "");
+        updateSpellTypeCounts();
+        if (activeScreenPage === SCREEN_PAGE.SPELL_LIST) {
+            renderSpellCardsForCategory(currentSpellCategory);
+        }
         renderPageTabs();
         renderPagesOverview();
         saveToStorage();
@@ -1474,6 +1882,7 @@
         if (!capacityList) return;
         const currentPage = pages[activePageIndex];
         const capacities = currentPage && Array.isArray(currentPage.capacities) ? currentPage.capacities : [];
+        updateSpellTypeCounts();
         const isSorcelleriePage = !currentPage?.fields?.magicSpecialization
             || currentPage.fields.magicSpecialization === "sorcellerie";
         const ascensionCost = isSorcelleriePage ? getAscensionCostForPage(currentPage) : null;
@@ -1827,6 +2236,7 @@
                 const li = document.createElement("li");
                 li.className = "magic-capacity-item";
                 li.dataset.type = cap.type;
+                li.dataset.capId = cap.id;
 
                 li.innerHTML = `
                     <button type="button" class="magic-capacity-header" aria-expanded="false">
@@ -1912,7 +2322,7 @@
                     }
                 });
 
-                if (isSorcelleriePage) {
+                if (showUpgrades) {
                     const upgradeButton = li.querySelector(`[data-upgrade="${cap.id}"]`);
                     const upgradeForm = li.querySelector(`[data-upgrade-form="${cap.id}"]`);
                     const upgradeSave = li.querySelector(`[data-upgrade-save="${cap.id}"]`);
@@ -2160,7 +2570,7 @@
     }
 
     async function persistToProfile(payload) {
-        if (!authApi?.updateCharacter || !currentCharacter?.id) return;
+        if (!authApi?.updateCharacter || !currentCharacter?.id) return false;
         const profileData = currentCharacter.profile_data || {};
         const nextProfileData = {
             ...profileData,
@@ -2171,9 +2581,16 @@
             const refreshed = authApi.getActiveCharacter?.();
             if (refreshed && refreshed.id === currentCharacter.id) {
                 currentCharacter = refreshed;
+            } else {
+                currentCharacter = { ...currentCharacter, profile_data: nextProfileData };
             }
+            try {
+                localStorage.setItem("astoria_active_character", JSON.stringify(currentCharacter));
+            } catch {}
+            return true;
         } catch (error) {
             console.warn("Magic sheet save failed.", error);
+            return false;
         }
     }
 
@@ -2185,6 +2602,25 @@
         adminSection.hidden = true;
     }
 
+    const openCapacityCreation = () => {
+        goToPageInternal(SCREEN_PAGE.NAVIGATION, null, { persist: false });
+        showMagicSectionInternal("magic-capacities", { persist: false });
+        if (!capacityForm) return;
+        const willOpen = capacityForm.hidden;
+        setCapacityFormOpen(willOpen);
+        if (willOpen) {
+            resetCapacityForm();
+        }
+        saveToStorage();
+    };
+
+    window.goToPage = (pageNumber, payload) => {
+        goToPageInternal(pageNumber, payload);
+    };
+    window.showMagicSection = (sectionId) => {
+        showMagicSectionInternal(sectionId);
+    };
+
     navButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
             const targetId = btn.dataset.target;
@@ -2193,6 +2629,12 @@
             saveToStorage();
         });
     });
+
+    if (backToSectionsBtn) {
+        backToSectionsBtn.addEventListener("click", () => {
+            showMainNavigationOnly();
+        });
+    }
 
     formFields.forEach((field) => {
         const handler = () => {
@@ -2245,16 +2687,12 @@
         });
     }
 
-    if (addCapacityBtn) {
-        addCapacityBtn.addEventListener("click", () => {
-            if (!capacityForm) return;
-            const willOpen = capacityForm.hidden;
-            setCapacityFormOpen(willOpen);
-            if (willOpen) {
-                resetCapacityForm();
-            }
+    addCapacityButtons.forEach((button) => {
+        if (!button) return;
+        button.addEventListener("click", () => {
+            openCapacityCreation();
         });
-    }
+    });
 
     if (capCancelBtn) {
         capCancelBtn.addEventListener("click", () => {
@@ -2293,10 +2731,9 @@
     if (saveBtn) {
         saveBtn.addEventListener("click", async () => {
             saveCurrentPage();
-            const payload = saveToStorage();
-            await persistToProfile(payload);
-            markSaved();
-            saveBtn.textContent = "Sauvegarde OK";
+            saveToStorage();
+            const ok = await flushProfilePersist();
+            saveBtn.textContent = ok ? "Sauvegarde OK" : "Échec sauvegarde";
             saveBtn.classList.remove("magic-btn--shimmer");
             void saveBtn.offsetWidth;
             saveBtn.classList.add("magic-btn--shimmer");
@@ -2310,6 +2747,17 @@
     if (ENABLE_PAGE_ADD && addPageBtn) {
         addPageBtn.addEventListener("click", handleAddPage);
     }
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) return;
+        if (!hasPendingChanges) return;
+        flushProfilePersist();
+    });
+
+    window.addEventListener("beforeunload", () => {
+        saveCurrentPage();
+        saveToStorage();
+    });
 
     (async () => {
         await initSummary();
@@ -2342,6 +2790,22 @@
         renderScrollMeter();
         renderPageTabs();
         renderPagesOverview();
+        updateSpellTypeCounts();
+
+        if (activeScreenPage === SCREEN_PAGE.NAVIGATION) {
+            if (isSectionContentOpen) {
+                showMagicSectionInternal(activeSection, { persist: false });
+            } else {
+                showMainNavigationOnly({ persist: false });
+            }
+        } else if (activeScreenPage === SCREEN_PAGE.SPELL_TYPES) {
+            goToPageInternal(SCREEN_PAGE.SPELL_TYPES, null, { persist: false });
+        } else if (activeScreenPage === SCREEN_PAGE.SPELL_LIST) {
+            goToPageInternal(SCREEN_PAGE.SPELL_LIST, currentSpellCategory, { persist: false });
+        } else {
+            goToPageInternal(SCREEN_PAGE.CATEGORIES, null, { persist: false });
+        }
+
         saveToStorage();
         markSaved();
 
@@ -2353,7 +2817,11 @@
             updateCapacityUI();
             renderPageTabs();
             renderPagesOverview();
+            updateSpellTypeCounts();
             renderScrollMeter();
+            if (activeScreenPage === SCREEN_PAGE.SPELL_LIST) {
+                renderSpellCardsForCategory(currentSpellCategory);
+            }
         });
     })();
 })();

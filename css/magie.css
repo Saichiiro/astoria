@@ -1793,6 +1793,14 @@ html {
     margin: 0 auto;
 }
 
+.main-nav.main-nav--hidden {
+    display: none;
+}
+
+.magic-sections-back {
+    margin: 0 0 16px;
+}
+
 .nav-card {
     background: white;
     border-radius: 16px;

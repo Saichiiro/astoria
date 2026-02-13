@@ -149,6 +149,10 @@
                         <div class="nav-icon">✨</div>
                     </div>
                 </div>
+                <button type="button" class="back-btn magic-sections-back" id="magicBackToSectionsBtn" hidden>
+                    <span>←</span>
+                    <span>Retour aux sections</span>
+                </button>
 
                 <!-- Save button for summary/params sections -->
                 <div class="magic-save-row" id="magicSaveRow" style="display: none;">
@@ -545,7 +549,7 @@
 
                 <div class="magic-section-header">
                     <h2 class="magic-section-title" id="page4Title">Sorts</h2>
-                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicAddCapacityBtn">
+                    <button type="button" class="magic-btn magic-btn-primary tw-press" id="magicAddCapacityBtnPage4">
                         + Ajouter un sort
                     </button>
                 </div>
@@ -558,72 +562,6 @@
 
         </section>
     </main>
-    <script>
-        // Page navigation system
-        let currentSpellCategory = '';
-
-        function goToPage(pageNum, data) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-
-            // Show the requested page immediately
-            document.getElementById('page' + pageNum).classList.add('active');
-
-            // Update title
-            const pageTitle = document.getElementById('magicPageTitle');
-            if (pageNum === 2 && data) {
-                pageTitle.textContent = `Fiche Magie | ${data}`;
-            } else if (pageNum === 1) {
-                pageTitle.textContent = 'Fiche Magie | Spécification';
-            } else if (pageNum === 4 && data) {
-                currentSpellCategory = data;
-                const categoryNames = {
-                    'mineurs': 'Sorts Mineurs',
-                    'signature': 'Sorts Signature',
-                    'ultimes': 'Sorts Ultimes'
-                };
-                document.getElementById('page4Title').textContent = categoryNames[data] || 'Sorts';
-                loadSpellsForCategory(data);
-            }
-        }
-
-        function showMagicSection(sectionId) {
-            // Show the content body
-            const contentBody = document.getElementById('magicContentBody');
-            const saveRow = document.getElementById('magicSaveRow');
-            contentBody.style.display = 'block';
-            saveRow.style.display = 'flex';
-
-            // Hide all sections
-            document.querySelectorAll('.magic-section').forEach(s => {
-                s.classList.remove('magic-section--active');
-                s.style.display = 'none';
-            });
-
-            // Show the selected section
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.add('magic-section--active');
-                section.style.display = 'block';
-            }
-        }
-
-        function loadSpellsForCategory(category) {
-            // This will be populated by the existing magie.js with spell data
-            // For now, just show the container
-            const container = document.getElementById('spellsContainer');
-            container.innerHTML = '';
-
-            // The existing magicCapacityList will be filtered and converted to flip cards
-            // This will be handled by the updated magie.js
-        }
-
-        // Initialize - start on page 1
-        document.addEventListener('DOMContentLoaded', function() {
-            // Start on page 1 by default
-            goToPage(1);
-        });
-    </script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script src="js/magie.js" defer></script>
     <script src="js/sidebar.js"></script>
