@@ -1590,3 +1590,88 @@
         height: 44px;
     }
 }
+
+/* =================================================================
+   READABILITY PASS (Codex)
+   ================================================================= */
+.codex-shell .table-container {
+    background: rgba(255, 255, 255, 0.98);
+    border-color: rgba(194, 74, 128, 0.45);
+}
+
+.codex-shell #inventoryTable {
+    min-width: 980px;
+    table-layout: auto;
+}
+
+.codex-shell #inventoryTable th {
+    color: #4b1d3b;
+    font-size: 0.76rem;
+}
+
+.codex-shell #inventoryTable tbody tr {
+    background: #fff;
+}
+
+.codex-shell #inventoryTable tbody tr:nth-child(even) {
+    background: #fff7fb;
+}
+
+.codex-shell .name-cell {
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.codex-shell .name-text {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
+    color: #3d1830;
+    font-weight: 700;
+}
+
+.codex-shell .desc-text {
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: initial;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
+    color: #4b3344;
+}
+
+.codex-shell .commerce-line {
+    color: #432c3e;
+    font-weight: 600;
+}
+
+.codex-shell .effect-group-label {
+    color: #651b43;
+    font-size: 0.74rem;
+}
+
+.codex-shell .effect-summary {
+    color: #3f2a39;
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+
+.codex-shell .codex-mod-badge {
+    font-size: 0.75rem;
+    padding: 3px 9px;
+}
+
+@media (max-width: 700px) {
+    .codex-shell .name-text {
+        -webkit-line-clamp: 2;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .codex-shell .desc-text {
+        -webkit-line-clamp: 2;
+    }
+}

@@ -500,24 +500,29 @@ function getCategoryIcon(category) {
 }
 
 function buildRow(item, globalIndex) {
-    const name = item.name || item.nom || "";
-    const description = item.description || item.desc || "";
-    const effect = item.effect || item.effet || "";
-    const category = item.category || item.categorie || "";
-    const buy = item.buyPrice || "";
-    const sell = item.sellPrice || "";
+    const helper = window.astoriaItemDisplayMeta;
+    const display = helper?.getDisplayModel ? helper.getDisplayModel(item, { attrsLimit: 2 }) : null;
+    const name = display?.name || item.name || item.nom || "";
+    const description = display?.description || item.description || item.desc || "";
+    const effect = display?.effectText || item.effect || item.effet || "";
+    const category = display?.category || item.category || item.categorie || "";
+    const buy = display?.price?.buy || item.buyPrice || "";
+    const sell = display?.price?.sell || item.sellPrice || "";
     const priceText = formatPrice(item);
     const buyLine = buy ? `${buy} (achat)` : "-";
     const sellLine = sell ? `${sell} (vente)` : "-";
-    const effectEntries = getEffectEntries(effect);
+    const effectEntries = (display?.effectEntries && display.effectEntries.length)
+        ? display.effectEntries
+        : getEffectEntries(effect);
     const effectSummary = summarizeEffect(effectEntries[0] || "");
     const effectLabel = getEffectLabel(effectEntries);
     const modifiersHtml = getModifierBadgesHtml(item, 2);
     const rarityBadge = getRarityBadgeHtml(item);
     const rankBadge = getRankBadgeHtml(item);
     const attrChips = (() => {
-        const helper = window.astoriaItemDisplayMeta;
-        const lines = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 2) : [];
+        const lines = Array.isArray(display?.attrs)
+            ? display.attrs
+            : (helper?.getAttributesSummary ? helper.getAttributesSummary(item, 2) : []);
         if (!lines.length) return "";
         return `<span class="item-attr-chip">${clean(lines.join(" | "))}</span>`;
     })();
@@ -680,14 +685,18 @@ function openItemModal(index) {
     const clickedRow = document.querySelector(`.item-row[data-index="${index}"]`);
     if (clickedRow) clickedRow.classList.add('row-selected');
 
-    const name = item.name || item.nom || "";
-    const description = item.description || item.desc || "";
-    const effect = item.effect || item.effet || "";
-    const category = item.category || item.categorie || "";
+    const helper = window.astoriaItemDisplayMeta;
+    const display = helper?.getDisplayModel ? helper.getDisplayModel(item, { attrsLimit: 4 }) : null;
+    const name = display?.name || item.name || item.nom || "";
+    const description = display?.description || item.description || item.desc || "";
+    const effect = display?.effectText || item.effect || item.effet || "";
+    const category = display?.category || item.category || item.categorie || "";
     const priceText = formatPrice(item);
     const resolvedImages = resolveImages(item);
     const modifiersHtml = getModifierListHtml(item);
-    const effectEntries = getEffectEntries(effect);
+    const effectEntries = (display?.effectEntries && display.effectEntries.length)
+        ? display.effectEntries
+        : getEffectEntries(effect);
     const effectLabel = getEffectLabel(effectEntries);
     const rarityBadge = getRarityBadgeHtml(item);
     const rankBadge = getRankBadgeHtml(item);
@@ -702,7 +711,7 @@ function openItemModal(index) {
     currentCarouselTitle = name || "Illustration";
     updateCarouselView(name);
 
-    const equipSlot = item.equipment_slot || '';
+    const equipSlot = display?.equipmentSlot || item.equipment_slot || '';
     const slotBadge = equipSlot
         ? ` <span class="modal-slot-badge">${clean(equipSlot.replace(/-/g, ' '))}</span>`
         : '';

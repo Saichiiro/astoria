@@ -36,8 +36,6 @@ Successfully refactored the codebase to use **reusable UI components** instead o
 
 #### Backups
 ```
-✅ js/quetes-items-modal.OLD.js       - Original (399 lines)
-✅ js/inventory-items-modal.OLD.js    - Original
 ✅ js/quetes-items-modal-refactored.js    - Reference example
 ✅ js/inventory-items-modal-refactored.js - Reference example
 ```

@@ -7666,13 +7666,28 @@
 
         function getItemDisplayMeta(item) {
             const helper = window.astoriaItemDisplayMeta;
-            const rawRank = item?.rank || item?.rank_required || item?.required_rank || item?.requiredRank || '';
-            const rankRaw = helper?.getRank ? helper.getRank(rawRank) : String(rawRank).trim().toUpperCase();
+            const shared = helper?.getDisplayModel ? helper.getDisplayModel(item, { attrsLimit: 4 }) : null;
+
+            const rankRaw = shared?.rank || (helper?.getRank ? helper.getRank(item?.rank || item?.rank_required || item?.required_rank || item?.requiredRank || '') : String(item?.rank || '').trim().toUpperCase());
             const rankLabel = rankRaw && rankRaw !== 'AUCUN' ? rankRaw : '';
-            const rawRarity = item?.rarity || item?.rarete || item?.item_rarity || '';
-            const rarity = helper?.getRarityMeta ? helper.getRarityMeta(rawRarity) : null;
-            const attrs = helper?.getAttributesSummary ? helper.getAttributesSummary(item, 4) : [];
-            return { rankLabel, rarity, attrs: Array.isArray(attrs) ? attrs : [] };
+            const rarity = shared?.rarity || (helper?.getRarityMeta ? helper.getRarityMeta(item?.rarity || item?.rarete || item?.item_rarity || '') : null);
+            const attrs = Array.isArray(shared?.attrs)
+                ? shared.attrs
+                : (helper?.getAttributesSummary ? helper.getAttributesSummary(item, 4) : []);
+
+            return {
+                name: shared?.name || String(item?.name || ''),
+                description: shared?.description || String(item?.description || ''),
+                category: shared?.category || String(item?.category || ''),
+                effectText: shared?.effectText || String(item?.effect || ''),
+                effectEntries: Array.isArray(shared?.effectEntries) ? shared.effectEntries : [],
+                equipmentSlot: shared?.equipmentSlot || item?.equipment_slot || item?.equipmentSlot || '',
+                buy: shared?.price?.buy || String(item?.buyPrice || ''),
+                sell: shared?.price?.sell || String(item?.sellPrice || ''),
+                rankLabel,
+                rarity,
+                attrs: Array.isArray(attrs) ? attrs : []
+            };
         }
 
         function getStableItemRef(item) {
@@ -8992,15 +9007,16 @@
 
 
 
-                        const name = String(item?.name || '').toLowerCase();
+                        const display = getItemDisplayMeta(item);
+                        const name = String(display.name || item?.name || '').toLowerCase();
 
 
 
-                        const description = String(item?.description || '').toLowerCase();
+                        const description = String(display.description || item?.description || '').toLowerCase();
 
 
 
-                        const effect = String(item?.effect || '').toLowerCase();
+                        const effect = String(display.effectText || item?.effect || '').toLowerCase();
 
 
 
@@ -9303,6 +9319,7 @@
             const imageSrc = resolveImage(item);
             const modifiersHtml = renderModifierBadges(getItemModifiers(item), 2);
             const displayMeta = getItemDisplayMeta(item);
+            const displayName = displayMeta.name || String(item?.name || '');
             const rankLabel = displayMeta.rankLabel;
             const rankToken = rankLabel ? String(rankLabel).trim().slice(0, 2).toUpperCase() : '';
             const rarityBadge = displayMeta.rarity
@@ -9455,7 +9472,7 @@
 
 
 
-                         alt="${escapeHtml(item.name)}"
+                         alt="${escapeHtml(displayName)}"
 
 
 
@@ -9472,7 +9489,7 @@
 
 
                 <div class="item-info">
-                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    <div class="item-name">${escapeHtml(displayName)}</div>
                     ${rarityBadge}
                     ${isCurrency ? `<div class="item-currency-badge">${item.quantity} &#x1FA99;</div>` : ''}
                     ${!isCurrency && item.quantity > 1 ? `<div class="item-quantity">x${item.quantity}</div>` : ''}
@@ -9795,31 +9812,28 @@
 
 
 
-            const priceInfo = [];
-
-
-
             const modifiersSectionHtml = renderModifierLines(getItemModifiers(item));
             const displayMeta = getItemDisplayMeta(item);
+            const displayName = displayMeta.name || String(item?.name || '');
             const rankLabel = displayMeta.rankLabel;
+            const effectEntries = Array.isArray(displayMeta.effectEntries) && displayMeta.effectEntries.length
+                ? displayMeta.effectEntries
+                : (displayMeta.effectText ? [displayMeta.effectText] : []);
+            const effectSectionHtml = effectEntries.length
+                ? `<div class="detail-section"><span class="detail-label">${effectEntries.length > 1 ? 'Effets' : 'Effet'}</span>${effectEntries.length > 1
+                    ? `<ul class="item-modifiers-list">${effectEntries.map((entry) => `<li class="item-modifier-line">${escapeHtml(entry)}</li>`).join('')}</ul>`
+                    : `<p class="detail-text detail-effect">${escapeHtml(effectEntries[0])}</p>`}</div>`
+                : '';
             const rarityHeader = displayMeta.rarity
                 ? `<span class="detail-rarity-badge" style="--rarity-color:${escapeHtml(displayMeta.rarity.color)}">${escapeHtml(displayMeta.rarity.label)}</span>`
                 : '';
             const attrsSectionHtml = displayMeta.attrs.length
                 ? `<div class="detail-section"><span class="detail-label">Attributs</span><div class="detail-attrs">${displayMeta.attrs.map((line) => `<span class="detail-attr-chip">${escapeHtml(line)}</span>`).join('')}</div></div>`
                 : '';
-
-
-
-            if (item.buyPrice) priceInfo.push(`Achat: ${item.buyPrice}`);
-
-
-
-            if (item.sellPrice) priceInfo.push(`Vente: ${item.sellPrice}`);
-
-
-
-            const priceText = priceInfo.length > 0 ? priceInfo.join(' | ') : 'Prix non dÃ©fini';
+            const priceInfo = [];
+            if (displayMeta.buy) priceInfo.push(`Achat: ${displayMeta.buy}`);
+            if (displayMeta.sell) priceInfo.push(`Vente: ${displayMeta.sell}`);
+            const priceText = priceInfo.length > 0 ? priceInfo.join(' | ') : 'Prix non défini';
 
 
 
@@ -9843,14 +9857,14 @@
 
 
 
-                        <h2 class="detail-title">${escapeHtml(item.name)}</h2>
+                        <h2 class="detail-title">${escapeHtml(displayName)}</h2>
 
 
 
-                        <span class="detail-category">${categoryLabels[item.category] || 'Autre'}</span>
+                        <span class="detail-category">${categoryLabels[displayMeta.category] || 'Autre'}</span>
                         ${rarityHeader}
                         ${rankLabel ? `<span class="detail-rank-badge">Rang ${escapeHtml(rankLabel)}</span>` : ''}
-                        ${item.equipment_slot ? `<span class="detail-slot-badge">${escapeHtml(getSlotDisplayName(item.equipment_slot))}</span>` : ''}
+                        ${displayMeta.equipmentSlot ? `<span class="detail-slot-badge">${escapeHtml(getSlotDisplayName(displayMeta.equipmentSlot))}</span>` : ''}
 
 
 
@@ -9874,7 +9888,7 @@
 
 
 
-                         alt="${escapeHtml(item.name)}"
+                         alt="${escapeHtml(displayName)}"
 
 
 
@@ -9902,7 +9916,7 @@
 
 
 
-                        <p class="detail-text">${escapeHtml(item.description || 'Aucune description disponible.')}</p>
+                        <p class="detail-text">${escapeHtml(displayMeta.description || 'Aucune description disponible.')}</p>
 
 
 
@@ -9912,12 +9926,8 @@
 
                     ${attrsSectionHtml}
 
-                    ${modifiersSectionHtml || (item.effect ? `
-                    <div class="detail-section">
-                        <span class="detail-label">Effet</span>
-                        <p class="detail-text detail-effect">${escapeHtml(item.effect)}</p>
-                    </div>
-                    ` : '')}
+                    ${effectSectionHtml}
+                    ${modifiersSectionHtml}
 
                     <div class="detail-section">
                         <span class="detail-label">Commerce</span>
