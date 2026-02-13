@@ -434,12 +434,13 @@
             background: linear-gradient(to right, #FCE4EC, #F8BBD0);
             border-radius: var(--radius-md);
             border: 1px solid #F48FB1;
-            padding: 6px 10px;
+            padding: 8px 10px;
             box-shadow: 0 1px 2px rgba(244, 143, 177, 0.15);
             transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: default;
             color: #4A148C;
             gap: var(--space-2);
+            position: relative;
         }
         .skills-line.skills-line-highlight {
             background: linear-gradient(120deg, #F3E5F5, #E1BEE7);
@@ -481,12 +482,15 @@
         }
         .skills-name {
             flex: 1;
-            min-width: 0;
+            min-width: 110px;
             font-size: var(--text-base-minus);
             line-height: 1.2;
-            word-break: break-word;
+            word-break: normal;
+            overflow-wrap: anywhere;
             hyphens: auto;
             color: #2e3644;
+            font-weight: 600;
+            padding-right: 8px;
         }
         .skills-value {
             margin-left: var(--space-3);
@@ -510,6 +514,7 @@
             align-items: center;
             gap: var(--space-2);
             margin-left: auto;
+            flex: 0 0 auto;
         }
         .skill-point-btn {
             width: 28px;
@@ -539,18 +544,24 @@
         }
         .skills-admin-edit-btn {
             border: 1px solid #F48FB1;
-            background: linear-gradient(to bottom, #ffffff, #FCE4EC);
+            background: linear-gradient(to bottom, #ffffff, #ffe6f2);
             color: #7a1242;
             border-radius: var(--radius-sm);
-            height: 28px;
-            padding: 0 8px;
-            font-size: 0.72rem;
+            height: 24px;
+            padding: 0 7px;
+            font-size: 0.68rem;
             font-weight: 700;
             cursor: pointer;
             box-shadow: 0 1px 2px rgba(244, 143, 177, 0.2);
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            z-index: 2;
+            letter-spacing: 0.02em;
         }
         .skills-admin-edit-btn:hover {
-            background: #fff6fb;
+            background: #fff;
+            transform: translateY(-1px);
         }
         .skills-line:hover .skills-value {
             background: linear-gradient(135deg, #5a6678, #3d4858);
@@ -606,7 +617,7 @@
             align-items: center;
             justify-content: center;
             padding: 24px;
-            z-index: 50;
+            z-index: 1000050;
         }
         .skills-add-modal[hidden] {
             display: none;
@@ -614,26 +625,28 @@
         .skills-add-modal-backdrop {
             position: absolute;
             inset: 0;
-            background: rgba(255, 255, 255, 0.55);
-            backdrop-filter: blur(8px);
+            background: rgba(35, 11, 28, 0.54);
+            backdrop-filter: blur(4px);
         }
         .skills-add-modal-card {
             position: relative;
             width: min(640px, 100%);
+            max-height: min(82vh, 760px);
+            overflow-y: auto;
             background: #fff;
-            border-radius: 28px;
-            padding: 26px 28px;
+            border-radius: 20px;
+            padding: 20px 22px;
             border: 1px solid rgba(120, 38, 70, 0.2);
-            box-shadow: 0 30px 60px rgba(120, 38, 70, 0.2);
+            box-shadow: 0 24px 48px rgba(32, 7, 26, 0.35);
             display: grid;
-            gap: 16px;
+            gap: 14px;
         }
         .skills-add-title {
             margin: 0;
-            font-size: 1.05rem;
+            font-size: 1rem;
             color: var(--skills-book-ink);
             text-transform: uppercase;
-            letter-spacing: 0.16em;
+            letter-spacing: 0.08em;
         }
         .skills-add-row {
             display: grid;
@@ -656,6 +669,8 @@
             display: flex;
             justify-content: flex-end;
             gap: 8px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(120, 38, 70, 0.12);
         }
         .skills-add-actions button {
             border-radius: 999px;
@@ -672,6 +687,9 @@
         .skills-add-actions .skills-add-submit {
             background: #f6b5cd;
             color: #fff;
+        }
+        body.skills-add-open {
+            overflow: hidden;
         }
         .quest-add-btn {
             border: none;
@@ -785,6 +803,9 @@
             .skills-list {
                 grid-template-columns: 1fr;
             }
+            .skills-name {
+                min-width: 0;
+            }
             .skills-panel {
                 --skills-panel-extra-bottom: 28px;
             }
@@ -818,6 +839,17 @@
             .skills-panel-controls {
                 flex-wrap: wrap;
                 justify-content: flex-end;
+            }
+            .skills-add-row {
+                grid-template-columns: 1fr;
+            }
+            .skills-add-modal {
+                padding: 12px;
+            }
+            .skills-add-modal-card {
+                max-height: 88vh;
+                border-radius: 16px;
+                padding: 14px;
             }
         }
     

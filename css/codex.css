@@ -149,10 +149,10 @@
 }
 
 .codex-skills-detail-modal {
-    width: min(520px, 100%);
-    background: #fff;
-    border-radius: 14px;
-    border: 2px solid rgba(216, 27, 96, 0.24);
+    width: min(560px, 100%);
+    background: linear-gradient(180deg, #ffffff, #fff5fb 95%);
+    border-radius: 16px;
+    border: 2px solid rgba(216, 27, 96, 0.3);
     box-shadow: var(--shadow-2xl);
     overflow: hidden;
 }
@@ -184,6 +184,26 @@
     padding: var(--space-4) var(--space-5);
 }
 
+.codex-skills-detail-hero {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.codex-skills-detail-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    border: 1px solid rgba(216, 27, 96, 0.35);
+    background: linear-gradient(135deg, rgba(233, 30, 99, 0.14), rgba(255, 106, 162, 0.28));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #8b1c54;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+}
+
 .codex-skills-detail-name {
     font-weight: 800;
     color: #5f1e46;
@@ -205,6 +225,8 @@
     justify-content: flex-end;
     gap: var(--space-2);
     padding: var(--space-3) var(--space-5) var(--space-4);
+    border-top: 1px solid rgba(216, 27, 96, 0.16);
+    background: rgba(255, 255, 255, 0.84);
 }
 
 .codex-cropper-backdrop {

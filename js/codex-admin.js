@@ -44,6 +44,7 @@ const dom = {
     skillsPickerCustomApply: document.getElementById('codexSkillsPickerCustomApply'),
     skillsDetailBackdrop: document.getElementById('codexSkillsDetailBackdrop'),
     skillsDetailClose: document.getElementById('codexSkillsDetailClose'),
+    skillsDetailIcon: document.getElementById('codexSkillsDetailIcon'),
     skillsDetailName: document.getElementById('codexSkillsDetailName'),
     skillsDetailCategory: document.getElementById('codexSkillsDetailCategory'),
     skillsDetailFlat: document.getElementById('codexSkillsDetailFlat'),
@@ -324,7 +325,7 @@ function renderModifierSkillsList() {
                 <div class="codex-skills-picker-item-actions">
                     <button type="button" class="codex-skills-picker-item-btn" data-action="pick-flat" data-stat="${escapeHtml(entry.stat)}">Points</button>
                     <button type="button" class="codex-skills-picker-item-btn alt" data-action="pick-percent" data-stat="${escapeHtml(entry.stat)}">%</button>
-                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="details" data-stat="${escapeHtml(entry.stat)}" data-category="${escapeHtml(entry.categoryLabel)}">Plus</button>
+                    <button type="button" class="codex-skills-picker-item-btn alt" data-action="details" data-stat="${escapeHtml(entry.stat)}" data-category="${escapeHtml(entry.categoryLabel)}" data-icon="${escapeHtml(entry.icon)}">Plus</button>
                 </div>
             </div>
         `)
@@ -338,7 +339,11 @@ function renderModifierSkillsList() {
 
             if (actionButton) {
                 if (actionButton.dataset.action === 'details') {
-                    openSkillDetailModal(stat, actionButton.dataset.category || row.querySelector('.codex-skills-picker-item-category')?.textContent || '');
+                    openSkillDetailModal(
+                        stat,
+                        actionButton.dataset.category || row.querySelector('.codex-skills-picker-item-category')?.textContent || '',
+                        actionButton.dataset.icon || row.querySelector('.codex-skills-picker-item-icon')?.textContent || '*'
+                    );
                     return;
                 }
                 const type = actionButton.dataset.action === 'pick-percent' ? 'percent' : 'flat';
@@ -369,9 +374,10 @@ function closeModifierSkillsPicker() {
     closeBackdrop(dom.skillsPickerBackdrop);
 }
 
-function openSkillDetailModal(stat, categoryLabel) {
+function openSkillDetailModal(stat, categoryLabel, iconLabel) {
     selectedSkillDetailStat = String(stat || '').trim();
     if (!selectedSkillDetailStat || !dom.skillsDetailBackdrop) return;
+    if (dom.skillsDetailIcon) dom.skillsDetailIcon.textContent = String(iconLabel || '*').trim() || '*';
     if (dom.skillsDetailName) dom.skillsDetailName.textContent = selectedSkillDetailStat;
     if (dom.skillsDetailCategory) dom.skillsDetailCategory.textContent = String(categoryLabel || '').trim();
     openBackdrop(dom.skillsDetailBackdrop);

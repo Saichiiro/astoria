@@ -21,6 +21,7 @@
     const skillsAddSubmit = document.getElementById("skillsAddSubmit");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
+    const ADD_MODAL_OPEN_CLASS = "skills-add-open";
     let bonusTooltipEl = null;
     let bonusTooltipTimer = null;
     const itemCatalog = {
@@ -143,6 +144,7 @@
     const closeAddForm = () => {
         if (!skillsAddForm) return;
         skillsAddForm.hidden = true;
+        document.body.classList.remove(ADD_MODAL_OPEN_CLASS);
         if (skillsAddName) skillsAddName.value = "";
         if (skillsAddIcon) skillsAddIcon.value = "";
         if (skillsAddCap) skillsAddCap.value = String(MAX_SKILL_POINTS);
@@ -152,6 +154,7 @@
     const openAddForm = () => {
         if (!skillsAddForm) return;
         skillsAddForm.hidden = false;
+        document.body.classList.add(ADD_MODAL_OPEN_CLASS);
         if (skillsAddCategory) {
             skillsAddCategory.value = skillsState.activeCategoryId;
         }
@@ -766,7 +769,7 @@
                     event.stopPropagation();
                     openAdminSkillEditor(category, skill);
                 });
-                controls.append(editBtn);
+                li.append(editBtn);
             }
             li.append(icon, name, controls);
             bindBonusTooltip(li, {
