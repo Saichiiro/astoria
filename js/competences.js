@@ -798,20 +798,18 @@
             name.className = "skills-name";
             name.textContent = skill.name;
             nameWrap.append(name);
-            if (skillsState.isAdmin) {
-                const editIconBtn = document.createElement("button");
-                editIconBtn.type = "button";
-                editIconBtn.className = "skills-admin-edit-icon";
-                editIconBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
-                editIconBtn.title = "Modifier";
-                editIconBtn.textContent = "✎";
-                editIconBtn.addEventListener("click", (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openAdminSkillEditor(category, skill);
-                });
-                nameWrap.append(editIconBtn);
-            }
+            const editIconBtn = document.createElement("button");
+            editIconBtn.type = "button";
+            editIconBtn.className = "skills-admin-edit-icon";
+            editIconBtn.setAttribute("aria-label", `Modifier ${skill.name}`);
+            editIconBtn.title = "Modifier";
+            editIconBtn.textContent = "✏";
+            editIconBtn.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                openAdminSkillEditor(category, skill);
+            });
+            nameWrap.append(editIconBtn);
 
             const controls = document.createElement("div");
             controls.className = "skills-value-group";
