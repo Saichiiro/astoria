@@ -44,15 +44,15 @@ export async function getCraftRecipes() {
 
 export async function createCraftRecipe(recipe) {
     const supabase = await getSupabaseClient();
+    const computedTitle = String(recipe?.title || recipe?.output_item_key || '').trim();
     const payload = {
-        title: String(recipe?.title || '').trim(),
+        title: computedTitle,
         category: String(recipe?.category || 'Autre').trim(),
         rarity: String(recipe?.rarity || 'Commun').trim(),
         rank: String(recipe?.rank || 'F').trim(),
         output_item_id: recipe?.output_item_id || null,
         output_item_key: String(recipe?.output_item_key || '').trim(),
-        output_qty: Math.max(1, Math.floor(Number(recipe?.output_qty) || 1)),
-        created_by: recipe?.created_by || null
+        output_qty: Math.max(1, Math.floor(Number(recipe?.output_qty) || 1))
     };
 
     if (!payload.title || !payload.output_item_key) {
@@ -93,8 +93,9 @@ export async function createCraftRecipe(recipe) {
 
 export async function updateCraftRecipe(recipeId, recipe) {
     const supabase = await getSupabaseClient();
+    const computedTitle = String(recipe?.title || recipe?.output_item_key || '').trim();
     const payload = {
-        title: String(recipe?.title || '').trim(),
+        title: computedTitle,
         category: String(recipe?.category || 'Autre').trim(),
         rarity: String(recipe?.rarity || 'Commun').trim(),
         rank: String(recipe?.rank || 'F').trim(),

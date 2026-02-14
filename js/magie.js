@@ -67,6 +67,7 @@
     const contentBodyEl = document.getElementById("magicContentBody");
     const page2BackBtn = document.getElementById("magicPage2BackBtn");
     const page4TitleEl = document.getElementById("page4Title");
+    const headerBackBtn = document.getElementById("magicHeaderBackBtn");
     const spellsContainer = document.getElementById("spellsContainer");
     const spellCountMineursEl = document.getElementById("spellCountMineurs");
     const spellCountSignatureEl = document.getElementById("spellCountSignature");
@@ -265,20 +266,28 @@
 
     function getAliceStatus() {
         const data = getFicheTabData("alice");
-        const status = data?.aliceStatus || "";
+        const status = String(data?.aliceStatus || "").trim().toLowerCase();
         if (status === "simple" || status === "double") return status;
+        if (data?.hasDoubleAlice === true) return "double";
+        if (data?.hasAlice === true) return "simple";
         return "";
     }
 
     function getEaterStatus() {
         const data = getFicheTabData("eater");
-        return Boolean(data?.hasEater);
+        const raw = data?.hasEater;
+        if (raw === true) return true;
+        if (typeof raw === "string") {
+            const normalized = raw.trim().toLowerCase();
+            return normalized === "true" || normalized === "1" || normalized === "yes";
+        }
+        return false;
     }
 
     function getEaterRole() {
         const data = getFicheTabData("eater");
-        if (!data?.hasEater) return "";
-        const role = data?.eaterRole || "";
+        if (!getEaterStatus()) return "";
+        const role = String(data?.eaterRole || "").trim().toLowerCase();
         return role === "meister" || role === "weapon" ? role : "";
     }
 
@@ -633,6 +642,9 @@
                     markDirty();
                 }
             }
+            // Always return to the 3-card navigation state when selecting a category.
+            activeSection = "magic-summary";
+            setActiveSection(activeSection);
             showMainNavigationOnly({ persist });
             return;
         }
@@ -2700,6 +2712,16 @@
     if (page2BackBtn) {
         page2BackBtn.addEventListener("click", () => {
             window.handleMagicPage2Back();
+        });
+    }
+
+    if (headerBackBtn) {
+        headerBackBtn.addEventListener("click", (event) => {
+            // Prefer browser history to avoid hard reload.
+            if (window.history.length > 1) {
+                event.preventDefault();
+                window.history.back();
+            }
         });
     }
 

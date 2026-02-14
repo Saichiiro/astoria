@@ -956,7 +956,6 @@ function resetRecipeForm() {
     const titleEl = document.getElementById('craftModalTitle');
     if (titleEl) titleEl.textContent = 'Creer une recette';
 
-    if (dom.recipeTitle) dom.recipeTitle.value = '';
     if (dom.recipeCategory) dom.recipeCategory.value = 'Forge';
     if (dom.recipeRarity) dom.recipeRarity.value = 'Commun';
     if (dom.recipeRank) dom.recipeRank.value = 'F';
@@ -976,8 +975,6 @@ function prefillRecipeForm(recipe) {
     if (titleEl) titleEl.textContent = 'Modifier une recette';
     if (dom.modalSave) dom.modalSave.textContent = 'Mettre a jour';
     if (dom.modalDelete) dom.modalDelete.hidden = false;
-
-    if (dom.recipeTitle) dom.recipeTitle.value = recipe.title || '';
     if (dom.recipeCategory) dom.recipeCategory.value = recipe.category || 'Autre';
     if (dom.recipeRarity) dom.recipeRarity.value = recipe.rarity || 'Commun';
     if (dom.recipeRank) dom.recipeRank.value = recipe.rank || 'F';
@@ -1010,13 +1007,13 @@ function openRecipeModal(recipe = null) {
             closeOnBackdropClick: true,
             closeOnEsc: true,
             openClass: 'open',
-            focusElement: dom.recipeTitle
+            focusElement: dom.outputItemLabel || dom.recipeCategory
         });
     } else {
         dom.modal.hidden = false;
         dom.modal.classList.add('open');
         dom.modal.setAttribute('aria-hidden', 'false');
-        dom.recipeTitle?.focus();
+        (dom.outputItemLabel || dom.recipeCategory)?.focus?.();
     }
 }
 
@@ -1037,13 +1034,8 @@ async function saveRecipeFromModal() {
 
     const outputId = String(dom.outputItemSelect?.value || '').trim();
     const outputItem = state.itemById.get(outputId);
-    const title = String(dom.recipeTitle?.value || '').trim();
     const outputQty = Math.max(1, Math.floor(Number(dom.outputQty?.value) || 1));
 
-    if (!title) {
-        toastError('Le titre de recette est requis.');
-        return;
-    }
     if (!outputItem) {
         toastError('Selectionne un item obtenu.');
         return;
@@ -1066,15 +1058,15 @@ async function saveRecipeFromModal() {
     }
 
     try {
+        const computedTitle = String(outputItem.name || outputItem.item_key || 'Recette').trim();
         const payload = {
-            title,
+            title: computedTitle,
             category: dom.recipeCategory?.value || 'Autre',
             rarity: dom.recipeRarity?.value || 'Commun',
             rank: dom.recipeRank?.value || 'F',
             output_item_id: outputItem.id,
             output_item_key: outputItem.name,
             output_qty: outputQty,
-            created_by: state.user?.id || null,
             ingredients
         };
 
@@ -1090,6 +1082,10 @@ async function saveRecipeFromModal() {
         renderRecipes();
     } catch (error) {
         console.error('[Craft] create recipe error:', error);
+        if (error?.code === '42501') {
+            toastError('Creation refusee par la base (RLS). Applique la migration craft RLS transition.');
+            return;
+        }
         toastError('Impossible d\'enregistrer la recette.');
     }
 }
@@ -1240,8 +1236,8 @@ async function initAuthContext() {
     document.body.dataset.admin = state.admin ? 'true' : 'false';
 
     if (dom.addBtn) dom.addBtn.hidden = !state.admin;
-    if (dom.adminStats) dom.adminStats.hidden = !state.admin;
-    if (dom.adminControl) dom.adminControl.hidden = !state.admin;
+    if (dom.adminStats) dom.adminStats.hidden = true;
+    if (dom.adminControl) dom.adminControl.hidden = true;
 }
 
 async function init() {
@@ -1257,10 +1253,6 @@ async function init() {
         loadRecipes(),
         loadInventory()
     ]);
-
-    if (state.admin) {
-        await loadAdminCharacters();
-    }
 
     renderRecipes();
 }
