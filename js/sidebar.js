@@ -109,6 +109,14 @@
         </li>
         <li class="menu-item">
           <div class="sidebar-row">
+            <a class="menu-link" href="craft.html">
+              <span class="menu-icon" aria-hidden="true">&#128296;</span>
+              <span class="menu-text">Craft</span>
+            </a>
+          </div>
+        </li>
+        <li class="menu-item">
+          <div class="sidebar-row">
             <a class="menu-link" href="nokorah.html">
               <span class="menu-icon" aria-hidden="true">&#128123;</span>
               <span class="menu-text">Nokorah</span>

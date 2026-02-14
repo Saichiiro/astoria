@@ -176,7 +176,7 @@ body:not(.nokorah-theme)::before {
     z-index: 0;
 }
 
-body:not(.nokorah-theme) > *:not(.panel-backdrop):not(.panel-drawer):not(.modal):not(.combat-modal-backdrop):not(.add-panel):not(.delete-modal-overlay):not(.select-modal-backdrop):not(.codex-admin-backdrop):not(.codex-cropper-backdrop):not(.codex-skills-picker-backdrop):not(.codex-skills-detail-backdrop):not(.codex-delete-backdrop):not(.profile-cropper-backdrop):not(.silhouette-cropper-backdrop):not(.profile-tags-dropdown):not(.quest-cropper-backdrop):not(.quest-modal):not(.panel-admin-modal):not(.app-dock) {
+body:not(.nokorah-theme) > *:not(.panel-backdrop):not(.panel-drawer):not(.modal):not(.craft-modal):not(.combat-modal-backdrop):not(.add-panel):not(.delete-modal-overlay):not(.select-modal-backdrop):not(.codex-admin-backdrop):not(.codex-cropper-backdrop):not(.codex-skills-picker-backdrop):not(.codex-skills-detail-backdrop):not(.codex-delete-backdrop):not(.profile-cropper-backdrop):not(.silhouette-cropper-backdrop):not(.profile-tags-dropdown):not(.quest-cropper-backdrop):not(.quest-modal):not(.panel-admin-modal):not(.app-dock) {
     position: relative;
     z-index: 1;
 }

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Systeme de craft - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="css/style.css?v=2026021106">
+    <link rel="stylesheet" href="css/craft.css?v=2026021402">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+</head>
+<body class="min-h-screen">
+    <main class="craft-page" aria-labelledby="craftPageTitle">
+        <header class="page-header">
+            <a href="inventaire.html" class="page-back" title="Retour a l'inventaire">&larr; Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="craftPageTitle">Systeme de craft</h1>
+                    <p class="craft-subtitle">Recettes, materiaux et fabrication.</p>
+                </div>
+                <div class="character-summary" aria-label="Resume du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Selectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="craft-toolbar tw-panel" aria-label="Controles craft">
+            <div class="craft-toolbar-left">
+                <input id="craftSearchInput" class="tw-input craft-search" type="search" placeholder="Rechercher une recette..." aria-label="Rechercher une recette">
+                <select id="craftRankFilter" class="tw-input craft-select" aria-label="Filtrer par rang">
+                    <option value="Tous">Tous les rangs</option>
+                    <option value="F">F</option>
+                    <option value="E">E</option>
+                    <option value="D">D</option>
+                    <option value="C">C</option>
+                    <option value="B">B</option>
+                    <option value="A">A</option>
+                    <option value="S">S</option>
+                    <option value="S+">S+</option>
+                    <option value="SS">SS</option>
+                    <option value="SSS">SSS</option>
+                </select>
+                <select id="craftRankMode" class="tw-input craft-select" aria-label="Mode de filtre de rang">
+                    <option value="exact">Rang exact</option>
+                    <option value="min">Rang min (et +)</option>
+                </select>
+                <label class="craft-toggle">
+                    <input id="craftPossibleOnly" type="checkbox">
+                    <span>Creation possible</span>
+                </label>
+            </div>
+            <div class="craft-toolbar-right">
+                <button id="craftAddRecipeBtn" type="button" class="btn-primary tw-press" hidden>+ Ajouter</button>
+            </div>
+        </section>
+
+        <section id="craftAdminStats" class="craft-admin-stats tw-panel" aria-label="Statistiques craft admin" hidden>
+            <div class="craft-admin-stats-head">
+                <h2>Vue admin</h2>
+                <p>Etat rapide des recettes et de la faisabilite pour le personnage actif.</p>
+            </div>
+            <div id="craftAdminStatsCards" class="craft-admin-stats-cards"></div>
+            <div class="craft-admin-stats-split">
+                <div class="craft-admin-stats-block">
+                    <h3>Par categorie</h3>
+                    <div id="craftAdminStatsCategory" class="craft-admin-chip-list"></div>
+                </div>
+                <div class="craft-admin-stats-block">
+                    <h3>Par rarete</h3>
+                    <div id="craftAdminStatsRarity" class="craft-admin-chip-list"></div>
+                </div>
+                <div class="craft-admin-stats-block">
+                    <h3>Par rang</h3>
+                    <div id="craftAdminStatsRank" class="craft-admin-chip-list"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="craftAdminControl" class="craft-admin-control tw-panel" aria-label="Controle admin craft" hidden>
+            <div class="craft-admin-control-head">
+                <div>
+                    <h2>Admin Control Center</h2>
+                    <p>Inspection ciblee d'un personnage: inventaire, equipements et attributs.</p>
+                </div>
+                <div class="craft-admin-control-actions">
+                    <a class="craft-secondary-btn" href="admin/index.html#characters">Admin personnages</a>
+                    <a class="craft-secondary-btn" href="admin/index.html#items">Admin items</a>
+                </div>
+            </div>
+            <div class="craft-admin-control-toolbar">
+                <label class="craft-form-field">
+                    <span>Personnage cible</span>
+                    <select id="craftAdminCharacterSelect" class="tw-input">
+                        <option value="">Selectionner un personnage...</option>
+                    </select>
+                </label>
+                <button id="craftAdminRefreshBtn" type="button" class="craft-secondary-btn">Rafraichir</button>
+            </div>
+            <div id="craftAdminSummary" class="craft-admin-summary">Selectionne un personnage pour voir sa vue detaillee.</div>
+            <div class="craft-admin-grid">
+                <section class="craft-admin-panel">
+                    <h3>Equipements</h3>
+                    <div id="craftAdminEquipments" class="craft-admin-equip-list"></div>
+                </section>
+                <section class="craft-admin-panel">
+                    <h3>Attributs</h3>
+                    <div id="craftAdminAttributes" class="craft-admin-attr-list"></div>
+                </section>
+            </div>
+            <section class="craft-admin-panel">
+                <h3>Inventaire</h3>
+                <div class="craft-admin-table-wrap">
+                    <table class="craft-admin-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Categorie</th>
+                                <th>Quantite</th>
+                                <th>ID</th>
+                            </tr>
+                        </thead>
+                        <tbody id="craftAdminInventoryRows">
+                            <tr>
+                                <td colspan="4" class="craft-admin-table-empty">Aucune donnee.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+
+        <section class="craft-layout" aria-label="Espace recette">
+            <aside class="craft-sidebar tw-panel" aria-label="Categories recettes">
+                <h2 class="craft-sidebar-title">Categories</h2>
+                <div class="craft-category-list" id="craftCategoryList">
+                    <button type="button" class="craft-category-btn is-active" data-category="Tous">Tous</button>
+                    <button type="button" class="craft-category-btn" data-category="Alchimie">Alchimie</button>
+                    <button type="button" class="craft-category-btn" data-category="Forge">Forge</button>
+                    <button type="button" class="craft-category-btn" data-category="Autre">Autre</button>
+                </div>
+                <p class="craft-sidebar-hint">10 recettes par page.</p>
+            </aside>
+
+            <section class="craft-content tw-panel" aria-label="Liste des recettes">
+                <div id="craftRecipeList" class="craft-recipe-list"></div>
+                <footer class="craft-pagination" id="craftPagination"></footer>
+            </section>
+        </section>
+    </main>
+
+    <div id="craftRecipeModal" class="modal craft-modal" hidden aria-hidden="true">
+        <div class="craft-modal-backdrop" data-craft-modal-close></div>
+        <div class="modal-inner craft-modal-card" role="dialog" aria-modal="true" aria-labelledby="craftModalTitle">
+            <header class="craft-modal-header">
+                <h2 id="craftModalTitle">Creer une recette</h2>
+                <button id="craftModalClose" type="button" class="craft-modal-close" aria-label="Fermer">x</button>
+            </header>
+            <div class="craft-modal-body">
+                <div class="craft-form-grid">
+                    <label class="craft-form-field">
+                        <span>Titre</span>
+                        <input id="craftRecipeTitle" class="tw-input" type="text" placeholder="Ex: Dague en bois">
+                    </label>
+                    <label class="craft-form-field">
+                        <span>Categorie</span>
+                        <select id="craftRecipeCategory" class="tw-input">
+                            <option value="Alchimie">Alchimie</option>
+                            <option value="Forge">Forge</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </label>
+                    <label class="craft-form-field">
+                        <span>Rarete</span>
+                        <select id="craftRecipeRarity" class="tw-input">
+                            <option value="Commun">Commun</option>
+                            <option value="Rare">Rare</option>
+                            <option value="Epique">Epique</option>
+                            <option value="Mythique">Mythique</option>
+                            <option value="Legendaire">Legendaire</option>
+                        </select>
+                    </label>
+                    <label class="craft-form-field">
+                        <span>Rang</span>
+                        <select id="craftRecipeRank" class="tw-input">
+                            <option value="F">F</option>
+                            <option value="E">E</option>
+                            <option value="D">D</option>
+                            <option value="C">C</option>
+                            <option value="B">B</option>
+                            <option value="A">A</option>
+                            <option value="S">S</option>
+                            <option value="S+">S+</option>
+                            <option value="SS">SS</option>
+                            <option value="SSS">SSS</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="craft-form-grid craft-form-grid--output">
+                    <label class="craft-form-field craft-form-field--wide">
+                        <span>Item obtenu</span>
+                        <input id="craftRecipeOutputItemLabel" class="tw-input" type="text" placeholder="Selectionner un item..." readonly>
+                        <input id="craftRecipeOutputItem" type="hidden" value="">
+                    </label>
+                    <button id="craftPickOutputBtn" type="button" class="craft-secondary-btn">Choisir item</button>
+                    <label class="craft-form-field">
+                        <span>Quantite obtenue</span>
+                        <input id="craftRecipeOutputQty" class="tw-input" type="number" min="1" value="1">
+                    </label>
+                </div>
+
+                <div class="craft-ingredients-header">
+                    <h3>Items necessaires</h3>
+                    <button id="craftAddIngredientBtn" type="button" class="craft-secondary-btn">+ Ajouter une ligne</button>
+                </div>
+                <div id="craftIngredientRows" class="craft-ingredients"></div>
+            </div>
+            <footer class="craft-modal-footer">
+                <button id="craftRecipeDeleteBtn" type="button" class="craft-secondary-btn" hidden>Supprimer</button>
+                <button id="craftRecipeCancelBtn" type="button" class="craft-secondary-btn">Annuler</button>
+                <button id="craftRecipeSaveBtn" type="button" class="btn-primary">Enregistrer</button>
+            </footer>
+        </div>
+    </div>
+
+    <div id="craftItemPickerModal" class="modal craft-modal" hidden aria-hidden="true">
+        <div class="craft-modal-backdrop" data-craft-picker-close></div>
+        <div class="modal-inner craft-modal-card craft-picker-card" role="dialog" aria-modal="true" aria-labelledby="craftItemPickerTitle">
+            <header class="craft-modal-header">
+                <h2 id="craftItemPickerTitle">Selectionner un item</h2>
+                <button id="craftItemPickerClose" type="button" class="craft-modal-close" aria-label="Fermer">x</button>
+            </header>
+            <div class="craft-modal-body">
+                <input id="craftItemPickerSearch" class="tw-input" type="search" placeholder="Rechercher un item...">
+                <div id="craftItemPickerList" class="craft-picker-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script type="module" src="js/craft.js?v=2026021402"></script>
+    <script src="js/sidebar.js"></script>
+</body>
+</html>

@@ -8,9 +8,10 @@
     <!-- Tabler CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <!-- Custom overrides -->
-    <link rel="stylesheet" href="css/admin.css?v=2026021106">
+    <link rel="stylesheet" href="css/admin.css?v=2026021403">
     <!-- Items Modal CSS -->
     <link rel="stylesheet" href="../css/quetes-items-modal.css?v=1770708000">
     <link rel="stylesheet" href="../css/item-details-popover.css?v=2026021106">
@@ -58,6 +59,19 @@
                                 </a>
                                 <a class="dropdown-item" href="#items" data-page="items">
                                     <i class="ti ti-box me-2"></i> Objets (Codex)
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="../craft.html">
+                                    <i class="ti ti-hammer me-2"></i> Craft
+                                </a>
+                                <a class="dropdown-item" href="../magie.html">
+                                    <i class="ti ti-wand me-2"></i> Magie
+                                </a>
+                                <a class="dropdown-item" href="../competences.html">
+                                    <i class="ti ti-target-arrow me-2"></i> Competences
+                                </a>
+                                <a class="dropdown-item" href="../quetes.html">
+                                    <i class="ti ti-map-2 me-2"></i> Quetes
                                 </a>
                             </div>
                         </li>
@@ -276,6 +290,17 @@
                                                     <i class="ti ti-calendar-plus me-1"></i> Nouvel event
                                                 </a>
                                             </div>
+                                            <div class="col-12 mt-2">
+                                                <small class="text-muted d-block mb-2">Modules admin du site</small>
+                                                <div class="btn-list">
+                                                    <a href="../craft.html" class="btn btn-outline-primary btn-sm">Craft</a>
+                                                    <a href="../magie.html" class="btn btn-outline-primary btn-sm">Magie</a>
+                                                    <a href="../competences.html" class="btn btn-outline-primary btn-sm">Competences</a>
+                                                    <a href="../inventaire.html" class="btn btn-outline-primary btn-sm">Inventaire</a>
+                                                    <a href="../quetes.html" class="btn btn-outline-primary btn-sm">Quetes</a>
+                                                    <a href="../hdv.html" class="btn btn-outline-primary btn-sm">Marche</a>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -339,35 +364,11 @@
                                     </a>
                                 </div>
                             </div>
-                            <div class="table-responsive table-sheet">
-                                <table class="table table-vcenter card-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Utilisateur</th>
-                                            <th>Rôle</th>
-                                            <th>Personnages</th>
-                                            <th>Kaels</th>
-                                            <th>Dernière connexion</th>
-                                            <th>Status</th>
-                                            <th class="w-1"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="usersTableBody">
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">
-                                                Chargement des utilisateurs...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="table-responsive table-sheet admin-tabulator-wrap">
+                                <div id="usersTabulator" class="admin-tabulator"></div>
                             </div>
                             <div class="card-footer d-flex align-items-center">
-                                <p class="m-0 text-muted">Affichage de <span>0</span> à <span>0</span> sur <span>0</span> utilisateurs</p>
-                                <ul class="pagination m-0 ms-auto">
-                                    <li class="page-item disabled"><a class="page-link" href="#"><i class="ti ti-chevron-left"></i></a></li>
-                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                    <li class="page-item disabled"><a class="page-link" href="#"><i class="ti ti-chevron-right"></i></a></li>
-                                </ul>
+                                <p class="m-0 text-muted" id="usersTableInfo">Chargement des utilisateurs...</p>
                             </div>
                         </div>
                     </div>
@@ -397,27 +398,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="table-responsive table-sheet">
-                                <table class="table table-vcenter card-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Avatar</th>
-                                            <th>Nom</th>
-                                            <th>Propriétaire</th>
-                                            <th>Rang</th>
-                                            <th>Kaels</th>
-                                            <th>Créé le</th>
-                                            <th class="w-1"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="charactersTableBody">
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">
-                                                Chargement des personnages...
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div class="table-responsive table-sheet admin-tabulator-wrap">
+                                <div id="charactersTabulator" class="admin-tabulator"></div>
                             </div>
                         </div>
                         <div class="card mt-3 admin-inventory-inspector">
@@ -437,22 +419,8 @@
                                     S&eacute;lectionne un personnage pour afficher son inventaire et son &eacute;quipement.
                                 </div>
                                 <div class="admin-inventory-equip mb-3" id="adminInventoryEquipment"></div>
-                                <div class="table-responsive table-sheet admin-inventory-table">
-                                    <table class="table table-vcenter card-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Objet</th>
-                                                <th>Cat&eacute;gorie</th>
-                                                <th>Qt&eacute;</th>
-                                                <th>ID item</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="adminInventoryRows">
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted py-4">Aucune donn&eacute;e charg&eacute;e.</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="table-responsive table-sheet admin-inventory-table admin-tabulator-wrap">
+                                    <div id="adminInventoryTabulator" class="admin-tabulator"></div>
                                 </div>
                             </div>
                         </div>
@@ -1058,14 +1026,16 @@
     <script src="../js/ui/performance-mode.js?v=2026021106"></script>
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
     <!-- Notyf / Toast -->
     <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
     <script src="../js/components/toast-manager.js?v=2026021102"></script>
     <!-- Modal Manager -->
     <script src="../js/components/modal-manager.js?v=1770708000"></script>
     <!-- Admin JS -->
-    <script type="module" src="js/admin.js?v=2026021106"></script>
+    <script type="module" src="js/admin.js?v=2026021404"></script>
     <!-- Activity Logs -->
     <script type="module" src="js/activity-logs.js"></script>
 </body>
 </html>
+
