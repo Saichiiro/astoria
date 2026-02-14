@@ -7,14 +7,6 @@ import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacte
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
 import { getInventoryRows } from '../../js/api/inventory-service.js';
 import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
-import {
-    setUsersInfo,
-    setCharactersInfo,
-    setInventoryInfo,
-    getUserRows,
-    getCharacterRows,
-    ensureAdminTables as ensureAdminTablesCore
-} from './admin-table-system.js';
 
 (function() {
     'use strict';
@@ -23,12 +15,7 @@ import {
     let supabase = null;
     let allCharacters = [];
     let allItems = [];
-    let allUsers = [];
     let inventoryInspectorCharId = '';
-    let usersTable = null;
-    let charactersTable = null;
-    let inventoryTable = null;
-    let charactersUserFilter = null;
 
     // =================================================================
     // CONFIGURATION
@@ -57,13 +44,6 @@ import {
     const pages = document.querySelectorAll('.admin-page[data-page]');
     const navItems = document.querySelectorAll('[data-page]');
 
-    function ensureAdminTables() {
-        const nextTables = ensureAdminTablesCore({ usersTable, charactersTable, inventoryTable });
-        usersTable = nextTables.usersTable;
-        charactersTable = nextTables.charactersTable;
-        inventoryTable = nextTables.inventoryTable;
-    }
-
     // =================================================================
     // NAVIGATION
     // =================================================================
@@ -71,8 +51,7 @@ import {
     /**
      * Navigate to a page
      */
-    function navigateTo(pageName, options = {}) {
-        const preserveCharacterFilter = Boolean(options?.preserveCharacterFilter);
+    function navigateTo(pageName) {
         // Update pages visibility
         pages.forEach(page => {
             page.classList.toggle('active', page.dataset.page === pageName);
@@ -91,13 +70,6 @@ import {
         // Update URL hash
         if (window.location.hash !== `#${pageName}`) {
             history.pushState(null, '', `#${pageName}`);
-        }
-
-        if (pageName === 'characters' && !preserveCharacterFilter) {
-            if (charactersUserFilter) {
-                charactersUserFilter = null;
-                filterCharacters(document.getElementById('charactersSearch')?.value || '');
-            }
         }
 
         // Close mobile menu if open
@@ -313,10 +285,22 @@ import {
      * Load users list with enhanced data
      */
     async function loadUsers() {
-        ensureAdminTables();
-        setUsersInfo('Chargement des utilisateurs...');
+        const tbody = document.getElementById('usersTableBody');
+        if (!tbody) return;
 
         try {
+            // Show loading state
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+            // Fetch users with character count and total kaels
             const { data: users, error } = await supabase
                 .from('users')
                 .select(`
@@ -337,98 +321,136 @@ import {
 
             if (error) {
                 console.error('[Admin] Error loading users:', error);
-                allUsers = [];
-                if (usersTable) usersTable.setData([]);
-                setUsersInfo(`Erreur: ${error.message}`);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-danger py-4">
+                            <i class="ti ti-alert-circle me-2"></i>
+                            Erreur: ${error.message}
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
-            allUsers = Array.isArray(users) ? users : [];
-            const rows = getUserRows(allUsers);
-            const activeTerm = String(document.getElementById('usersSearch')?.value || '').trim().toLowerCase();
-            const finalRows = activeTerm
-                ? rows.filter((row) => (row.username || '').toLowerCase().includes(activeTerm)
-                    || (row.role || '').toLowerCase().includes(activeTerm)
-                    || String(row.id || '').toLowerCase().includes(activeTerm))
-                : rows;
-            if (usersTable) usersTable.setData(finalRows);
-            setUsersInfo(finalRows.length ? `${finalRows.length} utilisateur(s)` : 'Aucun utilisateur trouve');
-            console.log('[Admin] Loaded', rows.length, 'users');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="ti ti-users-off me-2"></i>
+                            Aucun utilisateur trouvé
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Render enhanced users table
+            tbody.innerHTML = users.map(user => {
+                const lastLogin = user.last_login
+                    ? new Date(user.last_login).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : '<span class="text-muted">Jamais</span>';
+
+                const roleClass = user.role === 'admin' ? 'bg-red' : 'bg-blue';
+                const roleIcon = user.role === 'admin' ? 'ti-shield-check' : 'ti-user';
+                const roleBadge = `<span class="badge ${roleClass}"><i class="ti ${roleIcon} me-1"></i>${user.role === 'admin' ? 'Admin' : 'Joueur'}</span>`;
+
+                const charCount = user.characters?.length || 0;
+                const totalKaels = user.characters?.reduce((sum, char) => sum + (char.kaels || 0), 0) || 0;
+
+                const charDisplay = charCount > 0
+                    ? `<span class="text-primary fw-bold">${charCount}</span> <span class="text-muted">perso${charCount > 1 ? 's' : ''}</span>`
+                    : '<span class="text-muted">Aucun</span>';
+
+                const kaelsDisplay = totalKaels > 0
+                    ? `<span class="fw-bold">${totalKaels.toLocaleString('fr-FR')}</span> <i class="ti ti-coin text-warning"></i>`
+                    : '<span class="text-muted">0 K</span>';
+
+                return `
+                    <tr style="background: rgba(255, 255, 255, 0.02);">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <span class="avatar avatar-sm me-2" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600;">
+                                    ${(user.username || 'U').charAt(0).toUpperCase()}
+                                </span>
+                                <div>
+                                    <div class="fw-bold text-white">${user.username || '-'}</div>
+                                    <div class="text-muted small"><code>${user.id.substring(0, 8)}...</code></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${roleBadge}</td>
+                        <td>${charDisplay}</td>
+                        <td>${kaelsDisplay}</td>
+                        <td class="text-muted small">${lastLogin}</td>
+                        <td>
+                            ${user.is_active !== false ? `
+                                <span class="badge bg-success">
+                                    <i class="ti ti-circle-check me-1"></i> Actif
+                                </span>
+                            ` : `
+                                <span class="badge bg-danger">
+                                    <i class="ti ti-circle-x me-1"></i> Désactivé
+                                </span>
+                            `}
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-list">
+                                ${charCount > 0 ? `
+                                    <button class="btn btn-sm btn-ghost-info" onclick="viewUserCharacters('${user.id}')" title="Voir les personnages">
+                                        <i class="ti ti-mask"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="btn btn-sm ${user.is_active !== false ? 'btn-ghost-danger' : 'btn-ghost-success'}"
+                                        onclick="toggleUserActiveStatus('${user.id}', ${user.is_active !== false})"
+                                        title="${user.is_active !== false ? 'Désactiver' : 'Activer'}">
+                                    <i class="ti ${user.is_active !== false ? 'ti-lock' : 'ti-lock-open'}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-ghost-warning" onclick="changeUserRole('${user.id}', '${user.role}')" title="Changer le rôle">
+                                    <i class="ti ti-user-cog"></i>
+                                </button>
+                                <button class="btn btn-sm btn-ghost-primary" onclick="editUser('${user.id}')" title="Modifier">
+                                    <i class="ti ti-edit"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            console.log('[Admin] Loaded', users.length, 'users');
+
         } catch (err) {
             console.error('[Admin] Exception loading users:', err);
-            allUsers = [];
-            if (usersTable) usersTable.setData([]);
-            setUsersInfo('Erreur de connexion a la base de donnees');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="ti ti-database-off me-2"></i>
+                        Erreur de connexion à la base de données
+                    </td>
+                </tr>
+            `;
         }
     }
 
-    function initUsersSearch() {
-        const input = document.getElementById('usersSearch');
-        if (!input) return;
-
-        let timer = null;
-        input.addEventListener('input', () => {
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                const term = String(input.value || '').trim().toLowerCase();
-                const rows = getUserRows(allUsers).filter((row) => {
-                    if (!term) return true;
-                    return (row.username || '').toLowerCase().includes(term)
-                        || (row.role || '').toLowerCase().includes(term)
-                        || String(row.id || '').toLowerCase().includes(term);
-                });
-                if (usersTable) usersTable.setData(rows);
-                setUsersInfo(rows.length ? `${rows.length} utilisateur(s)` : 'Aucun utilisateur trouve');
-            }, 160);
-        });
-    }
-
-    function initUserActions() {
-        const tableRoot = document.getElementById('usersTabulator');
-        if (!tableRoot) return;
-
-        tableRoot.addEventListener('click', async (event) => {
-            const btn = event.target.closest('button[data-action]');
-            if (!btn) return;
-            const action = btn.dataset.action;
-            const userId = btn.dataset.userId;
-            if (!userId) return;
-
-            if (action === 'view-user-characters') {
-                window.viewUserCharacters(userId);
-                return;
-            }
-            if (action === 'toggle-user-active') {
-                const currentlyActive = btn.dataset.userActive === '1';
-                await window.toggleUserActiveStatus(userId, currentlyActive);
-                return;
-            }
-            if (action === 'change-user-role') {
-                const role = btn.dataset.userRole || 'player';
-                await window.changeUserRole(userId, role);
-                return;
-            }
-            if (action === 'edit-user') {
-                window.editUser(userId);
-            }
-        });
-    }
     /**
      * View user characters
      */
     window.viewUserCharacters = function(userId) {
-        const userCharacters = allCharacters.filter(char => char.user_id === userId);
-        if (userCharacters.length === 0) {
-            showToast('Aucun personnage trouve', 'info');
+        const user = allCharacters.filter(char => char.user_id === userId);
+        if (user.length === 0) {
+            showToast('Aucun personnage trouvé', 'info');
             return;
         }
 
-        charactersUserFilter = userId;
-        const searchInput = document.getElementById('charactersSearch');
-        if (searchInput) searchInput.value = '';
-        navigateTo('characters', { preserveCharacterFilter: true });
-        filterCharacters('');
-        showToast(`Affichage des personnages (${userCharacters.length})`, 'info');
+        // Switch to characters page and filter by user
+        switchPage('characters');
+        showToast(`Affichage des personnages (${user.length})`, 'info');
     };
 
     /**
@@ -497,12 +519,67 @@ import {
      * Render characters table
      */
     function renderCharactersTable(characters) {
-        ensureAdminTables();
-        const rows = getCharacterRows(characters);
-        if (charactersTable) {
-            charactersTable.setData(rows);
+        const tbody = document.getElementById('charactersTableBody');
+        if (!tbody) return;
+
+        if (!characters || characters.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="ti ti-users-off me-2"></i>
+                        Aucun personnage trouvé
+                    </td>
+                </tr>
+            `;
+            return;
         }
-        setCharactersInfo(rows.length ? `${rows.length} personnage(s)` : 'Aucun personnage trouve');
+
+        tbody.innerHTML = characters.map(char => {
+            const avatarUrl = char.profile_data?.avatar_url || '';
+            const avatarHtml = avatarUrl
+                ? `<span class="avatar" style="background-image: url(${avatarUrl})"></span>`
+                : `<span class="avatar">${(char.name || '?').charAt(0).toUpperCase()}</span>`;
+
+            const createdDate = char.created_at
+                ? new Date(char.created_at).toLocaleDateString('fr-FR')
+                : '-';
+
+            const ownerShort = char.user_id ? char.user_id.slice(0, 8) + '...' : '-';
+            const raceClass = `${char.race || ''} ${char.class || ''}`.trim() || '-';
+            const kaels = char.kaels != null ? char.kaels.toLocaleString('fr-FR') : '0';
+
+            return `
+                <tr>
+                    <td>${avatarHtml}</td>
+                    <td>
+                        <div class="font-weight-medium">${char.name || 'Sans nom'}</div>
+                    </td>
+                    <td class="text-muted">${ownerShort}</td>
+                    <td>${raceClass}</td>
+                    <td><span class="badge bg-warning-lt text-warning">${kaels} K</span></td>
+                    <td class="text-muted">${createdDate}</td>
+                    <td>
+                        <div class="btn-list flex-nowrap">
+                            <button class="btn btn-sm btn-ghost-primary" data-action="select" data-char-id="${char.id}" title="Activer">
+                                <i class="ti ti-user-check"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-warning" data-action="edit-kaels" data-char-id="${char.id}" title="Modifier Kaels">
+                                <i class="ti ti-coin"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-success" data-action="give-items" data-char-id="${char.id}" title="Donner des objets">
+                                <i class="ti ti-gift"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-info" data-action="view-inventory" data-char-id="${char.id}" title="Voir inventaire">
+                                <i class="ti ti-backpack"></i>
+                            </button>
+                            <button class="btn btn-sm btn-ghost-danger" data-action="delete" data-char-id="${char.id}" title="Supprimer">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     function normalizeItemKey(value) {
@@ -586,22 +663,20 @@ import {
     }
 
     function renderInventoryInspectorRows(rows) {
-        ensureAdminTables();
+        const tbody = document.getElementById('adminInventoryRows');
+        if (!tbody) return;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Inventaire vide.</td>
+                </tr>
+            `;
+            return;
+        }
+
         const { byId, byName } = getItemCatalogLookups();
-        const parseImages = (value) => {
-            if (!value) return {};
-            if (typeof value === 'object') return value;
-            if (typeof value === 'string') {
-                try {
-                    const parsed = JSON.parse(value);
-                    return parsed && typeof parsed === 'object' ? parsed : {};
-                } catch {
-                    return {};
-                }
-            }
-            return {};
-        };
-        const mappedRows = (Array.isArray(rows) ? rows : []).map((row) => {
+        tbody.innerHTML = rows.map((row) => {
             const itemId = String(row?.item_id || '').trim();
             const itemKey = String(row?.item_key || '').trim();
             const byIdMatch = itemId ? byId.get(itemId) : null;
@@ -610,16 +685,16 @@ import {
             const itemName = item?.name || itemKey || '(item inconnu)';
             const category = item?.category || '-';
             const qty = Math.max(0, Math.floor(Number(row?.qty) || 0));
-            const images = parseImages(item?.images);
-            const itemImage = images.primary || images.main || images.url || item?.image || item?.image_url || '';
 
-            return { itemName, category, qty, itemId: itemId || '-', itemImage };
-        });
-
-        if (inventoryTable) {
-            inventoryTable.setData(mappedRows);
-        }
-        setInventoryInfo(mappedRows.length ? `${mappedRows.length} ligne(s) inventaire` : 'Aucune ligne inventaire');
+            return `
+                <tr>
+                    <td>${itemName}</td>
+                    <td class="text-muted">${category}</td>
+                    <td><span class="badge bg-primary-lt">${qty}</span></td>
+                    <td class="text-muted"><code>${itemId || '-'}</code></td>
+                </tr>
+            `;
+        }).join('');
     }
 
     async function loadCharacterInventoryInspector(characterId) {
@@ -682,13 +757,14 @@ import {
      * Load characters list from Supabase
      */
     async function loadCharacters() {
-        ensureAdminTables();
+        const tbody = document.getElementById('charactersTableBody');
+        if (!tbody) return;
 
         try {
             if (!allCharacters.length) {
                 allCharacters = await getAllCharacters() || [];
             }
-            filterCharacters(document.getElementById('charactersSearch')?.value || '');
+            renderCharactersTable(allCharacters);
             populateInventoryInspectorCharacters(allCharacters);
             loadCharactersForKaels();
             if (inventoryInspectorCharId) {
@@ -696,7 +772,14 @@ import {
             }
         } catch (err) {
             console.error('[Admin] Failed to load characters:', err);
-            if (charactersTable) charactersTable.setData([]);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-danger py-4">
+                        <i class="ti ti-alert-circle me-2"></i>
+                        Erreur de chargement
+                    </td>
+                </tr>
+            `;
         }
     }
 
@@ -704,14 +787,16 @@ import {
      * Filter characters by search term
      */
     function filterCharacters(searchTerm) {
-        const term = String(searchTerm || '').trim().toLowerCase();
-        const filtered = allCharacters.filter((char) => {
-            if (charactersUserFilter && char.user_id !== charactersUserFilter) return false;
-            if (!term) return true;
-            return (char.name || '').toLowerCase().includes(term)
-                || (char.race || '').toLowerCase().includes(term)
-                || (char.class || '').toLowerCase().includes(term);
-        });
+        const term = searchTerm.trim().toLowerCase();
+        if (!term) {
+            renderCharactersTable(allCharacters);
+            return;
+        }
+        const filtered = allCharacters.filter(char =>
+            (char.name || '').toLowerCase().includes(term) ||
+            (char.race || '').toLowerCase().includes(term) ||
+            (char.class || '').toLowerCase().includes(term)
+        );
         renderCharactersTable(filtered);
     }
 
@@ -735,10 +820,10 @@ import {
      * Handle character actions (select, edit kaels, delete)
      */
     function initCharacterActions() {
-        const tableRoot = document.getElementById('charactersTabulator');
-        if (!tableRoot) return;
+        const tbody = document.getElementById('charactersTableBody');
+        if (!tbody) return;
 
-        tableRoot.addEventListener('click', async (e) => {
+        tbody.addEventListener('click', async (e) => {
             const btn = e.target.closest('button[data-action]');
             if (!btn) return;
 
@@ -1183,7 +1268,6 @@ import {
 
         // Initialize navigation
         initNavigation();
-        ensureAdminTables();
 
         // Load initial data
         await loadDashboardStats();
@@ -1193,8 +1277,6 @@ import {
         loadCharactersForKaels();
 
         // Initialize interactive features
-        initUsersSearch();
-        initUserActions();
         initCharactersSearch();
         initCharacterActions();
         initCharacterInventoryInspector();
