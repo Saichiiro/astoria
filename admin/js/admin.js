@@ -9,6 +9,8 @@ import { getInventoryRows } from '../../js/api/inventory-service.js';
 import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 import {
     setUsersInfo,
+    setCharactersInfo,
+    setInventoryInfo,
     getUserRows,
     getCharacterRows,
     ensureAdminTables as ensureAdminTablesCore
@@ -500,6 +502,7 @@ import {
         if (charactersTable) {
             charactersTable.setData(rows);
         }
+        setCharactersInfo(rows.length ? `${rows.length} personnage(s)` : 'Aucun personnage trouve');
     }
 
     function normalizeItemKey(value) {
@@ -585,6 +588,19 @@ import {
     function renderInventoryInspectorRows(rows) {
         ensureAdminTables();
         const { byId, byName } = getItemCatalogLookups();
+        const parseImages = (value) => {
+            if (!value) return {};
+            if (typeof value === 'object') return value;
+            if (typeof value === 'string') {
+                try {
+                    const parsed = JSON.parse(value);
+                    return parsed && typeof parsed === 'object' ? parsed : {};
+                } catch {
+                    return {};
+                }
+            }
+            return {};
+        };
         const mappedRows = (Array.isArray(rows) ? rows : []).map((row) => {
             const itemId = String(row?.item_id || '').trim();
             const itemKey = String(row?.item_key || '').trim();
@@ -594,13 +610,16 @@ import {
             const itemName = item?.name || itemKey || '(item inconnu)';
             const category = item?.category || '-';
             const qty = Math.max(0, Math.floor(Number(row?.qty) || 0));
+            const images = parseImages(item?.images);
+            const itemImage = images.primary || images.main || images.url || item?.image || item?.image_url || '';
 
-            return { itemName, category, qty, itemId: itemId || '-' };
+            return { itemName, category, qty, itemId: itemId || '-', itemImage };
         });
 
         if (inventoryTable) {
             inventoryTable.setData(mappedRows);
         }
+        setInventoryInfo(mappedRows.length ? `${mappedRows.length} ligne(s) inventaire` : 'Aucune ligne inventaire');
     }
 
     async function loadCharacterInventoryInspector(characterId) {

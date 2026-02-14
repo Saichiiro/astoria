@@ -1066,9 +1066,41 @@ body.perf-lite .btn::before {
 }
 
 .admin-tabulator-wrap {
-    max-height: none;
+    max-height: min(70vh, 860px);
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: auto;
+}
+
+.admin-table-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    border-top: 1px solid rgba(244, 143, 177, 0.16);
+    border-bottom: 1px solid rgba(244, 143, 177, 0.12);
+    background: rgba(27, 17, 41, 0.55);
+}
+
+.admin-table-toolbar--tight {
+    margin-bottom: 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(244, 143, 177, 0.15);
+}
+
+.admin-table-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.admin-table-toolbar-meta {
+    color: #d9bdd0;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .theme-dark .admin-tabulator .tabulator {
@@ -1082,6 +1114,25 @@ body.perf-lite .btn::before {
 .theme-dark .admin-tabulator .tabulator .tabulator-header {
     border-bottom: 1px solid rgba(244, 143, 177, 0.2);
     background: linear-gradient(180deg, rgba(54, 36, 80, 0.96), rgba(40, 26, 59, 0.96));
+}
+
+.theme-dark .admin-tabulator .tabulator .tabulator-header .tabulator-headers {
+    border-bottom: 1px solid rgba(244, 143, 177, 0.12);
+}
+
+.theme-dark .admin-tabulator .tabulator .tabulator-header .tabulator-header-filter input,
+.theme-dark .admin-tabulator .tabulator .tabulator-header .tabulator-header-filter select {
+    border: 1px solid rgba(244, 143, 177, 0.25);
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffe8f5;
+    border-radius: 8px;
+    min-height: 32px;
+    font-size: 0.76rem;
+    padding: 5px 8px;
+}
+
+.theme-dark .admin-tabulator .tabulator .tabulator-header .tabulator-header-filter input::placeholder {
+    color: rgba(255, 224, 242, 0.62);
 }
 
 .theme-dark .admin-tabulator .tabulator-col {
@@ -1110,6 +1161,10 @@ body.perf-lite .btn::before {
     background: rgba(244, 143, 177, 0.1);
 }
 
+.theme-dark .admin-tabulator .tabulator-row.tabulator-selected {
+    background: rgba(210, 75, 143, 0.18);
+}
+
 .theme-dark .admin-tabulator .tabulator-cell {
     border-right: 1px solid rgba(244, 143, 177, 0.06);
     color: rgba(255, 244, 251, 0.92);
@@ -1121,6 +1176,15 @@ body.perf-lite .btn::before {
     border-top: 1px solid rgba(244, 143, 177, 0.16);
     background: rgba(26, 17, 39, 0.8);
     color: var(--admin-text-muted);
+}
+
+.theme-dark .admin-tabulator .tabulator-placeholder {
+    color: #e5c8d9;
+    background: rgba(32, 22, 48, 0.52);
+    border: 1px dashed rgba(244, 143, 177, 0.25);
+    border-radius: 10px;
+    margin: 12px;
+    padding: 14px;
 }
 
 .theme-dark .admin-tabulator .tabulator-page {
@@ -1190,4 +1254,51 @@ body.perf-lite .btn::before {
 .admin-tabulator-btn[data-action="delete"],
 .admin-tabulator-btn[data-action="toggle-user-active"] {
     color: #ffb5c8;
+}
+
+.admin-tabulator-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.admin-tabulator-item-thumb {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(244, 143, 177, 0.24);
+    flex: 0 0 34px;
+}
+
+.admin-tabulator-item-thumb--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #ffd8eb;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-tabulator-item-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+@media (max-width: 980px) {
+    .admin-tabulator-wrap {
+        max-height: none;
+    }
+
+    .admin-table-toolbar {
+        padding: 10px;
+    }
+
+    .admin-table-toolbar-actions {
+        width: 100%;
+    }
 }
