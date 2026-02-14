@@ -1107,6 +1107,15 @@ body.perf-lite .btn::before {
     color: #ffe8f5;
 }
 
+.theme-dark .admin-tabulator.ag-theme-quartz .ag-floating-filter {
+    display: none;
+}
+
+.theme-dark .admin-tabulator.ag-theme-quartz .ag-selection-checkbox,
+.theme-dark .admin-tabulator.ag-theme-quartz .ag-checkbox-input-wrapper {
+    display: none;
+}
+
 .theme-dark .admin-tabulator.ag-theme-quartz .ag-paging-panel {
     border-top: 1px solid rgba(244, 143, 177, 0.16);
     color: #dcbfd2;

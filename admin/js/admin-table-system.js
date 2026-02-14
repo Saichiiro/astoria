@@ -67,7 +67,12 @@ function createAgGrid(rootId, gridOptions) {
     const options = {
         rowData: [],
         theme: 'legacy',
-        rowSelection: { mode: 'singleRow' },
+        rowSelection: {
+            mode: 'singleRow',
+            checkboxes: false,
+            headerCheckbox: false,
+            enableClickSelection: true
+        },
         animateRows: true,
         pagination: true,
         paginationPageSize: gridOptions.paginationPageSize || 12,
@@ -76,7 +81,7 @@ function createAgGrid(rootId, gridOptions) {
         defaultColDef: {
             sortable: true,
             filter: true,
-            floatingFilter: true,
+            floatingFilter: false,
             resizable: true,
             cellDataType: false,
             minWidth: 100,
