@@ -377,6 +377,10 @@ class UploaderCropper {
 // Instance globale
 const uploaderCropper = new UploaderCropper();
 
+if (typeof window !== 'undefined') {
+    window.uploaderCropper = uploaderCropper;
+}
+
 // Export pour modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = uploaderCropper;

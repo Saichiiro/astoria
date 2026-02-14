@@ -33,10 +33,10 @@
 
     <nav id="sidebarMenu" aria-label="Raccourcis">
       <div class="sidebar-topbar">
-        <div class="menu-header">
+        <a class="menu-header menu-header-link" href="index.html" aria-label="Retour à l'accueil">
           <span class="menu-header-title" aria-hidden="true">&nbsp;</span>
           <span class="menu-header-sub">Astoria</span>
-        </div>
+        </a>
         <button type="button" class="theme-toggle sidebar-theme-toggle" data-theme-toggle aria-pressed="false" aria-label="Basculer le theme">
           <span class="theme-toggle-track">
             <span class="theme-toggle-thumb">

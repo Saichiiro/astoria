@@ -81,6 +81,15 @@ body.sidebar-layout {
   color: var(--sidebar-accent-dark);
 }
 
+.sidebar-layout .menu-header-link {
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-layout .menu-header-link:hover {
+  opacity: 0.86;
+}
+
 .sidebar-layout .menu-header-title {
   display: block;
   height: 0.68rem;

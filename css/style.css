@@ -1223,6 +1223,10 @@ tbody tr.keyboard-selected {
     font-weight: bold;
 }
 
+.character-dropdown-item--create {
+    background: rgba(232, 245, 233, 0.72);
+}
+
 .character-dropdown-avatar {
     width: 40px;
     height: 40px;

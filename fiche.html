@@ -7,6 +7,8 @@
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/fiche.css">
+    <link rel="stylesheet" href="css/cropper-controls.css?v=2026021416">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 </head>
 <body class="min-h-screen">
     <main class="fiche-page" aria-labelledby="fichePageTitle">
@@ -246,13 +248,16 @@
                             ></textarea>
                         </div>
                         <div class="field-group">
-                            <label class="field-label" for="combatArmeImage">Image de l'arme (URL)</label>
-                            <input
-                                id="combatArmeImage"
-                                class="field-input"
-                                type="url"
-                                placeholder="Lien vers une illustration de l'arme (optionnel)."
-                            >
+                            <label class="field-label">Image de l'arme</label>
+                            <input id="combatArmeImage" type="hidden">
+                            <input id="combatArmeImageFile" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="combatArmeImageImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="combatArmeImageClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="combatArmeImagePreviewWrap" hidden>
+                                <img id="combatArmeImagePreview" alt="Aperçu de l'arme">
+                            </div>
                         </div>
                         <!-- Combat Techniques Section -->
                         <div class="combat-techniques-section">
@@ -630,31 +635,40 @@
                             ></textarea>
                         </div>
                         <div class="field-group">
-                            <label class="field-label" for="backgroundImage1">Image 1 (URL)</label>
-                            <input
-                                id="backgroundImage1"
-                                class="field-input"
-                                type="url"
-                                placeholder="Lien vers une référence visuelle du personnage."
-                            >
+                            <label class="field-label">Image 1</label>
+                            <input id="backgroundImage1" type="hidden">
+                            <input id="backgroundImage1File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage1ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage1ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage1PreviewWrap" hidden>
+                                <img id="backgroundImage1Preview" alt="Aperçu image 1">
+                            </div>
                         </div>
                         <div class="field-group">
-                            <label class="field-label" for="backgroundImage2">Image 2 (URL)</label>
-                            <input
-                                id="backgroundImage2"
-                                class="field-input"
-                                type="url"
-                                placeholder="Deuxième lien d'image (optionnel)."
-                            >
+                            <label class="field-label">Image 2</label>
+                            <input id="backgroundImage2" type="hidden">
+                            <input id="backgroundImage2File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage2ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage2ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage2PreviewWrap" hidden>
+                                <img id="backgroundImage2Preview" alt="Aperçu image 2">
+                            </div>
                         </div>
                         <div class="field-group">
-                            <label class="field-label" for="backgroundImage3">Image 3 (URL)</label>
-                            <input
-                                id="backgroundImage3"
-                                class="field-input"
-                                type="url"
-                                placeholder="Troisième lien d'image (optionnel)."
-                            >
+                            <label class="field-label">Image 3</label>
+                            <input id="backgroundImage3" type="hidden">
+                            <input id="backgroundImage3File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage3ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage3ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage3PreviewWrap" hidden>
+                                <img id="backgroundImage3Preview" alt="Aperçu image 3">
+                            </div>
                         </div>
                     </section>
                 </form>
@@ -663,6 +677,10 @@
     </main>
     <script src="js/data.js"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/components/modal-manager.js"></script>
     <script>
         (async function () {
             const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
@@ -703,6 +721,163 @@
             const summaryState = await summaryModule?.initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true }) || null;
             summaryElements = summaryState?.elements || null;
             currentCharacterKey = summaryState?.context?.key || currentCharacterKey;
+
+            const combatWeaponImageInput = document.getElementById('combatArmeImage');
+            const combatWeaponFileInput = document.getElementById('combatArmeImageFile');
+            const combatWeaponImportBtn = document.getElementById('combatArmeImageImportBtn');
+            const combatWeaponClearBtn = document.getElementById('combatArmeImageClearBtn');
+            const combatWeaponPreviewWrap = document.getElementById('combatArmeImagePreviewWrap');
+            const combatWeaponPreview = document.getElementById('combatArmeImagePreview');
+            const backgroundImageFields = [
+                {
+                    tabName: 'background',
+                    label: 'Image 1',
+                    input: document.getElementById('backgroundImage1'),
+                    fileInput: document.getElementById('backgroundImage1File'),
+                    importBtn: document.getElementById('backgroundImage1ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage1ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage1PreviewWrap'),
+                    preview: document.getElementById('backgroundImage1Preview')
+                },
+                {
+                    tabName: 'background',
+                    label: 'Image 2',
+                    input: document.getElementById('backgroundImage2'),
+                    fileInput: document.getElementById('backgroundImage2File'),
+                    importBtn: document.getElementById('backgroundImage2ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage2ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage2PreviewWrap'),
+                    preview: document.getElementById('backgroundImage2Preview')
+                },
+                {
+                    tabName: 'background',
+                    label: 'Image 3',
+                    input: document.getElementById('backgroundImage3'),
+                    fileInput: document.getElementById('backgroundImage3File'),
+                    importBtn: document.getElementById('backgroundImage3ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage3ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage3PreviewWrap'),
+                    preview: document.getElementById('backgroundImage3Preview')
+                }
+            ];
+            const imageFieldRegistry = [
+                {
+                    tabName: 'combat',
+                    label: "Image de l'arme",
+                    input: combatWeaponImageInput,
+                    fileInput: combatWeaponFileInput,
+                    importBtn: combatWeaponImportBtn,
+                    clearBtn: combatWeaponClearBtn,
+                    previewWrap: combatWeaponPreviewWrap,
+                    preview: combatWeaponPreview
+                },
+                ...backgroundImageFields
+            ];
+
+            const combatWeaponCropperBackdrop = document.getElementById('combatWeaponCropperBackdrop');
+            const combatWeaponCropperImage = document.getElementById('combatWeaponCropperImage');
+            const combatWeaponCropperClose = document.getElementById('combatWeaponCropperClose');
+            const combatWeaponCropperCancel = document.getElementById('combatWeaponCropperCancel');
+            const combatWeaponCropperConfirm = document.getElementById('combatWeaponCropperConfirm');
+            const combatWeaponCropperRotateLeft = document.getElementById('combatWeaponCropperRotateLeft');
+            const combatWeaponCropperRotateRight = document.getElementById('combatWeaponCropperRotateRight');
+            const combatWeaponCropperReset = document.getElementById('combatWeaponCropperReset');
+            const combatWeaponCropperZoomIn = document.getElementById('combatWeaponCropperZoomIn');
+            const combatWeaponCropperZoomOut = document.getElementById('combatWeaponCropperZoomOut');
+            const combatWeaponCropperZoomDisplay = document.getElementById('combatWeaponCropperZoomDisplay');
+
+            let activeImageField = null;
+
+            function updateImagePreview(field) {
+                if (!field?.input || !field?.previewWrap || !field?.preview) return;
+                const value = String(field.input.value || '').trim();
+                if (!value) {
+                    field.previewWrap.hidden = true;
+                    field.preview.removeAttribute('src');
+                    return;
+                }
+                field.preview.src = value;
+                field.previewWrap.hidden = false;
+            }
+
+            function updateAllImagePreviews() {
+                imageFieldRegistry.forEach(updateImagePreview);
+            }
+
+            function blobToDataUrl(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.onerror = () => reject(new Error('read_failed'));
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            function closeImageCropper() {
+                if (combatWeaponCropperBackdrop?.contains(document.activeElement)) {
+                    document.activeElement?.blur?.();
+                    activeImageField?.importBtn?.focus?.();
+                }
+                window.uploaderCropper?.destroy?.();
+                if (combatWeaponCropperBackdrop) {
+                    if (window.modalManager?.isOpen?.(combatWeaponCropperBackdrop)) {
+                        window.modalManager.close(combatWeaponCropperBackdrop);
+                    } else {
+                        combatWeaponCropperBackdrop.hidden = true;
+                        combatWeaponCropperBackdrop.classList.remove('open');
+                        combatWeaponCropperBackdrop.setAttribute('aria-hidden', 'true');
+                    }
+                }
+                if (combatWeaponCropperImage) {
+                    combatWeaponCropperImage.removeAttribute('src');
+                }
+                activeImageField = null;
+            }
+
+            function updateCropperZoomLabel() {
+                if (!window.uploaderCropper || !combatWeaponCropperZoomDisplay) return;
+                const zoomPercent = window.uploaderCropper.getZoomPercent?.() || 100;
+                combatWeaponCropperZoomDisplay.textContent = `${zoomPercent}%`;
+            }
+
+            function openImageCropper(file, field) {
+                if (!file || !field || !combatWeaponCropperImage || !window.uploaderCropper) return;
+                activeImageField = field;
+                const title = document.getElementById('combatWeaponCropperTitle');
+                if (title) {
+                    title.textContent = `Recadrer ${field.label.toLowerCase()}`;
+                }
+                if (combatWeaponCropperBackdrop) {
+                    if (window.modalManager?.open) {
+                        window.modalManager.open(combatWeaponCropperBackdrop, {
+                            closeOnBackdropClick: true,
+                            closeOnEsc: true,
+                            openClass: 'open',
+                            focusElement: combatWeaponCropperConfirm
+                        });
+                    } else {
+                        combatWeaponCropperBackdrop.hidden = false;
+                        combatWeaponCropperBackdrop.classList.add('open');
+                        combatWeaponCropperBackdrop.setAttribute('aria-hidden', 'false');
+                    }
+                }
+                const opened = window.uploaderCropper.open(file, {
+                    imageElement: combatWeaponCropperImage,
+                    aspectRatio: NaN,
+                    outputWidth: 700,
+                    outputHeight: 700,
+                    quality: 0.9,
+                    outputFormat: 'image/jpeg',
+                    enableRotate: true,
+                    enableZoom: true,
+                    onZoomChange: () => updateCropperZoomLabel()
+                });
+                if (!opened) {
+                    closeImageCropper();
+                } else {
+                    updateCropperZoomLabel();
+                }
+            }
             function updateRelationLink(row) {
                 const input = row.querySelector('.relation-character');
                 const link = row.querySelector('.relation-link-btn');
@@ -1556,7 +1731,73 @@
                 if (tabName === 'background' && relationsContainer) {
                     relationsContainer.innerHTML = '';
                 }
+                if (tabName === 'combat' || tabName === 'background') {
+                    updateAllImagePreviews();
+                }
             }
+
+            imageFieldRegistry.forEach((field) => {
+                field.importBtn?.addEventListener('click', () => {
+                    field.fileInput?.click();
+                });
+                field.fileInput?.addEventListener('change', () => {
+                    const file = field.fileInput?.files?.[0];
+                    if (!file) return;
+                    openImageCropper(file, field);
+                    field.fileInput.value = '';
+                });
+                field.clearBtn?.addEventListener('click', () => {
+                    if (field.input) field.input.value = '';
+                    updateImagePreview(field);
+                    markTabDirty(field.tabName);
+                });
+            });
+
+            combatWeaponCropperClose?.addEventListener('click', closeImageCropper);
+            combatWeaponCropperCancel?.addEventListener('click', closeImageCropper);
+            combatWeaponCropperBackdrop?.addEventListener('pointerdown', (event) => {
+                if (event.target === combatWeaponCropperBackdrop) {
+                    closeImageCropper();
+                }
+            });
+
+            combatWeaponCropperRotateLeft?.addEventListener('click', () => {
+                window.uploaderCropper?.rotate(-90);
+            });
+            combatWeaponCropperRotateRight?.addEventListener('click', () => {
+                window.uploaderCropper?.rotate(90);
+            });
+            combatWeaponCropperReset?.addEventListener('click', () => {
+                window.uploaderCropper?.reset();
+                updateCropperZoomLabel();
+            });
+            combatWeaponCropperZoomIn?.addEventListener('click', () => {
+                window.uploaderCropper?.zoomIn?.();
+            });
+            combatWeaponCropperZoomOut?.addEventListener('click', () => {
+                window.uploaderCropper?.zoomOut?.();
+            });
+
+            combatWeaponCropperConfirm?.addEventListener('click', async () => {
+                if (!window.uploaderCropper?.cropper || !activeImageField?.input) {
+                    closeImageCropper();
+                    return;
+                }
+                const targetField = activeImageField;
+                const result = await window.uploaderCropper.confirm();
+                if (!result?.blob) {
+                    closeImageCropper();
+                    return;
+                }
+                const dataUrl = await blobToDataUrl(result.blob).catch(() => '');
+                if (dataUrl && targetField?.input) {
+                    targetField.input.value = dataUrl;
+                    updateImagePreview(targetField);
+                    markTabDirty(targetField.tabName);
+                }
+                closeImageCropper();
+            });
+
             // Add change listeners to all inputs
             tabPanels.forEach((panel) => {
                 const tabName = panel.id.replace('tab-', '');
@@ -1574,9 +1815,7 @@
             // Save button functionality
             saveButtons.forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    const tabName = btn.dataset.tab;
-                    saveTab(tabName, btn);
-                    clearTabDirty(tabName);
+                    saveAllTabs(btn);
                 });
             });
             // ====================================================================
@@ -1827,6 +2066,19 @@
                 }
             }
 
+            function saveAllTabs(triggerButton = null) {
+                allTabs.forEach((tabName) => {
+                    saveTab(tabName, null);
+                    clearTabDirty(tabName);
+                });
+                if (triggerButton) {
+                    triggerButton.textContent = 'Tout sauvegardé ✓';
+                    setTimeout(() => {
+                        triggerButton.textContent = 'Sauvegarder';
+                    }, 2000);
+                }
+            }
+
             async function syncTabToProfile(tabName, tabData) {
                 console.log(`[Fiche] Syncing ${tabName} to profile_data...`);
 
@@ -1997,6 +2249,9 @@
                 if (tabName === 'background') {
                     restoreRelations(data.backgroundRelations || []);
                 }
+                if (tabName === 'combat') {
+                    updateAllImagePreviews();
+                }
                 updateConditionalVisibility();
             }
             // Load all tabs on page load
@@ -2007,6 +2262,7 @@
                 updateConditionalVisibility();
                 syncAliceEaterExclusion();
                 syncMagicSelections({ persistProfile: false });
+                updateAllImagePreviews();
             }
             const initialContext = summaryModule?.resolveCharacterContext
                 ? summaryModule.resolveCharacterContext({ includeQueryParam: true })
@@ -2391,6 +2647,35 @@
             // ====================================================================
         })();
     </script>
+    <div class="profile-cropper-backdrop" id="combatWeaponCropperBackdrop" hidden aria-hidden="true">
+        <div class="profile-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="combatWeaponCropperTitle">
+            <div class="profile-cropper-header">
+                <h2 class="profile-cropper-title" id="combatWeaponCropperTitle">Recadrer l'image de l'arme</h2>
+                <button type="button" class="profile-cropper-close tw-press" id="combatWeaponCropperClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="profile-cropper-body">
+                <div class="profile-cropper-stage">
+                    <img id="combatWeaponCropperImage" alt="Image à recadrer">
+                </div>
+                <div class="profile-cropper-controls">
+                    <div class="profile-cropper-toolbar">
+                        <button class="profile-tool-btn" id="combatWeaponCropperRotateLeft" title="Rotation -90°">↺</button>
+                        <button class="profile-tool-btn" id="combatWeaponCropperRotateRight" title="Rotation +90°">↻</button>
+                        <button class="profile-tool-btn" id="combatWeaponCropperReset" title="Réinitialiser">↺</button>
+                    </div>
+                    <div class="profile-cropper-zoom-controls">
+                        <button class="profile-tool-btn" id="combatWeaponCropperZoomOut" title="Zoom -">−</button>
+                        <span class="profile-zoom-display" id="combatWeaponCropperZoomDisplay">100%</span>
+                        <button class="profile-tool-btn" id="combatWeaponCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-cropper-actions">
+                <button class="profile-modal-button secondary tw-press" id="combatWeaponCropperCancel">Annuler</button>
+                <button class="profile-modal-button tw-press" id="combatWeaponCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
     <!-- Combat Technique Modal -->
     <div class="combat-modal-backdrop" id="combatTechniqueBackdrop" aria-hidden="true">
         <div class="combat-modal" role="dialog" aria-modal="true">

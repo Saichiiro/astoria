@@ -305,6 +305,39 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
             dropdownEl.appendChild(item);
         });
+
+        if (characters.length < 5) {
+            const createItem = document.createElement("button");
+            createItem.type = "button";
+            createItem.className = "character-dropdown-item character-dropdown-item--create";
+
+            const avatar = document.createElement("div");
+            avatar.className = "character-dropdown-avatar";
+            avatar.textContent = "+";
+
+            const text = document.createElement("div");
+            text.className = "character-dropdown-text";
+
+            const name = document.createElement("div");
+            name.className = "character-dropdown-name";
+            name.textContent = "Créer un nouveau personnage";
+
+            const role = document.createElement("div");
+            role.className = "character-dropdown-role";
+            role.textContent = `${characters.length}/5 personnages`;
+
+            text.appendChild(name);
+            text.appendChild(role);
+            createItem.appendChild(avatar);
+            createItem.appendChild(text);
+
+            createItem.addEventListener("click", (e) => {
+                e.stopPropagation();
+                window.location.href = "index.html";
+            });
+
+            dropdownEl.appendChild(createItem);
+        }
     } catch (error) {
         console.error("Character-summary: Error building dropdown:", error);
         dropdownEl.hidden = true;

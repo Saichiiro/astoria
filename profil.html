@@ -1548,6 +1548,7 @@
             // Check for shared profile URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const sharedCharacterId = urlParams.get('character');
+            const shouldOpenCreateModal = urlParams.get('create') === '1';
             if (sharedCharacterId) {
                 // Viewing a shared profile - load that character
                 const sharedCharacter = await getCharacterById(sharedCharacterId);
@@ -1598,6 +1599,9 @@
             await loadCharacters();
             // Load active character or prompt to select/create one
             await loadActiveCharacter();
+            if (shouldOpenCreateModal) {
+                showCreateCharacterModal();
+            }
             // Initialize character summary widget with kaels
             await initCharacterSummary({ enableDropdown: true, showKaels: true });
             setInterval(() => {
