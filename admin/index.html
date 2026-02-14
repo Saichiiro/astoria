@@ -8,10 +8,11 @@
     <!-- Tabler CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community/styles/ag-theme-quartz.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <!-- Custom overrides -->
-    <link rel="stylesheet" href="css/admin.css?v=2026021410">
+    <link rel="stylesheet" href="css/admin.css?v=2026021411">
     <!-- Items Modal CSS -->
     <link rel="stylesheet" href="../css/quetes-items-modal.css?v=1770708000">
     <link rel="stylesheet" href="../css/item-details-popover.css?v=2026021106">
@@ -364,22 +365,8 @@
                                     </a>
                                 </div>
                             </div>
-                            <div class="admin-table-toolbar" data-table-toolbar="users">
-                                <div class="admin-table-toolbar-actions">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="reset-view">
-                                        <i class="ti ti-refresh me-1"></i>Reset vue
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="clear-filters">
-                                        <i class="ti ti-filter-off me-1"></i>Vider filtres
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" data-table-action="export-csv">
-                                        <i class="ti ti-file-download me-1"></i>CSV
-                                    </button>
-                                </div>
-                                <div class="admin-table-toolbar-meta" data-table-stat="count">0/0 lignes</div>
-                            </div>
                             <div class="table-responsive table-sheet admin-tabulator-wrap">
-                                <div id="usersTabulator" class="admin-tabulator"></div>
+                                <div id="usersTabulator" class="admin-tabulator ag-theme-quartz"></div>
                             </div>
                             <div class="card-footer d-flex align-items-center">
                                 <p class="m-0 text-muted" id="usersTableInfo">Chargement des utilisateurs...</p>
@@ -412,22 +399,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="admin-table-toolbar" data-table-toolbar="characters">
-                                <div class="admin-table-toolbar-actions">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="reset-view">
-                                        <i class="ti ti-refresh me-1"></i>Reset vue
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="clear-filters">
-                                        <i class="ti ti-filter-off me-1"></i>Vider filtres
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" data-table-action="export-csv">
-                                        <i class="ti ti-file-download me-1"></i>CSV
-                                    </button>
-                                </div>
-                                <div class="admin-table-toolbar-meta" data-table-stat="count">0/0 lignes</div>
-                            </div>
                             <div class="table-responsive table-sheet admin-tabulator-wrap">
-                                <div id="charactersTabulator" class="admin-tabulator"></div>
+                                <div id="charactersTabulator" class="admin-tabulator ag-theme-quartz"></div>
                             </div>
                             <div class="card-footer d-flex align-items-center">
                                 <p class="m-0 text-muted" id="charactersTableInfo">Chargement des personnages...</p>
@@ -450,22 +423,8 @@
                                     S&eacute;lectionne un personnage pour afficher son inventaire et son &eacute;quipement.
                                 </div>
                                 <div class="admin-inventory-equip mb-3" id="adminInventoryEquipment"></div>
-                                <div class="admin-table-toolbar admin-table-toolbar--tight" data-table-toolbar="inventory">
-                                    <div class="admin-table-toolbar-actions">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="reset-view">
-                                            <i class="ti ti-refresh me-1"></i>Reset vue
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-table-action="clear-filters">
-                                            <i class="ti ti-filter-off me-1"></i>Vider filtres
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" data-table-action="export-csv">
-                                            <i class="ti ti-file-download me-1"></i>CSV
-                                        </button>
-                                    </div>
-                                    <div class="admin-table-toolbar-meta" data-table-stat="count">0/0 lignes</div>
-                                </div>
                                 <div class="table-responsive table-sheet admin-inventory-table admin-tabulator-wrap">
-                                    <div id="adminInventoryTabulator" class="admin-tabulator"></div>
+                                    <div id="adminInventoryTabulator" class="admin-tabulator ag-theme-quartz"></div>
                                 </div>
                                 <p class="m-0 mt-2 text-muted" id="inventoryTableInfo">Aucune ligne inventaire</p>
                             </div>
@@ -1072,14 +1031,14 @@
     <script src="../js/ui/performance-mode.js?v=2026021106"></script>
     <!-- Tabler JS -->
     <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
-    <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
     <!-- Notyf / Toast -->
     <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
     <script src="../js/components/toast-manager.js?v=2026021102"></script>
     <!-- Modal Manager -->
     <script src="../js/components/modal-manager.js?v=1770708000"></script>
     <!-- Admin JS -->
-    <script type="module" src="js/admin.js?v=2026021410"></script>
+    <script type="module" src="js/admin.js?v=2026021411"></script>
     <!-- Activity Logs -->
     <script type="module" src="js/activity-logs.js"></script>
 </body>
