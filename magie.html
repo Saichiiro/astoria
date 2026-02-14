@@ -45,7 +45,7 @@
             <!-- PAGE 1: Sélection de catégorie -->
             <div class="page active" id="page1">
                 <div class="category-selection">
-                    <div class="category-card" onclick="goToPage(2, 'Sorcellerie')" data-specialization="sorcellerie">
+                    <div class="category-card" onclick="showMagicSelection()" data-specialization="sorcellerie">
                         <div class="category-icon">🧙</div>
                         <div class="category-name">Sorcellerie</div>
                         <div class="category-desc">Magie arcanique</div>
@@ -68,6 +68,21 @@
                         <div class="category-name">Meister</div>
                         <div class="category-desc">Maître d'arme</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- PAGE 1B: Sélection de magie (sorcellerie uniquement) -->
+            <div class="page" id="page1b">
+                <button type="button" class="back-btn" onclick="goToPage(1)">
+                    <span>←</span>
+                    <span>Retour</span>
+                </button>
+
+                <h2 class="magic-page-title">Vos magies</h2>
+                <p class="magic-page-subtitle">Sélectionnez la magie à explorer</p>
+
+                <div class="magic-selection" id="magicElementSelection">
+                    <!-- Cards will be dynamically generated here -->
                 </div>
             </div>
 

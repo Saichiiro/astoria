@@ -2723,6 +2723,108 @@
         goToPageInternal(SCREEN_PAGE.CATEGORIES);
     };
 
+    window.showMagicSelection = () => {
+        const magicSelectionContainer = document.getElementById('magicElementSelection');
+        if (!magicSelectionContainer) return;
+
+        // Get character's sorcellerie data from fiche localStorage
+        const ficheKey = currentCharacterKey ? `fiche-sorcellerie-${currentCharacterKey}` : 'fiche-sorcellerie';
+        let sorcellerieData = null;
+        try {
+            const raw = localStorage.getItem(ficheKey);
+            if (raw) sorcellerieData = JSON.parse(raw);
+        } catch (e) {
+            console.warn('[Magie] Could not load sorcellerie data:', e);
+        }
+
+        const magics = [];
+        const affinities = getMagicAffinities();
+
+        // Helper to find affinity data
+        const findAffinity = (key) => affinities.find(a => a.key === key);
+
+        // Add principale
+        if (sorcellerieData?.sorcelleriePrincipale) {
+            const affinity = findAffinity(sorcellerieData.sorcelleriePrincipale);
+            if (affinity) {
+                magics.push({
+                    key: affinity.key,
+                    label: affinity.label,
+                    emoji: affinity.emoji,
+                    type: 'principale'
+                });
+            }
+        }
+
+        // Add secondaire
+        if (sorcellerieData?.sorcellerieSecondaire) {
+            const affinity = findAffinity(sorcellerieData.sorcellerieSecondaire);
+            if (affinity) {
+                magics.push({
+                    key: affinity.key,
+                    label: affinity.label,
+                    emoji: affinity.emoji,
+                    type: 'secondaire'
+                });
+            }
+        }
+
+        // Add cachée
+        if (sorcellerieData?.sorcellerieCachee) {
+            const affinity = findAffinity(sorcellerieData.sorcellerieCachee);
+            if (affinity) {
+                magics.push({
+                    key: affinity.key,
+                    label: affinity.label,
+                    emoji: affinity.emoji,
+                    type: 'cachée'
+                });
+            }
+        }
+
+        // Add supplémentaires
+        if (Array.isArray(sorcellerieData?.magieSupplementaire)) {
+            sorcellerieData.magieSupplementaire.forEach((key, index) => {
+                if (key) {
+                    const affinity = findAffinity(key);
+                    if (affinity) {
+                        magics.push({
+                            key: affinity.key,
+                            label: affinity.label,
+                            emoji: affinity.emoji,
+                            type: `supplémentaire ${index + 1}`
+                        });
+                    }
+                }
+            });
+        }
+
+        // Render cards
+        if (magics.length === 0) {
+            magicSelectionContainer.innerHTML = '<p class="magic-empty-state">Aucune magie configurée. Configurez vos magies dans la fiche personnage (section Sorcellerie).</p>';
+        } else {
+            magicSelectionContainer.innerHTML = magics.map(magic => `
+                <div class="magic-element-card" onclick="selectMagicElement('${magic.key}', '${magic.label}')" data-magic-key="${magic.key}">
+                    <div class="magic-element-emoji">${magic.emoji}</div>
+                    <div class="magic-element-name">${magic.label}</div>
+                    <div class="magic-element-type">${magic.type}</div>
+                </div>
+            `).join('');
+        }
+
+        // Show page1b
+        const page1b = document.getElementById('page1b');
+        const page1 = document.getElementById('page1');
+        if (page1) page1.classList.remove('active');
+        if (page1b) page1b.classList.add('active');
+    };
+
+    window.selectMagicElement = (magicKey, magicLabel) => {
+        console.log('[Magie] Selected magic element:', { magicKey, magicLabel });
+        // Navigate to page 2 with the selected magic
+        goToPageInternal(SCREEN_PAGE.NAVIGATION, magicKey);
+    };
+
     navButtons.forEach((btn) => {
         btn.addEventListener("click", () => {
             const targetId = btn.dataset.target;
