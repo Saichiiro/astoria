@@ -66,16 +66,19 @@ function createAgGrid(rootId, gridOptions) {
 
     const options = {
         rowData: [],
-        rowSelection: 'single',
+        theme: 'legacy',
+        rowSelection: { mode: 'singleRow' },
         animateRows: true,
         pagination: true,
         paginationPageSize: gridOptions.paginationPageSize || 12,
+        paginationPageSizeSelector: gridOptions.paginationPageSizeSelector || [10, 12, 20, 50, 100],
         suppressCellFocus: true,
         defaultColDef: {
             sortable: true,
             filter: true,
             floatingFilter: true,
             resizable: true,
+            cellDataType: false,
             minWidth: 100,
             flex: 1
         },
@@ -191,6 +194,7 @@ export function ensureAdminTables({ usersTable = null, charactersTable = null, i
     if (!usersTable && document.getElementById('usersTabulator')) {
         usersTable = createAgGrid('usersTabulator', {
             paginationPageSize: 12,
+            paginationPageSizeSelector: [12, 25, 50, 100],
             columnDefs: [
                 {
                     headerName: 'Utilisateur',
@@ -256,6 +260,7 @@ export function ensureAdminTables({ usersTable = null, charactersTable = null, i
     if (!charactersTable && document.getElementById('charactersTabulator')) {
         charactersTable = createAgGrid('charactersTabulator', {
             paginationPageSize: 12,
+            paginationPageSizeSelector: [12, 25, 50, 100],
             columnDefs: [
                 {
                     headerName: 'Avatar',
@@ -294,6 +299,7 @@ export function ensureAdminTables({ usersTable = null, charactersTable = null, i
     if (!inventoryTable && document.getElementById('adminInventoryTabulator')) {
         inventoryTable = createAgGrid('adminInventoryTabulator', {
             paginationPageSize: 10,
+            paginationPageSizeSelector: [10, 20, 50, 100],
             columnDefs: [
                 { headerName: 'Objet', field: 'itemName', minWidth: 260, cellRenderer: inventoryNameRenderer },
                 { headerName: 'Categorie', field: 'category', minWidth: 140 },
