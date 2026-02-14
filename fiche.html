@@ -1572,7 +1572,7 @@
             saveButtons.forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const tabName = btn.dataset.tab;
-                    saveTab(tabName);
+                    saveTab(tabName, btn);
                     clearTabDirty(tabName);
                 });
             });
@@ -1763,7 +1763,7 @@
             // ====================================================================
             // END COMBAT TECHNIQUES FUNCTIONS
             // ====================================================================
-            function saveTab(tabName) {
+            function saveTab(tabName, saveButton = null) {
                 const panel = document.getElementById('tab-' + tabName);
                 if (!panel) return;
                 const data = {};
@@ -1799,10 +1799,12 @@
                     syncTabToProfile(tabName, data);
                 }
                 // Visual feedback
-                btn.textContent = 'Sauvegardé ✓';
-                setTimeout(() => {
-                    btn.textContent = 'Sauvegarder';
-                }, 2000);
+                if (saveButton) {
+                    saveButton.textContent = 'Sauvegardé ✓';
+                    setTimeout(() => {
+                        saveButton.textContent = 'Sauvegarder';
+                    }, 2000);
+                }
             }
 
             async function syncTabToProfile(tabName, tabData) {
