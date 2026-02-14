@@ -1841,17 +1841,24 @@
 
         const affinityKey = String(fieldsSafe.magicAffinityKey || "").trim();
         if (affinityKey) {
-            return getAffinityLabel(affinityKey);
+            const label = getAffinityLabel(affinityKey);
+            console.log('[Magie] Using affinity label:', { affinityKey, label, indexHint });
+            return label;
         }
 
         const specValue = String(fieldsSafe.magicSpecialization || "").trim();
         if (specializationLabels[specValue]) {
-            return specializationLabels[specValue];
+            const label = specializationLabels[specValue];
+            console.log('[Magie] Using specialization label:', { specValue, label, indexHint });
+            return label;
         }
 
         if (typeof indexHint === "number" && Number.isFinite(indexHint)) {
-            return `Magie ${indexHint + 1}`;
+            const fallback = `Magie ${indexHint + 1}`;
+            console.log('[Magie] Falling back to index-based name:', { specValue, indexHint, fallback, fields: fieldsSafe });
+            return fallback;
         }
+        console.log('[Magie] Falling back to generic "Magie":', { specValue, indexHint, fields: fieldsSafe });
         return "Magie";
     }
 
@@ -1891,6 +1898,15 @@
     function setActivePage(index) {
         if (index < 0 || index >= pages.length) return;
         if (isPageHidden(pages[index])) return;
+
+        const pageFields = pages[index]?.fields || {};
+        console.log('[Magie] Switching to page:', {
+            index,
+            magicName: pageFields.magicName,
+            magicSpecialization: pageFields.magicSpecialization,
+            magicAffinityKey: pageFields.magicAffinityKey
+        });
+
         saveCurrentPage();
         activePageIndex = index;
         applyFormFields(pages[activePageIndex].fields || {});
@@ -1910,7 +1926,14 @@
 
     function saveCurrentPage() {
         if (!pages[activePageIndex]) return;
-        pages[activePageIndex].fields = readFormFields();
+        const savedFields = readFormFields();
+        console.log('[Magie] Saving current page:', {
+            index: activePageIndex,
+            magicName: savedFields.magicName,
+            magicSpecialization: savedFields.magicSpecialization,
+            magicAffinityKey: savedFields.magicAffinityKey
+        });
+        pages[activePageIndex].fields = savedFields;
         renderPagesOverview();
     }
 

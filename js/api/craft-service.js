@@ -161,13 +161,28 @@ export async function executeCraftRecipe(characterId, recipeId, times = 1) {
     const supabase = await getSupabaseClient();
     const safeTimes = Math.max(1, Math.floor(Number(times) || 1));
 
+    console.log('[CraftService] Executing craft recipe:', { characterId, recipeId, times: safeTimes });
+
+    // Log session state for debugging auth issues
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log('[CraftService] Session state:', {
+        hasSession: !!sessionData?.session,
+        user: sessionData?.session?.user?.id,
+        role: sessionData?.session?.user?.role
+    });
+
     const { data, error } = await supabase.rpc('execute_craft_recipe', {
         p_character_id: characterId,
         p_recipe_id: recipeId,
         p_times: safeTimes
     });
 
-    if (error) throw error;
+    if (error) {
+        console.error('[CraftService] RPC error:', error);
+        throw error;
+    }
+
+    console.log('[CraftService] RPC result:', data);
     return data;
 }
 
