@@ -212,6 +212,12 @@ export function getInventoryQty(index, ingredient) {
 export function canCraftRecipe(recipe, inventoryIndex, times = 1) {
     const safeTimes = Math.max(1, Math.floor(Number(times) || 1));
     const ingredients = Array.isArray(recipe?.ingredients) ? recipe.ingredients : [];
+
+    // Recipe must have at least 1 ingredient (backend requirement)
+    if (ingredients.length === 0) {
+        return false;
+    }
+
     return ingredients.every((line) => {
         const need = Math.max(1, Math.floor(Number(line?.qty) || 0)) * safeTimes;
         const have = getInventoryQty(inventoryIndex, line);

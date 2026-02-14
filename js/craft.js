@@ -50,7 +50,6 @@ const dom = {
     modalCancel: document.getElementById('craftRecipeCancelBtn'),
     modalBackdrop: document.querySelector('[data-craft-modal-close]'),
 
-    recipeTitle: document.getElementById('craftRecipeTitle'),
     recipeCategory: document.getElementById('craftRecipeCategory'),
     recipeRarity: document.getElementById('craftRecipeRarity'),
     recipeRank: document.getElementById('craftRecipeRank'),
@@ -596,7 +595,17 @@ async function handleCraft(recipe) {
     try {
         const result = await executeCraftRecipe(state.character.id, recipe.id, 1);
         if (!result?.ok) {
-            toastError('Creation impossible, materiaux manquants.');
+            const reason = result?.reason || 'unknown';
+            let message = 'Creation impossible.';
+            if (reason === 'missing_materials') {
+                message = 'Creation impossible, materiaux manquants.';
+            } else if (reason === 'invalid_recipe_no_ingredients') {
+                message = 'Recette invalide : aucun ingredient requis.';
+            } else if (reason === 'forbidden') {
+                message = 'Acces refuse.';
+            }
+            toastError(message);
+            console.warn('[Craft] craft rejected:', reason);
             return;
         }
         toastSuccess('Felicitations, objet cree !');
@@ -1117,9 +1126,17 @@ async function loadInventory() {
         return;
     }
 
-    const rows = await getInventoryRows(state.character.id);
-    state.inventoryRows = Array.isArray(rows) ? rows : [];
-    state.inventoryIndex = buildInventoryIndex(state.inventoryRows);
+    try {
+        const rows = await getInventoryRows(state.character.id);
+        state.inventoryRows = Array.isArray(rows) ? rows : [];
+        state.inventoryIndex = buildInventoryIndex(state.inventoryRows);
+        console.log('[Craft] Loaded inventory:', state.inventoryRows.length, 'items');
+    } catch (error) {
+        console.error('[Craft] Failed to load inventory:', error);
+        state.inventoryRows = [];
+        state.inventoryIndex = buildInventoryIndex([]);
+        toastError('Impossible de charger l\'inventaire.');
+    }
 }
 
 async function loadRecipes() {

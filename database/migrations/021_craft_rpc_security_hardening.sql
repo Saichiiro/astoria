@@ -132,7 +132,7 @@ BEGIN
         v_total_consumed := v_total_consumed + v_needed_qty;
     END LOOP;
 
-    v_output_added := v_recipe.output_qty * v_times;
+    v_output_added := GREATEST(1, COALESCE(v_recipe.output_qty, 1) * v_times);
 
     IF v_recipe.output_item_id IS NOT NULL THEN
         INSERT INTO public.character_inventory (character_id, item_id, item_key, qty)

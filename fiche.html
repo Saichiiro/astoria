@@ -1028,6 +1028,7 @@
             });
             // Alice status dropdown visibility
             const aliceContainer = document.getElementById('alice-container');
+            const aliceFields = document.getElementById('alice-fields');
             const alice2Fields = document.getElementById('alice2-fields');
             const updateAliceVisibility = () => {
                 const aliceStatusSelect = document.getElementById('aliceStatus');
@@ -1041,10 +1042,12 @@
                 } else if (status === 'simple') {
                     // Simple Alice : afficher uniquement alice-fields en mode block
                     aliceContainer.style.display = 'block';
+                    if (aliceFields) aliceFields.style.display = 'block';
                     alice2Fields.style.display = 'none';
                 } else if (status === 'double') {
                     // Double Alice : afficher les deux colonnes en mode grid
                     aliceContainer.style.display = 'grid';
+                    if (aliceFields) aliceFields.style.display = 'block';
                     alice2Fields.style.display = 'block';
                 }
             };
