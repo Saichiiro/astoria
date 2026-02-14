@@ -157,6 +157,6 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.execute_craft_recipe(UUID, UUID, INTEGER) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.execute_craft_recipe(UUID, UUID, INTEGER) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.execute_craft_recipe(UUID, UUID, INTEGER) TO authenticated, anon;
 
 COMMIT;

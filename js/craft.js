@@ -613,7 +613,16 @@ async function handleCraft(recipe) {
         renderRecipes();
     } catch (error) {
         console.error('[Craft] craft error:', error);
-        toastError('Erreur pendant la creation.');
+        console.error('[Craft] error details:', {
+            message: error?.message,
+            code: error?.code,
+            hint: error?.hint,
+            status: error?.status
+        });
+        const msg = error?.message?.includes('unauthenticated')
+            ? 'Authentification requise pour forger.'
+            : 'Erreur pendant la creation.';
+        toastError(msg);
     }
 }
 
