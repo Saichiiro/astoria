@@ -1767,53 +1767,87 @@
             // END COMBAT TECHNIQUES FUNCTIONS
             // ====================================================================
             function saveTab(tabName, saveButton = null) {
-                const panel = document.getElementById('tab-' + tabName);
-                if (!panel) return;
-                const data = {};
-                const inputs = panel.querySelectorAll('input, select, textarea');
-                inputs.forEach((input) => {
-                    if (input.type === 'checkbox') {
-                        data[input.id] = input.checked;
-                    } else {
-                        data[input.id] = input.value;
+                try {
+                    const panel = document.getElementById('tab-' + tabName);
+                    if (!panel) return;
+                    const data = {};
+                    const inputs = panel.querySelectorAll('input, select, textarea');
+                    inputs.forEach((input) => {
+                        if (input.type === 'checkbox') {
+                            data[input.id] = input.checked;
+                        } else {
+                            data[input.id] = input.value;
+                        }
+                    });
+                    // Save dynamic magie supplementaire
+                    if (tabName === 'sorcellerie') {
+                        const magieSupInputs = panel.querySelectorAll('.magie-supplementaire');
+                        data.magieSupplementaire = Array.from(magieSupInputs).map(input => input.value);
+                        syncMagicSelections({ persistProfile: true });
                     }
-                });
-                // Save dynamic magie supplementaire
-                if (tabName === 'sorcellerie') {
-                    const magieSupInputs = panel.querySelectorAll('.magie-supplementaire');
-                    data.magieSupplementaire = Array.from(magieSupInputs).map(input => input.value);
-                    syncMagicSelections({ persistProfile: true });
-                }
-                if (tabName === 'background') {
-                    data.backgroundRelations = collectRelations();
-                }
-                // Save combat techniques
-                if (tabName === 'combat') {
-                    data.techniques = combatTechniques;
-                }
-                localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
-                console.log('Saved tab:', tabName, data);
-                if (tabName === 'identite' || tabName === 'appartenance') {
-                    syncProfileFromFiche();
-                    syncProfileTags(); // Sync profile tags when saving identity or appartenance sections
-                }
-                // Sync alice and eater data to profile_data for backend persistence
-                if (tabName === 'alice' || tabName === 'eater') {
-                    syncTabToProfile(tabName, data);
-                }
-                // Visual feedback
-                if (saveButton) {
-                    saveButton.textContent = 'Sauvegardé ✓';
-                    setTimeout(() => {
-                        saveButton.textContent = 'Sauvegarder';
-                    }, 2000);
+                    if (tabName === 'background') {
+                        data.backgroundRelations = collectRelations();
+                    }
+                    // Save combat techniques
+                    if (tabName === 'combat') {
+                        data.techniques = combatTechniques;
+                    }
+                    localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
+                    console.log('[Fiche] Saved tab to localStorage:', tabName, data);
+                    if (tabName === 'identite' || tabName === 'appartenance') {
+                        syncProfileFromFiche();
+                        syncProfileTags(); // Sync profile tags when saving identity or appartenance sections
+                    }
+                    // Sync alice and eater data to profile_data for backend persistence
+                    if (tabName === 'alice' || tabName === 'eater') {
+                        console.log(`[Fiche] Triggering sync for ${tabName}...`);
+                        syncTabToProfile(tabName, data);
+                    }
+                    // Visual feedback
+                    if (saveButton) {
+                        saveButton.textContent = 'Sauvegardé ✓';
+                        setTimeout(() => {
+                            saveButton.textContent = 'Sauvegarder';
+                        }, 2000);
+                    }
+                } catch (error) {
+                    console.error(`[Fiche] Error saving tab ${tabName}:`, error);
+                    console.error(`[Fiche] Save error details:`, {
+                        message: error?.message,
+                        code: error?.code,
+                        hint: error?.hint,
+                        stack: error?.stack
+                    });
+                    if (saveButton) {
+                        saveButton.textContent = 'Erreur de sauvegarde';
+                        setTimeout(() => {
+                            saveButton.textContent = 'Sauvegarder';
+                        }, 3000);
+                    }
                 }
             }
 
             async function syncTabToProfile(tabName, tabData) {
-                if (!authApi || !authApi.getActiveCharacter || !authApi.updateCharacter) return;
+                console.log(`[Fiche] Syncing ${tabName} to profile_data...`);
+
+                if (!authApi) {
+                    console.warn(`[Fiche] authApi not available, skipping ${tabName} sync`);
+                    return;
+                }
+                if (!authApi.getActiveCharacter || !authApi.updateCharacter) {
+                    console.warn(`[Fiche] authApi methods not available, skipping ${tabName} sync`);
+                    return;
+                }
+
                 const character = authApi.getActiveCharacter();
-                if (!character || !character.id) return;
+                if (!character) {
+                    console.warn(`[Fiche] No active character, skipping ${tabName} sync`);
+                    return;
+                }
+                if (!character.id) {
+                    console.warn(`[Fiche] Character has no id, skipping ${tabName} sync`);
+                    return;
+                }
 
                 const profileData = character.profile_data || {};
                 const nextProfileData = {
@@ -1822,14 +1856,16 @@
                 };
 
                 try {
+                    console.log(`[Fiche] Updating character ${character.id} with ${tabName}:`, tabData);
                     await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
-                    console.log(`Synced ${tabName} to profile_data`);
+                    console.log(`[Fiche] Successfully synced ${tabName} to profile_data`);
                 } catch (error) {
-                    console.error(`Failed to sync ${tabName} to profile_data:`, error);
-                    console.error(`Sync error details:`, {
+                    console.error(`[Fiche] Failed to sync ${tabName} to profile_data:`, error);
+                    console.error(`[Fiche] Sync error details:`, {
                         message: error?.message,
                         code: error?.code,
-                        status: error?.status
+                        status: error?.status,
+                        hint: error?.hint
                     });
                 }
             }
