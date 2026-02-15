@@ -1618,17 +1618,39 @@
 }
 
 .codex-shell .name-cell {
-    align-items: flex-start;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "icon title"
+        ". badges"
+        ". meta";
+    align-items: start;
+    column-gap: 8px;
+    row-gap: 4px;
 }
 
 .codex-shell .name-text {
+    grid-area: title;
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
     line-height: 1.35;
     color: #3d1830;
     font-weight: 700;
+}
+
+.codex-shell .name-cell .category-icon {
+    grid-area: icon;
+    margin: 2px 0 0;
+}
+
+.codex-shell .name-cell .name-badges {
+    grid-area: badges;
+}
+
+.codex-shell .name-cell .item-meta-row {
+    grid-area: meta;
+    margin-top: 0;
 }
 
 .codex-shell .desc-text {
@@ -1713,6 +1735,11 @@
 .codex-shell #inventoryTable tbody tr:hover {
     transform: none;
     box-shadow: inset 4px 0 0 rgba(216, 27, 96, 0.24);
+}
+
+.codex-shell #inventoryTable tbody tr.row-selected {
+    box-shadow: inset 4px 0 0 rgba(216, 27, 96, 0.85);
+    background: #fff3f9 !important;
 }
 
 @media (max-width: 820px) {

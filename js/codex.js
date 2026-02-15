@@ -519,13 +519,6 @@ function buildRow(item, globalIndex) {
     const modifiersHtml = getModifierBadgesHtml(item, 2);
     const rarityBadge = getRarityBadgeHtml(item);
     const rankBadge = getRankBadgeHtml(item);
-    const attrChips = (() => {
-        const lines = Array.isArray(display?.attrs)
-            ? display.attrs
-            : (helper?.getAttributesSummary ? helper.getAttributesSummary(item, 2) : []);
-        if (!lines.length) return "";
-        return `<span class="item-attr-chip">${clean(lines.join(" | "))}</span>`;
-    })();
     const images = resolveImages(item);
     const meta = getOrCreateItemMeta(item, globalIndex);
     const keyAttr = clean(meta.key);
@@ -573,7 +566,7 @@ function buildRow(item, globalIndex) {
                 <span class="category-icon" title="${clean(category || 'Autre')}">${categoryIcon}</span>
                 ${nameContent}
                 ${badgesHtml}
-                ${(rarityBadge || rankBadge || attrChips) ? `<div class="item-meta-row">${rarityBadge}${rankBadge}${attrChips}</div>` : ""}
+                ${(rarityBadge || rankBadge) ? `<div class="item-meta-row">${rarityBadge}${rankBadge}</div>` : ""}
             </td>
             <td class="desc-cell" data-label="Description">
                 <div class="desc-container">
@@ -701,7 +694,6 @@ function openItemModal(index) {
     const effectLabel = getEffectLabel(effectEntries);
     const rarityBadge = getRarityBadgeHtml(item);
     const rankBadge = getRankBadgeHtml(item);
-    const attrsSummary = getAttributesSummaryHtml(item);
 
     modalName.textContent = name;
     currentCarouselImages =
@@ -727,8 +719,8 @@ function openItemModal(index) {
         ? `<span class="modal-label">Prix :</span> ${clean(priceText)}`
         : "";
     if (modalModifiers) {
-        modalModifiers.innerHTML = `${attrsSummary}${modifiersHtml}`;
-        modalModifiers.style.display = (attrsSummary || modifiersHtml) ? "" : "none";
+        modalModifiers.innerHTML = `${modifiersHtml}`;
+        modalModifiers.style.display = modifiersHtml ? "" : "none";
     }
     modalEffect.innerHTML = effectEntries.length
         ? (effectEntries.length > 1
