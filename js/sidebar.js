@@ -48,10 +48,10 @@
       </div>
       <ul class="sidebarMenuInner">
         <li class="menu-item" id="adminShortcut" hidden>
-          <button type="button" class="menu-link" data-panel="admin">
+          <a class="menu-link" href="admin/index.html">
             <span class="menu-icon" aria-hidden="true">&#9881;</span>
             <span class="menu-text">Admin</span>
-          </button>
+          </a>
         </li>
         <li class="menu-item">
           <div class="sidebar-row">

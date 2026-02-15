@@ -305,15 +305,28 @@
             return currentCharacter.profile_data[tabName];
         }
 
-        const key = `${FICHE_STORAGE_PREFIX}-${currentCharacterKey}-${tabName}`;
-        try {
-            const raw = localStorage.getItem(key);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed === "object" ? parsed : null;
-        } catch {
-            return null;
+        const keyPrimary = `${FICHE_STORAGE_PREFIX}-${currentCharacterKey}-${tabName}`;
+        const fallbackKeys = [
+            keyPrimary,
+            `${FICHE_STORAGE_PREFIX}-${tabName}-${currentCharacterKey}`,
+            `${FICHE_STORAGE_PREFIX}-${tabName}`
+        ];
+
+        for (const key of fallbackKeys) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== "object") continue;
+                if (key !== keyPrimary) {
+                    try {
+                        localStorage.setItem(keyPrimary, JSON.stringify(parsed));
+                    } catch {}
+                }
+                return parsed;
+            } catch {}
         }
+        return null;
     }
 
     function getAliceStatus() {
@@ -352,6 +365,14 @@
             (Array.isArray(sorcellerieData?.magieSupplementaire) && sorcellerieData.magieSupplementaire.some(Boolean))
         );
         if (hasSorcellerieFromFiche) {
+            return true;
+        }
+
+        const hasVisibleSorcelleriePage = pages.some((page) => {
+            if (isPageHidden(page)) return false;
+            return String(page?.fields?.magicSpecialization || "").trim() === "sorcellerie";
+        });
+        if (hasVisibleSorcelleriePage) {
             return true;
         }
 
@@ -859,6 +880,28 @@
 
     function buildStorageKey(key) {
         return key === "default" ? STORAGE_KEY_BASE : `${STORAGE_KEY_BASE}-${key}`;
+    }
+
+    function migrateLegacyFicheStorageKeys() {
+        if (!currentCharacterKey) return;
+        const tabs = ["identite", "appartenance", "combat", "alice", "sorcellerie", "eater", "religion", "mental", "physique", "background", "competences"];
+        tabs.forEach((tabName) => {
+            const targetKey = `${FICHE_STORAGE_PREFIX}-${currentCharacterKey}-${tabName}`;
+            if (localStorage.getItem(targetKey)) return;
+            const candidates = [
+                `${FICHE_STORAGE_PREFIX}-${tabName}-${currentCharacterKey}`,
+                `${FICHE_STORAGE_PREFIX}-${tabName}`
+            ];
+            for (const sourceKey of candidates) {
+                const raw = localStorage.getItem(sourceKey);
+                if (!raw) continue;
+                try {
+                    JSON.parse(raw);
+                    localStorage.setItem(targetKey, raw);
+                    break;
+                } catch {}
+            }
+        });
     }
 
     function getMagicProgressKey() {
@@ -1726,6 +1769,7 @@
         currentCharacterKey = summaryState?.context?.key || "default";
         currentCharacter = summaryState?.context?.character || null;
         storageKey = buildStorageKey(currentCharacterKey);
+        migrateLegacyFicheStorageKeys();
     }
 
     function updateSaveStatus() {
