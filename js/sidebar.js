@@ -226,6 +226,25 @@
     });
   });
 
+  // Smart back links: prefer browser history, fallback to href target.
+  document.querySelectorAll("a.page-back[href]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const href = link.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+      const sameOriginReferrer = Boolean(document.referrer) && (() => {
+        try {
+          return new URL(document.referrer).origin === window.location.origin;
+        } catch {
+          return false;
+        }
+      })();
+      if (window.history.length > 1 && sameOriginReferrer) {
+        event.preventDefault();
+        window.history.back();
+      }
+    });
+  });
+
   // Normalize state when returning via history/bfcache.
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {

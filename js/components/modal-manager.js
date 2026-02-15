@@ -83,6 +83,16 @@ class ModalManager {
         }
 
         const config = this.activeModals.get(modalElement);
+        const activeInsideModal = modalElement.contains(document.activeElement)
+            ? document.activeElement
+            : null;
+
+        if (activeInsideModal && typeof activeInsideModal.blur === 'function') {
+            activeInsideModal.blur();
+        }
+        if (config.previousFocus && typeof config.previousFocus.focus === 'function') {
+            config.previousFocus.focus();
+        }
 
         modalElement.removeEventListener('click', this._handleBackdropClick);
 
@@ -109,10 +119,6 @@ class ModalManager {
         }
 
         this._unlockDocumentScroll();
-
-        if (config.previousFocus && typeof config.previousFocus.focus === 'function') {
-            config.previousFocus.focus();
-        }
 
         if (typeof config.onClose === 'function') {
             config.onClose();
