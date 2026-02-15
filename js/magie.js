@@ -105,6 +105,7 @@
     let authApi = null;
     let hasPendingChanges = false;
     let summaryModule = null;
+    let lastCategorySelectionMode = "";
     const persistState = {
         timer: null,
         inFlight: null,
@@ -220,6 +221,57 @@
         return `${entry.emoji} ${entry.label}`;
     }
 
+    function getAffinityEntry(key) {
+        const safeKey = String(key || "").trim();
+        if (!safeKey) return null;
+        return getMagicAffinities().find((item) => item.key === safeKey) || null;
+    }
+
+    function isAutoMagicName(value) {
+        const condensed = normalizeText(String(value || "")).replace(/\s+/g, "");
+        return /^magie\d+$/.test(condensed);
+    }
+
+    function getSorcellerieSelectionsFromFiche() {
+        const sorcellerieData = getFicheTabData("sorcellerie") || {};
+        const progress = loadMagicProgress();
+        const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
+        const hasProgressState = enabled.length > 0 || Object.keys(progress.affinities || {}).length > 0;
+        const entries = [];
+
+        const pushEntry = (key, sourceLabel) => {
+            const affinity = getAffinityEntry(key);
+            if (!affinity) return;
+            const progressEntry = progress.affinities?.[affinity.key];
+            const unlockedInProgress = Boolean(progressEntry?.unlocked) || enabled.includes(affinity.key);
+            if (hasProgressState && !unlockedInProgress) return;
+            entries.push({
+                key: affinity.key,
+                label: affinity.label,
+                emoji: affinity.emoji,
+                sourceLabel
+            });
+        };
+
+        pushEntry(sorcellerieData?.sorcelleriePrincipale, "Principale");
+        pushEntry(sorcellerieData?.sorcellerieSecondaire, "Secondaire");
+        pushEntry(sorcellerieData?.sorcellerieCachee, "Cachee");
+        if (Array.isArray(sorcellerieData?.magieSupplementaire)) {
+            sorcellerieData.magieSupplementaire.forEach((key, index) => {
+                pushEntry(key, `Supplementaire ${index + 1}`);
+            });
+        }
+
+        const deduped = [];
+        const seen = new Set();
+        entries.forEach((entry) => {
+            if (seen.has(entry.key)) return;
+            seen.add(entry.key);
+            deduped.push(entry);
+        });
+        return deduped;
+    }
+
     function getFicheTabData(tabName) {
         if (!currentCharacterKey) return null;
 
@@ -292,6 +344,17 @@
     }
 
     function hasSorcellerieAccess() {
+        const sorcellerieData = getFicheTabData("sorcellerie") || {};
+        const hasSorcellerieFromFiche = Boolean(
+            sorcellerieData?.sorcelleriePrincipale ||
+            sorcellerieData?.sorcellerieSecondaire ||
+            sorcellerieData?.sorcellerieCachee ||
+            (Array.isArray(sorcellerieData?.magieSupplementaire) && sorcellerieData.magieSupplementaire.some(Boolean))
+        );
+        if (hasSorcellerieFromFiche) {
+            return true;
+        }
+
         const magicData = getFicheTabData("magic") || getFicheTabData("magie") || {};
         const specialization = normalizeText(magicData?.specialization || magicData?.magicSpecialization || "");
         if (magicData?.hasSorcellerie === true || magicData?.sorcellerieEnabled === true) {
@@ -611,9 +674,42 @@
         return pages.length - 1;
     }
 
+    function ensurePageForAffinity(affinityKey, affinityLabel = "") {
+        const key = String(affinityKey || "").trim();
+        if (!key) return activePageIndex;
+
+        const matchIndex = pages.findIndex((page) => {
+            if (isPageHidden(page)) return false;
+            return String(page?.fields?.magicAffinityKey || "").trim() === key;
+        });
+        if (matchIndex >= 0) {
+            const fields = { ...(pages[matchIndex].fields || {}) };
+            fields.magicSpecialization = "sorcellerie";
+            if (!fields.magicName || isAutoMagicName(fields.magicName)) {
+                const fallbackEntry = getAffinityEntry(key);
+                fields.magicName = affinityLabel || fallbackEntry?.label || key;
+            }
+            pages[matchIndex].fields = fields;
+            return matchIndex;
+        }
+
+        const newPage = createDefaultPage();
+        const fallbackEntry = getAffinityEntry(key);
+        newPage.fields = {
+            ...(newPage.fields || {}),
+            magicSpecialization: "sorcellerie",
+            magicAffinityKey: key,
+            magicName: affinityLabel || fallbackEntry?.label || key
+        };
+        newPage.hidden = false;
+        pages.push(newPage);
+        return pages.length - 1;
+    }
+
     function goToPageInternal(pageNumber, payload, { persist = true } = {}) {
         const target = Number(pageNumber) || SCREEN_PAGE.CATEGORIES;
         if (target === SCREEN_PAGE.CATEGORIES) {
+            lastCategorySelectionMode = "";
             setScreenPage(SCREEN_PAGE.CATEGORIES);
             if (persist) {
                 saveToStorage();
@@ -622,9 +718,33 @@
         }
 
         if (target === SCREEN_PAGE.NAVIGATION) {
-            if (typeof payload === "string" && payload.trim()) {
+            if (payload && typeof payload === "object" && payload.mode === "affinity") {
+                const affinityKey = String(payload.key || "").trim();
+                const affinityLabel = String(payload.label || "").trim();
+                if (affinityKey) {
+                    lastCategorySelectionMode = "sorcellerie";
+                    const targetIndex = ensurePageForAffinity(affinityKey, affinityLabel);
+                    if (targetIndex !== activePageIndex) {
+                        setActivePage(targetIndex);
+                    } else {
+                        const updatedFields = {
+                            ...(pages[activePageIndex]?.fields || {}),
+                            magicSpecialization: "sorcellerie",
+                            magicAffinityKey: affinityKey
+                        };
+                        if (!updatedFields.magicName || isAutoMagicName(updatedFields.magicName)) {
+                            updatedFields.magicName = affinityLabel || getAffinityEntry(affinityKey)?.label || affinityKey;
+                        }
+                        pages[activePageIndex].fields = updatedFields;
+                        applyFormFields(updatedFields);
+                    }
+                    updateCapacityUI();
+                    markDirty();
+                }
+            } else if (typeof payload === "string" && payload.trim()) {
                 const specialization = normalizeSpecializationLabel(payload);
                 if (specialization) {
+                    lastCategorySelectionMode = specialization;
                     const targetIndex = ensurePageForSpecialization(specialization, payload.trim());
                     if (targetIndex !== activePageIndex) {
                         setActivePage(targetIndex);
@@ -714,8 +834,17 @@
         affinityDisplay.textContent = "Non assignée";
     }
 
+    function createEmptyFieldState() {
+        const data = {};
+        formFields.forEach((field) => {
+            if (!field.id) return;
+            data[field.id] = field.type === "checkbox" ? false : "";
+        });
+        return data;
+    }
+
     const createDefaultPage = () => ({
-        fields: readFormFields(),
+        fields: createEmptyFieldState(),
         capacities: defaultCapacities.map((cap) => ({
             ...cap,
             stats: Array.isArray(cap.stats) ? [...cap.stats] : [],
@@ -818,11 +947,16 @@
     function syncPagesWithProgress() {
         const progress = loadMagicProgress();
         const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
+        const hasProgressState = enabled.length > 0 || Object.keys(progress.affinities || {}).length > 0;
         const affinities = getMagicAffinities();
+        const sorcellerieSelections = getSorcellerieSelectionsFromFiche();
+        const selectedSorcellerieKeys = new Set(sorcellerieSelections.map((entry) => entry.key));
         const aliceStatus = getAliceStatus();
         const eaterEnabled = getEaterStatus();
         const eaterRole = getEaterRole();
         const existingMap = new Map();
+        const orphanSorcelleriePages = [];
+
         pages.forEach((page, index) => {
             let key = page?.fields?.magicAffinityKey;
             if (!key && page?.fields?.magicName) {
@@ -833,19 +967,47 @@
                     page.fields.magicAffinityKey = key;
                 }
             }
+            const specialization = String(page?.fields?.magicSpecialization || "").trim();
+            if (!key && specialization === "sorcellerie") {
+                orphanSorcelleriePages.push({ page, index });
+            }
             if (key) {
-                existingMap.set(key, index);
+                if (!existingMap.has(key)) {
+                    existingMap.set(key, index);
+                }
                 page.fields.magicSpecialization = page.fields.magicSpecialization || "sorcellerie";
             }
         });
 
+        orphanSorcelleriePages.forEach(({ page, index }) => {
+            const candidate = sorcellerieSelections.find((entry) => !existingMap.has(entry.key));
+            if (!candidate) {
+                const hasCapacities = Array.isArray(page?.capacities) && page.capacities.length > 0;
+                if (!hasCapacities) {
+                    page.hidden = true;
+                }
+                return;
+            }
+            page.fields = {
+                ...(page.fields || {}),
+                magicSpecialization: "sorcellerie",
+                magicAffinityKey: candidate.key,
+                magicName: candidate.label
+            };
+            page.hidden = false;
+            existingMap.set(candidate.key, index);
+        });
+
         // Legacy migration removed - keep meister and arme as separate types
 
-        enabled.forEach((key) => {
-            const entry = progress.affinities[key] || {};
-            if (!entry.unlocked) return;
+        const keysToEnsure = hasProgressState
+            ? enabled.filter((key) => Boolean(progress.affinities[key]?.unlocked))
+            : Array.from(selectedSorcellerieKeys);
+
+        keysToEnsure.forEach((key) => {
+            if (selectedSorcellerieKeys.size > 0 && !selectedSorcellerieKeys.has(key)) return;
             if (!existingMap.has(key)) {
-                const affinityLabel = getAffinityLabel(key);
+                const affinityLabel = getAffinityEntry(key)?.label || key;
                 const newPage = createDefaultPage();
                 newPage.fields = { ...(newPage.fields || {}) };
                 newPage.fields.magicAffinityKey = key;
@@ -856,12 +1018,20 @@
             }
         });
 
+        const seenAffinity = new Set();
         pages.forEach((page) => {
             const key = page?.fields?.magicAffinityKey;
             if (!key) return;
+            if (seenAffinity.has(key)) {
+                page.hidden = true;
+                return;
+            }
+            seenAffinity.add(key);
             const entry = progress.affinities[key] || {};
             const enabledKey = enabled.includes(key);
-            page.hidden = !(enabledKey && entry.unlocked);
+            const selectedByFiche = selectedSorcellerieKeys.size === 0 || selectedSorcellerieKeys.has(key);
+            const unlockedByProgress = !hasProgressState || (enabledKey && entry.unlocked);
+            page.hidden = !(selectedByFiche && unlockedByProgress);
         });
 
         syncSpecializationPages({
@@ -2720,109 +2890,68 @@
             showMainNavigationOnly();
             return;
         }
+        const currentPage = pages[activePageIndex];
+        const isSorcelleriePage = String(currentPage?.fields?.magicSpecialization || "").trim() === "sorcellerie";
+        if (lastCategorySelectionMode === "sorcellerie" && isSorcelleriePage) {
+            window.showMagicSelection();
+            return;
+        }
         goToPageInternal(SCREEN_PAGE.CATEGORIES);
     };
 
     window.showMagicSelection = () => {
         const magicSelectionContainer = document.getElementById('magicElementSelection');
         if (!magicSelectionContainer) return;
+        lastCategorySelectionMode = "sorcellerie";
+        const magics = getSorcellerieSelectionsFromFiche();
 
-        // Get character's sorcellerie data from fiche localStorage
-        const ficheKey = currentCharacterKey ? `fiche-sorcellerie-${currentCharacterKey}` : 'fiche-sorcellerie';
-        let sorcellerieData = null;
-        try {
-            const raw = localStorage.getItem(ficheKey);
-            if (raw) sorcellerieData = JSON.parse(raw);
-        } catch (e) {
-            console.warn('[Magie] Could not load sorcellerie data:', e);
-        }
-
-        const magics = [];
-        const affinities = getMagicAffinities();
-
-        // Helper to find affinity data
-        const findAffinity = (key) => affinities.find(a => a.key === key);
-
-        // Add principale
-        if (sorcellerieData?.sorcelleriePrincipale) {
-            const affinity = findAffinity(sorcellerieData.sorcelleriePrincipale);
-            if (affinity) {
-                magics.push({
-                    key: affinity.key,
-                    label: affinity.label,
-                    emoji: affinity.emoji,
-                    type: 'principale'
-                });
-            }
-        }
-
-        // Add secondaire
-        if (sorcellerieData?.sorcellerieSecondaire) {
-            const affinity = findAffinity(sorcellerieData.sorcellerieSecondaire);
-            if (affinity) {
-                magics.push({
-                    key: affinity.key,
-                    label: affinity.label,
-                    emoji: affinity.emoji,
-                    type: 'secondaire'
-                });
-            }
-        }
-
-        // Add cachée
-        if (sorcellerieData?.sorcellerieCachee) {
-            const affinity = findAffinity(sorcellerieData.sorcellerieCachee);
-            if (affinity) {
-                magics.push({
-                    key: affinity.key,
-                    label: affinity.label,
-                    emoji: affinity.emoji,
-                    type: 'cachée'
-                });
-            }
-        }
-
-        // Add supplémentaires
-        if (Array.isArray(sorcellerieData?.magieSupplementaire)) {
-            sorcellerieData.magieSupplementaire.forEach((key, index) => {
-                if (key) {
-                    const affinity = findAffinity(key);
-                    if (affinity) {
-                        magics.push({
-                            key: affinity.key,
-                            label: affinity.label,
-                            emoji: affinity.emoji,
-                            type: `supplémentaire ${index + 1}`
-                        });
-                    }
-                }
-            });
-        }
-
-        // Render cards
-        if (magics.length === 0) {
-            magicSelectionContainer.innerHTML = '<p class="magic-empty-state">Aucune magie configurée. Configurez vos magies dans la fiche personnage (section Sorcellerie).</p>';
+        magicSelectionContainer.innerHTML = "";
+        if (!magics.length) {
+            magicSelectionContainer.innerHTML = '<p class="magic-empty-state">Aucune magie sorcellerie debloquee. Configurez la fiche personnage puis debloquez les affinites.</p>';
         } else {
-            magicSelectionContainer.innerHTML = magics.map(magic => `
-                <div class="magic-element-card" onclick="selectMagicElement('${magic.key}', '${magic.label}')" data-magic-key="${magic.key}">
+            magics.forEach((magic) => {
+                const card = document.createElement("div");
+                card.className = "magic-element-card";
+                card.dataset.magicKey = magic.key;
+                card.setAttribute("role", "button");
+                card.setAttribute("tabindex", "0");
+                card.innerHTML = `
                     <div class="magic-element-emoji">${magic.emoji}</div>
                     <div class="magic-element-name">${magic.label}</div>
-                    <div class="magic-element-type">${magic.type}</div>
-                </div>
-            `).join('');
+                    <div class="magic-element-type">${magic.sourceLabel}</div>
+                `;
+                card.addEventListener("click", () => {
+                    window.selectMagicElement(magic.key, magic.label);
+                });
+                card.addEventListener("keydown", (event) => {
+                    if (event.key !== "Enter" && event.key !== " ") return;
+                    event.preventDefault();
+                    window.selectMagicElement(magic.key, magic.label);
+                });
+                magicSelectionContainer.appendChild(card);
+            });
         }
 
         // Show page1b
         const page1b = document.getElementById('page1b');
         const page1 = document.getElementById('page1');
+        const page2 = document.getElementById('page2');
+        const page3 = document.getElementById('page3');
+        const page4 = document.getElementById('page4');
         if (page1) page1.classList.remove('active');
+        if (page2) page2.classList.remove('active');
+        if (page3) page3.classList.remove('active');
+        if (page4) page4.classList.remove('active');
         if (page1b) page1b.classList.add('active');
     };
 
     window.selectMagicElement = (magicKey, magicLabel) => {
         console.log('[Magie] Selected magic element:', { magicKey, magicLabel });
-        // Navigate to page 2 with the selected magic
-        goToPageInternal(SCREEN_PAGE.NAVIGATION, magicKey);
+        goToPageInternal(SCREEN_PAGE.NAVIGATION, {
+            mode: "affinity",
+            key: magicKey,
+            label: magicLabel
+        });
     };
 
     navButtons.forEach((btn) => {
