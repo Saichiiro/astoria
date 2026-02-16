@@ -2037,8 +2037,8 @@
                         syncProfileFromFiche();
                         syncProfileTags(); // Sync profile tags when saving identity or appartenance sections
                     }
-                    // Sync alice and eater data to profile_data for backend persistence
-                    if (tabName === 'alice' || tabName === 'eater') {
+                    // Sync core magic availability tabs to profile_data for backend persistence
+                    if (tabName === 'alice' || tabName === 'eater' || tabName === 'sorcellerie') {
                         console.log(`[Fiche] Triggering sync for ${tabName}...`);
                         syncTabToProfile(tabName, data);
                     }

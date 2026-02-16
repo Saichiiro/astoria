@@ -300,8 +300,8 @@
             return mapped;
         }
 
-        // Pour alice et eater, lire depuis profile_data si disponible
-        if ((tabName === "alice" || tabName === "eater") && currentCharacter?.profile_data?.[tabName]) {
+        // Pour les onglets de gating magie, lire depuis profile_data si disponible
+        if ((tabName === "alice" || tabName === "eater" || tabName === "sorcellerie") && currentCharacter?.profile_data?.[tabName]) {
             return currentCharacter.profile_data[tabName];
         }
 
@@ -358,43 +358,15 @@
 
     function hasSorcellerieAccess() {
         const sorcellerieData = getFicheTabData("sorcellerie") || {};
-        const hasSorcellerieFromFiche = Boolean(
+        const rawHasMagic = sorcellerieData?.hasMagic;
+        const hasMagicToggle = rawHasMagic === true || String(rawHasMagic || "").trim().toLowerCase() === "true";
+        const hasConfiguredAffinities = Boolean(
             sorcellerieData?.sorcelleriePrincipale ||
             sorcellerieData?.sorcellerieSecondaire ||
             sorcellerieData?.sorcellerieCachee ||
             (Array.isArray(sorcellerieData?.magieSupplementaire) && sorcellerieData.magieSupplementaire.some(Boolean))
         );
-        if (hasSorcellerieFromFiche) {
-            return true;
-        }
-
-        const hasVisibleSorcelleriePage = pages.some((page) => {
-            if (isPageHidden(page)) return false;
-            return String(page?.fields?.magicSpecialization || "").trim() === "sorcellerie";
-        });
-        if (hasVisibleSorcelleriePage) {
-            return true;
-        }
-
-        const magicData = getFicheTabData("magic") || getFicheTabData("magie") || {};
-        const specialization = normalizeText(magicData?.specialization || magicData?.magicSpecialization || "");
-        if (magicData?.hasSorcellerie === true || magicData?.sorcellerieEnabled === true) {
-            return true;
-        }
-        if (specialization.includes("sorcellerie")) {
-            return true;
-        }
-
-        const progress = loadMagicProgress();
-        const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
-        const hasUnlockedAffinity = enabled.some((key) => Boolean(progress.affinities?.[key]?.unlocked));
-        if (hasUnlockedAffinity) return true;
-
-        return pages.some((page) => {
-            if (isPageHidden(page)) return false;
-            const spec = String(page?.fields?.magicSpecialization || "").trim();
-            return !spec || spec === "sorcellerie";
-        });
+        return hasMagicToggle || hasConfiguredAffinities;
     }
 
     function updateCategoryAvailability() {
