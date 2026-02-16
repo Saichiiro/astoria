@@ -30,7 +30,7 @@ async function simpleHash(str) {
 async function readPublicUserByUsername(supabase, username) {
     const { data, error } = await supabase
         .from("users")
-        .select("id, username, role, is_active, password_hash, auth_user_id, auth_email")
+        .select("id, username, role, is_active, password_hash, auth_user_id")
         .eq("username", username)
         .limit(1);
 
@@ -41,7 +41,7 @@ async function readPublicUserByUsername(supabase, username) {
 async function readPublicUserByAuthId(supabase, authUserId) {
     const { data, error } = await supabase
         .from("users")
-        .select("id, username, role, is_active, password_hash, auth_user_id, auth_email")
+        .select("id, username, role, is_active, password_hash, auth_user_id")
         .eq("auth_user_id", authUserId)
         .limit(1);
 
@@ -106,8 +106,7 @@ function writeAppSession(user) {
             id: user.id,
             username: user.username,
             role: user.role,
-            auth_user_id: user.auth_user_id || null,
-            auth_email: user.auth_email || null
+            auth_user_id: user.auth_user_id || null
         },
         timestamp: Date.now()
     };
@@ -200,7 +199,7 @@ export async function register(username, password) {
                     auth_provider: "anonymous"
                 }
             ])
-            .select("id, username, role, is_active, auth_user_id, auth_email")
+            .select("id, username, role, is_active, auth_user_id")
             .single();
 
         if (error || !data) {
@@ -292,7 +291,7 @@ export async function refreshSessionUser() {
             await linkPublicUserToAuth(supabase, localUser.id, anon.user.id, "anonymous");
             const { data, error } = await supabase
                 .from("users")
-                .select("id, username, role, is_active, auth_user_id, auth_email")
+                .select("id, username, role, is_active, auth_user_id")
                 .eq("id", localUser.id)
                 .single();
             if (!error && data) {
@@ -342,7 +341,7 @@ export async function setUserRoleByUsername(username, role) {
             .from("users")
             .update({ role: nextRole })
             .eq("username", cleanUsername)
-            .select("id, username, role, auth_user_id, auth_email")
+            .select("id, username, role, auth_user_id")
             .single();
 
         if (error) {
