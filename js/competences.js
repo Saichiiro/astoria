@@ -269,18 +269,18 @@
             const parsedCap = capRaw ? parseInt(capRaw, 10) : MAX_SKILL_POINTS;
             const cap = Number.isFinite(parsedCap) && parsedCap > 0 ? parsedCap : MAX_SKILL_POINTS;
             if (!name) {
-                updateFeedback("Ajoutez un nom de compÃ©tence.");
+                updateFeedback("Ajoutez un nom de competence.");
                 return;
             }
             const ok = addCustomSkill(categoryId, { name, icon, baseValue: 0, cap });
             if (!ok) {
-                updateFeedback("Cette compÃ©tence existe dÃ©jÃ .");
+                updateFeedback("Cette competence existe deja.");
                 return;
             }
             renderSkillsTabs();
             setActiveSkillsCategory(categoryId);
             closeAddForm();
-            updateFeedback("CompÃ©tence ajoutÃ©e.");
+            updateFeedback("Competence ajoutee.");
             void persistProfileNow();
         });
     }
@@ -308,6 +308,7 @@
         if (persistState.mode === "character") {
             persistState.dirty = true;
             scheduleProfileSave();
+            void persistProfileNow();
         }
     }
 

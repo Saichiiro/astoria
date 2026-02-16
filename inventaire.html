@@ -1804,6 +1804,19 @@
 
         let inventoryApi = null;
 
+        function applyInventoryRoleGuards() {
+            if (openAddBtn) {
+                openAddBtn.hidden = !inventoryAdminMode;
+            }
+            if (scrollPanelAddBtn) {
+                scrollPanelAddBtn.hidden = !inventoryAdminMode;
+                if (!inventoryAdminMode) {
+                    scrollPanelAddBtn.disabled = true;
+                    setScrollAddOpen(false);
+                }
+            }
+        }
+
 
 
         let pendingProfileSaveTimer = null;
@@ -2006,6 +2019,7 @@
 
 
         let inventoryAccessAllowed = true;
+        let inventoryAdminMode = false;
 
 
 
@@ -4425,6 +4439,8 @@
 
 
                 const isAdmin = authApi.isAdmin?.() || false;
+                inventoryAdminMode = Boolean(isAdmin);
+                applyInventoryRoleGuards();
 
 
 
@@ -4489,16 +4505,12 @@
 
 
                 inventoryApi = null;
-
-
+                inventoryAdminMode = false;
+                applyInventoryRoleGuards();
 
             }
 
-
-
         }
-
-
 
         async function loadInventory() {
 
@@ -5151,6 +5163,10 @@
 
         // Attach event listener to open items modal
         openAddBtn.addEventListener('click', () => {
+            if (!inventoryAdminMode) {
+                toastManager?.error?.('Action reservee aux administrateurs.');
+                return;
+            }
             if (window.astoriaItemsModal) {
                 window.astoriaItemsModal.open();
             } else {
@@ -5169,6 +5185,7 @@
 
 
                 if (scrollPanelAddBtn.disabled) return;
+                if (!inventoryAdminMode) return;
 
 
 

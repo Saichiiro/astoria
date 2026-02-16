@@ -53,7 +53,7 @@
             <span class="menu-text">Admin</span>
           </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="codexShortcut" hidden>
           <div class="sidebar-row">
             <a class="menu-link" href="codex.html">
               <span class="menu-icon" aria-hidden="true">&#128214;</span>
@@ -260,6 +260,7 @@
   const logoutBtns = Array.from(document.querySelectorAll("#logoutButton"));
   const loginBtns = Array.from(document.querySelectorAll("#loginButton"));
   const adminShortcut = document.getElementById("adminShortcut");
+  const codexShortcut = document.getElementById("codexShortcut");
 
   const setAuthButtons = async () => {
     if (!logoutBtns.length || !loginBtns.length) return;
@@ -275,6 +276,7 @@
         logoutBtns.forEach((btn) => (btn.hidden = false));
         loginBtns.forEach((btn) => (btn.hidden = true));
         if (adminShortcut) adminShortcut.hidden = !isAdmin;
+        if (codexShortcut) codexShortcut.hidden = !isAdmin;
         logoutBtns.forEach((btn) => {
           btn.addEventListener("click", () => {
             if (typeof auth.logout === "function") {
@@ -287,6 +289,7 @@
         logoutBtns.forEach((btn) => (btn.hidden = true));
         loginBtns.forEach((btn) => (btn.hidden = false));
         if (adminShortcut) adminShortcut.hidden = true;
+        if (codexShortcut) codexShortcut.hidden = true;
         loginBtns.forEach((btn) => {
           btn.addEventListener("click", () => {
             window.location.href = "login.html";
@@ -298,6 +301,7 @@
       logoutBtns.forEach((btn) => (btn.hidden = true));
       loginBtns.forEach((btn) => (btn.hidden = false));
       if (adminShortcut) adminShortcut.hidden = true;
+      if (codexShortcut) codexShortcut.hidden = true;
       loginBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
           window.location.href = "login.html";

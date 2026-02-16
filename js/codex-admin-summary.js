@@ -1,12 +1,17 @@
 import { initCharacterSummary } from "./ui/character-summary.js";
-import { isAdmin } from "./auth.js";
+import { isAdmin, refreshSessionUser } from "./auth.js";
 
 function initCodexAdminSummary() {
-    return Promise.resolve(initCharacterSummary({ enableDropdown: true, showKaels: true }))
+    return Promise.resolve(refreshSessionUser?.())
+        .then(() => initCharacterSummary({ enableDropdown: true, showKaels: true }))
         .then(() => {
             const adminStatus = isAdmin();
             window.astoriaIsAdmin = adminStatus;
             if (!window.astoriaIsAdmin) {
+                const adminAddBtn = document.getElementById("adminAddItemBtn");
+                if (adminAddBtn) adminAddBtn.hidden = true;
+                const adminActions = document.getElementById("modalAdminActions");
+                if (adminActions) adminActions.hidden = true;
                 return;
             }
 

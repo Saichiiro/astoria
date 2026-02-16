@@ -1042,6 +1042,9 @@
 .effect-summary {
     font-size: 0.8rem;
     color: var(--color-gray-700);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .effect-group {
@@ -1072,10 +1075,16 @@
 .codex-effect-line {
     margin-bottom: 6px;
     color: #5a4256;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .codex-effect-text {
     color: #5a4256;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .codex-mod-list {
@@ -1095,7 +1104,10 @@
     font-size: 0.85rem;
     font-weight: var(--font-semibold);
     color: #6a2b5a;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .codex-mod-line.is-positive {

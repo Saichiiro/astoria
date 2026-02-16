@@ -875,6 +875,9 @@
     font-size: var(--text-base);
     color: var(--color-gray-800);
     line-height: var(--line-height-normal);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .detail-effect {
@@ -913,7 +916,9 @@
     border-radius: 999px;
     border: 1px solid rgba(106, 43, 90, 0.15);
     background: rgba(106, 43, 90, 0.05);
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .item-modifier-line.is-positive {

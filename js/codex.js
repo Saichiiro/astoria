@@ -10,21 +10,6 @@ function clean(value) {
 
 window.astoriaIsAdmin = false;
 
-async function initAdminFlag() {
-    try {
-        // Using StorageManager instead of localStorage
-        const session = await storageManager.get("astoria_session");
-        if (!session || !session.user || !session.timestamp) return;
-        const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
-        if ((Date.now() - session.timestamp) > maxAgeMs) return;
-        window.astoriaIsAdmin = session.user.role === "admin";
-    } catch (error) {
-        console.warn('[Codex] initAdminFlag error:', error);
-    }
-}
-
-initAdminFlag();
-
 let allItems = [];
 const ITEM_TOMBSTONES_KEY = "astoriaItemTombstones";
 
@@ -1408,6 +1393,21 @@ window.astoriaCodex = {
 
 bindPageEvents();
 void (async () => {
+    try {
+        const auth = await import('./auth.js');
+        const refreshed = await auth.refreshSessionUser?.();
+        const isAdminUser = Boolean(auth.isAdmin?.());
+        window.astoriaIsAdmin = isAdminUser;
+        if (!refreshed?.success || !isAdminUser) {
+            window.location.href = 'inventaire.html';
+            return;
+        }
+    } catch (error) {
+        console.warn('[Codex] Admin gate failed:', error);
+        window.location.href = 'inventaire.html';
+        return;
+    }
+
     await hydrateItemsFromDb();
     initFromUrl();
 })();
