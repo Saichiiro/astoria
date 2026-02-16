@@ -451,11 +451,7 @@
                         } else {
                             loginForm.style.display = 'block';
                         }
-                        if (result.mode === 'email-reset') {
-                            showNotice('Email de reinitialisation envoye. Ouvre le lien recu puis definis ton nouveau mot de passe.');
-                        } else {
-                            showNotice('Mot de passe mis a jour. Connectez-vous.');
-                        }
+                        showNotice('Mot de passe mis a jour. Connectez-vous.');
                     } else {
                         showError(result.error || 'Impossible de reinitialiser le mot de passe');
                     }

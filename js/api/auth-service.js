@@ -73,22 +73,17 @@ async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProv
         .eq("id", publicUserId);
 }
 
-async function syncAuthProfileMetadata(supabase, { displayName, email } = {}) {
+async function syncAuthProfileMetadata(supabase, { displayName } = {}) {
     try {
         const payload = { data: {} };
         const cleanName = String(displayName || "").trim();
-        const cleanEmail = String(email || "").trim();
 
         if (cleanName) {
             payload.data.display_name = cleanName;
             payload.data.username = cleanName;
         }
 
-        if (cleanEmail && cleanEmail.includes("@")) {
-            payload.email = cleanEmail;
-        }
-
-        if (!payload.email && Object.keys(payload.data).length === 0) {
+        if (Object.keys(payload.data).length === 0) {
             return false;
         }
 
@@ -149,8 +144,7 @@ export async function login(username, password) {
 
         await linkPublicUserToAuth(supabase, userRow.id, anon.user.id, "anonymous");
         await syncAuthProfileMetadata(supabase, {
-            displayName: userRow.username,
-            email: userRow.auth_email
+            displayName: userRow.username
         });
 
         const finalUser = {
@@ -194,10 +188,6 @@ export async function register(username, password) {
         }
 
         const passwordHash = await simpleHash(password);
-        const generatedEmail = `${cleanUsername
-            .toLowerCase()
-            .replace(/[^a-z0-9._-]+/g, ".")
-            .replace(/^\.+|\.+$/g, "") || "player"}@astoria.local`;
         const { data, error } = await supabase
             .from("users")
             .insert([
@@ -207,8 +197,7 @@ export async function register(username, password) {
                     role: "player",
                     is_active: true,
                     auth_user_id: anon.user.id,
-                    auth_provider: "anonymous",
-                    auth_email: generatedEmail
+                    auth_provider: "anonymous"
                 }
             ])
             .select("id, username, role, is_active, auth_user_id, auth_email")
@@ -220,8 +209,7 @@ export async function register(username, password) {
         }
 
         await syncAuthProfileMetadata(supabase, {
-            displayName: data.username,
-            email: data.auth_email
+            displayName: data.username
         });
 
         const sessionUser = writeAppSession(data);
@@ -309,8 +297,7 @@ export async function refreshSessionUser() {
                 .single();
             if (!error && data) {
                 await syncAuthProfileMetadata(supabase, {
-                    displayName: data.username,
-                    email: data.auth_email
+                    displayName: data.username
                 });
                 const sessionUser = writeAppSession(data);
                 return { success: true, user: sessionUser };
@@ -443,21 +430,6 @@ export async function resetUserPasswordPublic(username, newPassword) {
                 return {
                     success: true,
                     mode: "auth-update",
-                    user: { id: user.id, username: user.username }
-                };
-            }
-        }
-
-        if (user.auth_email && String(user.auth_email).includes("@")) {
-            const redirectTo = `${window.location.origin}/login.html#reset`;
-            const resetByEmail = await supabase.auth.resetPasswordForEmail(user.auth_email, {
-                redirectTo
-            });
-
-            if (!resetByEmail.error) {
-                return {
-                    success: true,
-                    mode: "email-reset",
                     user: { id: user.id, username: user.username }
                 };
             }
