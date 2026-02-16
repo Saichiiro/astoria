@@ -53,6 +53,7 @@
     );
 
     const MAX_SKILL_POINTS = 40;
+    const MAX_CATEGORY_POINTS = 999;
     const SHIFT_STEP_POINTS = 10;
 
     function getSkillCap(skill) {
@@ -819,7 +820,7 @@
 
     function setCurrentCategoryPoints(value) {
         const numeric = Number.isFinite(value) ? value : parseInt(String(value), 10);
-        const clamped = Math.max(0, Math.min(Number.isFinite(numeric) ? numeric : 0, 99));
+        const clamped = Math.max(0, Math.min(Number.isFinite(numeric) ? numeric : 0, MAX_CATEGORY_POINTS));
         skillsState.pointsByCategory[skillsState.activeCategoryId] = clamped;
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(clamped);
@@ -1716,7 +1717,7 @@
     skillsPointsPlusEl.addEventListener("click", (event) => {
         if (!skillsState.isAdmin) return;
         const step = resolveStepFromClick(event);
-        const nextValue = Math.min(getCurrentCategoryPoints() + step, 99);
+        const nextValue = Math.min(getCurrentCategoryPoints() + step, MAX_CATEGORY_POINTS);
         setCurrentCategoryPoints(nextValue);
         updateSkillsPointsDisplay();
     });

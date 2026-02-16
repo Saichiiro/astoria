@@ -1042,6 +1042,19 @@ body.perf-lite .btn::before {
 
 .admin-inventory-table .table tbody td {
     font-size: 0.84rem;
+    vertical-align: middle;
+}
+
+.admin-inventory-table .btn-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.admin-inventory-table code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 @media (max-width: 768px) {
@@ -1054,5 +1067,9 @@ body.perf-lite .btn::before {
     .admin-inventory-inspector #adminInventoryCharacterSelect {
         min-width: 0;
         width: 100%;
+    }
+
+    .admin-inventory-table .table {
+        min-width: 640px;
     }
 }

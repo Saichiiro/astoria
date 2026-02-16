@@ -5,7 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
-import { getInventoryRows } from '../../js/api/inventory-service.js';
+import { getInventoryRows, setInventoryItem } from '../../js/api/inventory-service.js';
 import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 
 (function() {
@@ -669,7 +669,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         if (!Array.isArray(rows) || rows.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" class="text-center text-muted py-4">Inventaire vide.</td>
+                    <td colspan="5" class="text-center text-muted py-4">Inventaire vide.</td>
                 </tr>
             `;
             return;
@@ -685,6 +685,8 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             const itemName = item?.name || itemKey || '(item inconnu)';
             const category = item?.category || '-';
             const qty = Math.max(0, Math.floor(Number(row?.qty) || 0));
+            const rowItemKey = itemKey || item?.name || '';
+            const rowItemId = itemId || item?._dbId || '';
 
             return `
                 <tr>
@@ -692,9 +694,47 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                     <td class="text-muted">${category}</td>
                     <td><span class="badge bg-primary-lt">${qty}</span></td>
                     <td class="text-muted"><code>${itemId || '-'}</code></td>
+                    <td>
+                        <div class="btn-list">
+                            <button type="button" class="btn btn-sm btn-outline-warning" data-admin-inv-adjust="-1" data-item-key="${rowItemKey}" data-item-id="${rowItemId}" title="Retirer 1">-1</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-admin-inv-adjust="0" data-item-key="${rowItemKey}" data-item-id="${rowItemId}" title="Supprimer">Suppr.</button>
+                        </div>
+                    </td>
                 </tr>
             `;
         }).join('');
+
+        tbody.querySelectorAll('[data-admin-inv-adjust]').forEach((button) => {
+            button.addEventListener('click', async () => {
+                const delta = Number(button.dataset.adminInvAdjust || 0);
+                const itemKey = String(button.dataset.itemKey || '').trim();
+                const itemId = String(button.dataset.itemId || '').trim();
+                if (!inventoryInspectorCharId || (!itemKey && !itemId)) return;
+
+                const currentRows = await getInventoryRows(inventoryInspectorCharId).catch(() => []);
+                const target = currentRows.find((entry) => {
+                    const sameId = itemId && String(entry?.item_id || '') === itemId;
+                    const sameKey = itemKey && String(entry?.item_key || '') === itemKey;
+                    return Boolean(sameId || sameKey);
+                });
+                if (!target) return;
+
+                const currentQty = Math.max(0, Math.floor(Number(target.qty) || 0));
+                const nextQty = delta === 0 ? 0 : Math.max(0, currentQty + delta);
+
+                await setInventoryItem(
+                    inventoryInspectorCharId,
+                    {
+                        item_key: target.item_key || itemKey,
+                        item_id: target.item_id || itemId || null,
+                        item_index: target.item_index
+                    },
+                    nextQty
+                );
+
+                await loadCharacterInventoryInspector(inventoryInspectorCharId);
+            });
+        });
     }
 
     async function loadCharacterInventoryInspector(characterId) {

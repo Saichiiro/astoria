@@ -938,6 +938,36 @@
     color: var(--color-gray-600);
 }
 
+@media (max-width: 900px) {
+    .inventory-wrapper {
+        padding: var(--space-4);
+    }
+
+    .inventory-layout {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    .inventory-sidebar {
+        position: static;
+        top: auto;
+    }
+
+    .inventory-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .inventory-categories {
+        width: 100%;
+        order: 2;
+    }
+
+    .inventory-search {
+        order: 1;
+        margin-left: auto;
+    }
+}
+
 /* Scroll types panel */
 .scroll-types-panel {
     background: var(--color-white);

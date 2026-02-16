@@ -129,6 +129,9 @@
     font-size: 0.9rem;
     color: #4c3a63;
     line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .item-details-popover-price {

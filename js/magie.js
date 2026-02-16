@@ -65,7 +65,6 @@
     const page4El = document.getElementById("page4");
     const mainNavEl = page2El ? page2El.querySelector(".main-nav") : null;
     const contentBodyEl = document.getElementById("magicContentBody");
-    const page2BackBtn = document.getElementById("magicPage2BackBtn");
     const page4TitleEl = document.getElementById("page4Title");
     const headerBackBtn = document.getElementById("magicHeaderBackBtn");
     const spellsContainer = document.getElementById("spellsContainer");
@@ -106,6 +105,7 @@
     let hasPendingChanges = false;
     let summaryModule = null;
     let lastCategorySelectionMode = "";
+    let navigationEntryMode = "categories";
     const persistState = {
         timer: null,
         inFlight: null,
@@ -703,6 +703,7 @@
         const target = Number(pageNumber) || SCREEN_PAGE.CATEGORIES;
         if (target === SCREEN_PAGE.CATEGORIES) {
             lastCategorySelectionMode = "";
+            navigationEntryMode = "categories";
             setScreenPage(SCREEN_PAGE.CATEGORIES);
             if (persist) {
                 saveToStorage();
@@ -716,6 +717,7 @@
                 const affinityLabel = String(payload.label || "").trim();
                 if (affinityKey) {
                     lastCategorySelectionMode = "sorcellerie";
+                    navigationEntryMode = "sorcellerie-selection";
                     const targetIndex = ensurePageForAffinity(affinityKey, affinityLabel);
                     if (targetIndex !== activePageIndex) {
                         setActivePage(targetIndex);
@@ -738,6 +740,7 @@
                 const specialization = normalizeSpecializationLabel(payload);
                 if (specialization) {
                     lastCategorySelectionMode = specialization;
+                    navigationEntryMode = "categories";
                     const targetIndex = ensurePageForSpecialization(specialization, payload.trim());
                     if (targetIndex !== activePageIndex) {
                         setActivePage(targetIndex);
@@ -1835,16 +1838,20 @@
     }
 
     function applyFormFields(values) {
-        if (!values) return;
+        const mergedValues = {
+            ...createEmptyFieldState(),
+            ...(values || {})
+        };
         formFields.forEach((field) => {
-            if (!field.id || !(field.id in values)) return;
+            if (!field.id) return;
+            if (!(field.id in mergedValues)) return;
             if (field.type === "checkbox") {
-                field.checked = Boolean(values[field.id]);
+                field.checked = Boolean(mergedValues[field.id]);
             } else {
-                field.value = values[field.id];
+                field.value = mergedValues[field.id];
             }
         });
-        updateAffinityDisplay(values);
+        updateAffinityDisplay(mergedValues);
         renderScrollMeter();
         updateNewCapCostPreview();
     }
@@ -1856,7 +1863,9 @@
             activeSection,
             activeScreenPage,
             isSectionContentOpen,
-            currentSpellCategory
+            currentSpellCategory,
+            navigationEntryMode,
+            savedAt: Date.now()
         };
     }
 
@@ -1866,47 +1875,74 @@
         return payload;
     }
 
+    function applyStoredPayload(payload) {
+        if (!payload || !Array.isArray(payload.pages) || payload.pages.length === 0) return false;
+        pages = payload.pages.map((page) => {
+            const sourceFields = (page && typeof page.fields === "object" && page.fields) ? page.fields : {};
+            const sourceCaps = Array.isArray(page?.capacities) ? page.capacities : [];
+            return {
+                hidden: Boolean(page?.hidden),
+                fields: {
+                    ...createEmptyFieldState(),
+                    ...sourceFields
+                },
+                capacities: sourceCaps.map((cap) => ({
+                    ...(cap || {}),
+                    stats: Array.isArray(cap?.stats) ? [...cap.stats] : [],
+                    upgrades: Array.isArray(cap?.upgrades)
+                        ? cap.upgrades.map((entry, index) => (entry && typeof entry === "object"
+                            ? { ...entry }
+                            : { level: index + 2, note: String(entry || "") }))
+                        : []
+                }))
+            };
+        });
+        activePageIndex = Math.min(Math.max(payload.activePageIndex || 0, 0), pages.length - 1);
+        activeSection = payload.activeSection || activeSection;
+        activeScreenPage = Math.min(4, Math.max(1, Number(payload.activeScreenPage) || SCREEN_PAGE.CATEGORIES));
+        isSectionContentOpen = Boolean(payload.isSectionContentOpen);
+        currentSpellCategory = Object.prototype.hasOwnProperty.call(SPELL_CATEGORY_CONFIG, payload.currentSpellCategory)
+            ? payload.currentSpellCategory
+            : "mineurs";
+        navigationEntryMode = payload.navigationEntryMode === "sorcellerie-selection"
+            ? "sorcellerie-selection"
+            : "categories";
+        return true;
+    }
+
+    function parseStoragePayload(rawValue) {
+        if (!rawValue) return null;
+        try {
+            const parsed = JSON.parse(rawValue);
+            return Array.isArray(parsed?.pages) && parsed.pages.length > 0 ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+
     function loadFromStorage() {
-        let stored = localStorage.getItem(storageKey);
-        if (!stored && storageKey !== STORAGE_KEY_BASE) {
-            stored = localStorage.getItem(STORAGE_KEY_BASE);
-            if (stored) {
-                localStorage.setItem(storageKey, stored);
+        const profilePayload = currentCharacter?.profile_data?.magic_sheet;
+        let localPayload = parseStoragePayload(localStorage.getItem(storageKey));
+
+        if (!localPayload && storageKey !== STORAGE_KEY_BASE) {
+            localPayload = parseStoragePayload(localStorage.getItem(STORAGE_KEY_BASE));
+            if (localPayload) {
+                localStorage.setItem(storageKey, JSON.stringify(localPayload));
             }
         }
-        if (!stored && currentCharacter?.profile_data?.magic_sheet) {
-            try {
-                const profilePayload = currentCharacter.profile_data.magic_sheet;
-                if (profilePayload && Array.isArray(profilePayload.pages)) {
-                    pages = profilePayload.pages;
-                    activePageIndex = Math.min(Math.max(profilePayload.activePageIndex || 0, 0), pages.length - 1);
-                    activeSection = profilePayload.activeSection || activeSection;
-                    activeScreenPage = Math.min(4, Math.max(1, Number(profilePayload.activeScreenPage) || SCREEN_PAGE.CATEGORIES));
-                    isSectionContentOpen = Boolean(profilePayload.isSectionContentOpen);
-                    currentSpellCategory = Object.prototype.hasOwnProperty.call(SPELL_CATEGORY_CONFIG, profilePayload.currentSpellCategory)
-                        ? profilePayload.currentSpellCategory
-                        : "mineurs";
-                    localStorage.setItem(storageKey, JSON.stringify(profilePayload));
-                    return true;
-                }
-            } catch {}
-        }
-        if (!stored) return false;
-        try {
-            const parsed = JSON.parse(stored);
-            if (!Array.isArray(parsed.pages) || parsed.pages.length === 0) return false;
-            pages = parsed.pages;
-            activePageIndex = Math.min(Math.max(parsed.activePageIndex || 0, 0), pages.length - 1);
-            activeSection = parsed.activeSection || activeSection;
-            activeScreenPage = Math.min(4, Math.max(1, Number(parsed.activeScreenPage) || SCREEN_PAGE.CATEGORIES));
-            isSectionContentOpen = Boolean(parsed.isSectionContentOpen);
-            currentSpellCategory = Object.prototype.hasOwnProperty.call(SPELL_CATEGORY_CONFIG, parsed.currentSpellCategory)
-                ? parsed.currentSpellCategory
-                : "mineurs";
-            return true;
-        } catch (error) {
-            return false;
-        }
+
+        const hasProfile = Array.isArray(profilePayload?.pages) && profilePayload.pages.length > 0;
+        const hasLocal = Array.isArray(localPayload?.pages) && localPayload.pages.length > 0;
+        if (!hasProfile && !hasLocal) return false;
+
+        const profileSavedAt = Number(profilePayload?.savedAt) || 0;
+        const localSavedAt = Number(localPayload?.savedAt) || 0;
+        const shouldUseProfile = hasProfile && (!hasLocal || profileSavedAt > localSavedAt);
+        const selectedPayload = shouldUseProfile ? profilePayload : localPayload;
+
+        if (!applyStoredPayload(selectedPayload)) return false;
+        localStorage.setItem(storageKey, JSON.stringify(selectedPayload));
+        return true;
     }
 
     function cloneDefaultCapacities() {
@@ -2906,9 +2942,7 @@
             showMainNavigationOnly();
             return;
         }
-        const currentPage = pages[activePageIndex];
-        const isSorcelleriePage = String(currentPage?.fields?.magicSpecialization || "").trim() === "sorcellerie";
-        if (lastCategorySelectionMode === "sorcellerie" && isSorcelleriePage) {
+        if (navigationEntryMode === "sorcellerie-selection") {
             window.showMagicSelection();
             return;
         }
@@ -2919,6 +2953,7 @@
         const magicSelectionContainer = document.getElementById('magicElementSelection');
         if (!magicSelectionContainer) return;
         lastCategorySelectionMode = "sorcellerie";
+        navigationEntryMode = "sorcellerie-selection";
         const magics = getSorcellerieSelectionsFromFiche();
 
         magicSelectionContainer.innerHTML = "";
@@ -2979,11 +3014,8 @@
         });
     });
 
-    if (page2BackBtn) {
-        page2BackBtn.addEventListener("click", () => {
-            window.handleMagicPage2Back();
-        });
-    }
+    // `magicPage2BackBtn` is already wired inline in `magie.html` via onclick.
+    // Keep a single handler to avoid double back navigation on one click.
 
     if (headerBackBtn) {
         headerBackBtn.addEventListener("click", (event) => {
