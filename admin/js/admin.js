@@ -16,6 +16,15 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
     let allCharacters = [];
     let allItems = [];
     let inventoryInspectorCharId = '';
+    const itemsMirrorState = {
+        search: '',
+        category: 'all',
+        rarity: 'all',
+        rank: 'all',
+        pricing: 'all',
+        sortBy: 'name',
+        sortDir: 'asc'
+    };
 
     // =================================================================
     // CONFIGURATION
@@ -77,6 +86,10 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         if (navbarCollapse && navbarCollapse.classList.contains('show')) {
             const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
             if (bsCollapse) bsCollapse.hide();
+        }
+
+        if (pageName === 'items') {
+            void loadItemsMirror();
         }
 
         console.log('[Admin] Navigated to:', pageName);
@@ -588,6 +601,220 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             .replace(/[\u0300-\u036f]/g, '')
             .trim()
             .toLowerCase();
+    }
+
+    function parseJsonObject(value) {
+        if (!value) return {};
+        if (typeof value === 'object') return value;
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return {};
+            }
+        }
+        return {};
+    }
+
+    function normalizeRarityLabel(value) {
+        const key = normalizeItemKey(value);
+        if (!key) return '-';
+        if (key === 'common') return 'Commun';
+        if (key === 'epic') return 'Epique';
+        if (key === 'mythic') return 'Mythique';
+        if (key === 'legendary') return 'Legendaire';
+        const labels = {
+            commun: 'Commun',
+            rare: 'Rare',
+            epique: 'Epique',
+            mythique: 'Mythique',
+            legendaire: 'Legendaire'
+        };
+        return labels[key] || String(value || '-');
+    }
+
+    function getItemPricingMeta(item) {
+        const images = parseJsonObject(item?.images);
+        const pricing = parseJsonObject(images?.pricing);
+        const fallback = Number.parseInt(item?.price_kaels, 10) || 0;
+        const buy = Number.parseInt(pricing?.buy_kaels, 10);
+        const sell = Number.parseInt(pricing?.sell_kaels, 10);
+        return {
+            buy: Number.isFinite(buy) && buy > 0 ? buy : fallback,
+            sell: Number.isFinite(sell) && sell > 0 ? sell : fallback,
+            isSplit: Number.isFinite(buy) && Number.isFinite(sell) && buy > 0 && sell > 0 && buy !== sell
+        };
+    }
+
+    function getNormalizedAdminItems() {
+        return (allItems || []).map((item) => {
+            const pricing = getItemPricingMeta(item);
+            return {
+                id: item?.id || '',
+                name: String(item?.name || '').trim() || 'Sans nom',
+                category: String(item?.category || '').trim() || '-',
+                rarity: normalizeRarityLabel(item?.rarity),
+                rank: String(item?.rank || '').trim().toUpperCase() || '-',
+                buy: pricing.buy,
+                sell: pricing.sell,
+                isSplit: pricing.isSplit,
+                description: String(item?.description || ''),
+                effect: String(item?.effect || '')
+            };
+        });
+    }
+
+    function populateItemsMirrorFilters(items) {
+        const categorySelect = document.getElementById('adminItemsMirrorCategory');
+        const raritySelect = document.getElementById('adminItemsMirrorRarity');
+        const rankSelect = document.getElementById('adminItemsMirrorRank');
+        if (!categorySelect || !raritySelect || !rankSelect) return;
+
+        const fillSelect = (select, values, allLabel) => {
+            const previous = select.value || 'all';
+            select.innerHTML = `<option value="all">${allLabel}</option>`;
+            values.forEach((value) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+            select.value = values.includes(previous) ? previous : 'all';
+        };
+
+        const categories = Array.from(new Set(items.map((item) => item.category).filter((value) => value && value !== '-'))).sort((a, b) => a.localeCompare(b, 'fr'));
+        const rarities = Array.from(new Set(items.map((item) => item.rarity).filter((value) => value && value !== '-'))).sort((a, b) => a.localeCompare(b, 'fr'));
+        const ranks = Array.from(new Set(items.map((item) => item.rank).filter((value) => value && value !== '-'))).sort((a, b) => a.localeCompare(b, 'fr'));
+
+        fillSelect(categorySelect, categories, 'Toutes categories');
+        fillSelect(raritySelect, rarities, 'Toutes raretes');
+        fillSelect(rankSelect, ranks, 'Tous rangs');
+    }
+
+    function getFilteredItemsMirrorRows(items) {
+        const search = normalizeItemKey(itemsMirrorState.search);
+        const rows = items.filter((item) => {
+            if (itemsMirrorState.category !== 'all' && item.category !== itemsMirrorState.category) return false;
+            if (itemsMirrorState.rarity !== 'all' && item.rarity !== itemsMirrorState.rarity) return false;
+            if (itemsMirrorState.rank !== 'all' && item.rank !== itemsMirrorState.rank) return false;
+            if (itemsMirrorState.pricing === 'split' && !item.isSplit) return false;
+            if (itemsMirrorState.pricing === 'legacy' && item.isSplit) return false;
+            if (!search) return true;
+            const haystack = normalizeItemKey(`${item.name} ${item.description} ${item.effect} ${item.category} ${item.rarity} ${item.rank}`);
+            return haystack.includes(search);
+        });
+
+        const direction = itemsMirrorState.sortDir === 'desc' ? -1 : 1;
+        rows.sort((a, b) => {
+            const by = itemsMirrorState.sortBy;
+            if (by === 'buy' || by === 'sell') {
+                return ((a[by] || 0) - (b[by] || 0)) * direction;
+            }
+            const left = String(a[by] || '');
+            const right = String(b[by] || '');
+            return left.localeCompare(right, 'fr', { sensitivity: 'base' }) * direction;
+        });
+        return rows;
+    }
+
+    function renderItemsMirror() {
+        const tbody = document.getElementById('adminItemsMirrorBody');
+        const countEl = document.getElementById('adminItemsMirrorCount');
+        if (!tbody || !countEl) return;
+
+        const rows = getFilteredItemsMirrorRows(getNormalizedAdminItems());
+        if (!rows.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Aucun objet ne correspond aux filtres.</td>
+                </tr>
+            `;
+            countEl.textContent = '0 objet(s)';
+            return;
+        }
+
+        tbody.innerHTML = rows.map((item) => `
+            <tr>
+                <td class="fw-semibold">${item.name}</td>
+                <td>${item.category}</td>
+                <td>${item.rarity}</td>
+                <td>${item.rank}</td>
+                <td>${item.buy > 0 ? `${item.buy.toLocaleString('fr-FR')} kaels` : '-'}</td>
+                <td>${item.sell > 0 ? `${item.sell.toLocaleString('fr-FR')} kaels` : '-'}</td>
+                <td>
+                    <span class="badge ${item.isSplit ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'}">
+                        ${item.isSplit ? 'Separer' : 'Legacy'}
+                    </span>
+                </td>
+            </tr>
+        `).join('');
+
+        countEl.textContent = `${rows.length} objet(s)`;
+    }
+
+    async function loadItemsMirror({ force = false } = {}) {
+        if (force || !Array.isArray(allItems) || allItems.length === 0) {
+            allItems = await getAllItems() || [];
+        }
+        const normalized = getNormalizedAdminItems();
+        populateItemsMirrorFilters(normalized);
+        renderItemsMirror();
+    }
+
+    function initItemsMirrorControls() {
+        const searchInput = document.getElementById('adminItemsMirrorSearch');
+        const categorySelect = document.getElementById('adminItemsMirrorCategory');
+        const raritySelect = document.getElementById('adminItemsMirrorRarity');
+        const rankSelect = document.getElementById('adminItemsMirrorRank');
+        const pricingSelect = document.getElementById('adminItemsMirrorPricing');
+        const refreshBtn = document.getElementById('adminItemsMirrorRefresh');
+        const sortHeaders = Array.from(document.querySelectorAll('[data-page="items"] th.sortable[data-sort]'));
+
+        if (!searchInput || !categorySelect || !raritySelect || !rankSelect || !pricingSelect || !refreshBtn) return;
+
+        searchInput.addEventListener('input', () => {
+            itemsMirrorState.search = searchInput.value || '';
+            renderItemsMirror();
+        });
+
+        categorySelect.addEventListener('change', () => {
+            itemsMirrorState.category = categorySelect.value || 'all';
+            renderItemsMirror();
+        });
+
+        raritySelect.addEventListener('change', () => {
+            itemsMirrorState.rarity = raritySelect.value || 'all';
+            renderItemsMirror();
+        });
+
+        rankSelect.addEventListener('change', () => {
+            itemsMirrorState.rank = rankSelect.value || 'all';
+            renderItemsMirror();
+        });
+
+        pricingSelect.addEventListener('change', () => {
+            itemsMirrorState.pricing = pricingSelect.value || 'all';
+            renderItemsMirror();
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            await loadItemsMirror({ force: true });
+            showToast('Codex miroir actualise', 'success');
+        });
+
+        sortHeaders.forEach((header) => {
+            header.addEventListener('click', () => {
+                const key = header.dataset.sort;
+                if (!key) return;
+                if (itemsMirrorState.sortBy === key) {
+                    itemsMirrorState.sortDir = itemsMirrorState.sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    itemsMirrorState.sortBy = key;
+                    itemsMirrorState.sortDir = 'asc';
+                }
+                renderItemsMirror();
+            });
+        });
     }
 
     function getItemCatalogLookups() {
@@ -1320,10 +1547,12 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         initCharactersSearch();
         initCharacterActions();
         initCharacterInventoryInspector();
+        initItemsMirrorControls();
         initModals();
         initQuickKaelsForm();
         initEconomyKaelsForm();
         initQuickActionsBridge();
+        await loadItemsMirror();
 
         // Logout handler
         const logoutBtn = document.getElementById('logoutBtn');

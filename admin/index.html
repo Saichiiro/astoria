@@ -505,6 +505,73 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="card mt-3">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="ti ti-book-2 me-2"></i>Codex miroir (admin)</h3>
+                            <div class="card-actions btn-list">
+                                <button class="btn btn-outline-secondary btn-sm" id="adminItemsMirrorRefresh">
+                                    <i class="ti ti-refresh me-1"></i>Actualiser
+                                </button>
+                                <a href="../codex.html" class="btn btn-primary btn-sm">
+                                    <i class="ti ti-external-link me-1"></i>Ouvrir codex complet
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <input id="adminItemsMirrorSearch" type="search" class="form-control" placeholder="Rechercher nom, effet, description...">
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorCategory" class="form-select">
+                                        <option value="all">Toutes categories</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorRarity" class="form-select">
+                                        <option value="all">Toutes raretes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorRank" class="form-select">
+                                        <option value="all">Tous rangs</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorPricing" class="form-select">
+                                        <option value="all">Tous prix</option>
+                                        <option value="split">Achat / vente differencies</option>
+                                        <option value="legacy">Prix unique (legacy)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive table-sheet">
+                                <table class="table table-vcenter card-table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="name">Nom</th>
+                                            <th class="sortable" data-sort="category">Categorie</th>
+                                            <th class="sortable" data-sort="rarity">Rarete</th>
+                                            <th class="sortable" data-sort="rank">Rang</th>
+                                            <th class="sortable" data-sort="buy">Achat</th>
+                                            <th class="sortable" data-sort="sell">Vente</th>
+                                            <th>Etat pricing</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminItemsMirrorBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                Chargement...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex align-items-center">
+                            <p class="m-0 text-muted" id="adminItemsMirrorCount">0 objet(s)</p>
+                        </div>
+                        </div>
                     </div>
 
                     <!-- ================================================

@@ -1073,3 +1073,12 @@ body.perf-lite .btn::before {
         min-width: 640px;
     }
 }
+
+[data-page="items"] th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+[data-page="items"] th.sortable:hover {
+    color: #ff77b4;
+}
