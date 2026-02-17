@@ -131,7 +131,12 @@ function mapDbItem(row) {
     const images = safeJson(row.images);
     const modifiers = safeJson(row.modifiers);
     const primary = images.primary || images.url || row.image || row.image_url || "";
-    const priceText = row.price_kaels ? `${row.price_kaels} kaels` : "";
+    const pricing = safeJson(images.pricing);
+    const fallbackKaels = Number.parseInt(row.price_kaels, 10) || 0;
+    const buyKaels = Number.parseInt(pricing.buy_kaels, 10);
+    const sellKaels = Number.parseInt(pricing.sell_kaels, 10);
+    const buyPrice = Number.isFinite(buyKaels) && buyKaels > 0 ? `${buyKaels} kaels` : (fallbackKaels > 0 ? `${fallbackKaels} kaels` : "");
+    const sellPrice = Number.isFinite(sellKaels) && sellKaels > 0 ? `${sellKaels} kaels` : (fallbackKaels > 0 ? `${fallbackKaels} kaels` : "");
     return {
         id: row.id,
         _dbId: row.id,
@@ -140,8 +145,8 @@ function mapDbItem(row) {
         description: row.description || "",
         effect: row.effect || "",
         category: row.category || "",
-        buyPrice: priceText,
-        sellPrice: priceText,
+        buyPrice,
+        sellPrice,
         modifiers: Array.isArray(modifiers) ? modifiers : [],
         image: primary,
         images: images,

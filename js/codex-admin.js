@@ -542,7 +542,12 @@ function safeJson(value) {
 function mapDbItem(row) {
     const images = safeJson(row.images);
     const primary = images.primary || images.url || '';
-    const priceText = row.price_kaels ? `${row.price_kaels} kaels` : '';
+    const pricing = safeJson(images.pricing);
+    const fallbackKaels = Number.parseInt(row.price_kaels, 10) || 0;
+    const buyKaels = Number.parseInt(pricing.buy_kaels, 10);
+    const sellKaels = Number.parseInt(pricing.sell_kaels, 10);
+    const buyPrice = Number.isFinite(buyKaels) && buyKaels > 0 ? `${buyKaels} kaels` : (fallbackKaels > 0 ? `${fallbackKaels} kaels` : '');
+    const sellPrice = Number.isFinite(sellKaels) && sellKaels > 0 ? `${sellKaels} kaels` : (fallbackKaels > 0 ? `${fallbackKaels} kaels` : '');
 
     // Parse modifiers if it's a string (JSONB from DB)
     let modifiers = row.modifiers;
@@ -563,8 +568,8 @@ function mapDbItem(row) {
         effect: row.effect || '',
         category: row.category || '',
         equipment_slot: row.equipment_slot || '',
-        buyPrice: priceText,
-        sellPrice: priceText,
+        buyPrice,
+        sellPrice,
         image: primary,
         images: images,
         modifiers: modifiers || null,
@@ -784,8 +789,8 @@ async function openAdminModal(item) {
                 .single();
 
             if (!error && data) {
-                editingItemData = data;
-                editingItemData._dbId = data.id; // Preserve _dbId
+                editingItemData = mapDbItem(data);
+                editingItemData._dbId = data.id;
             }
         } catch (err) {
             console.warn('[CodexAdmin] Failed to fetch item:', err);
@@ -1086,13 +1091,24 @@ async function saveItem(event) {
         .trim()
         .replace(/^(?:effets?\s*:\s*)+/i, '')
         .trim();
+    const buyKaels = parsePrice(dom.buyInput.value);
+    const sellKaels = parsePrice(dom.sellInput.value);
+    const existingImages = safeJson(editingItem?.images);
+    const payloadImages = {
+        ...existingImages,
+        pricing: {
+            buy_kaels: buyKaels,
+            sell_kaels: sellKaels
+        }
+    };
 
     const payload = {
         name,
         description: dom.descriptionInput.value.trim(),
         effect: normalizedEffect,
         category: dom.categoryInput.value.trim().toLowerCase(),
-        price_kaels: parsePrice(dom.sellInput.value),
+        price_kaels: sellKaels,
+        images: payloadImages,
         equipment_slot: equipmentSlotVal || null,
         rarity: rarityVal || null,
         rank: rankVal || null,
@@ -1121,7 +1137,10 @@ async function saveItem(event) {
         if (imageBlob && row?.id) {
             imageUrl = await uploadImage(row.id, name);
             if (imageUrl) {
-                const images = { primary: imageUrl };
+                const images = {
+                    ...payloadImages,
+                    primary: imageUrl
+                };
                 const { data, error } = await supabase
                     .from('items')
                     .update({ images })
