@@ -2393,6 +2393,7 @@ function openEditor(quest) {
     dom.editorModal.classList.add("open");
     dom.editorModal.setAttribute("aria-hidden", "false");
     dom.editorModal.removeAttribute("inert");
+    document.body.style.overflow = "hidden";
 }
 
 function renderEditorLists() {
