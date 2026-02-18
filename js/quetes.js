@@ -28,7 +28,14 @@ const QUEST_STORAGE_KEY = "astoria_quests_state";
 const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
 const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
 const QUESTS_TABLE = "quests";
+const QUESTS_LIST_VIEW = "quests_list";
 const QUEST_HISTORY_TABLE = "quest_history";
+const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
+const QUEST_HISTORY_SELECT_COLUMNS = "id,date,type,rank,name,gains,character_id,character_label";
+const QUEST_INITIAL_BATCH_SIZE = 8;
+const QUEST_BACKGROUND_BATCH_SIZE = 24;
+const QUEST_BACKGROUND_PRELOAD_DELAY_MS = 350;
+const QUEST_POLLING_FALLBACK_MS = 60000;
 const REWARD_ELEMENTS = ["Feu", "Eau", "Vent", "Terre", "Glace", "Foudre", "Lumiere", "Ombre"];
 const REWARD_ELEMENT_MAP = {
     feu: "feu",
@@ -90,6 +97,8 @@ const state = {
 let questRealtimeChannel = null;
 let questRealtimeRefreshTimer = null;
 let questRealtimePollingTimer = null;
+let questBackgroundPreloadTimer = null;
+let questBackgroundPreloadRunId = 0;
 let isQuestRealtimeRefreshing = false;
 const SHOULD_REDUCE_QUEST_EFFECTS = Boolean(
     (window.astoriaPerformanceMode && window.astoriaPerformanceMode.enabled)
@@ -594,10 +603,53 @@ function normalizeQuestType(value) {
     return existing || raw;
 }
 
-async function loadParticipantsForQuests() {
+function cancelQuestBackgroundPreload() {
+    questBackgroundPreloadRunId += 1;
+    if (questBackgroundPreloadTimer) {
+        window.clearTimeout(questBackgroundPreloadTimer);
+        questBackgroundPreloadTimer = null;
+    }
+}
+
+function scheduleBackgroundPreloadTick(callback, delayMs = QUEST_BACKGROUND_PRELOAD_DELAY_MS) {
+    if (questBackgroundPreloadTimer) {
+        window.clearTimeout(questBackgroundPreloadTimer);
+    }
+    questBackgroundPreloadTimer = window.setTimeout(() => {
+        questBackgroundPreloadTimer = null;
+        void callback();
+    }, Math.max(0, delayMs));
+}
+
+async function fetchQuestsPage(supabase, from, to) {
+    let { data, error } = await supabase
+        .from(QUESTS_LIST_VIEW)
+        .select("*")
+        .order("created_at", { ascending: true })
+        .range(from, to);
+
+    if (error) {
+        const message = String(error?.message || "").toLowerCase();
+        if (message.includes("relation") || message.includes("does not exist")) {
+            ({ data, error } = await supabase
+                .from(QUESTS_TABLE)
+                .select(QUESTS_SELECT_COLUMNS)
+                .order("created_at", { ascending: true })
+                .range(from, to));
+        }
+    }
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function loadParticipantsForQuests(questIds = null) {
     try {
+        const targetQuestIds = Array.isArray(questIds) ? questIds.filter(Boolean) : null;
+        if (targetQuestIds && targetQuestIds.length === 0) return true;
+
         const supabase = await getSupabaseClient();
-        const { data, error } = await supabase
+        let query = supabase
             .from("quest_participants")
             .select(`
                 quest_id,
@@ -608,6 +660,11 @@ async function loadParticipantsForQuests() {
                     name
                 )
             `);
+        if (targetQuestIds) {
+            query = query.in("quest_id", targetQuestIds);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
 
         // Build a map of quest_id → participants array
@@ -627,7 +684,8 @@ async function loadParticipantsForQuests() {
         }
 
         // Assign participants to each quest
-        state.quests.forEach(quest => {
+        state.quests.forEach((quest) => {
+            if (targetQuestIds && !targetQuestIds.includes(quest.id)) return;
             quest.participants = participantsMap.get(quest.id) || [];
         });
 
@@ -638,16 +696,62 @@ async function loadParticipantsForQuests() {
     }
 }
 
-async function loadQuestsFromDb() {
+async function preloadRemainingQuests(supabase, startIndex, runId) {
+    let nextStart = startIndex;
+    const knownIds = new Set(state.quests.map((quest) => quest.id));
+
+    const pump = async () => {
+        if (runId !== questBackgroundPreloadRunId) return;
+        const rows = await fetchQuestsPage(
+            supabase,
+            nextStart,
+            nextStart + QUEST_BACKGROUND_BATCH_SIZE - 1
+        );
+        if (!rows.length) return;
+
+        const mapped = rows.map(mapQuestRow);
+        const fresh = mapped.filter((quest) => {
+            if (!quest?.id || knownIds.has(quest.id)) return false;
+            knownIds.add(quest.id);
+            return true;
+        });
+
+        if (fresh.length) {
+            state.quests = [...state.quests, ...fresh];
+            await loadParticipantsForQuests(fresh.map((quest) => quest.id));
+            renderQuestList();
+            renderQuestProgressPanel();
+        }
+
+        nextStart += QUEST_BACKGROUND_BATCH_SIZE;
+        scheduleBackgroundPreloadTick(pump);
+    };
+
+    scheduleBackgroundPreloadTick(pump);
+}
+
+async function loadQuestsFromDb(options = {}) {
+    const { progressive = true } = options;
     try {
+        cancelQuestBackgroundPreload();
         const supabase = await getSupabaseClient();
-        const { data, error } = await supabase
-            .from(QUESTS_TABLE)
-            .select("*")
-            .order("created_at", { ascending: true });
-        if (error) throw error;
-        state.quests = Array.isArray(data) ? data.map(mapQuestRow) : [];
-        await loadParticipantsForQuests();
+
+        if (!progressive) {
+            const rows = await fetchQuestsPage(supabase, 0, 999);
+            state.quests = rows.map(mapQuestRow);
+            await loadParticipantsForQuests();
+            return true;
+        }
+
+        const initialRows = await fetchQuestsPage(supabase, 0, QUEST_INITIAL_BATCH_SIZE - 1);
+        state.quests = initialRows.map(mapQuestRow);
+        await loadParticipantsForQuests(state.quests.map((quest) => quest.id));
+
+        if (initialRows.length >= QUEST_INITIAL_BATCH_SIZE) {
+            const runId = questBackgroundPreloadRunId;
+            void preloadRemainingQuests(supabase, QUEST_INITIAL_BATCH_SIZE, runId);
+        }
+
         return true;
     } catch (error) {
         console.warn("[Quetes] Failed to load quests from DB:", error);
@@ -660,7 +764,7 @@ async function loadHistoryFromDb() {
         const supabase = await getSupabaseClient();
         const { data, error } = await supabase
             .from(QUEST_HISTORY_TABLE)
-            .select("*")
+            .select(QUEST_HISTORY_SELECT_COLUMNS)
             .order("date", { ascending: false });
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
@@ -824,7 +928,7 @@ async function refreshQuestStateFromBackend() {
     try {
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
-        const questsLoaded = await loadQuestsFromDb();
+        const questsLoaded = await loadQuestsFromDb({ progressive: false });
         const historyLoaded = await loadHistoryFromDb();
         if (!questsLoaded && !historyLoaded) {
             return false;
@@ -862,8 +966,9 @@ function scheduleQuestRealtimeRefresh(delayMs = 180) {
 function startQuestPollingFallback() {
     if (questRealtimePollingTimer) return;
     questRealtimePollingTimer = window.setInterval(() => {
+        if (document.hidden) return;
         void refreshQuestStateFromBackend();
-    }, 15000);
+    }, QUEST_POLLING_FALLBACK_MS);
 }
 
 function stopQuestPollingFallback() {

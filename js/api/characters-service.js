@@ -3,6 +3,33 @@ import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js'
 import { isAdmin, refreshSessionUser } from './auth-service.js';
 
 let authRefreshPromise = null;
+const USER_CHARACTERS_CACHE_TTL_MS = 60000;
+const userCharactersCache = new Map();
+
+function readUserCharactersCache(userId) {
+    const entry = userCharactersCache.get(userId);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+        userCharactersCache.delete(userId);
+        return null;
+    }
+    return entry.data;
+}
+
+function writeUserCharactersCache(userId, data) {
+    userCharactersCache.set(userId, {
+        data: Array.isArray(data) ? data : [],
+        expiresAt: Date.now() + USER_CHARACTERS_CACHE_TTL_MS
+    });
+}
+
+function clearUserCharactersCache(userId = null) {
+    if (userId) {
+        userCharactersCache.delete(userId);
+        return;
+    }
+    userCharactersCache.clear();
+}
 
 async function ensureAuthContext() {
     if (!authRefreshPromise) {
@@ -27,15 +54,29 @@ function isAbortLikeError(error) {
 export async function getUserCharacters(userId) {
     if (!userId) return [];
 
+    const cached = readUserCharactersCache(userId);
+    if (cached) return cached;
+
     try {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
-        const { data, error } = await supabase
-            .from('characters')
+        let { data, error } = await supabase
+            .from('characters_list')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
+
+        if (error) {
+            const message = String(error?.message || '').toLowerCase();
+            if (message.includes('relation') || message.includes('does not exist')) {
+                ({ data, error } = await supabase
+                    .from('characters')
+                    .select('id, user_id, name, race, class, created_at')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: true }));
+            }
+        }
 
         if (error) {
             if (!isAbortLikeError(error)) {
@@ -44,7 +85,9 @@ export async function getUserCharacters(userId) {
             return [];
         }
 
-        return data || [];
+        const output = data || [];
+        writeUserCharactersCache(userId, output);
+        return output;
     } catch (error) {
         if (!isAbortLikeError(error)) {
             console.error('Error in getUserCharacters:', error);
@@ -60,10 +103,20 @@ export async function getAllCharacters() {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
-        const { data, error } = await supabase
-            .from('characters')
-            .select('id, name, user_id, race, class, profile_data, kaels, created_at')
+        let { data, error } = await supabase
+            .from('characters_list')
+            .select('*')
             .order('created_at', { ascending: true });
+
+        if (error) {
+            const message = String(error?.message || '').toLowerCase();
+            if (message.includes('relation') || message.includes('does not exist')) {
+                ({ data, error } = await supabase
+                    .from('characters')
+                    .select('id, name, user_id, race, class, created_at')
+                    .order('created_at', { ascending: true }));
+            }
+        }
 
         if (error) {
             if (!isAbortLikeError(error)) {
@@ -156,6 +209,7 @@ export async function createCharacter(userId, characterData) {
             return { success: false, error: 'Erreur lors de la création du personnage' };
         }
 
+        clearUserCharactersCache(userId);
         return { success: true, character: data[0] };
     } catch (error) {
         console.error('Error in createCharacter:', error);
@@ -232,6 +286,7 @@ export async function updateCharacter(characterId, updates) {
             return { success: false };
         }
 
+        clearUserCharactersCache();
         const activeChar = getActiveCharacter();
         if (activeChar && activeChar.id === characterId) {
             setActiveCharacterLocal(data[0]);
