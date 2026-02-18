@@ -27,6 +27,8 @@ const STATUS_META = {
 const QUEST_STORAGE_KEY = "astoria_quests_state";
 const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
 const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
+const QUEST_CACHE_VERSION = 1;
+const QUEST_CACHE_TTL_MS = 10 * 60 * 1000;
 const QUESTS_TABLE = "quests";
 const QUESTS_LIST_VIEW = "quests_list";
 const QUEST_HISTORY_TABLE = "quest_history";
@@ -537,12 +539,64 @@ function parseJsonArray(value) {
 }
 
 function loadStoredState() {
-    // Backend is the single source of truth for quests/history.
+    const now = Date.now();
+    let restored = false;
+    try {
+        const rawQuests = questStorage.getItem(QUEST_STORAGE_KEY);
+        if (rawQuests) {
+            const parsed = JSON.parse(rawQuests);
+            const isFresh = parsed?.version === QUEST_CACHE_VERSION
+                && Array.isArray(parsed?.data)
+                && (now - Number(parsed?.timestamp || 0)) <= QUEST_CACHE_TTL_MS;
+            if (isFresh) {
+                state.quests = parsed.data.map(mapQuestRow);
+                restored = true;
+            }
+        }
+    } catch (error) {
+        console.warn("[Quetes] Failed to restore quest cache:", error);
+    }
+
+    try {
+        const rawHistory = questStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
+        if (rawHistory) {
+            const parsed = JSON.parse(rawHistory);
+            const isFresh = parsed?.version === QUEST_CACHE_VERSION
+                && Array.isArray(parsed?.data)
+                && (now - Number(parsed?.timestamp || 0)) <= QUEST_CACHE_TTL_MS;
+            if (isFresh) {
+                state.history = dedupeHistory(parsed.data.map(mapHistoryRow));
+                restored = true;
+            }
+        }
+    } catch (error) {
+        console.warn("[Quetes] Failed to restore history cache:", error);
+    }
+
+    return restored;
 }
 
 function persistState() {
-    // Keep in-memory list deduplicated but do not persist quests/history locally.
     state.history = dedupeHistory(state.history);
+    const now = Date.now();
+    try {
+        questStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify({
+            version: QUEST_CACHE_VERSION,
+            timestamp: now,
+            data: state.quests
+        }));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist quest cache:", error);
+    }
+    try {
+        questStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify({
+            version: QUEST_CACHE_VERSION,
+            timestamp: now,
+            data: state.history
+        }));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist history cache:", error);
+    }
 }
 
 function dedupeHistory(list) {
@@ -561,6 +615,7 @@ function dedupeHistory(list) {
 }
 
 function mapQuestRow(row) {
+    const participantRows = Array.isArray(row?.participants) ? row.participants : [];
     return {
         id: row.id,
         name: row.name,
@@ -573,9 +628,14 @@ function mapQuestRow(row) {
         rewards: parseJsonArray(row.rewards),
         prerequisites: parseJsonArray(row.prerequisites),
         images: parseJsonArray(row.images),
-        participants: [], // Will be populated separately from quest_participants table
-        maxParticipants: Number(row.max_participants) || 1,
-        completedBy: parseJsonArray(row.completed_by)
+        participants: participantRows.map((entry) => ({
+            id: normalizeCharacterId(entry?.id || null) || null,
+            key: entry?.key || participantKeyFromId(entry?.id),
+            label: String(entry?.label || "Unknown"),
+            joinedAt: Number(entry?.joinedAt) || Date.now()
+        })),
+        maxParticipants: Number(row.max_participants ?? row.maxParticipants) || 1,
+        completedBy: parseJsonArray(row.completed_by ?? row.completedBy)
     };
 }
 
@@ -688,6 +748,7 @@ async function loadParticipantsForQuests(questIds = null) {
             if (targetQuestIds && !targetQuestIds.includes(quest.id)) return;
             quest.participants = participantsMap.get(quest.id) || [];
         });
+        persistState();
 
         return true;
     } catch (error) {
@@ -739,12 +800,14 @@ async function loadQuestsFromDb(options = {}) {
         if (!progressive) {
             const rows = await fetchQuestsPage(supabase, 0, 999);
             state.quests = rows.map(mapQuestRow);
+            persistState();
             await loadParticipantsForQuests();
             return true;
         }
 
         const initialRows = await fetchQuestsPage(supabase, 0, QUEST_INITIAL_BATCH_SIZE - 1);
         state.quests = initialRows.map(mapQuestRow);
+        persistState();
         await loadParticipantsForQuests(state.quests.map((quest) => quest.id));
 
         if (initialRows.length >= QUEST_INITIAL_BATCH_SIZE) {
@@ -768,6 +831,7 @@ async function loadHistoryFromDb() {
             .order("date", { ascending: false });
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
+        persistState();
         return true;
     } catch (error) {
         console.warn("[Quetes] Failed to load history from DB:", error);
@@ -3171,6 +3235,12 @@ async function init() {
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
     state.adminNotes = loadAdminNotesMap();
+    const cacheLoaded = loadStoredState();
+
+    if (cacheLoaded) {
+        renderQuestList();
+        renderHistory();
+    }
 
     const dbLoaded = await loadQuestsFromDb();
     const historyLoaded = await loadHistoryFromDb();
