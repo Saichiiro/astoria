@@ -32,6 +32,7 @@ const QUEST_CACHE_TTL_MS = 10 * 60 * 1000;
 const QUESTS_TABLE = "quests";
 const QUESTS_LIST_VIEW = "quests_list";
 const QUEST_HISTORY_TABLE = "quest_history";
+const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
 const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
 const QUEST_HISTORY_SELECT_COLUMNS = "id,date,type,rank,name,gains,character_id,character_label";
 const QUEST_INITIAL_BATCH_SIZE = 8;
@@ -101,6 +102,7 @@ let questRealtimeRefreshTimer = null;
 let questRealtimePollingTimer = null;
 let questBackgroundPreloadTimer = null;
 let questBackgroundPreloadRunId = 0;
+let questRealtimeNeedsHistoryRefresh = false;
 let isQuestRealtimeRefreshing = false;
 const SHOULD_REDUCE_QUEST_EFFECTS = Boolean(
     (window.astoriaPerformanceMode && window.astoriaPerformanceMode.enabled)
@@ -616,6 +618,18 @@ function dedupeHistory(list) {
 
 function mapQuestRow(row) {
     const participantRows = Array.isArray(row?.participants) ? row.participants : [];
+    const hasFullPayload = Boolean(
+        row?.isHydrated
+        || row?.description !== undefined
+        || row?.rewards !== undefined
+        || row?.prerequisites !== undefined
+        || row?.locations !== undefined
+        || row?.repeatable !== undefined
+        || row?.max_participants !== undefined
+        || row?.maxParticipants !== undefined
+        || row?.completed_by !== undefined
+        || row?.completedBy !== undefined
+    );
     return {
         id: row.id,
         name: row.name,
@@ -635,7 +649,8 @@ function mapQuestRow(row) {
             joinedAt: Number(entry?.joinedAt) || Date.now()
         })),
         maxParticipants: Number(row.max_participants ?? row.maxParticipants) || 1,
-        completedBy: parseJsonArray(row.completed_by ?? row.completedBy)
+        completedBy: parseJsonArray(row.completed_by ?? row.completedBy),
+        isHydrated: hasFullPayload
     };
 }
 
@@ -684,7 +699,7 @@ function scheduleBackgroundPreloadTick(callback, delayMs = QUEST_BACKGROUND_PREL
 async function fetchQuestsPage(supabase, from, to) {
     let { data, error } = await supabase
         .from(QUESTS_LIST_VIEW)
-        .select("*")
+        .select(QUESTS_LIST_SELECT_COLUMNS)
         .order("created_at", { ascending: true })
         .range(from, to);
 
@@ -693,7 +708,7 @@ async function fetchQuestsPage(supabase, from, to) {
         if (message.includes("relation") || message.includes("does not exist")) {
             ({ data, error } = await supabase
                 .from(QUESTS_TABLE)
-                .select(QUESTS_SELECT_COLUMNS)
+                .select(QUESTS_LIST_SELECT_COLUMNS)
                 .order("created_at", { ascending: true })
                 .range(from, to));
         }
@@ -701,6 +716,58 @@ async function fetchQuestsPage(supabase, from, to) {
 
     if (error) throw error;
     return Array.isArray(data) ? data : [];
+}
+
+async function fetchQuestDetailById(questId) {
+    const supabase = await getSupabaseClient();
+    let { data, error } = await supabase
+        .from(QUESTS_TABLE)
+        .select(QUESTS_SELECT_COLUMNS)
+        .eq("id", questId)
+        .single();
+    if (error) {
+        const message = String(error?.message || "").toLowerCase();
+        const code = String(error?.code || "");
+        const permissionLike = code === "42501" || message.includes("permission") || message.includes("forbidden");
+        if (permissionLike) {
+            ({ data, error } = await supabase
+                .from(QUESTS_LIST_VIEW)
+                .select("*")
+                .eq("id", questId)
+                .single());
+        }
+    }
+    if (error) throw error;
+    return mapQuestRow(data);
+}
+
+function mergeQuestIntoState(updatedQuest) {
+    if (!updatedQuest?.id) return null;
+    const index = state.quests.findIndex((item) => item.id === updatedQuest.id);
+    if (index < 0) return updatedQuest;
+    const previous = state.quests[index];
+    const merged = {
+        ...previous,
+        ...updatedQuest,
+        participants: Array.isArray(previous?.participants) ? previous.participants : []
+    };
+    state.quests[index] = merged;
+    return merged;
+}
+
+async function ensureQuestHydrated(questId, { force = false } = {}) {
+    const current = state.quests.find((item) => item.id === questId);
+    if (!current) return null;
+    if (current.isHydrated && !force) return current;
+    try {
+        const hydrated = await fetchQuestDetailById(questId);
+        const merged = mergeQuestIntoState(hydrated);
+        persistState();
+        return merged || hydrated;
+    } catch (error) {
+        console.warn("[Quetes] Failed to hydrate quest detail:", error);
+        return current;
+    }
 }
 
 async function loadParticipantsForQuests(questIds = null) {
@@ -828,7 +895,8 @@ async function loadHistoryFromDb() {
         const { data, error } = await supabase
             .from(QUEST_HISTORY_TABLE)
             .select(QUEST_HISTORY_SELECT_COLUMNS)
-            .order("date", { ascending: false });
+            .order("date", { ascending: false })
+            .limit(200);
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
         persistState();
@@ -985,7 +1053,8 @@ async function insertHistoryToDb(entry) {
     }
 }
 
-async function refreshQuestStateFromBackend() {
+async function refreshQuestStateFromBackend(options = {}) {
+    const { refreshHistory = false } = options;
     if (isQuestRealtimeRefreshing) return false;
     if (dom.editorModal?.classList.contains("open")) return false;
     isQuestRealtimeRefreshing = true;
@@ -993,16 +1062,20 @@ async function refreshQuestStateFromBackend() {
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
         const questsLoaded = await loadQuestsFromDb({ progressive: false });
-        const historyLoaded = await loadHistoryFromDb();
+        const historyLoaded = refreshHistory ? await loadHistoryFromDb() : false;
         if (!questsLoaded && !historyLoaded) {
             return false;
         }
-        state.history = dedupeHistory(state.history);
+        if (refreshHistory) {
+            state.history = dedupeHistory(state.history);
+        }
         renderQuestList();
-        renderHistory();
+        if (refreshHistory) {
+            renderHistory();
+        }
         renderQuestProgressPanel();
         if (detailOpen && activeQuestId) {
-            const quest = state.quests.find((item) => item.id === activeQuestId);
+            const quest = await ensureQuestHydrated(activeQuestId);
             if (quest) {
                 state.activeQuestId = activeQuestId;
                 renderDetail(quest);
@@ -1017,13 +1090,20 @@ async function refreshQuestStateFromBackend() {
     }
 }
 
-function scheduleQuestRealtimeRefresh(delayMs = 180) {
+function scheduleQuestRealtimeRefresh(options = {}) {
+    const normalized = typeof options === "number" ? { delayMs: options } : options;
+    const { delayMs = 180, refreshHistory = false } = normalized;
+    if (refreshHistory) {
+        questRealtimeNeedsHistoryRefresh = true;
+    }
     if (questRealtimeRefreshTimer) {
         window.clearTimeout(questRealtimeRefreshTimer);
     }
     questRealtimeRefreshTimer = window.setTimeout(() => {
         questRealtimeRefreshTimer = null;
-        void refreshQuestStateFromBackend();
+        const shouldRefreshHistory = questRealtimeNeedsHistoryRefresh;
+        questRealtimeNeedsHistoryRefresh = false;
+        void refreshQuestStateFromBackend({ refreshHistory: shouldRefreshHistory });
     }, Math.max(0, delayMs));
 }
 
@@ -1031,7 +1111,7 @@ function startQuestPollingFallback() {
     if (questRealtimePollingTimer) return;
     questRealtimePollingTimer = window.setInterval(() => {
         if (document.hidden) return;
-        void refreshQuestStateFromBackend();
+        void refreshQuestStateFromBackend({ refreshHistory: false });
     }, QUEST_POLLING_FALLBACK_MS);
 }
 
@@ -1058,13 +1138,13 @@ async function initQuestRealtimeSync() {
         questRealtimeChannel = supabase
             .channel("astoria-quests-live")
             .on("postgres_changes", { event: "*", schema: "public", table: QUESTS_TABLE }, () => {
-                scheduleQuestRealtimeRefresh();
+                scheduleQuestRealtimeRefresh({ refreshHistory: false });
             })
             .on("postgres_changes", { event: "*", schema: "public", table: "quest_participants" }, () => {
-                scheduleQuestRealtimeRefresh();
+                scheduleQuestRealtimeRefresh({ refreshHistory: false });
             })
             .on("postgres_changes", { event: "*", schema: "public", table: QUEST_HISTORY_TABLE }, () => {
-                scheduleQuestRealtimeRefresh();
+                scheduleQuestRealtimeRefresh({ refreshHistory: true });
             })
             .subscribe((status) => {
                 if (status === "SUBSCRIBED") {
@@ -1802,7 +1882,9 @@ function renderQuestList() {
     });
 
     dom.track.querySelectorAll(".quest-details-btn").forEach((btn) => {
-        btn.addEventListener("click", () => openDetail(btn.dataset.id));
+        btn.addEventListener("click", () => {
+            void openDetail(btn.dataset.id);
+        });
     });
     dom.track.querySelectorAll(".quest-delete-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
@@ -1834,13 +1916,13 @@ function renderQuestList() {
         const shouldIgnore = (event) => event.target.closest(".quest-details-btn, .quest-delete-btn");
         card.addEventListener("click", (event) => {
             if (!questId || shouldIgnore(event)) return;
-            openDetail(questId);
+            void openDetail(questId);
         });
         card.addEventListener("keydown", (event) => {
             if (!questId || shouldIgnore(event)) return;
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                openDetail(questId);
+                void openDetail(questId);
             }
         });
     });
@@ -1896,7 +1978,7 @@ function updateHistoryFilterButtons() {
     });
 }
 
-function openDetail(questId) {
+async function openDetail(questId) {
     const quest = state.quests.find((item) => item.id === questId);
     if (!quest) return;
     state.activeQuestId = questId;
@@ -1907,6 +1989,12 @@ function openDetail(questId) {
     dom.detailModal.removeAttribute("inert");
     // Lock body scroll
     document.body.style.overflow = "hidden";
+    if (!quest.isHydrated) {
+        const hydrated = await ensureQuestHydrated(questId);
+        if (hydrated && state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+            renderDetail(hydrated);
+        }
+    }
 }
 
 function closeModal(modal) {
@@ -2227,7 +2315,7 @@ function navigateDetail(delta) {
     if (!filtered.length) return;
     const currentIndex = filtered.findIndex((quest) => quest.id === state.activeQuestId);
     const nextIndex = (currentIndex + delta + filtered.length) % filtered.length;
-    openDetail(filtered[nextIndex].id);
+    void openDetail(filtered[nextIndex].id);
 }
 
 function getTrackGap() {
@@ -2514,11 +2602,16 @@ function bindMediaDrag() {
     dom.mediaFrame.addEventListener("pointercancel", endDrag);
 }
 
-function openEditor(quest) {
-    state.editor.questId = quest ? quest.id : null;
-    state.editor.images = quest ? [...quest.images] : [];
-    state.editor.rewards = quest
-        ? quest.rewards.map((reward) => {
+async function openEditor(quest) {
+    let targetQuest = quest;
+    if (targetQuest?.id && !targetQuest.isHydrated) {
+        targetQuest = await ensureQuestHydrated(targetQuest.id);
+    }
+
+    state.editor.questId = targetQuest ? targetQuest.id : null;
+    state.editor.images = targetQuest ? [...targetQuest.images] : [];
+    state.editor.rewards = targetQuest
+        ? targetQuest.rewards.map((reward) => {
             const next = stripRewardElement(reward) || {};
             if (next.type === "competence") {
                 return {
@@ -2535,20 +2628,20 @@ function openEditor(quest) {
             };
         }).filter((reward) => (reward.type === "competence" ? reward.categoryId : reward.name))
         : [];
-    state.currentQuest.prerequisites = quest ? [...(quest.prerequisites || [])] : [];
-    dom.editorTitle.textContent = quest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
+    state.currentQuest.prerequisites = targetQuest ? [...(targetQuest.prerequisites || [])] : [];
+    dom.editorTitle.textContent = targetQuest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
 
-    dom.nameInput.value = quest ? quest.name : "";
-    dom.typeInput.value = quest ? normalizeQuestType(quest.type) : QUEST_TYPES[0];
-    dom.rankInput.value = quest ? quest.rank : QUEST_RANKS[0];
-    dom.statusInput.value = quest ? quest.status : "available";
-    dom.descInput.value = quest ? quest.description : "";
-    dom.maxParticipantsInput.value = quest ? quest.maxParticipants : 5;
-    dom.repeatableInput.checked = quest ? quest.repeatable : false;
-    dom.locationsInput.value = quest ? quest.locations.join(", ") : "";
+    dom.nameInput.value = targetQuest ? targetQuest.name : "";
+    dom.typeInput.value = targetQuest ? normalizeQuestType(targetQuest.type) : QUEST_TYPES[0];
+    dom.rankInput.value = targetQuest ? targetQuest.rank : QUEST_RANKS[0];
+    dom.statusInput.value = targetQuest ? targetQuest.status : "available";
+    dom.descInput.value = targetQuest ? targetQuest.description : "";
+    dom.maxParticipantsInput.value = targetQuest ? targetQuest.maxParticipants : 5;
+    dom.repeatableInput.checked = targetQuest ? targetQuest.repeatable : false;
+    dom.locationsInput.value = targetQuest ? targetQuest.locations.join(", ") : "";
     syncStatusDots(dom.statusInput.value);
     if (dom.validateBtn) {
-        dom.validateBtn.disabled = !quest;
+        dom.validateBtn.disabled = !targetQuest;
     }
     if (dom.rewardSelect) {
         dom.rewardSelect.value = "";
@@ -3109,10 +3202,14 @@ function bindEvents() {
     dom.joinBtn.addEventListener("click", toggleParticipation);
     dom.editBtn.addEventListener("click", () => {
         const quest = state.quests.find((item) => item.id === state.activeQuestId);
-        if (quest) openEditor(quest);
+        if (quest) {
+            void openEditor(quest);
+        }
     });
     dom.validateBtn.addEventListener("click", validateQuest);
-    dom.addBtn.addEventListener("click", () => openEditor(null));
+    dom.addBtn.addEventListener("click", () => {
+        void openEditor(null);
+    });
 
     dom.detailModal.addEventListener("click", (event) => {
         if (event.target.dataset.close === "true") {
