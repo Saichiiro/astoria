@@ -35,6 +35,8 @@ const QUEST_HISTORY_TABLE = "quest_history";
 const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
 const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
 const QUEST_HISTORY_SELECT_COLUMNS = "id,date,type,rank,name,gains,character_id,character_label";
+const HISTORY_INITIAL_VISIBLE = 30;
+const HISTORY_VISIBLE_STEP = 30;
 const QUEST_INITIAL_BATCH_SIZE = 8;
 const QUEST_BACKGROUND_BATCH_SIZE = 24;
 const QUEST_BACKGROUND_PRELOAD_DELAY_MS = 350;
@@ -94,7 +96,9 @@ const state = {
         baseZoom: 1
     },
     isValidating: false,
-    adminNotes: {}
+    adminNotes: {},
+    historyVisibleCount: HISTORY_INITIAL_VISIBLE,
+    syncBadgeHideTimer: null
 };
 
 let questRealtimeChannel = null;
@@ -197,6 +201,8 @@ const dom = {
     historyFilters: document.getElementById("questHistoryFilters"),
     historyMeta: document.getElementById("questHistoryMeta"),
     historyBody: document.getElementById("questHistoryBody"),
+    historyLoadMore: document.getElementById("questHistoryLoadMore"),
+    syncBadge: document.getElementById("questSyncBadge"),
     detailModal: document.getElementById("questDetailModal"),
     detailTitle: document.getElementById("questDetailTitle"),
     detailType: document.getElementById("questDetailType"),
@@ -264,6 +270,31 @@ const dom = {
     cropperConfirm: document.getElementById("questCropperConfirm")
 };
 
+function setSyncBadge(syncing, message = "") {
+    const badge = dom.syncBadge;
+    if (!badge) return;
+    if (state.syncBadgeHideTimer) {
+        window.clearTimeout(state.syncBadgeHideTimer);
+        state.syncBadgeHideTimer = null;
+    }
+
+    if (syncing) {
+        badge.textContent = message || "Syncing...";
+        badge.hidden = false;
+        badge.classList.add("is-visible", "is-syncing");
+        return;
+    }
+
+    badge.textContent = message || "Synced just now";
+    badge.hidden = false;
+    badge.classList.add("is-visible");
+    badge.classList.remove("is-syncing");
+    state.syncBadgeHideTimer = window.setTimeout(() => {
+        badge.classList.remove("is-visible", "is-syncing");
+        badge.hidden = true;
+    }, 1200);
+}
+
 function normalize(value) {
     return String(value || "").trim().toLowerCase();
 }
@@ -289,6 +320,30 @@ function formatHistoryDate(value) {
         return parsed.toLocaleString("fr-FR");
     }
     return String(value);
+}
+
+function parseHistoryDateToTimestamp(value) {
+    if (!value) return 0;
+    if (value instanceof Date) return value.getTime();
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct.getTime();
+    const text = String(value).trim();
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+    if (!match) return 0;
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
+    const hour = Number(match[4] || 0);
+    const minute = Number(match[5] || 0);
+    const second = Number(match[6] || 0);
+    const fallback = new Date(year, month, day, hour, minute, second);
+    return Number.isNaN(fallback.getTime()) ? 0 : fallback.getTime();
+}
+
+function sortHistoryByMostRecent(list) {
+    return [...(Array.isArray(list) ? list : [])].sort((a, b) =>
+        parseHistoryDateToTimestamp(b?.date) - parseHistoryDateToTimestamp(a?.date)
+    );
 }
 
 function formatCategory(value) {
@@ -899,6 +954,7 @@ async function loadHistoryFromDb() {
             .limit(200);
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
+        state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
         persistState();
         return true;
     } catch (error) {
@@ -1058,6 +1114,7 @@ async function refreshQuestStateFromBackend(options = {}) {
     if (isQuestRealtimeRefreshing) return false;
     if (dom.editorModal?.classList.contains("open")) return false;
     isQuestRealtimeRefreshing = true;
+    setSyncBadge(true, refreshHistory ? "Syncing quests and history..." : "Syncing quests...");
     try {
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
@@ -1087,6 +1144,7 @@ async function refreshQuestStateFromBackend(options = {}) {
         return true;
     } finally {
         isQuestRealtimeRefreshing = false;
+        setSyncBadge(false);
     }
 }
 
@@ -1856,6 +1914,8 @@ function renderQuestList() {
         const adminAction = state.isAdmin
             ? `<button class="quest-delete-btn" type="button" data-id="${clean(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
             : "";
+        const imageLoading = index < 2 ? "eager" : "lazy";
+        const imagePriority = index === 0 ? "high" : "low";
         card.innerHTML = `
             <div class="quest-card-content">
                 <div class="quest-card-header">
@@ -1863,7 +1923,7 @@ function renderQuestList() {
                     <span class="quest-rank-badge">${clean(quest.rank)}</span>
                 </div>
                 <div class="quest-card-media">
-                    <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" draggable="false">
+                    <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" loading="${imageLoading}" decoding="async" fetchpriority="${imagePriority}" draggable="false">
                 </div>
                 <div class="quest-card-meta">
                     <span class="quest-type-pill">${clean(quest.type)}</span>
@@ -1957,11 +2017,15 @@ function renderHistory() {
     const filtered = state.filters.historyType === "all"
         ? scoped
         : scoped.filter((item) => item.type === state.filters.historyType);
+    const sorted = sortHistoryByMostRecent(filtered);
+    const visibleCount = Math.max(HISTORY_INITIAL_VISIBLE, Number(state.historyVisibleCount) || HISTORY_INITIAL_VISIBLE);
+    const visibleRows = sorted.slice(0, visibleCount);
 
-    const plural = filtered.length !== 1;
-    dom.historyMeta.textContent = `${filtered.length} Qu\u00EAte${plural ? "s" : ""} ex\u00E9cut\u00E9e${plural ? "s" : ""}`;
+    const plural = sorted.length !== 1;
+    const showing = Math.min(visibleRows.length, sorted.length);
+    dom.historyMeta.textContent = `${sorted.length} Qu\u00EAte${plural ? "s" : ""} ex\u00E9cut\u00E9e${plural ? "s" : ""} \u2022 ${showing} affich\u00E9e${showing > 1 ? "s" : ""}`;
 
-    dom.historyBody.innerHTML = filtered.map((entry) => `
+    dom.historyBody.innerHTML = visibleRows.map((entry) => `
         <tr>
             <td>${clean(formatHistoryDate(entry.date))}</td>
             <td>${clean(entry.type)}</td>
@@ -1970,6 +2034,16 @@ function renderHistory() {
             <td>${clean(entry.gains)}</td>
         </tr>
     `).join("");
+
+    if (dom.historyLoadMore) {
+        const hasMore = sorted.length > visibleRows.length;
+        dom.historyLoadMore.hidden = !hasMore;
+        dom.historyLoadMore.disabled = !hasMore;
+        if (hasMore) {
+            const remaining = sorted.length - visibleRows.length;
+            dom.historyLoadMore.textContent = `Charger ${Math.min(HISTORY_VISIBLE_STEP, remaining)} entr\u00E9es plus anciennes`;
+        }
+    }
 }
 
 function updateHistoryFilterButtons() {
@@ -3226,7 +3300,12 @@ function bindEvents() {
         const btn = event.target.closest(".quest-history-filter");
         if (!btn) return;
         state.filters.historyType = btn.dataset.value;
+        state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
         updateHistoryFilterButtons();
+        renderHistory();
+    });
+    dom.historyLoadMore?.addEventListener("click", () => {
+        state.historyVisibleCount += HISTORY_VISIBLE_STEP;
         renderHistory();
     });
     dom.progressSave?.addEventListener("click", () => {
@@ -3326,6 +3405,7 @@ async function initQuestPanelShortcuts() {
 async function init() {
     await refreshSessionUser?.();
     await initCharacterSummary({ enableDropdown: true, showKaels: true });
+    setSyncBadge(true, "Loading latest data...");
     if (SHOULD_REDUCE_QUEST_EFFECTS) {
         document.querySelector(".quest-page")?.classList.add("quest-perf-lite");
     }
@@ -3361,6 +3441,7 @@ async function init() {
     await initQuestRealtimeSync();
     renderQuestList();
     renderHistory();
+    setSyncBadge(false, "Ready");
 }
 
 init();

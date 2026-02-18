@@ -131,6 +131,7 @@ body.quest-board {
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    gap: 10px;
     margin: 12px 0 24px;
 }
 
@@ -149,6 +150,31 @@ body.quest-board {
 .quest-quick-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 20px rgba(255, 106, 162, 0.24);
+}
+
+.quest-sync-badge {
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #2f5e7f;
+    background: rgba(167, 221, 255, 0.38);
+    border: 1px solid rgba(47, 94, 127, 0.25);
+    opacity: 0;
+    transform: translateY(2px);
+    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+
+.quest-sync-badge.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.quest-sync-badge.is-syncing {
+    color: #6a4a00;
+    background: rgba(255, 213, 109, 0.35);
+    border-color: rgba(106, 74, 0, 0.25);
 }
 
 .quest-add-btn {
@@ -759,6 +785,22 @@ body.quest-board {
 
 .quest-history-table tbody tr:nth-child(even) {
     background: rgba(255, 106, 162, 0.08);
+}
+
+.quest-history-load-more {
+    margin: 12px auto 0;
+    display: block;
+    border: 1px solid rgba(255, 106, 162, 0.35);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--quest-pink);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.quest-history-load-more[hidden] {
+    display: none;
 }
 
 .quest-modal {
