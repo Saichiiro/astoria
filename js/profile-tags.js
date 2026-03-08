@@ -238,10 +238,30 @@ export function initProfileTagSelector({ characterId, isAdmin = false } = {}) {
     let selectedIds = canEdit ? loadSelected(characterId) : [];
     let searchQuery = '';
     const groupState = {};
+    let cleanupMenuAutoUpdate = null;
 
     const isOpen = () => !menu.hidden;
 
-    function positionMenu() {
+    async function positionMenu() {
+        if (typeof window !== 'undefined' && typeof window.FloatingUIDOM !== 'undefined') {
+            const { x, y } = await window.FloatingUIDOM.computePosition(toggle, menu, {
+                strategy: 'fixed',
+                placement: 'right-start',
+                middleware: [
+                    window.FloatingUIDOM.offset(8),
+                    window.FloatingUIDOM.flip({
+                        padding: 10,
+                        fallbackPlacements: ['left-start', 'bottom-start', 'top-start']
+                    }),
+                    window.FloatingUIDOM.shift({ padding: 10 })
+                ]
+            });
+
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            return;
+        }
+
         const padding = 10;
         const rect = toggle.getBoundingClientRect();
 
@@ -270,16 +290,26 @@ export function initProfileTagSelector({ characterId, isAdmin = false } = {}) {
     }
 
     const setOpen = (open) => {
+        if (!open && cleanupMenuAutoUpdate) {
+            cleanupMenuAutoUpdate();
+            cleanupMenuAutoUpdate = null;
+        }
+
         menu.hidden = !open;
         toggle.textContent = open ? MINUS : PLUS;
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 
         if (open) {
             menu.style.visibility = 'hidden';
-            requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
                 renderMenu();
-                positionMenu();
+                await positionMenu();
                 menu.style.visibility = 'visible';
+                if (typeof window !== 'undefined' && typeof window.FloatingUIDOM !== 'undefined' && typeof window.FloatingUIDOM.autoUpdate === 'function') {
+                    cleanupMenuAutoUpdate = window.FloatingUIDOM.autoUpdate(toggle, menu, () => {
+                        void positionMenu();
+                    });
+                }
                 const search = menu.querySelector('.profile-tags-search-input');
                 if (search) search.focus();
             });

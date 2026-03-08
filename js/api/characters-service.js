@@ -6,6 +6,48 @@ let authRefreshPromise = null;
 const USER_CHARACTERS_CACHE_TTL_MS = 60000;
 const userCharactersCache = new Map();
 
+function rowNeedsProfileHydration(row) {
+    if (!row || !row.id) return false;
+    return typeof row.profile_data === 'undefined' || row.profile_data === null;
+}
+
+async function hydrateCharacterRows(supabase, rows) {
+    if (!Array.isArray(rows) || rows.length === 0) return Array.isArray(rows) ? rows : [];
+
+    const missingIds = rows
+        .filter(rowNeedsProfileHydration)
+        .map((row) => row.id)
+        .filter(Boolean);
+
+    if (missingIds.length === 0) {
+        return rows;
+    }
+
+    const { data, error } = await supabase
+        .from('characters')
+        .select('id, profile_data, kaels, is_active')
+        .in('id', missingIds);
+
+    if (error) {
+        if (!isAbortLikeError(error)) {
+            console.warn('Could not hydrate character rows with profile_data:', error);
+        }
+        return rows;
+    }
+
+    const extrasById = new Map((data || []).map((row) => [row.id, row]));
+    return rows.map((row) => {
+        const extra = extrasById.get(row.id);
+        if (!extra) return row;
+        return {
+            ...row,
+            profile_data: row.profile_data ?? extra.profile_data ?? null,
+            kaels: row.kaels ?? extra.kaels,
+            is_active: typeof row.is_active === 'undefined' ? extra.is_active : row.is_active
+        };
+    });
+}
+
 function readUserCharactersCache(userId) {
     const entry = userCharactersCache.get(userId);
     if (!entry) return null;
@@ -85,7 +127,7 @@ export async function getUserCharacters(userId) {
             return [];
         }
 
-        const output = data || [];
+        const output = await hydrateCharacterRows(supabase, data || []);
         writeUserCharactersCache(userId, output);
         return output;
     } catch (error) {
@@ -125,7 +167,7 @@ export async function getAllCharacters() {
             return [];
         }
 
-        return data || [];
+        return await hydrateCharacterRows(supabase, data || []);
     } catch (error) {
         if (!isAbortLikeError(error)) {
             console.error('Error in getAllCharacters:', error);

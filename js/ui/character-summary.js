@@ -5,6 +5,34 @@ let authModule = null;
 let listenersBound = false;
 let lastInitState = null;
 
+function safeProfileData(raw) {
+    if (!raw) return {};
+    if (typeof raw === "object") return raw;
+    if (typeof raw === "string") {
+        try {
+            return JSON.parse(raw);
+        } catch {
+            return {};
+        }
+    }
+    return {};
+}
+
+function resolveAvatarUrl(profileData) {
+    const safeData = safeProfileData(profileData);
+    const ficheSummary = safeData.fiche_summary && typeof safeData.fiche_summary === "object"
+        ? safeData.fiche_summary
+        : null;
+
+    return (
+        safeData.avatar_url ||
+        safeData.avatarUrl ||
+        ficheSummary?.avatar_url ||
+        ficheSummary?.avatarUrl ||
+        ""
+    );
+}
+
 async function loadAuthModule() {
     if (authModule) return authModule;
     try {
@@ -63,13 +91,13 @@ export function buildRoleText(character) {
 
 export function buildSummary(context) {
     if (context?.character) {
-        const profileData = context.character.profile_data || {};
+        const profileData = safeProfileData(context.character.profile_data);
         const stored = profileData.fiche_summary;
         const base = {
             id: context.character.id,
             name: context.character.name || "Personnage",
             role: buildRoleText(context.character),
-            avatar_url: profileData.avatar_url || ""
+            avatar_url: resolveAvatarUrl(profileData)
         };
         if (stored && typeof stored === "object") {
             return {
@@ -120,9 +148,16 @@ export function applySummaryToElements(elements, summary) {
     if (avatarImgEl) {
         if (avatarUrl) {
             avatarImgEl.src = avatarUrl;
+            avatarImgEl.onerror = () => {
+                avatarImgEl.hidden = true;
+                avatarImgEl.removeAttribute("src");
+                initialEl.hidden = false;
+                initialEl.textContent = name ? name.charAt(0).toUpperCase() : "?";
+            };
             avatarImgEl.hidden = false;
             initialEl.hidden = true;
         } else {
+            avatarImgEl.onerror = null;
             avatarImgEl.hidden = true;
             avatarImgEl.removeAttribute("src");
             initialEl.hidden = false;
@@ -176,6 +211,11 @@ function updateSoulCounts(characterId) {
  */
 function formatKaels(amount) {
     return new Intl.NumberFormat('fr-FR').format(amount);
+}
+
+function getCharacterKaels(character) {
+    const value = Number(character?.kaels);
+    return Number.isFinite(value) ? value : 0;
 }
 
 /**
@@ -256,11 +296,18 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
             const avatar = document.createElement("div");
             avatar.className = "character-dropdown-avatar";
-            const profileData = char.profile_data || {};
-            if (profileData.avatar_url) {
+            const profileData = safeProfileData(char.profile_data);
+            const avatarUrl = resolveAvatarUrl(profileData);
+            if (avatarUrl) {
                 const img = document.createElement("img");
-                img.src = profileData.avatar_url;
+                img.src = avatarUrl;
                 img.alt = char.name || "Avatar";
+                img.loading = "lazy";
+                img.decoding = "async";
+                img.onerror = () => {
+                    img.remove();
+                    avatar.textContent = (char.name || "?").charAt(0).toUpperCase();
+                };
                 avatar.appendChild(img);
             } else {
                 avatar.textContent = (char.name || "?").charAt(0).toUpperCase();
@@ -280,8 +327,17 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
             if (char.class) parts.push(char.class);
             role.textContent = parts.length ? parts.join(" - ") : "Personnage";
 
+            const meta = document.createElement("div");
+            meta.className = "character-dropdown-meta";
+
+            const kaels = document.createElement("span");
+            kaels.className = "character-dropdown-kaels";
+            kaels.textContent = `${formatKaels(getCharacterKaels(char))} kaels`;
+
             text.appendChild(name);
             text.appendChild(role);
+            meta.appendChild(kaels);
+            text.appendChild(meta);
 
             item.appendChild(avatar);
             item.appendChild(text);
@@ -352,16 +408,34 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
 
     let isOpen = false;
     const originalParent = dropdownEl.parentElement;
+    let cleanupAutoUpdate = null;
 
-    const positionDropdown = () => {
+    const hasFloatingUI = typeof window !== "undefined" && typeof window.FloatingUIDOM !== "undefined";
+
+    const positionDropdown = async () => {
         if (dropdownEl.hidden) return;
-        const rect = avatarEl.getBoundingClientRect();
 
         dropdownEl.style.position = "fixed";
         dropdownEl.style.visibility = "hidden";
-        dropdownEl.style.left = `${rect.left}px`;
-        dropdownEl.style.top = `${rect.bottom + 8}px`;
 
+        if (hasFloatingUI) {
+            const { x, y } = await window.FloatingUIDOM.computePosition(avatarEl, dropdownEl, {
+                strategy: "fixed",
+                placement: "bottom-start",
+                middleware: [
+                    window.FloatingUIDOM.offset(10),
+                    window.FloatingUIDOM.flip({ padding: 12 }),
+                    window.FloatingUIDOM.shift({ padding: 12 })
+                ]
+            });
+
+            dropdownEl.style.left = `${x}px`;
+            dropdownEl.style.top = `${y}px`;
+            dropdownEl.style.visibility = "visible";
+            return;
+        }
+
+        const rect = avatarEl.getBoundingClientRect();
         const dropdownRect = dropdownEl.getBoundingClientRect();
         const margin = 8;
         let left = rect.left;
@@ -383,7 +457,7 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
         dropdownEl.style.visibility = "visible";
     };
 
-    const openDropdown = () => {
+    const openDropdown = async () => {
         if (isOpen) return;
         isOpen = true;
         dropdownEl.hidden = false;
@@ -391,12 +465,23 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
             dropdownEl.dataset.originalParent = "character-avatar-wrapper";
             document.body.appendChild(dropdownEl);
         }
-        positionDropdown();
+
+        await positionDropdown();
+
+        if (hasFloatingUI && typeof window.FloatingUIDOM.autoUpdate === "function") {
+            cleanupAutoUpdate = window.FloatingUIDOM.autoUpdate(avatarEl, dropdownEl, () => {
+                void positionDropdown();
+            });
+        }
     };
 
     const closeDropdown = () => {
         if (!isOpen) return;
         isOpen = false;
+        if (cleanupAutoUpdate) {
+            cleanupAutoUpdate();
+            cleanupAutoUpdate = null;
+        }
         dropdownEl.hidden = true;
         dropdownEl.style.position = "";
         dropdownEl.style.left = "";
@@ -407,28 +492,30 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
         }
     };
 
-    const toggleDropdown = () => {
+    const toggleDropdown = async () => {
         if (isOpen) {
             closeDropdown();
         } else {
-            openDropdown();
+            await openDropdown();
         }
     };
 
     avatarEl.addEventListener("click", (e) => {
         e.stopPropagation();
-        toggleDropdown();
+        void toggleDropdown();
     });
 
     avatarEl.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            toggleDropdown();
+            void toggleDropdown();
         }
     });
 
-    window.addEventListener("scroll", positionDropdown, true);
-    window.addEventListener("resize", positionDropdown);
+    if (!hasFloatingUI) {
+        window.addEventListener("scroll", positionDropdown, true);
+        window.addEventListener("resize", positionDropdown);
+    }
 
     document.addEventListener("click", (e) => {
         if (!isOpen) return;

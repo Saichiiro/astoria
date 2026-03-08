@@ -3,6 +3,13 @@
 // ============================================================================
 
 let currentPopover = null;
+let currentPopoverCleanup = null;
+let currentOutsideClickHandler = null;
+let currentEscapeHandler = null;
+
+function hasFloatingUI() {
+    return typeof window !== 'undefined' && typeof window.FloatingUIDOM !== 'undefined';
+}
 
 export function showItemDetailsPopover(item, anchorElement) {
     // Fermer le popover existant s'il y en a un
@@ -15,12 +22,11 @@ export function showItemDetailsPopover(item, anchorElement) {
     // Toujours monter dans document.body pour éviter tout conflit de stacking context
     document.body.appendChild(popover);
     // Position the popover next to the anchor element
-    positionPopover(popover, anchorElement);
+    void positionPopover(popover, anchorElement);
     currentPopover = popover;
 
     // Afficher le popover
-    popover.style.opacity = '1';
-    popover.style.pointerEvents = 'auto';
+    popover.classList.add('visible');
     // Event listeners
     const closeBtn = popover.querySelector('.item-details-popover-close');
     if (closeBtn) {
@@ -34,6 +40,7 @@ export function showItemDetailsPopover(item, anchorElement) {
             document.removeEventListener('click', outsideClickHandler);
         }
     };
+    currentOutsideClickHandler = outsideClickHandler;
 
     // Petit délai pour éviter que le clic actuel ne ferme immédiatement
     setTimeout(() => {
@@ -48,12 +55,31 @@ export function showItemDetailsPopover(item, anchorElement) {
             document.removeEventListener('keydown', escapeHandler);
         }
     };
+    currentEscapeHandler = escapeHandler;
     document.addEventListener('keydown', escapeHandler);
+
+    if (hasFloatingUI() && typeof window.FloatingUIDOM.autoUpdate === 'function') {
+        currentPopoverCleanup = window.FloatingUIDOM.autoUpdate(anchorElement, popover, () => {
+            void positionPopover(popover, anchorElement);
+        });
+    }
 
     return popover;
 }
 
 export function closeItemDetailsPopover() {
+    if (currentPopoverCleanup) {
+        currentPopoverCleanup();
+        currentPopoverCleanup = null;
+    }
+    if (currentOutsideClickHandler) {
+        document.removeEventListener('click', currentOutsideClickHandler);
+        currentOutsideClickHandler = null;
+    }
+    if (currentEscapeHandler) {
+        document.removeEventListener('keydown', currentEscapeHandler);
+        currentEscapeHandler = null;
+    }
     if (currentPopover) {
         if (currentPopover.parentNode) {
             currentPopover.parentNode.removeChild(currentPopover);
@@ -62,7 +88,31 @@ export function closeItemDetailsPopover() {
     }
 }
 
-function positionPopover(popover, anchorElement) {
+async function positionPopover(popover, anchorElement) {
+    if (hasFloatingUI()) {
+        const { x, y, placement } = await window.FloatingUIDOM.computePosition(anchorElement, popover, {
+            strategy: 'fixed',
+            placement: 'right-start',
+            middleware: [
+                window.FloatingUIDOM.offset(12),
+                window.FloatingUIDOM.flip({
+                    padding: 16,
+                    fallbackPlacements: ['left-start', 'bottom-start', 'top-start']
+                }),
+                window.FloatingUIDOM.shift({ padding: 16 })
+            ]
+        });
+
+        popover.dataset.placement = String(placement || 'right').split('-')[0];
+        popover.style.position = 'fixed';
+        popover.style.left = `${x}px`;
+        popover.style.top = `${y}px`;
+        popover.style.zIndex = '2147483647';
+        popover.style.maxHeight = `${Math.max(240, window.innerHeight - 32)}px`;
+        popover.style.overflowY = 'auto';
+        return;
+    }
+
     // Get anchor position relative to viewport
     const anchorRect = anchorElement.getBoundingClientRect();
     const popoverRect = popover.getBoundingClientRect();
@@ -114,6 +164,11 @@ function positionPopover(popover, anchorElement) {
     top = Math.max(20, Math.min(top, window.innerHeight - popoverRect.height - 20));
 
     // Apply position (fixed positioning relative to viewport)
+    popover.dataset.placement = placement === 'below'
+        ? 'bottom'
+        : placement === 'above'
+            ? 'top'
+            : placement;
     popover.style.position = 'fixed';
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;

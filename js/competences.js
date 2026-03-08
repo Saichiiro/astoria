@@ -1475,6 +1475,7 @@
         bonusTooltipEl = document.createElement("div");
         bonusTooltipEl.className = "skills-bonus-tooltip";
         bonusTooltipEl.hidden = true;
+        bonusTooltipEl.style.position = "fixed";
         document.body.appendChild(bonusTooltipEl);
         return bonusTooltipEl;
     }
@@ -1512,7 +1513,70 @@
             .join("");
     }
 
-    function showBonusTooltip(mouseX, mouseY, payload) {
+    function createMouseVirtualElement(x, y) {
+        return {
+            getBoundingClientRect() {
+                return {
+                    x,
+                    y,
+                    top: y,
+                    right: x,
+                    bottom: y,
+                    left: x,
+                    width: 0,
+                    height: 0
+                };
+            }
+        };
+    }
+
+    async function positionBonusTooltip(reference) {
+        const tooltip = ensureBonusTooltip();
+        if (typeof window !== "undefined" && typeof window.FloatingUIDOM !== "undefined") {
+            const { x, y } = await window.FloatingUIDOM.computePosition(reference, tooltip, {
+                strategy: "fixed",
+                placement: "right-start",
+                middleware: [
+                    window.FloatingUIDOM.offset(14),
+                    window.FloatingUIDOM.flip({
+                        padding: 8,
+                        fallbackPlacements: ["left-start", "top-start", "bottom-start"]
+                    }),
+                    window.FloatingUIDOM.shift({ padding: 8 })
+                ]
+            });
+
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+            tooltip.style.transform = "none";
+            return;
+        }
+
+        const point = typeof reference?.getBoundingClientRect === "function"
+            ? reference.getBoundingClientRect()
+            : { left: 0, top: 0 };
+        const mouseX = Number(point.left) || 0;
+        const mouseY = Number(point.top) || 0;
+        const offset = 15;
+        const tooltipWidth = 240;
+        const tooltipHeight = tooltip.offsetHeight || 200;
+
+        let left = mouseX + offset;
+        let top = mouseY + offset;
+
+        if (left + tooltipWidth > window.innerWidth) {
+            left = mouseX - tooltipWidth - offset;
+        }
+        if (top + tooltipHeight > window.innerHeight) {
+            top = mouseY - tooltipHeight - offset;
+        }
+
+        tooltip.style.left = `${Math.max(8, left)}px`;
+        tooltip.style.top = `${Math.max(8, top)}px`;
+        tooltip.style.transform = "none";
+    }
+
+    function showBonusTooltip(anchor, payload) {
         const tooltip = ensureBonusTooltip();
         const natif = Number(payload?.natif) || 0;
         const objets = Number(payload?.objets) || 0;
@@ -1528,26 +1592,11 @@
             <div class="skills-bonus-tooltip-row"><strong>Nokorah</strong><span>${formatSignedBonus(nokorah)}</span></div>
             <ul class="skills-bonus-tooltip-list">${renderTooltipDetails(nokorahDetails, "Aucun bonus Nokorah actif.")}</ul>
         `;
-        // Position tooltip near mouse cursor with offset
-        const offset = 15;
-        const tooltipWidth = 240;
-        const tooltipHeight = tooltip.offsetHeight || 200;
-
-        // Keep tooltip within viewport bounds
-        let left = mouseX + offset;
-        let top = mouseY + offset;
-
-        if (left + tooltipWidth > window.innerWidth) {
-            left = mouseX - tooltipWidth - offset;
-        }
-        if (top + tooltipHeight > window.innerHeight) {
-            top = mouseY - tooltipHeight - offset;
-        }
-
-        tooltip.style.left = `${Math.max(8, left)}px`;
-        tooltip.style.top = `${Math.max(8, top)}px`;
-        tooltip.style.transform = "none";
         tooltip.hidden = false;
+        const reference = anchor instanceof HTMLElement
+            ? anchor
+            : createMouseVirtualElement(Number(anchor?.x) || 0, Number(anchor?.y) || 0);
+        void positionBonusTooltip(reference);
     }
 
     function bindBonusTooltip(element, payload) {
@@ -1557,28 +1606,12 @@
         element.onmouseenter = (e) => {
             hideBonusTooltip();
             bonusTooltipTimer = setTimeout(() => {
-                showBonusTooltip(e.clientX, e.clientY, payload);
+                showBonusTooltip({ x: e.clientX, y: e.clientY }, payload);
 
-                // Track mouse movement to update tooltip position
                 mouseMoveHandler = (moveEvent) => {
                     const tooltip = bonusTooltipEl;
                     if (tooltip && !tooltip.hidden) {
-                        const offset = 15;
-                        const tooltipWidth = 240;
-                        const tooltipHeight = tooltip.offsetHeight || 200;
-
-                        let left = moveEvent.clientX + offset;
-                        let top = moveEvent.clientY + offset;
-
-                        if (left + tooltipWidth > window.innerWidth) {
-                            left = moveEvent.clientX - tooltipWidth - offset;
-                        }
-                        if (top + tooltipHeight > window.innerHeight) {
-                            top = moveEvent.clientY - tooltipHeight - offset;
-                        }
-
-                        tooltip.style.left = `${Math.max(8, left)}px`;
-                        tooltip.style.top = `${Math.max(8, top)}px`;
+                        void positionBonusTooltip(createMouseVirtualElement(moveEvent.clientX, moveEvent.clientY));
                     }
                 };
                 element.addEventListener('mousemove', mouseMoveHandler);

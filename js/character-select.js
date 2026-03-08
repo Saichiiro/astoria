@@ -16,6 +16,9 @@ const dom = {
     status: document.getElementById('characterSelectStatus'),
     userName: document.getElementById('currentUserName'),
     userRole: document.getElementById('currentUserRole'),
+    pageSubtitle: document.getElementById('characterSelectSubtitle'),
+    slotsUsed: document.getElementById('characterSlotsUsed'),
+    activeName: document.getElementById('characterActiveName'),
     logoutBtns: Array.from(document.querySelectorAll('#logoutButton')),
     backdrop: document.getElementById('createCharacterBackdrop'),
     form: document.getElementById('createCharacterForm'),
@@ -52,7 +55,13 @@ function safeProfileData(raw) {
 function getAvatarUrl(character) {
     if (!character) return '';
     const profileData = safeProfileData(character.profile_data);
-    return profileData.avatar_url || '';
+    return (
+        profileData.avatar_url ||
+        profileData.avatarUrl ||
+        profileData?.fiche_summary?.avatar_url ||
+        profileData?.fiche_summary?.avatarUrl ||
+        ''
+    );
 }
 
 function getCharacterSubtitle(character) {
@@ -61,6 +70,26 @@ function getCharacterSubtitle(character) {
     const charClass = (character.class || '').trim();
     if (race && charClass) return `${race} \u2022 ${charClass}`;
     return race || charClass || '';
+}
+
+function getCharacterKaels(character) {
+    const value = Number(character?.kaels);
+    return Number.isFinite(value) ? value : 0;
+}
+
+function formatKaels(value) {
+    return Number(value || 0).toLocaleString('fr-FR');
+}
+
+function formatSlotIndex(slotIndex) {
+    return String(slotIndex + 1).padStart(2, '0');
+}
+
+function createDetailPill(text, tone = '') {
+    const pill = document.createElement('span');
+    pill.className = `character-card-pill${tone ? ` character-card-pill--${tone}` : ''}`;
+    pill.textContent = text;
+    return pill;
 }
 
 function createAvatarBlock(character, isEmpty) {
@@ -101,32 +130,73 @@ function createAvatarBlock(character, isEmpty) {
 function createCharacterCard(character, slotIndex) {
     const isEmpty = !character;
     const card = document.createElement('button');
+    const isActive = character?.id === activeCharacterId;
     card.type = 'button';
-    card.className = `character-card${isEmpty ? ' is-empty' : ''} tw-card tw-card-hover`;
+    card.className = `character-card${isEmpty ? ' is-empty' : ''}${isActive ? ' is-active' : ''} tw-card tw-card-hover`;
     card.dataset.action = isEmpty ? 'create' : 'select';
     card.dataset.slot = String(slotIndex + 1);
 
     if (character && character.id) {
         card.dataset.characterId = character.id;
-        if (character.id === activeCharacterId) {
-            card.classList.add('is-active');
-        }
     }
+
+    card.setAttribute(
+        'aria-label',
+        isEmpty
+            ? `Créer un personnage dans l'emplacement ${formatSlotIndex(slotIndex)}`
+            : `Sélectionner ${character.name || 'ce personnage'}`
+    );
+
+    const head = document.createElement('div');
+    head.className = 'character-card-head';
+
+    const slot = document.createElement('span');
+    slot.className = 'character-card-slot';
+    slot.textContent = `Slot ${formatSlotIndex(slotIndex)}`;
+
+    const state = document.createElement('span');
+    state.className = `character-card-state${isActive ? ' is-active' : ''}${isEmpty ? ' is-empty' : ''}`;
+    state.textContent = isEmpty ? 'Libre' : (isActive ? 'Actif' : 'Pret');
+    head.append(slot, state);
+
+    const body = document.createElement('div');
+    body.className = 'character-card-body';
+
+    const portrait = createAvatarBlock(character, isEmpty);
+    portrait.classList.add('character-card-portrait');
 
     const name = document.createElement('div');
     name.className = 'character-card-name';
     name.textContent = isEmpty ? 'Nouveau personnage' : (character.name || 'Sans nom');
 
-    card.appendChild(name);
-    card.appendChild(createAvatarBlock(character, isEmpty));
+    const subtitle = document.createElement('div');
+    subtitle.className = 'character-card-subtitle';
+    subtitle.textContent = isEmpty
+        ? 'Ajoute un profil.'
+        : (getCharacterSubtitle(character) || 'Pret a jouer.');
 
-    const subtitleText = isEmpty ? 'Ajouter un personnage' : getCharacterSubtitle(character);
-    if (subtitleText) {
-        const subtitle = document.createElement('div');
-        subtitle.className = 'character-card-subtitle';
-        subtitle.textContent = subtitleText;
-        card.appendChild(subtitle);
+    const meta = document.createElement('div');
+    meta.className = 'character-card-meta';
+
+    if (isEmpty) {
+        meta.appendChild(createDetailPill('Nouveau', 'ghost'));
+    } else {
+        const kaels = document.createElement('span');
+        kaels.className = 'character-card-kaels';
+        kaels.textContent = `${formatKaels(getCharacterKaels(character))} kaels`;
+        meta.appendChild(kaels);
     }
+
+    const footer = document.createElement('div');
+    footer.className = 'character-card-footer';
+
+    const action = document.createElement('span');
+    action.className = 'character-card-action';
+    action.textContent = isEmpty ? 'Creer' : 'Entrer';
+
+    footer.appendChild(action);
+    body.append(name, subtitle, meta, footer);
+    card.append(head, portrait, body);
     return card;
 }
 
@@ -176,10 +246,14 @@ async function handleCardAction(card) {
     const characterId = card.dataset.characterId;
     if (!characterId) return;
     setStatus('Chargement du personnage...');
+    card.disabled = true;
+    card.classList.add('is-loading');
 
     const res = await setActiveCharacter(characterId);
     if (!res || !res.success) {
         setStatus('Impossible de s\u00e9lectionner ce personnage.');
+        card.disabled = false;
+        card.classList.remove('is-loading');
         return;
     }
     window.location.href = 'profil.html';
@@ -201,6 +275,19 @@ function updateHeader() {
     if (dom.userRole) {
         dom.userRole.textContent = (currentUser?.role || 'player').toUpperCase();
     }
+    if (dom.pageSubtitle) {
+        const remaining = Math.max(0, MAX_SLOTS - userCharacters.length);
+        dom.pageSubtitle.textContent = remaining > 0
+            ? `${userCharacters.length}/${MAX_SLOTS} persos actifs, ${remaining} slot(s) libre(s).`
+            : `${MAX_SLOTS}/${MAX_SLOTS} persos actifs.`;
+    }
+    if (dom.slotsUsed) {
+        dom.slotsUsed.textContent = `${userCharacters.length}/${MAX_SLOTS}`;
+    }
+    if (dom.activeName) {
+        const activeCharacter = userCharacters.find((character) => character.id === activeCharacterId);
+        dom.activeName.textContent = activeCharacter?.name || 'Aucun';
+    }
 }
 
 async function init() {
@@ -220,8 +307,8 @@ async function init() {
     }
 
     activeCharacterId = getActiveCharacter()?.id || null;
-    updateHeader();
     await loadCharacters();
+    updateHeader();
     renderGrid();
     setStatus('');
 }

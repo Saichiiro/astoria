@@ -1191,9 +1191,10 @@ tbody tr.keyboard-selected {
 }
 
 .character-dropdown-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--space-3);
+    gap: 0 var(--space-3);
     padding: var(--space-3);
     width: 100%;
     background: transparent;
@@ -1201,6 +1202,7 @@ tbody tr.keyboard-selected {
     cursor: pointer;
     transition: background 0.15s ease;
     border-bottom: 1px solid rgba(216, 27, 96, 0.08);
+    text-align: left;
 }
 
 .character-dropdown-item:last-child {
@@ -1218,13 +1220,15 @@ tbody tr.keyboard-selected {
 
 .character-dropdown-item--active::after {
     content: "OK";
-    margin-left: auto;
+    justify-self: end;
+    align-self: center;
+    padding-left: var(--space-2);
     color: var(--color-primary);
     font-weight: bold;
 }
 
 .character-dropdown-item--create {
-    background: rgba(232, 245, 233, 0.72);
+    background: rgba(255, 247, 250, 0.88);
 }
 
 .character-dropdown-avatar {
@@ -1247,11 +1251,16 @@ tbody tr.keyboard-selected {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
 }
 
 .character-dropdown-text {
-    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-self: center;
     min-width: 0;
+    text-align: left;
 }
 
 .character-dropdown-name {
@@ -1269,6 +1278,28 @@ tbody tr.keyboard-selected {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.character-dropdown-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.character-dropdown-kaels {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #df2b74, #a4144c 72%);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 8px 18px rgba(216, 27, 96, 0.14);
 }
 
 /* =================================================================

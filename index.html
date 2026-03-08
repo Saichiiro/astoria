@@ -11,8 +11,20 @@
 <body class="min-h-screen">
     <main class="character-select-page fade-in" aria-labelledby="characterSelectTitle">
         <header class="character-select-header">
-            <div>
+            <div class="character-select-hero">
+                <span class="character-select-kicker">Alice Academia</span>
                 <h1 class="character-select-title" id="characterSelectTitle">S&#233;lectionner un personnage</h1>
+                <p class="character-select-subtitle" id="characterSelectSubtitle">Selection rapide, sans friction.</p>
+                <div class="character-select-overview" aria-label="Apercu rapide">
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Slots utilises</span>
+                        <strong class="character-select-stat-value" id="characterSlotsUsed">0/5</strong>
+                    </div>
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Actif</span>
+                        <strong class="character-select-stat-value" id="characterActiveName">Aucun</strong>
+                    </div>
+                </div>
             </div>
             <div class="character-summary" aria-label="Résumé du personnage">
                 <div class="character-avatar-wrapper">
@@ -40,12 +52,21 @@
                 <button type="button" class="character-select-logout tw-press" id="logoutButton">D&#233;connexion</button>
             </div>
         </header>
-        <section class="character-select-grid" id="characterGrid" role="list"></section>
-        <p class="character-select-status" id="characterSelectStatus" role="status" aria-live="polite"></p>
+        <section class="character-select-board" aria-labelledby="characterSelectBoardTitle">
+            <div class="character-select-board-head">
+                <div>
+                    <h2 class="character-select-board-kicker" id="characterSelectBoardTitle">Roster</h2>
+                    <p class="character-select-board-copy">Ton roster en un coup d'oeil.</p>
+                </div>
+            </div>
+            <section class="character-select-grid" id="characterGrid" role="list"></section>
+            <p class="character-select-status" id="characterSelectStatus" role="status" aria-live="polite"></p>
+        </section>
     </main>
     <div class="select-modal-backdrop" id="createCharacterBackdrop" aria-hidden="true">
         <div class="select-modal" role="dialog" aria-modal="true" aria-labelledby="createCharacterTitle">
             <div class="select-modal-title" id="createCharacterTitle">Cr&#233;er un personnage</div>
+            <p class="select-modal-copy">Remplis l'essentiel maintenant. Tu pourras completer la fiche et l'avatar ensuite.</p>
             <div class="select-modal-error" id="createCharacterError" role="alert"></div>
             <form id="createCharacterForm">
                 <div class="select-modal-group">
@@ -67,6 +88,7 @@
             </form>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1/dist/floating-ui.dom.min.js"></script>
     <script src="js/ui/performance-mode.js?v=2026021106"></script>
     <script type="module" src="js/character-select.js"></script>
     <script type="module">
