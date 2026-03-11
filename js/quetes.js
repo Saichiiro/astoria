@@ -1,4 +1,4 @@
-import { getActiveCharacter, getAllItems, getCurrentUser, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
+import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
 import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js";
@@ -160,7 +160,7 @@ const questStorage = (() => {
 
 function loadAdminNotesMap() {
     try {
-        const raw = questStorage.getItem(QUEST_ADMIN_NOTES_KEY);
+        const raw = questStorage.getItem(getQuestAdminNotesStorageKey());
         if (!raw) return {};
         const parsed = JSON.parse(raw);
         return parsed && typeof parsed === "object" ? parsed : {};
@@ -171,7 +171,7 @@ function loadAdminNotesMap() {
 
 function saveAdminNotesMap(map) {
     try {
-        questStorage.setItem(QUEST_ADMIN_NOTES_KEY, JSON.stringify(map || {}));
+        questStorage.setItem(getQuestAdminNotesStorageKey(), JSON.stringify(map || {}));
     } catch (error) {
         console.warn("[Quetes] Failed to persist admin notes:", error);
     }
@@ -511,11 +511,25 @@ function resolveParticipant() {
     if (character && character.name) {
         return buildParticipant(character.name);
     }
-    const user = getCurrentUser?.();
-    if (user && user.username) {
-        return buildParticipant(user.username);
-    }
     return null;
+}
+
+function resolveQuestScopeId() {
+    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+    return activeCharacterId || "";
+}
+
+function getScopedQuestStorageKey(baseKey) {
+    const scopeId = resolveQuestScopeId();
+    return scopeId ? `${baseKey}:${scopeId}` : baseKey;
+}
+
+function getQuestHistoryStorageKey() {
+    return getScopedQuestStorageKey(QUEST_HISTORY_STORAGE_KEY);
+}
+
+function getQuestAdminNotesStorageKey() {
+    return getScopedQuestStorageKey(QUEST_ADMIN_NOTES_KEY);
 }
 
 function getParticipantStorageKey() {
@@ -615,7 +629,7 @@ function loadStoredState() {
     }
 
     try {
-        const rawHistory = questStorage.getItem(QUEST_HISTORY_STORAGE_KEY);
+        const rawHistory = questStorage.getItem(getQuestHistoryStorageKey());
         if (rawHistory) {
             const parsed = JSON.parse(rawHistory);
             const isFresh = parsed?.version === QUEST_CACHE_VERSION
@@ -646,7 +660,7 @@ function persistState() {
         console.warn("[Quetes] Failed to persist quest cache:", error);
     }
     try {
-        questStorage.setItem(QUEST_HISTORY_STORAGE_KEY, JSON.stringify({
+        questStorage.setItem(getQuestHistoryStorageKey(), JSON.stringify({
             version: QUEST_CACHE_VERSION,
             timestamp: now,
             data: state.history
@@ -946,12 +960,24 @@ async function loadQuestsFromDb(options = {}) {
 
 async function loadHistoryFromDb() {
     try {
+        const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+        if (!state.isAdmin && !activeCharacterId) {
+            state.history = [];
+            state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+            persistState();
+            return true;
+        }
+
         const supabase = await getSupabaseClient();
-        const { data, error } = await supabase
+        let query = supabase
             .from(QUEST_HISTORY_TABLE)
             .select(QUEST_HISTORY_SELECT_COLUMNS)
             .order("date", { ascending: false })
             .limit(200);
+        if (!state.isAdmin && activeCharacterId) {
+            query = query.eq("character_id", activeCharacterId);
+        }
+        const { data, error } = await query;
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
         state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
@@ -2013,7 +2039,7 @@ function renderHistory() {
                 }
                 return false;
             })
-            : state.history);
+            : []);
     const filtered = state.filters.historyType === "all"
         ? scoped
         : scoped.filter((item) => item.type === state.filters.historyType);
@@ -3326,9 +3352,13 @@ function bindEvents() {
     });
     window.addEventListener("astoria:character-changed", () => {
         state.participant = resolveParticipant();
+        state.adminNotes = loadAdminNotesMap();
+        loadStoredState();
+        void loadHistoryFromDb().then(() => {
+            renderHistory();
+            renderQuestProgressPanel();
+        });
         renderQuestList();
-        renderHistory();
-        renderQuestProgressPanel();
     });
 
     dom.editorForm.addEventListener("submit", handleEditorSubmit);
