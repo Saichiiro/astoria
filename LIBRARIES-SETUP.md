@@ -8,7 +8,8 @@ Stack complète pour rendre le site responsive, dynamique et professionnel sans 
 - **Usage:** Popovers, tooltips, dropdowns, menus
 - **Pourquoi:** Positionnement intelligent qui gère overflow, mobile, collision
 - **Où:** Character summary dropdown, inventory tooltips, skill tooltips
-- **CDN:** `https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1/dist/floating-ui.dom.umd.min.js`
+- **CDN:** `https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0`
+- **CDN:** `https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1`
 - **Taille:** ~10KB gzipped
 
 ### 2. **DOMPurify** (v3.0+)
@@ -249,7 +250,8 @@ Ajouter dans `<head>` de chaque page ou dans un template commun:
 ```html
 <!-- Essentiels -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1/dist/floating-ui.dom.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
