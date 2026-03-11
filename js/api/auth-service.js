@@ -61,6 +61,19 @@ async function ensureAnonAuthSession(supabase) {
     return { user: signed.data.user, created: true };
 }
 
+async function getWritableAuthSession(supabase) {
+    try {
+        const current = await supabase.auth.getSession();
+        const session = current?.data?.session || null;
+        if (!session?.user?.id || !session?.access_token) {
+            return null;
+        }
+        return session;
+    } catch {
+        return null;
+    }
+}
+
 async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProvider = "anonymous") {
     if (!publicUserId || !authUserId) return;
     await supabase
@@ -87,8 +100,18 @@ async function syncAuthProfileMetadata(supabase, { displayName } = {}) {
             return false;
         }
 
+        const session = await getWritableAuthSession(supabase);
+        if (!session) {
+            return false;
+        }
+
         const { error } = await supabase.auth.updateUser(payload);
         if (error) {
+            const errorName = String(error?.name || "");
+            const errorMessage = String(error?.message || "");
+            if (errorName === "AuthSessionMissingError" || /auth session missing/i.test(errorMessage)) {
+                return false;
+            }
             console.warn("[Auth] sync auth metadata failed:", error);
             return false;
         }

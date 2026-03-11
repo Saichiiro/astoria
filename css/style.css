@@ -3506,6 +3506,11 @@ body.perf-lite [class*="animate"] {
     transition: none !important;
 }
 
+body.perf-lite .fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 body.perf-lite .tw-hover:hover,
 body.perf-lite .tw-press:hover {
     transform: none !important;
