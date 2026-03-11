@@ -968,8 +968,44 @@ async function buildInventoryAdapter() {
         mode = "local";
     }
 
+    function resolveInventoryStorageScopeId() {
+        if (characterId) return String(characterId);
+        try {
+            const raw = localStorage.getItem("astoria_active_character");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed?.id) return String(parsed.id);
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            const raw = localStorage.getItem("astoria_character_summary");
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed?.id) return String(parsed.id);
+            }
+        } catch {
+            // ignore
+        }
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const queryCharacterId = params.get("character");
+            if (queryCharacterId) return String(queryCharacterId);
+        } catch {
+            // ignore
+        }
+        return "";
+    }
+
+    function getScopedInventoryStorageKey(baseKey) {
+        const scopeId = resolveInventoryStorageScopeId();
+        return scopeId ? `${baseKey}:${scopeId}` : baseKey;
+    }
+
     async function loadLocalInventory() {
-        const raw = localStorage.getItem("astoriaInventory");
+        const key = getScopedInventoryStorageKey("astoriaInventory");
+        const raw = localStorage.getItem(key) || (key !== "astoriaInventory" ? localStorage.getItem("astoriaInventory") : null);
         if (!raw) return [];
         try {
             const parsed = JSON.parse(raw);
@@ -982,7 +1018,7 @@ async function buildInventoryAdapter() {
     }
 
     async function saveLocalInventory(items) {
-        localStorage.setItem("astoriaInventory", JSON.stringify(items));
+        localStorage.setItem(getScopedInventoryStorageKey("astoriaInventory"), JSON.stringify(items));
     }
 
     async function getLocalEntry(items) {

@@ -1309,10 +1309,17 @@
         return itemCatalog.byName.get(targetKey) || null;
     }
 
+    function getScopedInventoryStorageKey(baseKey) {
+        const scopeId = persistState.characterId || persistState.auth?.getActiveCharacter?.()?.id || resolveCharacterIdFallback();
+        return scopeId ? `${baseKey}:${String(scopeId)}` : baseKey;
+    }
+
     function readInventorySnapshotFromLocalStorage() {
         const snapshot = {};
         try {
-            const raw = localStorage.getItem("astoriaInventory");
+            const key = getScopedInventoryStorageKey("astoriaInventory");
+            const legacyKey = "astoriaInventory";
+            const raw = localStorage.getItem(key) || (key !== legacyKey ? localStorage.getItem(legacyKey) : null);
             const parsed = raw ? JSON.parse(raw) : null;
             if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
                 if (parsed.equippedSlots || parsed.equipped) {
@@ -1331,7 +1338,10 @@
 
         if (!snapshot.equippedSlots) {
             try {
-                const rawEquipped = localStorage.getItem("astoriaInventoryEquippedSlots");
+                const equippedKey = getScopedInventoryStorageKey("astoriaInventoryEquippedSlots");
+                const legacyEquippedKey = "astoriaInventoryEquippedSlots";
+                const rawEquipped = localStorage.getItem(equippedKey)
+                    || (equippedKey !== legacyEquippedKey ? localStorage.getItem(legacyEquippedKey) : null);
                 if (rawEquipped) {
                     snapshot.equippedSlots = JSON.parse(rawEquipped);
                 }

@@ -1035,15 +1035,11 @@
 
                 <div class="detail-placeholder">
 
-
-
                     <div class="placeholder-icon">&#x1F446;</div>
 
+                    <p>S&eacute;lectionnez un objet pour voir ses d&eacute;tails.</p>
 
-
-                    <p>Sélectionnez un objet pour voir ses détails</p>
-
-
+                    <p class="detail-placeholder-tip">Astuce : clique un objet pour lire ses bonus, puis glisse un &eacute;quipement sur la silhouette pour l'&eacute;quiper.</p>
 
                 </div>
 
@@ -1860,6 +1856,7 @@
         let currentCharacterRankScore = 0;
         let currentCharacterRankSource = 'fallback';
 
+        const INVENTORY_STORAGE_KEY = 'astoriaInventory';
         const EQUIPPED_SLOTS_STORAGE_KEY = 'astoriaInventoryEquippedSlots';
         const CHARACTER_RANK_STORAGE_KEY = 'astoriaInventoryCharacterRank';
         const COMPETENCE_STORAGE_KEYS = Object.freeze([
@@ -2119,6 +2116,56 @@
 
         const INVENTORY_SYNC_KEY = 'astoria_inventory_sync';
 
+        function resolveInventoryStorageScopeId() {
+            const activeCharacterId = authApi?.getActiveCharacter?.()?.id;
+            if (activeCharacterId) return String(activeCharacterId);
+
+            try {
+                const raw = localStorage.getItem('astoria_active_character');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed?.id) return String(parsed.id);
+                }
+            } catch {}
+
+            try {
+                const raw = localStorage.getItem('astoria_character_summary');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed?.id) return String(parsed.id);
+                }
+            } catch {}
+
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const queryCharacterId = params.get('character');
+                if (queryCharacterId) return String(queryCharacterId);
+            } catch {}
+
+            return '';
+        }
+
+        function getScopedInventoryStorageKey(baseKey) {
+            const scopeId = resolveInventoryStorageScopeId();
+            return scopeId ? (baseKey + ':' + scopeId) : baseKey;
+        }
+
+        function getInventoryItemsStorageKey() {
+            return getScopedInventoryStorageKey(INVENTORY_STORAGE_KEY);
+        }
+
+        function getEquippedSlotsStorageKey() {
+            return getScopedInventoryStorageKey(EQUIPPED_SLOTS_STORAGE_KEY);
+        }
+
+        function getCharacterRankStorageKey() {
+            return getScopedInventoryStorageKey(CHARACTER_RANK_STORAGE_KEY);
+        }
+
+        function getSilhouetteStorageKey() {
+            return getScopedInventoryStorageKey(SILHOUETTE_STORAGE_KEY);
+        }
+
 
 
         function broadcastInventorySync(reason = 'update') {
@@ -2363,7 +2410,7 @@
 
             if (!rank) {
                 try {
-                    rank = String(localStorage.getItem(CHARACTER_RANK_STORAGE_KEY) || '');
+                    rank = String(localStorage.getItem(getCharacterRankStorageKey()) || '');
                 } catch {}
             }
             return rank;
@@ -2396,7 +2443,7 @@
             const source = String(currentCharacterRankSource || 'fallback');
 
             try {
-                localStorage.setItem(CHARACTER_RANK_STORAGE_KEY, rank);
+                localStorage.setItem(getCharacterRankStorageKey(), rank);
             } catch {}
 
             if (inventoryStorageMode !== 'character' || !authApi?.getActiveCharacter || !authApi?.updateCharacter) {
@@ -3912,7 +3959,7 @@
 
 
 
-                const raw = localStorage.getItem(SILHOUETTE_STORAGE_KEY);
+                const raw = localStorage.getItem(getSilhouetteStorageKey());
 
 
 
@@ -3952,7 +3999,7 @@
 
 
 
-                    localStorage.setItem(SILHOUETTE_STORAGE_KEY, safeSrc);
+                    localStorage.setItem(getSilhouetteStorageKey(), safeSrc);
 
 
 
@@ -3960,7 +4007,7 @@
 
 
 
-                    localStorage.removeItem(SILHOUETTE_STORAGE_KEY);
+                    localStorage.removeItem(getSilhouetteStorageKey());
 
 
 
@@ -4618,7 +4665,7 @@
                     }
 
                     try {
-                        localStorage.removeItem('astoriaInventory');
+                        localStorage.removeItem(getInventoryItemsStorageKey());
                     } catch {
                         // ignore cleanup failures
                     }
@@ -4997,7 +5044,7 @@
 
 
 
-                const stored = localStorage.getItem('astoriaInventory');
+                const stored = localStorage.getItem(getInventoryItemsStorageKey());
 
 
 
@@ -5129,11 +5176,11 @@
 
 
 
-                localStorage.setItem('astoriaInventory', JSON.stringify(inventoryItems));
+                localStorage.setItem(getInventoryItemsStorageKey(), JSON.stringify(inventoryItems));
 
 
 
-                localStorage.setItem(EQUIPPED_SLOTS_STORAGE_KEY, JSON.stringify(serializeEquippedSlots()));
+                localStorage.setItem(getEquippedSlotsStorageKey(), JSON.stringify(serializeEquippedSlots()));
 
 
 
@@ -8109,7 +8156,7 @@
 
 
 
-                const raw = localStorage.getItem(EQUIPPED_SLOTS_STORAGE_KEY);
+                const raw = localStorage.getItem(getEquippedSlotsStorageKey());
 
 
 
@@ -9073,7 +9120,14 @@
 
 
 
-            itemCountEl.textContent = `${filtered.length} objet${filtered.length > 1 ? 's' : ''}`;
+                        const totalVisibleItems = inventoryItems.filter((item) => !item?.isCurrency).length;
+            const activeCategoryLabel = currentCategory === 'all'
+                ? 'Tout'
+                : (document.querySelector(`.category-btn[data-category="${currentCategory}"] .category-label`)?.textContent?.trim() || currentCategory);
+            const searchLabel = String(searchInput?.value || '').trim();
+            itemCountEl.textContent = `${filtered.length}/${Math.max(filtered.length, totalVisibleItems)} objet${filtered.length > 1 ? 's' : ''} | ${activeCategoryLabel}${searchLabel ? ` | "${searchLabel}"` : ''}`;
+            itemCountEl.title = `Vue ${activeCategoryLabel}${searchLabel ? ` | Recherche: ${searchLabel}` : ''}`;
+            itemCountEl.dataset.state = filtered.length === 0 ? 'empty' : 'ready';
 
 
 
@@ -9099,15 +9153,11 @@
 
 
 
-                    emptyStateMessage.textContent = currentSearchQuery
+                                        emptyStateMessage.textContent = currentSearchQuery
 
+                        ? 'Aucun objet pour cette recherche. Essaie un autre mot-cle ou une autre categorie.'
 
-
-                        ? 'Aucun objet trouv\u00e9 pour cette recherche.'
-
-
-
-                        : 'Votre inventaire est vide dans cette cat\u00e9gorie';
+                        : `Aucun objet dans ${activeCategoryLabel.toLowerCase()} pour le moment.`;
 
 
 
@@ -10057,15 +10107,11 @@
 
                 <div class="detail-placeholder">
 
-
-
                     <div class="placeholder-icon">&#x1F446;</div>
 
+                    <p>S&eacute;lectionnez un objet pour voir ses d&eacute;tails.</p>
 
-
-                    <p>Sélectionnez un objet pour voir ses détails</p>
-
-
+                    <p class="detail-placeholder-tip">Astuce : clique un objet pour lire ses bonus, puis glisse un &eacute;quipement sur la silhouette pour l'&eacute;quiper.</p>
 
                 </div>
 
