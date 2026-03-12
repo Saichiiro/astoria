@@ -2865,6 +2865,13 @@ function renderPrerequisitesList() {
     }
 }
 
+function buildQuestPersistenceState(existingQuest = null) {
+    return {
+        participants: Array.isArray(existingQuest?.participants) ? existingQuest.participants : [],
+        completedBy: Array.isArray(existingQuest?.completedBy) ? existingQuest.completedBy : []
+    };
+}
+
 async function handleEditorSubmit(event) {
     event.preventDefault();
     const name = dom.nameInput.value.trim();
@@ -2874,6 +2881,11 @@ async function handleEditorSubmit(event) {
         .split(",")
         .map((entry) => entry.trim())
         .filter(Boolean);
+
+    const existingQuest = state.editor.questId
+        ? state.quests.find((quest) => quest.id === state.editor.questId) || null
+        : null;
+    const persistenceState = buildQuestPersistenceState(existingQuest);
 
     const questData = {
         id: state.editor.questId || `quest-${Date.now()}`,
@@ -2887,9 +2899,9 @@ async function handleEditorSubmit(event) {
         rewards: state.editor.rewards.length ? state.editor.rewards : [],
         prerequisites: state.currentQuest.prerequisites || [],
         images: state.editor.images.length ? state.editor.images : ["assets/images/objets/Clef_Manndorf.png"],
-        participants: [],
+        participants: persistenceState.participants,
         maxParticipants: Math.min(5, Math.max(1, Number(dom.maxParticipantsInput.value) || 1)),
-        completedBy: []
+        completedBy: persistenceState.completedBy
     };
 
     if (state.editor.questId) {
