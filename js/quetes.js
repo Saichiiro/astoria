@@ -896,6 +896,7 @@ async function loadParticipantsForQuests(questIds = null) {
         state.quests.forEach((quest) => {
             if (targetQuestIds && !targetQuestIds.includes(quest.id)) return;
             quest.participants = participantsMap.get(quest.id) || [];
+            quest.participantsLoaded = true;
         });
         persistState();
 
@@ -1036,7 +1037,7 @@ async function upsertQuestParticipants(questId, participants) {
     }
 }
 
-async function upsertQuestToDb(quest) {
+async function upsertQuestToDb(quest, { syncParticipants = false } = {}) {
     if (!quest) return;
     try {
         const supabase = await getSupabaseClient();
@@ -1060,8 +1061,9 @@ async function upsertQuestToDb(quest) {
             .upsert([payload], { onConflict: "id" });
         if (error) throw error;
 
-        // Separately handle participants
-        await upsertQuestParticipants(quest.id, quest.participants);
+        if (syncParticipants) {
+            await upsertQuestParticipants(quest.id, quest.participants);
+        }
 
         return true;
     } catch (error) {
@@ -2300,7 +2302,7 @@ async function toggleParticipation() {
         });
     }
 
-    const saved = await upsertQuestToDb(quest);
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
     if (!saved) {
         quest.participants = previousParticipants;
         renderDetail(quest);
@@ -2384,7 +2386,7 @@ async function validateQuest() {
     renderQuestList();
     renderHistory();
     renderQuestProgressPanel();
-    await upsertQuestToDb(quest);
+    await upsertQuestToDb(quest, { syncParticipants: true });
     for (const entry of historyEntries) {
         await insertHistoryToDb(entry);
     }
