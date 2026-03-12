@@ -780,17 +780,23 @@ function scheduleBackgroundPreloadTick(callback, delayMs = QUEST_BACKGROUND_PREL
 
 async function fetchQuestsPage(supabase, from, to) {
     let { data, error } = await supabase
-        .from(QUESTS_LIST_VIEW)
-        .select(QUESTS_LIST_SELECT_COLUMNS)
+        .from(QUESTS_TABLE)
+        .select(QUESTS_SELECT_COLUMNS)
         .order("created_at", { ascending: true })
         .range(from, to);
 
     if (error) {
         const message = String(error?.message || "").toLowerCase();
-        if (message.includes("relation") || message.includes("does not exist")) {
+        const code = String(error?.code || "");
+        const fallbackToListView = code === "42501"
+            || message.includes("permission")
+            || message.includes("forbidden")
+            || message.includes("relation")
+            || message.includes("does not exist");
+        if (fallbackToListView) {
             ({ data, error } = await supabase
-                .from(QUESTS_TABLE)
-                .select(QUESTS_LIST_SELECT_COLUMNS)
+                .from(QUESTS_LIST_VIEW)
+                .select("*")
                 .order("created_at", { ascending: true })
                 .range(from, to));
         }
@@ -850,6 +856,30 @@ async function ensureQuestHydrated(questId, { force = false } = {}) {
         console.warn("[Quetes] Failed to hydrate quest detail:", error);
         return current;
     }
+}
+
+async function ensurePrerequisiteQuestsHydrated(quest) {
+    const prerequisiteIds = Array.isArray(quest?.prerequisites)
+        ? quest.prerequisites.filter(Boolean)
+        : [];
+    if (!prerequisiteIds.length) return;
+
+    for (const prerequisiteId of prerequisiteIds) {
+        const existing = state.quests.find((item) => item.id === prerequisiteId);
+        if (existing?.isHydrated) continue;
+        try {
+            const hydrated = await fetchQuestDetailById(prerequisiteId);
+            const merged = mergeQuestIntoState(hydrated);
+            if (!existing && hydrated?.id) {
+                state.quests.push(hydrated);
+            } else if (merged) {
+                hydrated.participants = merged.participants;
+            }
+        } catch (error) {
+            console.warn("[Quetes] Failed to hydrate prerequisite quest:", error);
+        }
+    }
+    persistState();
 }
 
 async function loadParticipantsForQuests(questIds = null) {
@@ -2098,7 +2128,13 @@ async function openDetail(questId) {
     if (!quest.isHydrated) {
         const hydrated = await ensureQuestHydrated(questId);
         if (hydrated && state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+            await ensurePrerequisiteQuestsHydrated(hydrated);
             renderDetail(hydrated);
+        }
+    } else {
+        await ensurePrerequisiteQuestsHydrated(quest);
+        if (state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+            renderDetail(quest);
         }
     }
 }
