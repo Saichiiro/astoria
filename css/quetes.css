@@ -300,6 +300,40 @@ body.quest-board {
     align-items: center;
     gap: 26px;
     overflow: visible;
+    position: relative;
+}
+
+.quest-view-toggle {
+    position: absolute;
+    top: -54px;
+    right: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(255, 106, 162, 0.28);
+    box-shadow: 0 12px 24px rgba(96, 58, 125, 0.14);
+    backdrop-filter: blur(10px);
+    z-index: 3;
+}
+
+.quest-view-toggle-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 14px;
+    background: transparent;
+    color: rgba(61, 42, 87, 0.76);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.quest-view-toggle-btn.is-active {
+    background: linear-gradient(135deg, #ff6aa2, #ff8b7b);
+    color: #fff;
+    box-shadow: 0 10px 22px rgba(255, 106, 162, 0.25);
 }
 
 .quest-carousel-viewport {
@@ -338,6 +372,19 @@ body.quest-board {
     will-change: transform;
 }
 
+.quest-track.is-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    padding: 8px 0 0;
+    width: 100% !important;
+    cursor: default;
+    touch-action: auto;
+    user-select: auto;
+    will-change: auto;
+    transform: none !important;
+}
+
 .quest-track:focus-visible {
     outline: 2px dashed rgba(255, 106, 162, 0.6);
     outline-offset: 6px;
@@ -345,6 +392,21 @@ body.quest-board {
 
 .quest-track.is-dragging {
     cursor: grabbing;
+}
+
+.quest-carousel.is-grid-mode {
+    grid-template-columns: 1fr;
+}
+
+.quest-carousel.is-grid-mode .quest-arrow {
+    display: none;
+}
+
+.quest-carousel.is-grid-mode .quest-carousel-viewport {
+    overflow: visible;
+    padding-inline: 0;
+    min-height: 0;
+    perspective: none;
 }
 
 .quest-card {
@@ -370,6 +432,13 @@ body.quest-board {
     cursor: pointer;
     transform: translateZ(0);
     transform-style: preserve-3d;
+}
+
+.quest-track.is-grid .quest-card {
+    flex: initial;
+    width: 100%;
+    max-width: none;
+    scroll-snap-align: unset;
 }
 
 .quest-card::before {
@@ -2203,14 +2272,40 @@ body.quest-board {
 @media (max-width: 720px) {
     .quest-carousel {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
 
     .quest-arrow {
         display: none;
     }
 
+    .quest-view-toggle {
+        position: static;
+        margin-left: auto;
+        margin-bottom: 8px;
+    }
+
+    .quest-carousel-viewport {
+        overflow: visible;
+        min-height: 0;
+        perspective: none;
+        padding-inline: 0;
+    }
+
     .quest-track {
         gap: 16px;
+        transform: none !important;
+        min-height: 0;
+    }
+
+    .quest-track:not(.is-grid) {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .quest-track:not(.is-grid) .quest-card {
+        width: 100%;
+        max-width: none;
     }
 
     .quest-search-controls {
@@ -2254,6 +2349,16 @@ body.quest-board {
 @media (max-width: 640px) {
     .quest-page {
         padding: 24px 18px 64px;
+    }
+
+    .quest-view-toggle {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .quest-view-toggle-btn {
+        flex: 1;
+        text-align: center;
     }
 
     .quest-carousel-viewport {

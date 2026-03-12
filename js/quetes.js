@@ -27,6 +27,7 @@ const STATUS_META = {
 const QUEST_STORAGE_KEY = "astoria_quests_state";
 const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
 const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
+const QUEST_VIEW_STORAGE_KEY = "astoria_quests_view_mode";
 const QUEST_CACHE_VERSION = 1;
 const QUEST_CACHE_TTL_MS = 10 * 60 * 1000;
 const QUESTS_TABLE = "quests";
@@ -39,8 +40,9 @@ const HISTORY_INITIAL_VISIBLE = 30;
 const HISTORY_VISIBLE_STEP = 30;
 const QUEST_INITIAL_BATCH_SIZE = 8;
 const QUEST_BACKGROUND_BATCH_SIZE = 24;
+const QUEST_HISTORY_PAGE_SIZE = 100;
 const QUEST_BACKGROUND_PRELOAD_DELAY_MS = 350;
-const QUEST_POLLING_FALLBACK_MS = 60000;
+const QUEST_POLLING_FALLBACK_MS = 180000;
 const REWARD_ELEMENTS = ["Feu", "Eau", "Vent", "Terre", "Glace", "Foudre", "Lumiere", "Ombre"];
 const REWARD_ELEMENT_MAP = {
     feu: "feu",
@@ -72,6 +74,7 @@ const state = {
         rank: "all",
         historyType: "all"
     },
+    viewMode: "carousel",
     activeQuestId: null,
     activeImageIndex: 0,
     isAdmin: false,
@@ -101,6 +104,8 @@ const state = {
     isValidating: false,
     adminNotes: {},
     historyVisibleCount: HISTORY_INITIAL_VISIBLE,
+    historyBackendLoaded: false,
+    historyLoading: false,
     syncBadgeHideTimer: null
 };
 
@@ -109,6 +114,7 @@ let questRealtimeRefreshTimer = null;
 let questRealtimePollingTimer = null;
 let questBackgroundPreloadTimer = null;
 let questBackgroundPreloadRunId = 0;
+let questHistoryObserver = null;
 let questRealtimeNeedsHistoryRefresh = false;
 let isQuestRealtimeRefreshing = false;
 const SHOULD_REDUCE_QUEST_EFFECTS = Boolean(
@@ -192,6 +198,8 @@ const dom = {
     nextBtn: document.getElementById("questNextBtn"),
     viewport: document.getElementById("questViewport"),
     track: document.getElementById("questTrack"),
+    carouselViewBtn: document.getElementById("questCarouselViewBtn"),
+    gridViewBtn: document.getElementById("questGridViewBtn"),
     addBtn: document.getElementById("questAddBtn"),
     progressName: document.getElementById("questProgressName"),
     progressDate: document.getElementById("questProgressDate"),
@@ -201,6 +209,7 @@ const dom = {
     progressNotes: document.getElementById("questProgressNotes"),
     progressSave: document.getElementById("questProgressSave"),
     progressSaved: document.getElementById("questProgressSaved"),
+    historySection: document.getElementById("questHistory"),
     historyFilters: document.getElementById("questHistoryFilters"),
     historyMeta: document.getElementById("questHistoryMeta"),
     historyBody: document.getElementById("questHistoryBody"),
@@ -535,6 +544,39 @@ function getQuestHistoryStorageKey() {
 
 function getQuestAdminNotesStorageKey() {
     return getScopedQuestStorageKey(QUEST_ADMIN_NOTES_KEY);
+}
+
+function loadQuestViewMode() {
+    const saved = questStorage.getItem(QUEST_VIEW_STORAGE_KEY);
+    return saved === "grid" ? "grid" : "carousel";
+}
+
+function persistQuestViewMode() {
+    try {
+        questStorage.setItem(QUEST_VIEW_STORAGE_KEY, state.viewMode);
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist view mode:", error);
+    }
+}
+
+function syncQuestViewModeUI() {
+    const isGrid = state.viewMode === "grid";
+    dom.track.classList.toggle("is-grid", isGrid);
+    dom.viewport.classList.toggle("is-grid", isGrid);
+    dom.viewport.closest(".quest-carousel")?.classList.toggle("is-grid-mode", isGrid);
+    dom.carouselViewBtn?.classList.toggle("is-active", !isGrid);
+    dom.gridViewBtn?.classList.toggle("is-active", isGrid);
+    dom.carouselViewBtn?.setAttribute("aria-pressed", String(!isGrid));
+    dom.gridViewBtn?.setAttribute("aria-pressed", String(isGrid));
+}
+
+function setQuestViewMode(mode) {
+    const nextMode = mode === "grid" ? "grid" : "carousel";
+    if (state.viewMode === nextMode) return;
+    state.viewMode = nextMode;
+    persistQuestViewMode();
+    syncQuestViewModeUI();
+    applyQuestListLayout({ resetCarousel: nextMode === "carousel" });
 }
 
 function getHistoryCharacterScope() {
@@ -966,8 +1008,7 @@ async function preloadRemainingQuests(supabase, startIndex, runId) {
         if (fresh.length) {
             state.quests = [...state.quests, ...fresh];
             await loadParticipantsForQuests(fresh.map((quest) => quest.id));
-            renderQuestList();
-            renderQuestProgressPanel();
+            appendVisibleQuestCards(fresh);
         }
 
         nextStart += QUEST_BACKGROUND_BATCH_SIZE;
@@ -994,7 +1035,12 @@ async function loadQuestsFromDb(options = {}) {
         const initialRows = await fetchQuestsPage(supabase, 0, QUEST_INITIAL_BATCH_SIZE - 1);
         state.quests = initialRows.map(mapQuestRow);
         persistState();
-        await loadParticipantsForQuests(state.quests.map((quest) => quest.id));
+        renderQuestList();
+        renderQuestProgressPanel();
+        void loadParticipantsForQuests(state.quests.map((quest) => quest.id)).then(() => {
+            renderQuestList();
+            renderQuestProgressPanel();
+        });
 
         if (initialRows.length >= QUEST_INITIAL_BATCH_SIZE) {
             const runId = questBackgroundPreloadRunId;
@@ -1014,6 +1060,7 @@ async function loadHistoryFromDb() {
         if (!activeCharacterId) {
             state.history = [];
             state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+            state.historyBackendLoaded = true;
             persistState();
             return true;
         }
@@ -1023,18 +1070,41 @@ async function loadHistoryFromDb() {
             .from(QUEST_HISTORY_TABLE)
             .select(QUEST_HISTORY_SELECT_COLUMNS)
             .order("date", { ascending: false })
-            .limit(200)
+            .limit(QUEST_HISTORY_PAGE_SIZE)
             .eq("character_id", activeCharacterId);
         const { data, error } = await query;
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
         state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+        state.historyBackendLoaded = true;
         persistState();
         return true;
     } catch (error) {
         console.warn("[Quetes] Failed to load history from DB:", error);
     }
     return false;
+}
+
+async function ensureHistoryDataLoaded({ force = false } = {}) {
+    if (state.historyLoading) return false;
+    if (state.historyBackendLoaded && !force) return true;
+
+    state.historyLoading = true;
+    try {
+        const historyLoaded = await loadHistoryFromDb();
+        await loadQuestCompletionsFromActivity();
+        if (!historyLoaded) {
+            state.history = [];
+            state.historyBackendLoaded = false;
+        }
+        state.history = dedupeHistory(state.history);
+        renderHistory();
+        renderQuestList();
+        renderQuestProgressPanel();
+        return historyLoaded;
+    } finally {
+        state.historyLoading = false;
+    }
 }
 
 async function upsertQuestParticipants(questId, participants) {
@@ -1199,7 +1269,8 @@ async function refreshQuestStateFromBackend(options = {}) {
     try {
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
-        const questsLoaded = await loadQuestsFromDb({ progressive: false });
+        const useProgressiveRefresh = !detailOpen && state.quests.length > QUEST_INITIAL_BATCH_SIZE;
+        const questsLoaded = await loadQuestsFromDb({ progressive: useProgressiveRefresh });
         const historyLoaded = refreshHistory ? await loadHistoryFromDb() : false;
         const activityLoaded = refreshHistory ? await loadQuestCompletionsFromActivity() : false;
         if (!questsLoaded && !historyLoaded && !activityLoaded) {
@@ -1464,6 +1535,11 @@ async function loadItemCatalog() {
     } catch (error) {
         console.warn("[Quetes] Items load failed:", error);
     }
+}
+
+async function ensureItemCatalogLoaded() {
+    if (Array.isArray(state.items) && state.items.length > 0) return;
+    await loadItemCatalog();
 }
 
 function resolveItemImage(item) {
@@ -2064,6 +2140,152 @@ function getFilteredQuests() {
     });
 }
 
+function questMatchesActiveFilters(quest) {
+    if (!quest) return false;
+    const search = normalize(state.filters.search);
+    if (state.filters.type !== "all" && quest.type !== state.filters.type) return false;
+    if (state.filters.rank !== "all" && quest.rank !== state.filters.rank) return false;
+    if (!search) return true;
+    return normalize(quest.name).includes(search);
+}
+
+function buildQuestCard(quest, index) {
+    const meta = getStatusMeta(quest.status);
+    const joined = isParticipant(quest);
+    const card = document.createElement("article");
+    card.className = `quest-card${joined ? " is-joined" : ""}`;
+    card.dataset.id = quest.id;
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `Ouvrir la quete ${quest.name}`);
+    card.style.setProperty("--status-color", meta.color);
+    card.style.setProperty("--delay", `${index * 120}ms`);
+    const adminAction = state.isAdmin
+        ? `<button class="quest-delete-btn" type="button" data-id="${clean(quest.id)}" aria-label="Supprimer la quete">&#128465;</button>`
+        : "";
+    const imageLoading = index < 2 ? "eager" : "lazy";
+    const imagePriority = index === 0 ? "high" : "low";
+    card.innerHTML = `
+        <div class="quest-card-content">
+            <div class="quest-card-header">
+                <h3 class="quest-card-title">${clean(quest.name)}</h3>
+                <span class="quest-rank-badge">${clean(quest.rank)}</span>
+            </div>
+            <div class="quest-card-media">
+                <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" loading="${imageLoading}" decoding="async" fetchpriority="${imagePriority}" draggable="false">
+            </div>
+            <div class="quest-card-meta">
+                <span class="quest-type-pill">${clean(quest.type)}</span>
+                <span class="quest-status-pill">${clean(meta.label)}</span>
+            </div>
+            <div class="quest-card-actions">
+                <button class="quest-details-btn" type="button" data-id="${clean(quest.id)}">Details</button>
+                ${adminAction}
+            </div>
+            <div class="quest-card-participation">
+                ${joined ? "Vous participez" : "Non inscrit"}
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+function applyQuestListLayout({ resetCarousel = false } = {}) {
+    syncQuestViewModeUI();
+    const cards = Array.from(dom.track.querySelectorAll(".quest-card"));
+    if (state.viewMode === "carousel") {
+        updateCarouselMetrics();
+        const snaps = state.carousel.snaps || [];
+        const fallback = snaps.length > 1 ? snaps[1] : snaps[0] || 0;
+        const nextX = resetCarousel ? fallback : (Number.isFinite(state.carousel.x) ? state.carousel.x : fallback);
+        applyCarouselPosition(nextX);
+        updateCarouselParallax();
+    } else {
+        state.carousel.x = 0;
+        state.carousel.cards = cards;
+        state.carousel.snaps = [];
+        dom.track.style.width = "";
+        dom.track.style.transform = "";
+        dom.track.classList.remove("is-dragging");
+        cards.forEach((card) => {
+            card.style.width = "";
+        });
+        cards.forEach((card) => {
+            const img = card.querySelector("img");
+            if (img) img.style.transform = "";
+        });
+    }
+}
+
+function attachQuestCardInteractions(cards) {
+    cards.forEach((card) => {
+        const questId = card.dataset.id;
+        const detailsBtn = card.querySelector(".quest-details-btn");
+        const deleteBtn = card.querySelector(".quest-delete-btn");
+
+        detailsBtn?.addEventListener("click", () => {
+            if (!questId) return;
+            void openDetail(questId);
+        });
+
+        deleteBtn?.addEventListener("click", async () => {
+            if (!state.isAdmin || !questId) return;
+            const quest = state.quests.find((item) => item.id === questId);
+            if (!quest) return;
+            if (!window.confirm(`Supprimer la quete "${quest.name}" ?`)) return;
+            state.quests = state.quests.filter((item) => item.id !== questId);
+            if (state.activeQuestId === questId) {
+                closeModal(dom.detailModal);
+                state.activeQuestId = null;
+            }
+            if (state.editor.questId === questId) {
+                closeModal(dom.editorModal);
+                state.editor.questId = null;
+                state.editor.images = [];
+                state.editor.rewards = [];
+            }
+            renderQuestList();
+            persistState();
+            await deleteQuestFromDb(questId);
+            toastManager.success(`"${quest.name}" supprimee`);
+        });
+
+        card.addEventListener("click", (event) => {
+            if (!questId || event.target.closest(".quest-details-btn, .quest-delete-btn")) return;
+            void openDetail(questId);
+        });
+        card.addEventListener("keydown", (event) => {
+            if (!questId || event.target.closest(".quest-details-btn, .quest-delete-btn")) return;
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void openDetail(questId);
+            }
+        });
+    });
+}
+
+function appendVisibleQuestCards(quests) {
+    if (!Array.isArray(quests) || !quests.length) return;
+    const visibleQuests = quests.filter((quest) => questMatchesActiveFilters(quest));
+    if (!visibleQuests.length) {
+        renderQuestProgressPanel();
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const startIndex = dom.track.children.length;
+    const cards = [];
+    visibleQuests.forEach((quest, index) => {
+        const card = buildQuestCard(quest, startIndex + index);
+        cards.push(card);
+        fragment.appendChild(card);
+    });
+    dom.track.appendChild(fragment);
+    attachQuestCardInteractions(cards);
+    applyQuestListLayout({ resetCarousel: false });
+    renderQuestProgressPanel();
+}
+
 function renderQuestList() {
     state.participant = resolveParticipant();
     const filtered = getFilteredQuests();
@@ -2155,11 +2377,7 @@ function renderQuestList() {
         });
     });
 
-    updateCarouselMetrics();
-    const snaps = state.carousel.snaps || [];
-    const initial = snaps.length > 1 ? snaps[1] : snaps[0] || 0;
-    applyCarouselPosition(initial);
-    updateCarouselParallax();
+    applyQuestListLayout({ resetCarousel: true });
     renderQuestProgressPanel();
 }
 
@@ -2224,6 +2442,13 @@ async function openDetail(questId) {
     dom.detailModal.removeAttribute("inert");
     // Lock body scroll
     document.body.style.overflow = "hidden";
+    if (state.isAdmin) {
+        void ensureAdminCharactersLoaded().then(() => {
+            if (state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+                renderAdminParticipantOptions(state.quests.find((item) => item.id === questId) || quest);
+            }
+        });
+    }
     if (!quest.isHydrated) {
         const hydrated = await ensureQuestHydrated(questId);
         if (hydrated && state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
@@ -2471,6 +2696,12 @@ async function loadAdminCharacters() {
         console.warn("[Quetes] Failed to load admin characters:", error);
         state.adminCharacters = [];
     }
+}
+
+async function ensureAdminCharactersLoaded() {
+    if (!state.isAdmin) return;
+    if (Array.isArray(state.adminCharacters) && state.adminCharacters.length > 0) return;
+    await loadAdminCharacters();
 }
 
 async function addParticipantAsAdmin() {
@@ -3002,6 +3233,7 @@ function bindMediaDrag() {
 }
 
 async function openEditor(quest) {
+    await ensureItemCatalogLoaded();
     let targetQuest = quest;
     if (targetQuest?.id && !targetQuest.isHydrated) {
         targetQuest = await ensureQuestHydrated(targetQuest.id);
@@ -3539,6 +3771,9 @@ function bindEvents() {
         state.filters.rank = dom.rankFilter.value;
         renderQuestList();
     });
+    document.querySelector('a[href="#questHistory"]')?.addEventListener("click", () => {
+        void ensureHistoryDataLoaded();
+    });
     dom.statusInput.addEventListener("change", () => {
         syncStatusDots(dom.statusInput.value);
     });
@@ -3569,6 +3804,12 @@ function bindEvents() {
     dom.nextBtn.addEventListener("click", () => {
         scrollCarousel(1, 1);
     });
+    dom.carouselViewBtn?.addEventListener("click", () => {
+        setQuestViewMode("carousel");
+    });
+    dom.gridViewBtn?.addEventListener("click", () => {
+        setQuestViewMode("grid");
+    });
     window.addEventListener("keydown", (event) => {
         if (event.defaultPrevented) return;
         if (isEditableTarget(event.target)) return;
@@ -3582,6 +3823,7 @@ function bindEvents() {
 
         if (dom.detailModal.classList.contains("open")) return;
         if (!isCarouselFocused()) return;
+        if (state.viewMode !== "carousel") return;
         if (event.key === "ArrowLeft") {
             event.preventDefault();
             scrollCarousel(-1, 1);
@@ -3673,11 +3915,9 @@ function bindEvents() {
     window.addEventListener("astoria:character-changed", () => {
         state.participant = resolveParticipant();
         state.adminNotes = loadAdminNotesMap();
+        state.historyBackendLoaded = false;
         loadStoredState();
-        void Promise.all([
-            loadHistoryFromDb(),
-            loadQuestCompletionsFromActivity()
-        ]).then(() => {
+        void ensureHistoryDataLoaded({ force: true }).then(() => {
             renderHistory();
             renderQuestProgressPanel();
         });
@@ -3755,6 +3995,53 @@ async function initQuestPanelShortcuts() {
     }
 }
 
+function scheduleDeferredTask(task, delay = 0) {
+    if (typeof task !== "function") return;
+    if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => {
+            void task();
+        }, { timeout: Math.max(250, delay || 250) });
+        return;
+    }
+    window.setTimeout(() => {
+        void task();
+    }, delay);
+}
+
+function setupHistoryLazyLoad() {
+    const section = dom.historySection;
+    if (!section) return;
+
+    const shouldLoadImmediately = window.location.hash === "#questHistory";
+    if (shouldLoadImmediately) {
+        void ensureHistoryDataLoaded();
+        return;
+    }
+
+    if (typeof window.IntersectionObserver !== "function") {
+        scheduleDeferredTask(async () => {
+            await ensureHistoryDataLoaded();
+        }, 600);
+        return;
+    }
+
+    if (questHistoryObserver) {
+        questHistoryObserver.disconnect();
+    }
+
+    questHistoryObserver = new window.IntersectionObserver((entries) => {
+        const entry = entries.find((item) => item.target === section);
+        if (!entry?.isIntersecting) return;
+        questHistoryObserver?.disconnect();
+        questHistoryObserver = null;
+        void ensureHistoryDataLoaded();
+    }, {
+        rootMargin: "240px 0px"
+    });
+
+    questHistoryObserver.observe(section);
+}
+
 async function init() {
     await refreshSessionUser?.();
     await initCharacterSummary({ enableDropdown: true, showKaels: true });
@@ -3765,8 +4052,11 @@ async function init() {
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
     state.adminNotes = loadAdminNotesMap();
-    await loadAdminCharacters();
+    state.viewMode = loadQuestViewMode();
     const cacheLoaded = loadStoredState();
+
+    fillFilters();
+    syncAdminUI();
 
     if (cacheLoaded) {
         renderQuestList();
@@ -3774,15 +4064,8 @@ async function init() {
     }
 
     const dbLoaded = await loadQuestsFromDb();
-    const historyLoaded = await loadHistoryFromDb();
-    await loadQuestCompletionsFromActivity();
     if (!dbLoaded) state.quests = [];
-    if (!historyLoaded) state.history = [];
-    await loadItemCatalog();
-    // populateRewardSelect(); // DEPRECATED - Old dropdown system
-    state.history = dedupeHistory(state.history);
-    fillFilters();
-    syncAdminUI();
+
     // Initialiser le modal de sélection des récompenses AVANT bindEvents
     // pour que le modal remplace le bouton trigger avant que l'ancien listener soit attaché
     initItemsModal({ dom, resolveItemByName, addReward: handleAddReward });
@@ -3790,13 +4073,21 @@ async function init() {
 
     // Initialiser le modal de sélection des prérequis
     initPrerequisitesModal({ state, renderPrerequisitesList });
-
     bindEvents();
-    await initQuestPanelShortcuts();
-    await initQuestRealtimeSync();
+
     renderQuestList();
     renderHistory();
     setSyncBadge(false, "Ready");
+    setupHistoryLazyLoad();
+
+    scheduleDeferredTask(async () => {
+        await initQuestPanelShortcuts();
+        await initQuestRealtimeSync();
+    }, 120);
+
+    scheduleDeferredTask(async () => {
+        await ensureItemCatalogLoaded();
+    }, 180);
 }
 
 init();

@@ -81,6 +81,10 @@
             <div id="questSyncBadge" class="quest-sync-badge" hidden aria-live="polite">Synced</div>
         </div>
         <section class="quest-carousel" aria-label="Liste des qu&#234;tes">
+            <div class="quest-view-toggle" role="group" aria-label="Affichage des qu&#234;tes">
+                <button class="quest-view-toggle-btn is-active tw-press" id="questCarouselViewBtn" type="button" data-view="carousel" aria-pressed="true">Carrousel</button>
+                <button class="quest-view-toggle-btn tw-press" id="questGridViewBtn" type="button" data-view="grid" aria-pressed="false">Grille</button>
+            </div>
             <button class="quest-arrow quest-arrow--left tw-press" id="questPrevBtn" type="button" aria-label="Qu&#234;tes pr&#233;c&#233;dentes">&#10094;</button>
             <div class="quest-carousel-viewport" id="questViewport">
                 <div class="quest-track" id="questTrack" aria-live="polite" tabindex="0"></div>
