@@ -17,6 +17,7 @@ export {
     getAllCharacters,
     getCharacterById,
     createCharacter,
+    deleteCharacter,
     setActiveCharacter,
     updateCharacter
 } from './api/characters-service.js';

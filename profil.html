@@ -1583,7 +1583,7 @@
                 updateAvatarControls();
                 updatePresentationControls();
                 // Initialize character summary widget with kaels
-                await initCharacterSummary({ enableDropdown: true, showKaels: true });
+                await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
                 setInterval(() => {
                     renderSoulCounts(getActiveCharacter());
                 }, 1200);
@@ -1605,7 +1605,7 @@
                 showCreateCharacterModal();
             }
             // Initialize character summary widget with kaels
-            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+            await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
             setInterval(() => {
                 renderSoulCounts(getActiveCharacter());
             }, 1200);
@@ -1794,7 +1794,7 @@
             updateAuthUserLabel();
             syncAdminSelector();
             renderSoulCounts(currentCharacter);
-            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+            await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
             rerenderOpenPanelIfAny();
             updateAvatarControls();
         }

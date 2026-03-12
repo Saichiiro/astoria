@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS market (
     seller_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     seller_character_id UUID NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
     buyer_id UUID NULL REFERENCES users(id) ON DELETE RESTRICT,
-    buyer_character_id UUID NULL REFERENCES characters(id) ON DELETE RESTRICT,
+    buyer_character_id UUID NULL REFERENCES characters(id) ON DELETE SET NULL,
     item_id UUID NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
     item_category TEXT,
     item_level INTEGER NOT NULL DEFAULT 0,
@@ -314,6 +314,15 @@ CREATE TABLE IF NOT EXISTS market (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     sold_at TIMESTAMP WITH TIME ZONE NULL
 );
+
+ALTER TABLE IF EXISTS market
+    DROP CONSTRAINT IF EXISTS market_buyer_character_id_fkey;
+
+ALTER TABLE IF EXISTS market
+    ADD CONSTRAINT market_buyer_character_id_fkey
+    FOREIGN KEY (buyer_character_id)
+    REFERENCES characters(id)
+    ON DELETE SET NULL;
 
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_market_status ON market(status);

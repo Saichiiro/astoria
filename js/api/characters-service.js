@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
-import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
+import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
 import { isAdmin, refreshSessionUser } from './auth-service.js';
 
 let authRefreshPromise = null;
@@ -338,5 +338,50 @@ export async function updateCharacter(characterId, updates) {
     } catch (error) {
         console.error('Error in updateCharacter:', error);
         return { success: false };
+    }
+}
+
+export async function deleteCharacter(characterId) {
+    if (!characterId) {
+        return { success: false, error: 'Personnage introuvable' };
+    }
+
+    try {
+        await ensureAuthContext();
+        const supabase = await getSupabaseClient();
+
+        const { error: releaseBuyerRefsError } = await supabase
+            .from('market')
+            .update({ buyer_character_id: null })
+            .eq('buyer_character_id', characterId);
+
+        if (releaseBuyerRefsError) {
+            console.error('Error releasing market buyer references:', releaseBuyerRefsError);
+            return { success: false, error: 'Impossible de liberer les references du marche' };
+        }
+
+        const { data, error } = await supabase
+            .from('characters')
+            .delete()
+            .eq('id', characterId)
+            .select('id, user_id')
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error deleting character:', error);
+            return { success: false, error: 'Erreur lors de la suppression du personnage' };
+        }
+
+        clearUserCharactersCache(data?.user_id || null);
+
+        const activeChar = getActiveCharacter();
+        if (activeChar && activeChar.id === characterId) {
+            clearActiveCharacter();
+        }
+
+        return { success: true, character: data || null };
+    } catch (error) {
+        console.error('Error in deleteCharacter:', error);
+        return { success: false, error: 'Erreur lors de la suppression du personnage' };
     }
 }

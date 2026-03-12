@@ -532,6 +532,19 @@ function getQuestAdminNotesStorageKey() {
     return getScopedQuestStorageKey(QUEST_ADMIN_NOTES_KEY);
 }
 
+function getHistoryCharacterScope() {
+    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+    const activeCharacterLabel = normalizeText(
+        state.participant?.label
+        || getActiveCharacter?.()?.name
+        || ""
+    );
+    return {
+        activeCharacterId,
+        activeCharacterLabel
+    };
+}
+
 function getParticipantStorageKey() {
     if (state.participant?.id) return `id:${state.participant.id}`;
     if (state.participant?.key) return state.participant.key;
@@ -960,8 +973,8 @@ async function loadQuestsFromDb(options = {}) {
 
 async function loadHistoryFromDb() {
     try {
-        const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
-        if (!state.isAdmin && !activeCharacterId) {
+        const { activeCharacterId } = getHistoryCharacterScope();
+        if (!activeCharacterId) {
             state.history = [];
             state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
             persistState();
@@ -973,10 +986,8 @@ async function loadHistoryFromDb() {
             .from(QUEST_HISTORY_TABLE)
             .select(QUEST_HISTORY_SELECT_COLUMNS)
             .order("date", { ascending: false })
-            .limit(200);
-        if (!state.isAdmin && activeCharacterId) {
-            query = query.eq("character_id", activeCharacterId);
-        }
+            .limit(200)
+            .eq("character_id", activeCharacterId);
         const { data, error } = await query;
         if (error) throw error;
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
@@ -2022,24 +2033,17 @@ function renderQuestList() {
 }
 
 function renderHistory() {
-    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
-    const activeCharacterLabel = normalizeText(
-        state.participant?.label
-        || getActiveCharacter?.()?.name
-        || ""
-    );
-    const scoped = state.isAdmin
-        ? state.history
-        : (activeCharacterId
-            ? state.history.filter((item) => {
-                const itemCharacterId = normalizeCharacterId(item.characterId);
-                if (itemCharacterId && itemCharacterId === activeCharacterId) return true;
-                if (!itemCharacterId && activeCharacterLabel) {
-                    return normalizeText(item.characterLabel || "") === activeCharacterLabel;
-                }
-                return false;
-            })
-            : []);
+    const { activeCharacterId, activeCharacterLabel } = getHistoryCharacterScope();
+    const scoped = activeCharacterId
+        ? state.history.filter((item) => {
+            const itemCharacterId = normalizeCharacterId(item.characterId);
+            if (itemCharacterId && itemCharacterId === activeCharacterId) return true;
+            if (!itemCharacterId && activeCharacterLabel) {
+                return normalizeText(item.characterLabel || "") === activeCharacterLabel;
+            }
+            return false;
+        })
+        : [];
     const filtered = state.filters.historyType === "all"
         ? scoped
         : scoped.filter((item) => item.type === state.filters.historyType);

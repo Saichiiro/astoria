@@ -5,6 +5,7 @@ import {
   setActiveCharacter,
   getActiveCharacter,
   updateCharacter,
+  deleteCharacter,
   getCurrentUser,
   setUserRoleByUsername,
 } from "../auth.js";
@@ -589,14 +590,11 @@ export const adminPanel = {
     });
 
     deleteConfirm?.addEventListener("click", async () => {
-      if (!pendingDelete || !supabaseRef) return;
+      if (!pendingDelete) return;
       try {
-        const { error } = await supabaseRef
-          .from("characters")
-          .delete()
-          .eq("id", pendingDelete.id);
-        if (error) {
-          console.error("Admin panel delete character error:", error);
+        const result = await deleteCharacter(pendingDelete.id);
+        if (!result?.success) {
+          console.error("Admin panel delete character error:", result?.error || "Unknown delete failure");
           return;
         }
         allCharacters = allCharacters.filter((c) => c.id != pendingDelete.id);
