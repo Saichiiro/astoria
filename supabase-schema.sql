@@ -511,6 +511,7 @@ CREATE TABLE IF NOT EXISTS quest_participants (
 CREATE TABLE IF NOT EXISTS quest_history (
     id TEXT PRIMARY KEY,
     date TEXT NOT NULL,
+    quest_id TEXT REFERENCES quests(id) ON DELETE SET NULL,
     type TEXT NOT NULL,
     rank TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -533,6 +534,7 @@ CREATE INDEX IF NOT EXISTS idx_quest_participants_character ON quest_participant
 
 -- Indexes for quest_history
 CREATE INDEX IF NOT EXISTS idx_quest_history_character_id ON quest_history(character_id);
+CREATE INDEX IF NOT EXISTS idx_quest_history_quest_id ON quest_history(quest_id);
 CREATE INDEX IF NOT EXISTS idx_quest_history_date ON quest_history(date);
 CREATE INDEX IF NOT EXISTS idx_quest_history_type ON quest_history(type);
 

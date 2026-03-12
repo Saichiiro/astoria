@@ -34,7 +34,7 @@ const QUESTS_LIST_VIEW = "quests_list";
 const QUEST_HISTORY_TABLE = "quest_history";
 const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
 const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
-const QUEST_HISTORY_SELECT_COLUMNS = "id,date,type,rank,name,gains,character_id,character_label";
+const QUEST_HISTORY_SELECT_COLUMNS = "*";
 const HISTORY_INITIAL_VISIBLE = 30;
 const HISTORY_VISIBLE_STEP = 30;
 const QUEST_INITIAL_BATCH_SIZE = 8;
@@ -61,7 +61,10 @@ const REWARD_ELEMENT_MAP = {
 const state = {
     quests: [],
     history: [],
+    completedQuestIdsFromActivity: new Set(),
+    completedQuestNamesFromActivity: new Set(),
     items: [],
+    adminCharacters: [],
     inventoryCache: new Map(),
     filters: {
         search: "",
@@ -213,6 +216,8 @@ const dom = {
     detailDescription: document.getElementById("questDetailDescription"),
     detailParticipants: document.getElementById("questDetailParticipants"),
     detailParticipantsCount: document.getElementById("questDetailParticipantsCount"),
+    adminParticipantSelect: document.getElementById("questAdminParticipantSelect"),
+    adminParticipantAddBtn: document.getElementById("questAdminParticipantAddBtn"),
     detailNote: document.getElementById("questDetailNote"),
     detailPrev: document.getElementById("questDetailPrev"),
     detailNext: document.getElementById("questDetailNext"),
@@ -690,7 +695,7 @@ function dedupeHistory(list) {
     list.forEach((entry) => {
         const signature = entry?.id
             ? `id:${entry.id}`
-            : `sig:${entry?.date}|${entry?.type}|${entry?.rank}|${entry?.name}|${entry?.gains}|${entry?.characterId || ""}|${entry?.characterLabel || ""}`;
+            : `sig:${entry?.date}|${entry?.questId || ""}|${entry?.type}|${entry?.rank}|${entry?.name}|${entry?.gains}|${entry?.characterId || ""}|${entry?.characterLabel || ""}`;
         if (seen.has(signature)) return;
         seen.add(signature);
         output.push(entry);
@@ -740,6 +745,7 @@ function mapHistoryRow(row) {
     return {
         id: row.id,
         date: row.date,
+        questId: row.quest_id ?? row.questId ?? null,
         type: normalizeQuestType(row.type),
         rank: row.rank,
         name: row.name,
@@ -1124,6 +1130,7 @@ async function insertHistoryToDb(entry) {
         const basePayload = {
             id: entry.id,
             date: entry.date,
+            quest_id: entry.questId || null,
             type: normalizeQuestType(entry.type),
             rank: entry.rank,
             name: entry.name,
@@ -1135,10 +1142,15 @@ async function insertHistoryToDb(entry) {
         // Keep history inserts resilient across live schema variants.
         const attempts = [
             basePayload,
+            { ...basePayload, quest_id: undefined },
             { ...basePayload, character_label: undefined },
+            { ...basePayload, quest_id: undefined, character_label: undefined },
             { ...basePayload, gains: undefined },
+            { ...basePayload, quest_id: undefined, gains: undefined },
             { ...basePayload, gains: undefined, character_label: undefined },
+            { ...basePayload, quest_id: undefined, gains: undefined, character_label: undefined },
             { ...basePayload, character_id: undefined, character_label: undefined },
+            { ...basePayload, quest_id: undefined, character_id: undefined, character_label: undefined },
             { id: basePayload.id, date: basePayload.date, type: basePayload.type, rank: basePayload.rank, name: basePayload.name }
         ];
 
@@ -1189,7 +1201,8 @@ async function refreshQuestStateFromBackend(options = {}) {
         const detailOpen = dom.detailModal?.classList.contains("open");
         const questsLoaded = await loadQuestsFromDb({ progressive: false });
         const historyLoaded = refreshHistory ? await loadHistoryFromDb() : false;
-        if (!questsLoaded && !historyLoaded) {
+        const activityLoaded = refreshHistory ? await loadQuestCompletionsFromActivity() : false;
+        if (!questsLoaded && !historyLoaded && !activityLoaded) {
             return false;
         }
         if (refreshHistory) {
@@ -1335,6 +1348,92 @@ function hasQuestBeenCompletedByParticipant(quest, participant) {
     const keys = normalizeParticipantCompletionKeys(participant);
     for (const key of keys) {
         if (completed.includes(key)) return true;
+    }
+    return false;
+}
+
+function hasQuestHistoryCompletion(quest, participant) {
+    if (!quest || !participant) return false;
+
+    const participantId = resolveParticipantId(participant);
+    const normalizedQuestName = normalizeText(quest.name || "");
+
+    return state.history.some((entry) => {
+        const entryCharacterId = normalizeCharacterId(entry?.characterId);
+        if (participantId && entryCharacterId && entryCharacterId !== participantId) {
+            return false;
+        }
+
+        const entryQuestId = String(entry?.questId || "").trim();
+        if (entryQuestId && quest.id && entryQuestId === quest.id) {
+            return true;
+        }
+
+        if (!entryQuestId && normalizedQuestName) {
+            return normalizeText(entry?.name || "") === normalizedQuestName;
+        }
+
+        return false;
+    });
+}
+
+function hasParticipantCompletedQuest(quest, participant) {
+    return hasQuestBeenCompletedByParticipant(quest, participant)
+        || hasQuestHistoryCompletion(quest, participant)
+        || hasQuestActivityCompletion(quest, participant);
+}
+
+function hasQuestActivityCompletion(quest, participant) {
+    if (!quest || !participant) return false;
+    const participantId = resolveParticipantId(participant);
+    const activeParticipantId = resolveParticipantId(state.participant);
+    if (!participantId || !activeParticipantId || participantId !== activeParticipantId) {
+        return false;
+    }
+
+    if (quest.id && state.completedQuestIdsFromActivity.has(String(quest.id))) {
+        return true;
+    }
+
+    const normalizedQuestName = normalizeText(quest.name || "");
+    return normalizedQuestName
+        ? state.completedQuestNamesFromActivity.has(normalizedQuestName)
+        : false;
+}
+
+async function loadQuestCompletionsFromActivity() {
+    try {
+        state.completedQuestIdsFromActivity = new Set();
+        state.completedQuestNamesFromActivity = new Set();
+
+        const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+        if (!activeCharacterId) {
+            return true;
+        }
+
+        const supabase = await getSupabaseClient();
+        const { data, error } = await supabase
+            .from("activity_logs")
+            .select("action_data")
+            .eq("action_type", ActionTypes.QUEST_COMPLETE)
+            .eq("character_id", activeCharacterId)
+            .limit(500);
+
+        if (error) throw error;
+
+        (Array.isArray(data) ? data : []).forEach((row) => {
+            const actionData = row?.action_data && typeof row.action_data === "object"
+                ? row.action_data
+                : null;
+            const questId = String(actionData?.quest_id || "").trim();
+            const questName = normalizeText(actionData?.quest_name || "");
+            if (questId) state.completedQuestIdsFromActivity.add(questId);
+            if (questName) state.completedQuestNamesFromActivity.add(questName);
+        });
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to load quest completion activity:", error);
     }
     return false;
 }
@@ -2182,13 +2281,30 @@ function renderDetail(quest) {
 }
 
 function renderParticipants(quest) {
-    dom.detailParticipantsCount.textContent = `(${quest.participants.length}/${quest.maxParticipants})`;
+    dom.detailParticipantsCount.textContent = getQuestParticipantCountLabel(quest);
     if (!quest.participants.length) {
         dom.detailParticipants.innerHTML = "<li>Aucun participant</li>";
     } else {
-        dom.detailParticipants.innerHTML = quest.participants.map((participant) => `<li>${clean(participant.label)}</li>`).join("");
+        dom.detailParticipants.innerHTML = quest.participants.map((participant) => {
+            if (!state.isAdmin) {
+                return `<li>${clean(participant.label)}</li>`;
+            }
+            const participantId = resolveParticipantId(participant);
+            const removeAction = participantId
+                ? `<button type="button" class="quest-participant-remove tw-press" data-remove-participant="${clean(participantId)}">Retirer</button>`
+                : "";
+            return `
+                <li>
+                    <div class="quest-participant-entry">
+                        <span>${clean(participant.label)}</span>
+                        ${removeAction}
+                    </div>
+                </li>
+            `;
+        }).join("");
     }
 
+    renderAdminParticipantOptions(quest);
     const note = buildJoinNote(quest);
     dom.detailNote.textContent = note || "";
 }
@@ -2270,7 +2386,7 @@ function buildJoinNote(quest) {
         const missingPrereqs = quest.prerequisites.filter(prereqId => {
             const prereqQuest = state.quests.find(q => q.id === prereqId);
             if (!prereqQuest) return true; // If quest not found, consider it missing
-            return !hasQuestBeenCompletedByParticipant(prereqQuest, participant);
+            return !hasParticipantCompletedQuest(prereqQuest, participant);
         });
 
         if (missingPrereqs.length > 0) {
@@ -2278,7 +2394,7 @@ function buildJoinNote(quest) {
         }
     }
 
-    if (!quest.repeatable && hasQuestBeenCompletedByParticipant(quest, participant)) {
+    if (!quest.repeatable && hasParticipantCompletedQuest(quest, participant)) {
         return "Qu\u00EAte d\u00E9j\u00E0 r\u00E9alis\u00E9e (non r\u00E9p\u00E9titive).";
     }
     if (quest.status === "locked") {
@@ -2296,6 +2412,137 @@ function buildJoinNote(quest) {
 function isParticipant(quest) {
     if (!state.participant) return false;
     return quest.participants.some((entry) => entry.key === state.participant.key);
+}
+
+function getQuestParticipantCountLabel(quest) {
+    return `(${quest.participants.length}/${quest.maxParticipants})`;
+}
+
+function getAdminCharacterLabel(character) {
+    const name = String(character?.name || "Sans nom").trim() || "Sans nom";
+    const race = String(character?.race || "").trim();
+    const role = String(character?.class || "").trim();
+    const parts = [name];
+    const meta = [race, role].filter(Boolean).join(" / ");
+    if (meta) {
+        parts.push(`- ${meta}`);
+    }
+    return parts.join(" ");
+}
+
+function renderAdminParticipantOptions(quest) {
+    if (!dom.adminParticipantSelect) return;
+    if (!state.isAdmin) {
+        dom.adminParticipantSelect.innerHTML = `<option value="">Selectionner un personnage...</option>`;
+        dom.adminParticipantSelect.disabled = true;
+        dom.adminParticipantAddBtn?.setAttribute("disabled", "true");
+        return;
+    }
+
+    const currentValue = dom.adminParticipantSelect.value;
+    const assignedIds = new Set((quest?.participants || []).map((participant) => resolveParticipantId(participant)).filter(Boolean));
+    const availableCharacters = state.adminCharacters
+        .filter((character) => character?.id && !assignedIds.has(character.id))
+        .sort((a, b) => getAdminCharacterLabel(a).localeCompare(getAdminCharacterLabel(b), "fr", { sensitivity: "base" }));
+
+    const options = [`<option value="">Selectionner un personnage...</option>`]
+        .concat(availableCharacters.map((character) =>
+            `<option value="${clean(character.id)}">${clean(getAdminCharacterLabel(character))}</option>`
+        ));
+
+    dom.adminParticipantSelect.innerHTML = options.join("");
+    dom.adminParticipantSelect.value = availableCharacters.some((character) => character.id === currentValue) ? currentValue : "";
+    const canAdd = Boolean(quest?.id) && availableCharacters.length > 0;
+    dom.adminParticipantSelect.disabled = !canAdd;
+    dom.adminParticipantAddBtn?.toggleAttribute("disabled", !canAdd);
+}
+
+async function loadAdminCharacters() {
+    if (!state.isAdmin) {
+        state.adminCharacters = [];
+        return;
+    }
+
+    try {
+        const authModule = await import("./auth.js");
+        const characters = await authModule.getAllCharacters?.();
+        state.adminCharacters = Array.isArray(characters) ? characters.filter((character) => Boolean(character?.id)) : [];
+    } catch (error) {
+        console.warn("[Quetes] Failed to load admin characters:", error);
+        state.adminCharacters = [];
+    }
+}
+
+async function addParticipantAsAdmin() {
+    if (!state.isAdmin) return;
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    const selectedId = String(dom.adminParticipantSelect?.value || "").trim();
+    if (!quest || !selectedId) {
+        toastManager.warning("Selectionne un personnage a ajouter.");
+        return;
+    }
+
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
+    if (quest.participants.some((participant) => resolveParticipantId(participant) === selectedId)) {
+        toastManager.warning("Ce personnage participe deja a cette quete.");
+        return;
+    }
+
+    let character = state.adminCharacters.find((entry) => entry.id === selectedId) || null;
+    if (!character) {
+        character = await getCharacterById(selectedId);
+    }
+    if (!character?.id) {
+        toastManager.error("Impossible de retrouver ce personnage.");
+        return;
+    }
+
+    quest.participants.push(buildParticipant(character.name || "Personnage", character.id));
+    quest.participants[quest.participants.length - 1].joinedAt = Date.now();
+
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible d'ajouter ce participant.");
+        return;
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+    renderQuestProgressPanel();
+    toastManager.success(`${character.name || "Le personnage"} a ete ajoute a la quete.`);
+    scheduleQuestRealtimeRefresh(80);
+}
+
+async function removeParticipantAsAdmin(participantId) {
+    if (!state.isAdmin || !participantId) return;
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    if (!quest) return;
+
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
+    const participant = quest.participants.find((entry) => resolveParticipantId(entry) === participantId);
+    if (!participant) return;
+
+    quest.participants = quest.participants.filter((entry) => resolveParticipantId(entry) !== participantId);
+
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible de retirer ce participant.");
+        return;
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+    renderQuestProgressPanel();
+    toastManager.success(`${participant.label || "Le participant"} a ete retire de la quete.`);
+    scheduleQuestRealtimeRefresh(80);
 }
 
 function renderJoinButton(quest) {
@@ -2396,6 +2643,7 @@ async function validateQuest() {
     const historyEntries = recipients.map((participant, index) => ({
         id: `history-${timestamp}-${index}`,
         date,
+        questId: quest.id,
         type: normalizeQuestType(quest.type),
         rank: quest.rank,
         name: quest.name,
@@ -2412,6 +2660,15 @@ async function validateQuest() {
         const completionKey = participantKeyFromId(resolveParticipantId(participant)) || String(participant.key || "").trim();
         if (completionKey && !quest.completedBy.includes(completionKey)) {
             quest.completedBy.push(completionKey);
+        }
+        const participantId = resolveParticipantId(participant);
+        const activeParticipantId = resolveParticipantId(state.participant);
+        if (participantId && activeParticipantId && participantId === activeParticipantId) {
+            if (quest.id) state.completedQuestIdsFromActivity.add(String(quest.id));
+            const normalizedQuestName = normalizeText(quest.name || "");
+            if (normalizedQuestName) {
+                state.completedQuestNamesFromActivity.add(normalizedQuestName);
+            }
         }
     });
     quest.participants = [];
@@ -3354,6 +3611,9 @@ function bindEvents() {
         if (imageUrl) openImageFullscreen(imageUrl);
     });
     dom.joinBtn.addEventListener("click", toggleParticipation);
+    dom.adminParticipantAddBtn?.addEventListener("click", () => {
+        void addParticipantAsAdmin();
+    });
     dom.editBtn.addEventListener("click", () => {
         const quest = state.quests.find((item) => item.id === state.activeQuestId);
         if (quest) {
@@ -3368,6 +3628,12 @@ function bindEvents() {
     dom.detailModal.addEventListener("click", (event) => {
         if (event.target.dataset.close === "true") {
             closeModal(dom.detailModal);
+            return;
+        }
+
+        const removeParticipantBtn = event.target.closest("[data-remove-participant]");
+        if (removeParticipantBtn) {
+            void removeParticipantAsAdmin(removeParticipantBtn.dataset.removeParticipant);
         }
     });
     dom.editorModal.addEventListener("click", (event) => {
@@ -3408,7 +3674,10 @@ function bindEvents() {
         state.participant = resolveParticipant();
         state.adminNotes = loadAdminNotesMap();
         loadStoredState();
-        void loadHistoryFromDb().then(() => {
+        void Promise.all([
+            loadHistoryFromDb(),
+            loadQuestCompletionsFromActivity()
+        ]).then(() => {
             renderHistory();
             renderQuestProgressPanel();
         });
@@ -3496,6 +3765,7 @@ async function init() {
     state.isAdmin = Boolean(isAdmin?.());
     state.participant = resolveParticipant();
     state.adminNotes = loadAdminNotesMap();
+    await loadAdminCharacters();
     const cacheLoaded = loadStoredState();
 
     if (cacheLoaded) {
@@ -3505,6 +3775,7 @@ async function init() {
 
     const dbLoaded = await loadQuestsFromDb();
     const historyLoaded = await loadHistoryFromDb();
+    await loadQuestCompletionsFromActivity();
     if (!dbLoaded) state.quests = [];
     if (!historyLoaded) state.history = [];
     await loadItemCatalog();
@@ -3529,10 +3800,3 @@ async function init() {
 }
 
 init();
-
-
-
-
-
-
-

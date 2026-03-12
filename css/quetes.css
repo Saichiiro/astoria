@@ -1122,6 +1122,74 @@ body.quest-board {
     color: #fff;
 }
 
+.quest-participant-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.quest-participant-remove {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.quest-admin-participants {
+    margin: 16px 0 12px;
+    padding: 12px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.quest-admin-participants-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.quest-admin-participants-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.quest-admin-participant-select {
+    flex: 1;
+    min-width: 0;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.95);
+    color: #3d2a57;
+    padding: 10px 12px;
+    font-weight: 600;
+}
+
+.quest-admin-participant-add {
+    border: none;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #ff6aa2, #ff8b7b);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.quest-participants-note--admin {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
 .quest-participants-note {
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.8);
@@ -2091,6 +2159,15 @@ body.quest-board {
 
     .quest-modal-participants {
         order: 3;
+    }
+
+    .quest-admin-participants-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .quest-admin-participant-add {
+        width: 100%;
     }
 }
 

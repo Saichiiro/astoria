@@ -167,6 +167,20 @@
                             <span id="questDetailParticipantsCount">(0/0)</span>
                         </div>
                         <ul id="questDetailParticipants"></ul>
+                        <div class="quest-admin-participants" data-admin-only>
+                            <label class="quest-admin-participants-label" for="questAdminParticipantSelect">Ajout admin</label>
+                            <div class="quest-admin-participants-row">
+                                <select id="questAdminParticipantSelect" class="quest-admin-participant-select">
+                                    <option value="">Selectionner un personnage...</option>
+                                </select>
+                                <button class="quest-admin-participant-add tw-press" id="questAdminParticipantAddBtn" type="button">
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div class="quest-participants-note quest-participants-note--admin">
+                                Permet d'ajouter un joueur meme s'il n'a pas rejoint la quete lui-meme.
+                            </div>
+                        </div>
                         <div class="quest-participants-note" id="questDetailNote"></div>
                     </div>
                 </aside>
