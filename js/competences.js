@@ -13,6 +13,12 @@
     const skillsPageNextEl = document.getElementById("skillsPageNext");
     const skillsAddBtn = document.getElementById("skillsAddBtn");
     const skillsEditModeBtn = document.getElementById("skillsEditModeBtn");
+    const skillsBulkBar = document.getElementById("skillsBulkBar");
+    const skillsBulkCount = document.getElementById("skillsBulkCount");
+    const skillsBulkBase = document.getElementById("skillsBulkBase");
+    const skillsBulkCap = document.getElementById("skillsBulkCap");
+    const skillsBulkApply = document.getElementById("skillsBulkApply");
+    const skillsBulkClear = document.getElementById("skillsBulkClear");
     const skillsAddForm = document.getElementById("skillsAddForm");
     const skillsAddName = document.getElementById("skillsAddName");
     const skillsAddIcon = document.getElementById("skillsAddIcon");
@@ -110,6 +116,7 @@
         customSkillsByCategory: loadFromStorage(skillsCustomKey),
         metaByCategory: loadFromStorage(skillsMetaKey),
         editModeByCategory: loadFromStorage(skillsEditModeKey),
+        selectedSkillsByCategory: {},
         isAdmin: document.body.dataset.admin === "true",
         adminEditor: { categoryId: "", skillName: "" },
     };
@@ -136,8 +143,55 @@
         if (!categoryId) return;
         skillsState.editModeByCategory = skillsState.editModeByCategory || {};
         skillsState.editModeByCategory[categoryId] = Boolean(enabled);
+        if (!enabled) {
+            skillsState.selectedSkillsByCategory[categoryId] = [];
+        }
         saveToStorage(skillsEditModeKey, skillsState.editModeByCategory);
         refreshEditModeButton();
+        updateBulkSelectionUI();
+    }
+
+    function getSelectedSkills(categoryId) {
+        if (!categoryId) return [];
+        const list = skillsState.selectedSkillsByCategory?.[categoryId];
+        return Array.isArray(list) ? list : [];
+    }
+
+    function setSelectedSkills(categoryId, names) {
+        if (!categoryId) return;
+        skillsState.selectedSkillsByCategory = skillsState.selectedSkillsByCategory || {};
+        skillsState.selectedSkillsByCategory[categoryId] = Array.from(new Set(
+            (Array.isArray(names) ? names : [])
+                .map((name) => String(name || "").trim())
+                .filter(Boolean)
+        ));
+    }
+
+    function toggleSkillSelection(categoryId, skillName, force = null) {
+        const current = new Set(getSelectedSkills(categoryId));
+        const normalizedName = String(skillName || "").trim();
+        if (!normalizedName) return;
+        const shouldSelect = force === null ? !current.has(normalizedName) : Boolean(force);
+        if (shouldSelect) {
+            current.add(normalizedName);
+        } else {
+            current.delete(normalizedName);
+        }
+        setSelectedSkills(categoryId, Array.from(current));
+        updateBulkSelectionUI();
+        renderSkillsCategory(getActiveCategory());
+    }
+
+    function updateBulkSelectionUI() {
+        if (!skillsBulkBar) return;
+        const categoryId = skillsState.activeCategoryId;
+        const isVisible = skillsState.isAdmin && isCategoryEditMode(categoryId);
+        const selected = getSelectedSkills(categoryId);
+        skillsBulkBar.hidden = !isVisible;
+        skillsBulkBar.classList.toggle("is-visible", isVisible);
+        if (skillsBulkCount) {
+            skillsBulkCount.textContent = String(selected.length);
+        }
     }
 
     function refreshEditModeButton() {
@@ -237,6 +291,60 @@
             renderSkillsCategory(getActiveCategory());
         });
     }
+
+    skillsBulkClear?.addEventListener("click", () => {
+        const categoryId = skillsState.activeCategoryId;
+        setSelectedSkills(categoryId, []);
+        updateBulkSelectionUI();
+        renderSkillsCategory(getActiveCategory());
+    });
+
+    skillsBulkApply?.addEventListener("click", () => {
+        const category = getActiveCategory();
+        if (!category || !skillsState.isAdmin || !isCategoryEditMode(category.id)) return;
+        const selected = getSelectedSkills(category.id);
+        if (!selected.length) {
+            updateFeedback("Selectionne au moins une competence.");
+            return;
+        }
+
+        const baseValue = skillsBulkBase?.value.trim() || "";
+        const capValue = skillsBulkCap?.value.trim() || "";
+        const hasBase = baseValue !== "";
+        const hasCap = capValue !== "";
+        if (!hasBase && !hasCap) {
+            updateFeedback("Renseigne une base ou un cap a appliquer.");
+            return;
+        }
+
+        let changedCount = 0;
+        for (const skillName of selected) {
+            const skill = category.skills.find((entry) => entry?.name === skillName);
+            if (!skill) continue;
+            const currentBase = Number(skillsState.baseValuesByCategory?.[category.id]?.[skill.name] || 0);
+            const currentCap = Number(getSkillCap(skill));
+            const result = applySkillAdminEdits(category, skill, {
+                name: skill.name,
+                icon: skill.icon || "",
+                base: hasBase ? Number(baseValue) : currentBase,
+                cap: hasCap ? Number(capValue) : currentCap
+            });
+            if (result.ok) {
+                changedCount += 1;
+            }
+        }
+
+        if (!changedCount) {
+            updateFeedback("Aucune competence modifiee.");
+            return;
+        }
+
+        if (skillsBulkBase) skillsBulkBase.value = "";
+        if (skillsBulkCap) skillsBulkCap.value = "";
+        updateFeedback(`${changedCount} competence(s) mises a jour.`);
+        renderSkillsCategory(category);
+        void persistProfileNow();
+    });
 
     if (skillsAddForm) {
         skillsAddForm.addEventListener("click", (event) => {
@@ -928,10 +1036,27 @@
             const cap = getSkillCap(skill);
             const isMaxed = base + allocation >= cap;
             const isAdminEditMode = skillsState.isAdmin && isCategoryEditMode(category.id);
+            const isSelected = getSelectedSkills(category.id).includes(skill.name);
             const li = document.createElement("li");
             li.className = "skills-line";
+            li.classList.toggle("skills-line-selected", isSelected);
             const mainRow = document.createElement("div");
             mainRow.className = "skills-line-main";
+
+            if (isAdminEditMode) {
+                const selectToggle = document.createElement("input");
+                selectToggle.type = "checkbox";
+                selectToggle.className = "skills-bulk-toggle";
+                selectToggle.checked = isSelected;
+                selectToggle.setAttribute("aria-label", `Selectionner ${skill.name}`);
+                selectToggle.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                });
+                selectToggle.addEventListener("change", () => {
+                    toggleSkillSelection(category.id, skill.name, selectToggle.checked);
+                });
+                mainRow.appendChild(selectToggle);
+            }
 
             const icon = document.createElement("div");
             icon.className = "skills-icon";
@@ -1072,6 +1197,12 @@
                 itemDetails: bonusEntry.itemDetails || [],
                 nokorahDetails: bonusEntry.nokorahDetails || []
             });
+            if (isAdminEditMode) {
+                li.addEventListener("click", (event) => {
+                    if (event.target.closest("button, input, select, textarea")) return;
+                    toggleSkillSelection(category.id, skill.name);
+                });
+            }
             li.style.cursor = "help";
             skillsListEl.appendChild(li);
         });
@@ -1079,6 +1210,7 @@
         updateSkillsPointsDisplay();
         updateLockState(isLocked);
         updatePendingHighlights(category.id);
+        updateBulkSelectionUI();
         updatePageNavigation();
     }
 

@@ -93,6 +93,13 @@ function isAbortLikeError(error) {
     return msg.includes('signal is aborted') || msg.includes('aborted');
 }
 
+function isPermissionLikeError(error) {
+    if (!error) return false;
+    const code = String(error.code || '').toLowerCase();
+    const msg = String(error.message || '').toLowerCase();
+    return code === '403' || code === '42501' || msg.includes('forbidden') || msg.includes('permission');
+}
+
 export async function getUserCharacters(userId) {
     if (!userId) return [];
 
@@ -317,11 +324,32 @@ export async function updateCharacter(characterId, updates) {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
 
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('characters')
             .update(updates)
             .eq('id', characterId)
             .select();
+
+        if (error && isPermissionLikeError(error)) {
+            const fallback = await supabase
+                .from('characters')
+                .update(updates)
+                .eq('id', characterId);
+
+            if (!fallback.error) {
+                const activeChar = getActiveCharacter();
+                const mergedCharacter = activeChar && activeChar.id === characterId
+                    ? { ...activeChar, ...updates }
+                    : null;
+
+                clearUserCharactersCache();
+                if (mergedCharacter) {
+                    setActiveCharacterLocal(mergedCharacter);
+                }
+
+                return { success: true, character: mergedCharacter };
+            }
+        }
 
         if (error) {
             console.error('Error updating character:', error);
