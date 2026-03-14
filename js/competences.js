@@ -74,7 +74,7 @@
         });
     }
 
-    const MAX_SKILL_POINTS = 40;
+    const MAX_SKILL_POINTS = 200;
     const MAX_CATEGORY_POINTS = 999;
     const SHIFT_STEP_POINTS = 10;
 
