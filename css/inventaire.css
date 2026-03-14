@@ -1267,6 +1267,52 @@
     display: flex;
 }
 
+.scroll-add-random {
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 1px solid var(--color-primary-light);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.scroll-add-random-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-primary-dark);
+}
+
+.scroll-add-random-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.scroll-random-qty {
+    max-width: 84px;
+}
+
+.scroll-random-add-btn {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+}
+
+.scroll-random-add-btn:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+}
+
+.scroll-random-add-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .scroll-add-search input {
     width: 100%;
     padding: var(--space-2) var(--space-3);

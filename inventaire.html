@@ -1085,6 +1085,34 @@
 
 
 
+                        <div class="scroll-add-random">
+
+
+
+                            <span class="scroll-add-random-label">Distribution aléatoire</span>
+
+
+
+                            <div class="scroll-add-random-controls">
+
+
+
+                                <input type="number" id="scrollRandomQty" class="tw-input scroll-random-qty" min="1" value="1">
+
+
+
+                                <button type="button" id="scrollRandomAddBtn" class="tw-press scroll-random-add-btn">Distribuer</button>
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
                         <div class="scroll-add-search">
 
 
@@ -1811,6 +1839,10 @@
                     setScrollAddOpen(false);
                 }
             }
+            if (scrollRandomAddBtn) {
+                scrollRandomAddBtn.hidden = !inventoryAdminMode;
+                scrollRandomAddBtn.disabled = !inventoryAdminMode;
+            }
         }
 
 
@@ -1998,6 +2030,14 @@
 
 
 
+        const scrollRandomQty = document.getElementById('scrollRandomQty');
+
+
+
+        const scrollRandomAddBtn = document.getElementById('scrollRandomAddBtn');
+
+
+
         const scrollTypeSearch = document.getElementById('scrollTypeSearch');
 
 
@@ -2016,7 +2056,27 @@
 
 
         let inventoryAccessAllowed = true;
-        let inventoryAdminMode = false;
+        let inventoryAdminMode = document.body?.dataset?.admin === 'true';
+
+        function syncInventoryAdminMode() {
+            const datasetAdminMode = document.body?.dataset?.admin === 'true';
+            let nextMode = datasetAdminMode;
+
+            try {
+                if (authApi && typeof authApi.isAdmin === 'function') {
+                    nextMode = datasetAdminMode || Boolean(authApi.isAdmin());
+                }
+            } catch (error) {
+                console.warn('[Inventory] Failed to read admin mode from auth API:', error);
+            }
+
+            if (inventoryAdminMode !== nextMode) {
+                inventoryAdminMode = nextMode;
+                applyInventoryRoleGuards();
+            }
+
+            return inventoryAdminMode;
+        }
 
 
 
@@ -4488,6 +4548,7 @@
                 const isAdmin = authApi.isAdmin?.() || false;
                 inventoryAdminMode = Boolean(isAdmin);
                 applyInventoryRoleGuards();
+                syncInventoryAdminMode();
 
 
 
@@ -4552,8 +4613,9 @@
 
 
                 inventoryApi = null;
-                inventoryAdminMode = false;
+                inventoryAdminMode = document.body?.dataset?.admin === 'true';
                 applyInventoryRoleGuards();
+                syncInventoryAdminMode();
 
             }
 
@@ -4639,6 +4701,11 @@
 
 
                         const missingRows = hydrateInventoryFromRows(normalizedRows) || [];
+                        const scrollStoreChanged = reconcileAllScrollTypeStores();
+
+                        if (scrollStoreChanged) {
+                            persistInventory();
+                        }
 
 
 
@@ -4673,6 +4740,9 @@
 
 
                     hydrateInventoryFromRows([]);
+                    if (reconcileAllScrollTypeStores()) {
+                        persistInventory();
+                    }
 
 
 
@@ -4698,6 +4768,9 @@
 
 
             hydrateInventoryFromRows([]);
+            if (reconcileAllScrollTypeStores()) {
+                persistInventory();
+            }
 
 
 
@@ -5102,6 +5175,10 @@
 
                     nextItemId = Math.max(...inventoryItems.map(i => i.id), 0) + 1;
 
+                    if (reconcileAllScrollTypeStores()) {
+                        saveToLocalStorage();
+                    }
+
 
 
                     console.log(`Loaded ${inventoryItems.length} items from localStorage`);
@@ -5210,7 +5287,7 @@
 
         // Attach event listener to open items modal
         openAddBtn.addEventListener('click', () => {
-            if (!inventoryAdminMode) {
+            if (!syncInventoryAdminMode()) {
                 toastManager?.error?.('Action reservee aux administrateurs.');
                 return;
             }
@@ -5232,7 +5309,7 @@
 
 
                 if (scrollPanelAddBtn.disabled) return;
-                if (!inventoryAdminMode) return;
+                if (!syncInventoryAdminMode()) return;
 
 
 
@@ -5286,6 +5363,8 @@
 
             scrollTypeSuggestions.addEventListener('click', (event) => {
 
+                if (!syncInventoryAdminMode()) return;
+
 
 
                 const addButton = event.target.closest('.scroll-suggestion-add');
@@ -5315,6 +5394,26 @@
                 if (qtyInput) qtyInput.value = 1;
 
 
+
+            });
+
+
+
+        }
+
+
+
+        if (scrollRandomAddBtn) {
+
+
+
+            scrollRandomAddBtn.addEventListener('click', () => {
+
+                if (!syncInventoryAdminMode()) return;
+
+                addRandomScrollTypeCounts(scrollRandomQty?.value);
+
+                if (scrollRandomQty) scrollRandomQty.value = 1;
 
             });
 
@@ -5358,6 +5457,8 @@
 
                 if (addButton) {
 
+                    if (!syncInventoryAdminMode()) return;
+
 
 
                     const qtyInput = item.querySelector('.scroll-type-qty-input');
@@ -5382,6 +5483,8 @@
 
                 if (removeButton) {
 
+                    if (!syncInventoryAdminMode()) return;
+
 
 
                     const qtyInput = item.querySelector('.scroll-type-qty-input');
@@ -5405,6 +5508,8 @@
 
 
                 if (qtyButton) {
+
+                    if (!syncInventoryAdminMode()) return;
 
 
 
@@ -5473,6 +5578,8 @@
 
 
             scrollPanelList.addEventListener('keydown', (event) => {
+
+                if (!syncInventoryAdminMode()) return;
 
 
 
@@ -6068,13 +6175,17 @@
 
         function getScrollStorageKey(category, item, useLegacy = false) {
 
+            const characterScope = !useLegacy && inventoryStorageMode === 'character'
+                ? (authApi?.getActiveCharacter?.()?.id || 'character')
+                : 'shared';
+
 
 
             const idPart = useLegacy ? (item?.id ?? item?.name ?? 'unknown') : getScrollItemKey(item);
 
 
 
-            return `${SCROLL_STORAGE_PREFIX}:${category}:${idPart}`;
+            return `${SCROLL_STORAGE_PREFIX}:${characterScope}:${category}:${idPart}`;
 
 
 
@@ -6128,6 +6239,10 @@
 
             const legacyKey = getScrollStorageKey(category, item, true);
 
+            const unscopedKey = `${SCROLL_STORAGE_PREFIX}:${category}:${getScrollItemKey(item)}`;
+
+            const legacyUnscopedKey = `${SCROLL_STORAGE_PREFIX}:${category}:${item?.id ?? item?.name ?? 'unknown'}`;
+
 
 
             try {
@@ -6135,6 +6250,12 @@
 
 
                 localStorage.removeItem(key);
+
+                if (unscopedKey !== key) {
+
+                    localStorage.removeItem(unscopedKey);
+
+                }
 
 
 
@@ -6145,6 +6266,12 @@
                     localStorage.removeItem(legacyKey);
 
 
+
+                }
+
+                if (legacyUnscopedKey !== legacyKey && legacyUnscopedKey !== key) {
+
+                    localStorage.removeItem(legacyUnscopedKey);
 
                 }
 
@@ -6528,9 +6655,16 @@
 
             const legacyKey = getScrollStorageKey(category, item, true);
 
+            const unscopedKey = `${SCROLL_STORAGE_PREFIX}:${category}:${getScrollItemKey(item)}`;
+
+            const legacyUnscopedKey = `${SCROLL_STORAGE_PREFIX}:${category}:${item?.id ?? item?.name ?? 'unknown'}`;
 
 
-            const raw = localStorage.getItem(key) || (legacyKey !== key ? localStorage.getItem(legacyKey) : null);
+
+            const raw = localStorage.getItem(key)
+                || localStorage.getItem(unscopedKey)
+                || (legacyKey !== key ? localStorage.getItem(legacyKey) : null)
+                || (legacyUnscopedKey !== legacyKey ? localStorage.getItem(legacyUnscopedKey) : null);
 
 
 
@@ -6634,7 +6768,7 @@
 
 
 
-                if (fromProfile.hasStored) return fromProfile;
+                if (fromProfile.hasStored) return reconcileScrollCountsWithInventoryQuantity(category, item, fromProfile.counts);
 
 
 
@@ -6654,7 +6788,7 @@
 
 
 
-                        return legacy;
+                        return reconcileScrollCountsWithInventoryQuantity(category, item, legacy.counts);
 
 
 
@@ -6674,7 +6808,7 @@
 
 
 
-            if (local.hasStored) return local;
+            if (local.hasStored) return reconcileScrollCountsWithInventoryQuantity(category, item, local.counts);
 
 
 
@@ -6781,6 +6915,76 @@
         }
 
 
+
+        function reconcileScrollCountsWithInventoryQuantity(category, item, counts) {
+
+            const normalizedCounts = normalizeScrollCounts(counts);
+            const targetQty = Math.max(0, Math.floor(Number(item?.quantity) || 0));
+            const currentTotal = sumScrollCounts(normalizedCounts);
+
+            if (targetQty === currentTotal) {
+                return { counts: normalizedCounts, hasStored: currentTotal > 0 };
+            }
+
+            if (targetQty <= 0) {
+                clearScrollCountsForItem(item);
+                return { counts: getEmptyScrollCounts(), hasStored: false };
+            }
+
+            const nextCounts = getEmptyScrollCounts();
+            const nonZeroKeys = Object.keys(normalizedCounts).filter((key) => (normalizedCounts[key] || 0) > 0);
+            const seededTypeKey = getScrollTypeKey(item);
+
+            if (nonZeroKeys.length === 1) {
+                nextCounts[nonZeroKeys[0]] = targetQty;
+            } else if (seededTypeKey) {
+                if (nextCounts[seededTypeKey] === undefined) {
+                    nextCounts[seededTypeKey] = 0;
+                }
+                nextCounts[seededTypeKey] = targetQty;
+            } else if (nonZeroKeys.length > 1 && currentTotal > 0) {
+                let remaining = targetQty;
+                nonZeroKeys.forEach((key, index) => {
+                    if (index === nonZeroKeys.length - 1) {
+                        nextCounts[key] = remaining;
+                        return;
+                    }
+                    const share = Number(normalizedCounts[key]) || 0;
+                    const proportional = Math.max(0, Math.min(remaining, Math.round((share / currentTotal) * targetQty)));
+                    nextCounts[key] = proportional;
+                    remaining -= proportional;
+                });
+            } else {
+                const fallbackKey = nonZeroKeys[0] || seededTypeKey;
+                if (fallbackKey) {
+                    if (nextCounts[fallbackKey] === undefined) {
+                        nextCounts[fallbackKey] = 0;
+                    }
+                    nextCounts[fallbackKey] = targetQty;
+                }
+            }
+
+            saveScrollCounts(category, item, nextCounts);
+            return { counts: nextCounts, hasStored: true };
+
+        }
+
+        function reconcileAllScrollTypeStores() {
+            const before = JSON.stringify(normalizeScrollTypeStore(scrollTypeStore));
+
+            scrollTypeStore = normalizeScrollTypeStore(scrollTypeStore);
+
+            inventoryItems.forEach((item) => {
+                const category = getScrollCategory(item);
+                if (!category) return;
+                loadScrollCounts(category, item);
+            });
+
+            const after = JSON.stringify(normalizeScrollTypeStore(scrollTypeStore));
+            scrollTypeStore = normalizeScrollTypeStore(scrollTypeStore);
+
+            return before !== after;
+        }
 
         function sumScrollCounts(counts) {
 
@@ -7010,6 +7214,8 @@
 
 
 
+            const canManageInventory = syncInventoryAdminMode();
+
             const rows = visibleTypes.map((type) => {
 
 
@@ -7046,7 +7252,7 @@
 
 
 
-                        ${isSelected ? `
+                        ${isSelected && canManageInventory ? `
 
 
 
@@ -7244,6 +7450,8 @@
 
         function addScrollTypeCount(typeKey, qty) {
 
+            if (!syncInventoryAdminMode()) return;
+
 
 
             if (!currentScrollItem || !scrollPanelCategory) return;
@@ -7298,7 +7506,83 @@
 
 
 
+        function addRandomScrollTypeCounts(qty) {
+
+            if (!syncInventoryAdminMode()) return;
+
+
+
+            if (!currentScrollItem || !scrollPanelCategory) return;
+
+
+
+            const safeQty = Math.max(0, Math.floor(Number(qty) || 0));
+
+
+
+            if (safeQty < 1) return;
+
+
+
+            const availableTypes = Array.isArray(SCROLL_TYPES) ? SCROLL_TYPES.filter((type) => String(type?.key || '').trim()) : [];
+
+
+
+            if (!availableTypes.length) return;
+
+
+
+            const { counts } = loadScrollCounts(scrollPanelCategory, currentScrollItem);
+
+
+
+            for (let index = 0; index < safeQty; index += 1) {
+
+                const picked = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+
+                const typeKey = String(picked?.key || '').trim();
+
+                if (!typeKey) continue;
+
+                if (counts[typeKey] === undefined) counts[typeKey] = 0;
+
+                counts[typeKey] = (counts[typeKey] || 0) + 1;
+
+            }
+
+
+
+            saveScrollCounts(scrollPanelCategory, currentScrollItem, counts);
+
+
+
+            const total = sumScrollCounts(counts);
+
+
+
+            currentScrollItem.quantity = total;
+
+
+
+            persistInventory();
+
+
+
+            renderInventory();
+
+
+
+            showItemDetail(currentScrollItem);
+
+
+
+        }
+
+
+
         function removeScrollTypeCount(typeKey, qty) {
+
+            if (!syncInventoryAdminMode()) return;
 
 
 
@@ -9728,29 +10012,8 @@
 
 
                 if (hasStored) {
-
-
-
-                    const total = sumScrollCounts(counts);
-
-
-
-                    if (Number.isFinite(total) && item.quantity !== total) {
-
-
-
-                        item.quantity = total;
-
-
-
-                        persistInventory();
-
-
-
-                    }
-
-
-
+                    // Scroll-type counts are secondary metadata; the actual inventory quantity stays authoritative.
+                    void sumScrollCounts(counts);
                 }
 
 

@@ -483,21 +483,34 @@ function buildScrollItemKey(item) {
     return "";
 }
 
-function buildScrollRewardEntry(reward) {
-    if (!reward || !reward.name) return null;
+function buildScrollRewardEntries(reward) {
+    if (!reward || !reward.name) return [];
     const helper = window.astoriaItemTags;
-    if (helper?.isScrollItem && !helper.isScrollItem(reward)) return null;
-    if (!helper?.isScrollItem && !shouldRandomizeElement(reward.name)) return null;
+    if (helper?.isScrollItem && !helper.isScrollItem(reward)) return [];
+    if (!helper?.isScrollItem && !shouldRandomizeElement(reward.name)) return [];
     const item = resolveItemByName(reward.name) || { name: reward.name };
     const category = helper?.getScrollCategory ? helper.getScrollCategory(item) : null;
-    if (!category) return null;
-    const typeKey = getScrollTypeKeyForReward(reward);
-    if (!typeKey) return null;
+    if (!category) return [];
     const qty = Math.max(0, Math.floor(Number(reward.qty) || 0));
-    if (!qty) return null;
+    if (!qty) return [];
     const itemKey = buildScrollItemKey(item);
-    if (!itemKey) return null;
-    return { category, itemKey, typeKey, qty };
+    if (!itemKey) return [];
+
+    const groupedCounts = new Map();
+
+    for (let index = 0; index < qty; index += 1) {
+        const picked = pickRewardElement();
+        const typeKey = String(picked.key || "").trim() || getScrollTypeKeyForReward(reward);
+        if (!typeKey) continue;
+        groupedCounts.set(typeKey, (groupedCounts.get(typeKey) || 0) + 1);
+    }
+
+    return Array.from(groupedCounts.entries()).map(([typeKey, groupedQty]) => ({
+        category,
+        itemKey,
+        typeKey,
+        qty: groupedQty
+    }));
 }
 
 function buildParticipant(label, id) {
@@ -1858,8 +1871,17 @@ async function applyCompetenceDelta(characterId, categoryId, delta) {
     competences.pointsByCategory = pointsByCategory;
     competences.allocationsByCategory = competences.allocationsByCategory || {};
     competences.locksByCategory = competences.locksByCategory || {};
+    competences.locksByCategory[safeCategoryId] = next <= 0;
     competences.customSkillsByCategory = competences.customSkillsByCategory || {};
     nextProfile.competences = competences;
+
+    try {
+        const prefix = `astoria_competences_${characterId}:`;
+        localStorage.setItem(`${prefix}skillsPointsByCategory`, JSON.stringify(competences.pointsByCategory || {}));
+        localStorage.setItem(`${prefix}skillsLocksByCategory`, JSON.stringify(competences.locksByCategory || {}));
+    } catch (error) {
+        console.warn("[Quetes] Failed to mirror competence rewards to localStorage:", error);
+    }
 
     const result = await updateCharacter(characterId, { profile_data: nextProfile });
     if (result?.success && active && active.id === characterId) {
@@ -1935,8 +1957,8 @@ async function applyRewardsToParticipants(quest, participantsOverride = null, re
             }
             const updated = await applyInventoryDelta(characterId, rewardName, reward.qty || 0);
             if (updated) {
-                const entry = buildScrollRewardEntry(reward);
-                if (entry) scrollEntries.push(entry);
+                const entries = buildScrollRewardEntries(reward);
+                if (entries.length) scrollEntries.push(...entries);
             }
         }
         if (scrollEntries.length) {
@@ -2856,10 +2878,7 @@ async function validateQuest() {
     const appliedRewards = Array.isArray(quest.rewards)
         ? quest.rewards.map((reward) => {
             const baseReward = stripRewardElement(reward) || {};
-            if (baseReward.type === "competence") {
-                return { ...baseReward };
-            }
-            return ensureRewardElement({ ...baseReward });
+            return { ...baseReward };
         })
         : [];
     const gains = appliedRewards.length
@@ -2867,7 +2886,7 @@ async function validateQuest() {
             const amount = reward?.type === "competence"
                 ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
                 : `x${reward.qty}`;
-            return `${formatRewardLabel(reward)} ${amount}`;
+            return `${formatRewardLabel(reward, { showElement: !shouldRandomizeElement(reward?.name) })} ${amount}`;
         }).join(", ")
         : "Aucun gain";
     const timestamp = Date.now();

@@ -35,6 +35,10 @@
         byName: new Map(),
         byIndex: []
     };
+    const skillsCatalogState = {
+        api: window.astoriaSkillsCatalog || null,
+        enabled: false,
+    };
 
     // Abort initialization gracefully if core DOM nodes are missing
     if (!skillsTabsContainer || !skillsTitleEl || !skillsListEl) {
@@ -57,6 +61,18 @@
             return [String(category?.id || ""), names];
         })
     );
+
+    function rebuildBaseSkillNameSets() {
+        baseSkillNameSetsByCategory.clear();
+        skillsCategories.forEach((category) => {
+            const names = new Set(
+                (Array.isArray(category?.skills) ? category.skills : [])
+                    .map((skill) => String(skill?.name || "").trim().toLowerCase())
+                    .filter(Boolean)
+            );
+            baseSkillNameSetsByCategory.set(String(category?.id || ""), names);
+        });
+    }
 
     const MAX_SKILL_POINTS = 40;
     const MAX_CATEGORY_POINTS = 999;
@@ -122,6 +138,7 @@
     };
 
     await initPersistence();
+    await hydrateGlobalSkillsCatalog();
 
     // Synchroniser l'UI admin
     function syncAdminUI() {
@@ -221,7 +238,9 @@
         return;
     }
 
-    hydrateCustomSkills();
+    if (!skillsCatalogState.enabled) {
+        hydrateCustomSkills();
+    }
     await hydrateItemCatalog();
     renderSkillsTabs();
     renderSkillsCategory(getActiveCategory());
@@ -318,6 +337,7 @@
         }
 
         let changedCount = 0;
+        let shouldPersistCatalog = false;
         for (const skillName of selected) {
             const skill = category.skills.find((entry) => entry?.name === skillName);
             if (!skill) continue;
@@ -331,6 +351,7 @@
             });
             if (result.ok) {
                 changedCount += 1;
+                shouldPersistCatalog = shouldPersistCatalog || Boolean(result.shouldPersistCatalog);
             }
         }
 
@@ -343,6 +364,9 @@
         if (skillsBulkCap) skillsBulkCap.value = "";
         updateFeedback(`${changedCount} competence(s) mises a jour.`);
         renderSkillsCategory(category);
+        if (shouldPersistCatalog) {
+            void persistGlobalSkillsCatalogNow();
+        }
         void persistProfileNow();
     });
 
@@ -390,6 +414,7 @@
             setActiveSkillsCategory(categoryId);
             closeAddForm();
             updateFeedback("Competence ajoutee.");
+            void persistGlobalSkillsCatalogNow();
             void persistProfileNow();
         });
     }
@@ -425,9 +450,17 @@
         return String(value || "").trim().toLowerCase();
     }
 
-    function hydrateCustomSkills() {
+    function cloneSkillCategories(categories) {
+        return (Array.isArray(categories) ? categories : []).map((category) => ({
+            ...category,
+            skills: Array.isArray(category?.skills) ? category.skills.map((skill) => ({ ...skill })) : []
+        }));
+    }
+
+    function applyStoredSkillDefinitionsToCategories(categories) {
+        const nextCategories = Array.isArray(categories) ? categories : [];
         const customByCategory = skillsState.customSkillsByCategory || {};
-        skillsCategories.forEach((category) => {
+        nextCategories.forEach((category) => {
             const customList = Array.isArray(customByCategory[category.id]) ? customByCategory[category.id] : [];
             if (!customList.length) return;
             const existing = new Set((category.skills || []).map((skill) => normalizeSkillName(skill.name)));
@@ -444,7 +477,7 @@
         });
 
         const metaByCategory = skillsState.metaByCategory || {};
-        skillsCategories.forEach((category) => {
+        nextCategories.forEach((category) => {
             const categoryMeta = metaByCategory[category.id] || {};
             category.skills = (category.skills || []).filter((skill) => {
                 const meta = categoryMeta[normalizeSkillName(skill?.name)];
@@ -461,6 +494,28 @@
                 }
             });
         });
+
+        return nextCategories;
+    }
+
+    function hydrateCustomSkills() {
+        applyStoredSkillDefinitionsToCategories(skillsCategories);
+    }
+
+    function buildPersistedSkillDefinitions() {
+        if (skillsCatalogState.enabled) {
+            const customSkillsByCategory = {};
+            const metaByCategory = {};
+            skillsCategories.forEach((category) => {
+                customSkillsByCategory[category.id] = [];
+                metaByCategory[category.id] = {};
+            });
+            return { customSkillsByCategory, metaByCategory };
+        }
+        return {
+            customSkillsByCategory: skillsState.customSkillsByCategory,
+            metaByCategory: skillsState.metaByCategory,
+        };
     }
 
     function addCustomSkill(categoryId, skill) {
@@ -497,10 +552,12 @@
         saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+        void persistGlobalSkillsCatalogNow();
         return true;
     }
 
     function isBaseSkill(categoryId, skillName) {
+        if (skillsCatalogState.enabled) return false;
         const set = baseSkillNameSetsByCategory.get(String(categoryId || ""));
         if (!set) return false;
         return set.has(String(skillName || "").trim().toLowerCase());
@@ -630,6 +687,8 @@
         }
 
         let finalName = originalName;
+        const originalIcon = String(skill.icon || "");
+        const originalCap = Number(getSkillCap(skill));
         if (normalizeSkillName(nextName) !== normalizeSkillName(originalName)) {
             if (isCore) {
                 updateFeedback("Nom natif conserve, autres champs mis a jour.");
@@ -657,7 +716,12 @@
         saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
         syncCustomSkillRecord(categoryId, finalName, { cap: nextCap });
         setSkillMeta(categoryId, finalName, { icon: skill.icon, cap: nextCap });
-        return { ok: true, finalName };
+        const shouldPersistCatalog = skillsCatalogState.enabled && (
+            normalizeSkillName(finalName) !== normalizeSkillName(originalName)
+            || nextCap !== originalCap
+            || skill.icon !== originalIcon
+        );
+        return { ok: true, finalName, shouldPersistCatalog };
     }
 
     function saveInlineSkillEditor(category, skill, panel) {
@@ -677,6 +741,9 @@
         skillsState.adminEditor = { categoryId: category.id, skillName: result.finalName };
         renderSkillsCategory(getActiveCategory());
         updateFeedback(`Competence mise a jour: ${result.finalName}.`);
+        if (result.shouldPersistCatalog) {
+            void persistGlobalSkillsCatalogNow();
+        }
         void persistProfileNow();
     }
 
@@ -703,6 +770,7 @@
         renderSkillsTabs();
         renderSkillsCategory(getActiveCategory());
         updateFeedback(`Competence supprimee: ${skillName}.`);
+        void persistGlobalSkillsCatalogNow();
         void persistProfileNow();
     }
 
@@ -769,6 +837,9 @@
                 skillsState.locksByCategory = merged.locksByCategory;
                 skillsState.customSkillsByCategory = merged.customSkillsByCategory;
                 skillsState.metaByCategory = merged.metaByCategory;
+                skillsCategories.forEach((category) => {
+                    getCategoryLockState(category.id);
+                });
 
                 saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
                 saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
@@ -850,6 +921,7 @@
         if (!character || !character.id) return;
 
         const profileData = character.profile_data || {};
+        const persistedDefinitions = buildPersistedSkillDefinitions();
         const nextProfileData = {
             ...profileData,
             competences: {
@@ -858,8 +930,8 @@
                 allocationsByCategory: skillsState.allocationsByCategory,
                 baseValuesByCategory: skillsState.baseValuesByCategory,
                 locksByCategory: skillsState.locksByCategory,
-                customSkillsByCategory: skillsState.customSkillsByCategory,
-                metaByCategory: skillsState.metaByCategory,
+                customSkillsByCategory: persistedDefinitions.customSkillsByCategory,
+                metaByCategory: persistedDefinitions.metaByCategory,
             },
         };
 
@@ -903,6 +975,40 @@
         }
     }
 
+    async function hydrateGlobalSkillsCatalog() {
+        if (!skillsCatalogState.api?.loadCategories) return;
+        try {
+            const seedCategories = cloneSkillCategories(skillsCategories);
+            applyStoredSkillDefinitionsToCategories(seedCategories);
+            const categories = await skillsCatalogState.api.loadCategories({
+                seedIfEmpty: skillsState.isAdmin,
+                seedCategories,
+            });
+            if (!Array.isArray(categories) || !categories.length) return;
+            skillsCategories.splice(0, skillsCategories.length, ...categories.map((category) => ({
+                ...category,
+                skills: Array.isArray(category.skills) ? category.skills.map((skill) => ({ ...skill })) : []
+            })));
+            rebuildBaseSkillNameSets();
+            skillsCatalogState.enabled = true;
+            if (!skillsCategories.some((category) => category.id === skillsState.activeCategoryId)) {
+                skillsState.activeCategoryId = skillsCategories[0]?.id || "";
+            }
+        } catch (error) {
+            console.warn("[Competences] Global skills catalog unavailable:", error);
+        }
+    }
+
+    async function persistGlobalSkillsCatalogNow() {
+        if (!skillsState.isAdmin || !skillsCatalogState.enabled || !skillsCatalogState.api?.saveCategories) return;
+        try {
+            await skillsCatalogState.api.saveCategories(skillsCategories);
+        } catch (error) {
+            console.error("[Competences] Global skills catalog save failed:", error);
+            updateFeedback("Erreur sauvegarde catalogue global.");
+        }
+    }
+
     // -----------------------------------------------------------------
     // Accès aux données
     // -----------------------------------------------------------------
@@ -926,10 +1032,28 @@
         return skillsState.pointsByCategory[id] ?? 0;
     }
 
+    function getCategoryLockState(categoryId, persist = false) {
+        if (!categoryId) return false;
+        const allocations = getCategoryAllocations(categoryId);
+        const hasAllocations = Object.values(allocations).some((value) => Number(value) > 0);
+        const availablePoints = Math.max(0, Number(skillsState.pointsByCategory?.[categoryId]) || 0);
+        const shouldLock = availablePoints <= 0 && !hasAllocations;
+
+        if (skillsState.locksByCategory[categoryId] !== shouldLock) {
+            skillsState.locksByCategory[categoryId] = shouldLock;
+            if (persist) {
+                saveToStorage(skillsLocksKey, skillsState.locksByCategory);
+            }
+        }
+
+        return shouldLock;
+    }
+
     function setCurrentCategoryPoints(value) {
         const numeric = Number.isFinite(value) ? value : parseInt(String(value), 10);
         const clamped = Math.max(0, Math.min(Number.isFinite(numeric) ? numeric : 0, MAX_CATEGORY_POINTS));
         skillsState.pointsByCategory[skillsState.activeCategoryId] = clamped;
+        getCategoryLockState(skillsState.activeCategoryId);
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(clamped);
         }
@@ -1019,7 +1143,7 @@
         skillsListEl.innerHTML = "";
         const allocations = getCategoryAllocations(category.id);
         const bonusBySkill = getBonusBreakdownBySkill();
-        const isLocked = Boolean(skillsState.locksByCategory[category.id]);
+        const isLocked = getCategoryLockState(category.id);
 
         if (!category.skills || !category.skills.length) {
             renderEmptyMessage("Aucune compétence dans cette catégorie");
@@ -1169,6 +1293,9 @@
                     }
                     renderSkillsCategory(getActiveCategory());
                     updateFeedback(`Competence mise a jour: ${result.finalName}.`);
+                    if (result.shouldPersistCatalog) {
+                        void persistGlobalSkillsCatalogNow();
+                    }
                     void persistProfileNow();
                 };
 
@@ -1215,7 +1342,7 @@
     }
 
     function adjustSkillPoints(categoryId, skill, delta, valueEl, decBtn, incBtn) {
-        if (skillsState.locksByCategory[categoryId]) return;
+        if (getCategoryLockState(categoryId)) return;
 
         const allocations = getCategoryAllocations(categoryId);
         const currentAlloc = allocations[skill.name] || 0;
@@ -1247,7 +1374,7 @@
         const bonus = bonusBySkill[skill.name]?.total || 0;
         const newTotal = base + nextAlloc + bonus;
         valueEl.textContent = `${newTotal} / ${cap}`;
-        const isLocked = skillsState.locksByCategory[categoryId];
+        const isLocked = getCategoryLockState(categoryId);
         decBtn.disabled = nextAlloc <= 0 || isLocked;
         incBtn.disabled = base + nextAlloc >= cap || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
 
@@ -1835,7 +1962,7 @@
             skillsPointsValueEl.value = String(currentPoints);
         }
         const hasPoints = currentPoints > 0;
-        const isLocked = skillsState.locksByCategory[skillsState.activeCategoryId];
+        const isLocked = getCategoryLockState(skillsState.activeCategoryId);
         const bonusBySkill = getBonusBreakdownBySkill();
 
         if (skillsPointsMinusEl) {
@@ -1882,8 +2009,8 @@
                 nokorahDetails: bonusEntry.nokorahDetails || []
             });
             const atMax = base + allocation >= cap;
-            decBtn.disabled = allocation <= 0 || skillsState.locksByCategory[activeCategory.id];
-            incBtn.disabled = atMax || currentPoints <= 0 || skillsState.locksByCategory[activeCategory.id];
+            decBtn.disabled = allocation <= 0 || isLocked;
+            incBtn.disabled = atMax || currentPoints <= 0 || isLocked;
         });
 
         updatePendingHighlights(activeCategory.id);
@@ -1997,8 +2124,7 @@
         clearAllocations(activeCategory.id);
 
         const remainingPoints = getCurrentCategoryPoints();
-        const shouldLock = remainingPoints <= 0;
-        skillsState.locksByCategory[activeCategory.id] = shouldLock;
+        const shouldLock = getCategoryLockState(activeCategory.id);
         saveToStorage(skillsLocksKey, skillsState.locksByCategory);
         updateLockState(shouldLock);
         renderSkillsCategory(activeCategory);
@@ -2032,7 +2158,7 @@
     }
 
     function hasPendingChanges(categoryId) {
-        if (skillsState.locksByCategory[categoryId]) return false;
+        if (getCategoryLockState(categoryId)) return false;
         const allocations = getCategoryAllocations(categoryId);
         return Object.values(allocations).some((points) => Number(points) > 0);
     }
@@ -2040,7 +2166,7 @@
     function updatePendingHighlights(categoryId) {
         if (!skillsListEl) return;
         const allocations = getCategoryAllocations(categoryId);
-        const isLocked = Boolean(skillsState.locksByCategory[categoryId]);
+        const isLocked = getCategoryLockState(categoryId);
 
         skillsListEl.querySelectorAll(".skills-line").forEach((line) => {
             const nameEl = line.querySelector(".skills-name");
@@ -2060,4 +2186,31 @@
             renderSkillsCategory(getActiveCategory());
         }
     });
+
+    document.addEventListener("astoria:character-updated", (event) => {
+        const competences = event?.detail?.profile_data?.competences;
+        if (!competences || typeof competences !== "object") return;
+
+        skillsState.pointsByCategory = competences.pointsByCategory || skillsState.pointsByCategory || {};
+        skillsState.allocationsByCategory = competences.allocationsByCategory || skillsState.allocationsByCategory || {};
+        skillsState.baseValuesByCategory = competences.baseValuesByCategory || skillsState.baseValuesByCategory || {};
+        skillsState.locksByCategory = competences.locksByCategory || skillsState.locksByCategory || {};
+        skillsState.customSkillsByCategory = competences.customSkillsByCategory || skillsState.customSkillsByCategory || {};
+        skillsState.metaByCategory = competences.metaByCategory || skillsState.metaByCategory || {};
+
+        skillsCategories.forEach((category) => {
+            getCategoryLockState(category.id);
+        });
+
+        saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
+        saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
+        saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+        saveToStorage(skillsLocksKey, skillsState.locksByCategory);
+        saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
+        saveToStorage(skillsMetaKey, skillsState.metaByCategory);
+
+        renderSkillsCategory(getActiveCategory());
+        updateSkillsPointsDisplay();
+    });
+
 })();
