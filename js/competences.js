@@ -29,6 +29,7 @@
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
     const ADD_MODAL_OPEN_CLASS = "skills-add-open";
+    let feedbackResetTimer = null;
     let bonusTooltipEl = null;
     let bonusTooltipTimer = null;
     const itemCatalog = {
@@ -209,6 +210,12 @@
         if (skillsBulkCount) {
             skillsBulkCount.textContent = String(selected.length);
         }
+        if (skillsBulkApply) {
+            skillsBulkApply.disabled = !isVisible || selected.length === 0;
+            skillsBulkApply.textContent = selected.length > 0
+                ? `Appliquer (${selected.length})`
+                : "Appliquer";
+        }
     }
 
     function refreshEditModeButton() {
@@ -336,6 +343,17 @@
             return;
         }
 
+        if (selected.length > 1) {
+            const changeSummary = [
+                hasBase ? `base=${baseValue}` : null,
+                hasCap ? `cap=${capValue}` : null
+            ].filter(Boolean).join(", ");
+            const confirmed = window.confirm(
+                `Appliquer ${changeSummary} a ${selected.length} competences de ${category.label} ?`
+            );
+            if (!confirmed) return;
+        }
+
         let changedCount = 0;
         let shouldPersistCatalog = false;
         for (const skillName of selected) {
@@ -362,6 +380,7 @@
 
         if (skillsBulkBase) skillsBulkBase.value = "";
         if (skillsBulkCap) skillsBulkCap.value = "";
+        setSelectedSkills(category.id, []);
         updateFeedback(`${changedCount} competence(s) mises a jour.`);
         renderSkillsCategory(category);
         if (shouldPersistCatalog) {
@@ -1755,6 +1774,7 @@
             bonusTooltipTimer = null;
         }
         if (bonusTooltipEl) {
+            bonusTooltipEl.classList.remove("is-visible");
             bonusTooltipEl.hidden = true;
         }
     }
@@ -1862,6 +1882,7 @@
             <ul class="skills-bonus-tooltip-list">${renderTooltipDetails(nokorahDetails, "Aucun bonus Nokorah actif.")}</ul>
         `;
         tooltip.hidden = false;
+        tooltip.classList.add("is-visible");
         const reference = anchor instanceof HTMLElement
             ? anchor
             : createMouseVirtualElement(Number(anchor?.x) || 0, Number(anchor?.y) || 0);
@@ -1960,6 +1981,11 @@
         const currentPoints = getCurrentCategoryPoints();
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(currentPoints);
+            const pointsBox = skillsPointsValueEl.closest(".skills-points-box");
+            if (pointsBox) {
+                pointsBox.classList.toggle("is-empty", currentPoints <= 0);
+                pointsBox.classList.toggle("has-pending", hasPendingChanges(activeCategory.id));
+            }
         }
         const hasPoints = currentPoints > 0;
         const isLocked = getCategoryLockState(skillsState.activeCategoryId);
@@ -2151,6 +2177,18 @@
     function announce(message) {
         if (!skillsFeedbackEl) return;
         skillsFeedbackEl.textContent = message;
+        skillsFeedbackEl.classList.toggle("has-message", Boolean(String(message || "").trim()));
+        if (feedbackResetTimer) {
+            clearTimeout(feedbackResetTimer);
+            feedbackResetTimer = null;
+        }
+        if (message) {
+            feedbackResetTimer = window.setTimeout(() => {
+                if (!skillsFeedbackEl) return;
+                skillsFeedbackEl.textContent = "";
+                skillsFeedbackEl.classList.remove("has-message");
+            }, 2800);
+        }
     }
 
     function updateFeedback(message) {

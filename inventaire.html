@@ -2064,16 +2064,18 @@
 
             try {
                 if (authApi && typeof authApi.isAdmin === 'function') {
-                    nextMode = datasetAdminMode || Boolean(authApi.isAdmin());
+                    nextMode = Boolean(authApi.isAdmin());
                 }
             } catch (error) {
                 console.warn('[Inventory] Failed to read admin mode from auth API:', error);
             }
 
-            if (inventoryAdminMode !== nextMode) {
-                inventoryAdminMode = nextMode;
-                applyInventoryRoleGuards();
+            if (document.body) {
+                document.body.dataset.admin = nextMode ? 'true' : 'false';
             }
+
+            inventoryAdminMode = nextMode;
+            applyInventoryRoleGuards();
 
             return inventoryAdminMode;
         }
