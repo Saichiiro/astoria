@@ -327,6 +327,73 @@
             align-items: center;
             gap: var(--space-3);
         }
+        .skills-mode-strip {
+            width: 100%;
+            max-width: var(--skills-panel-content-width);
+            margin: 0 auto var(--space-3);
+            padding-left: var(--skills-panel-content-inset);
+            padding-right: var(--skills-panel-content-inset);
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: var(--space-3);
+        }
+        .skills-mode-card {
+            display: grid;
+            gap: 4px;
+            padding: 12px 14px;
+            border-radius: 18px;
+            border: 1px solid rgba(244, 143, 177, 0.28);
+            box-shadow: 0 10px 24px rgba(120, 38, 70, 0.08);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 243, 248, 0.92)),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 42%);
+        }
+        .skills-mode-card.is-admin {
+            background:
+                linear-gradient(180deg, rgba(255, 244, 249, 0.98), rgba(255, 231, 241, 0.94)),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 40%);
+            border-color: rgba(255, 92, 154, 0.28);
+        }
+        .skills-mode-kicker {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(255, 92, 154, 0.12);
+            color: #a41855;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .skills-mode-title {
+            margin: 0;
+            font-size: 0.96rem;
+            font-weight: 800;
+            color: #662449;
+        }
+        .skills-mode-copy {
+            margin: 0;
+            color: #7b5270;
+            font-size: 0.82rem;
+            line-height: 1.45;
+        }
+        .skills-mode-card.is-player .skills-mode-title {
+            color: #4b2b68;
+        }
+        .skills-mode-card.is-player .skills-mode-kicker {
+            background: rgba(124, 77, 255, 0.1);
+            color: #6f3bdd;
+        }
+        .skills-mode-card.is-admin .skills-mode-title {
+            color: #97124e;
+        }
+        .skills-mode-card.is-admin .skills-mode-kicker {
+            background: rgba(255, 92, 154, 0.16);
+            color: #b10e52;
+        }
         .skills-panel-title {
             margin: 0;
             font-size: var(--text-xl);
@@ -763,6 +830,7 @@
         .skills-bulk-bar {
             display: none;
             align-items: center;
+            flex-wrap: wrap;
             gap: var(--space-2);
             margin: 0 auto var(--space-3);
             padding: 10px 12px;
@@ -778,6 +846,13 @@
         .skills-bulk-count {
             font-weight: 700;
             color: #7b1f59;
+        }
+        .skills-bulk-context {
+            flex: 1 1 220px;
+            min-width: 180px;
+            color: #8a4f73;
+            font-size: 0.78rem;
+            line-height: 1.35;
         }
         .skills-bulk-count {
             min-width: 22px;
@@ -933,6 +1008,8 @@
         .skills-validation {
             font-size: var(--text-sm);
             color: var(--color-primary-dark);
+            min-height: 20px;
+            padding: 8px 10px 0;
         }
         .skills-bonus-tooltip {
             position: fixed;
@@ -1083,6 +1160,9 @@
                 flex-wrap: wrap;
                 justify-content: flex-end;
             }
+            .skills-mode-strip {
+                grid-template-columns: 1fr;
+            }
             .skills-page-hint {
                 width: 40px;
                 height: 40px;
@@ -1188,9 +1268,22 @@
                         <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
                     </div>
                 </div>
+                <div class="skills-mode-strip" aria-label="Etat de la feuille de competences">
+                    <section class="skills-mode-card is-player" id="skillsPlayerRoute">
+                        <span class="skills-mode-kicker">Route joueur</span>
+                        <h3 class="skills-mode-title" id="skillsPlayerModeTitle">Progression active</h3>
+                        <p class="skills-mode-copy" id="skillsPlayerModeHint">Répartis tes points puis valide la catégorie quand tu es prêt.</p>
+                    </section>
+                    <section class="skills-mode-card is-admin" id="skillsAdminRoute" data-admin-only hidden>
+                        <span class="skills-mode-kicker">Route admin</span>
+                        <h3 class="skills-mode-title" id="skillsAdminModeTitle">Catalogue global</h3>
+                        <p class="skills-mode-copy" id="skillsAdminModeHint">Mode lecture. Active l’édition pour modifier cette catégorie pour tout le monde.</p>
+                    </section>
+                </div>
                 <div class="skills-bulk-bar" id="skillsBulkBar" data-admin-only hidden>
                     <span class="skills-bulk-label">Selection</span>
                     <span class="skills-bulk-count" id="skillsBulkCount">0</span>
+                    <span class="skills-bulk-context" id="skillsBulkContext">Selectionne une ou plusieurs compétences pour appliquer une base ou un cap global.</span>
                     <input type="number" class="skills-bulk-input" id="skillsBulkBase" min="0" max="999" placeholder="Base">
                     <input type="number" class="skills-bulk-input" id="skillsBulkCap" min="1" max="999" placeholder="Cap">
                     <button type="button" class="skills-bulk-btn primary tw-press" id="skillsBulkApply">Appliquer</button>

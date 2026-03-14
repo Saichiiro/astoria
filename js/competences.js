@@ -15,10 +15,15 @@
     const skillsEditModeBtn = document.getElementById("skillsEditModeBtn");
     const skillsBulkBar = document.getElementById("skillsBulkBar");
     const skillsBulkCount = document.getElementById("skillsBulkCount");
+    const skillsBulkContext = document.getElementById("skillsBulkContext");
     const skillsBulkBase = document.getElementById("skillsBulkBase");
     const skillsBulkCap = document.getElementById("skillsBulkCap");
     const skillsBulkApply = document.getElementById("skillsBulkApply");
     const skillsBulkClear = document.getElementById("skillsBulkClear");
+    const skillsPlayerModeTitle = document.getElementById("skillsPlayerModeTitle");
+    const skillsPlayerModeHint = document.getElementById("skillsPlayerModeHint");
+    const skillsAdminModeTitle = document.getElementById("skillsAdminModeTitle");
+    const skillsAdminModeHint = document.getElementById("skillsAdminModeHint");
     const skillsAddForm = document.getElementById("skillsAddForm");
     const skillsAddName = document.getElementById("skillsAddName");
     const skillsAddIcon = document.getElementById("skillsAddIcon");
@@ -150,6 +155,7 @@
             }
         });
         refreshEditModeButton();
+        refreshModePanels();
     }
 
     function isCategoryEditMode(categoryId) {
@@ -166,6 +172,7 @@
         saveToStorage(skillsEditModeKey, skillsState.editModeByCategory);
         refreshEditModeButton();
         updateBulkSelectionUI();
+        refreshModePanels();
     }
 
     function getSelectedSkills(categoryId) {
@@ -202,12 +209,73 @@
     function updateBulkSelectionUI() {
         if (!skillsBulkBar) return;
         const categoryId = skillsState.activeCategoryId;
+        const category = getActiveCategory();
         const isVisible = skillsState.isAdmin && isCategoryEditMode(categoryId);
         const selected = getSelectedSkills(categoryId);
         skillsBulkBar.hidden = !isVisible;
         skillsBulkBar.classList.toggle("is-visible", isVisible);
         if (skillsBulkCount) {
             skillsBulkCount.textContent = String(selected.length);
+        }
+        if (skillsBulkContext) {
+            if (!isVisible) {
+                skillsBulkContext.textContent = "Selectionne une ou plusieurs competences pour appliquer une base ou un cap global.";
+            } else if (!selected.length) {
+                skillsBulkContext.textContent = `Mode catalogue actif sur ${category?.label || "cette categorie"} : coche les competences a modifier.`;
+            } else if (selected.length === 1) {
+                skillsBulkContext.textContent = `1 competence ciblee dans ${category?.label || "cette categorie"} : applique une base ou un cap global.`;
+            } else {
+                skillsBulkContext.textContent = `${selected.length} competences ciblees dans ${category?.label || "cette categorie"} : la modification sera globale pour tout le monde.`;
+            }
+        }
+        if (skillsBulkApply) {
+            skillsBulkApply.disabled = !isVisible || selected.length === 0;
+            skillsBulkApply.textContent = selected.length > 0
+                ? `Appliquer (${selected.length})`
+                : "Appliquer";
+        }
+    }
+
+    function refreshModePanels() {
+        const category = getActiveCategory();
+        const categoryLabel = category?.label || "cette categorie";
+        const isLocked = getCategoryLockState(skillsState.activeCategoryId);
+        const currentPoints = getCurrentCategoryPoints();
+        const isEditMode = skillsState.isAdmin && isCategoryEditMode(skillsState.activeCategoryId);
+        const selectedCount = getSelectedSkills(skillsState.activeCategoryId).length;
+
+        if (skillsPlayerModeTitle) {
+            skillsPlayerModeTitle.textContent = isLocked
+                ? `${categoryLabel} verrouillee`
+                : `${categoryLabel} en progression`;
+        }
+        if (skillsPlayerModeHint) {
+            if (isLocked) {
+                skillsPlayerModeHint.textContent = "Cette categorie est verrouillee pour le moment. Les valeurs restent consultables, mais aucune repartition n'est possible.";
+            } else if (currentPoints > 0) {
+                skillsPlayerModeHint.textContent = `${currentPoints} point(s) disponibles dans cette categorie. Repartis-les puis valide pour enregistrer la progression.`;
+            } else if (hasPendingChanges(skillsState.activeCategoryId)) {
+                skillsPlayerModeHint.textContent = "Des points sont prets a etre valides dans cette categorie.";
+            } else {
+                skillsPlayerModeHint.textContent = "Lecture claire de la categorie active. Survole une competence pour voir le detail des bonus.";
+            }
+        }
+
+        if (skillsAdminModeTitle) {
+            skillsAdminModeTitle.textContent = isEditMode
+                ? `Edition globale : ${categoryLabel}`
+                : "Catalogue global";
+        }
+        if (skillsAdminModeHint) {
+            if (!skillsState.isAdmin) {
+                skillsAdminModeHint.textContent = "";
+            } else if (isEditMode && selectedCount > 0) {
+                skillsAdminModeHint.textContent = `${selectedCount} competence(s) selectionnee(s). Toute sauvegarde modifie le catalogue partage pour tous les joueurs.`;
+            } else if (isEditMode) {
+                skillsAdminModeHint.textContent = "Mode edition actif. Coche une ou plusieurs competences pour appliquer une base ou un cap au catalogue global.";
+            } else {
+                skillsAdminModeHint.textContent = "Mode lecture admin. Active l'edition uniquement quand tu veux modifier les caps ou les valeurs de reference pour tout le monde.";
+            }
         }
     }
 
@@ -224,6 +292,18 @@
     }
 
     syncAdminUI();
+
+    function refreshEditModeButton() {
+        if (!skillsEditModeBtn) return;
+        if (!skillsState.isAdmin) {
+            skillsEditModeBtn.hidden = true;
+            return;
+        }
+        skillsEditModeBtn.hidden = false;
+        const enabled = isCategoryEditMode(skillsState.activeCategoryId);
+        skillsEditModeBtn.classList.toggle("is-active", enabled);
+        skillsEditModeBtn.textContent = enabled ? "Edition globale active" : "Mode edition";
+    }
 
     if (!skillsState.isAdmin) {
         if (skillsPointsMinusEl) skillsPointsMinusEl.hidden = true;
@@ -336,6 +416,17 @@
             return;
         }
 
+        if (selected.length > 1) {
+            const changeSummary = [
+                hasBase ? `base=${baseValue}` : null,
+                hasCap ? `cap=${capValue}` : null
+            ].filter(Boolean).join(", ");
+            const confirmed = window.confirm(
+                `Appliquer ${changeSummary} a ${selected.length} competences de ${category.label} ?`
+            );
+            if (!confirmed) return;
+        }
+
         let changedCount = 0;
         let shouldPersistCatalog = false;
         for (const skillName of selected) {
@@ -362,6 +453,7 @@
 
         if (skillsBulkBase) skillsBulkBase.value = "";
         if (skillsBulkCap) skillsBulkCap.value = "";
+        setSelectedSkills(category.id, []);
         updateFeedback(`${changedCount} competence(s) mises a jour.`);
         renderSkillsCategory(category);
         if (shouldPersistCatalog) {
@@ -1338,6 +1430,7 @@
         updateLockState(isLocked);
         updatePendingHighlights(category.id);
         updateBulkSelectionUI();
+        refreshModePanels();
         updatePageNavigation();
     }
 
@@ -1948,6 +2041,7 @@
         const category = skillsCategories.find((c) => c.id === categoryId);
         renderSkillsCategory(category);
         refreshEditModeButton();
+        refreshModePanels();
     }
 
     // -----------------------------------------------------------------
@@ -2014,6 +2108,7 @@
         });
 
         updatePendingHighlights(activeCategory.id);
+        refreshModePanels();
     }
 
     skillsPointsPlusEl.addEventListener("click", (event) => {
