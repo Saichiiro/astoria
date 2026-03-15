@@ -115,6 +115,14 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             }
         });
 
+        // Stat cards with data-nav navigate to their admin page
+        document.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-nav]');
+            if (card && card.dataset.nav) {
+                navigateTo(card.dataset.nav);
+            }
+        });
+
         // Handle initial hash
         const hash = window.location.hash.slice(1) || 'dashboard';
         navigateTo(hash);
