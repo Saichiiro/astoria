@@ -37,6 +37,8 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         items: { title: 'Objets', subtitle: 'Gestion du Codex et inventaires' },
         economy: { title: 'Économie', subtitle: 'Kaels et transactions' },
         market: { title: 'Marché', subtitle: 'Configuration et monitoring' },
+        quetes: { title: 'Quêtes', subtitle: 'Gestion du tableau des quêtes' },
+        competences: { title: 'Compétences', subtitle: 'Catalogue et allocations' },
         events: { title: 'Événements', subtitle: 'Gestion des events RP' },
         announcements: { title: 'Annonces', subtitle: 'Communication avec les joueurs' },
         logs: { title: 'Logs & Audit', subtitle: 'Suivi des actions' },
@@ -90,6 +92,10 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 
         if (pageName === 'items') {
             void loadItemsMirror();
+        }
+
+        if (pageName === 'quetes') {
+            void loadDashboardStats();
         }
 
         console.log('[Admin] Navigated to:', pageName);
@@ -228,10 +234,32 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             // Calculate total kaels
             const totalKaels = allCharacters.reduce((sum, char) => sum + (char.kaels || 0), 0);
 
+            // Get active quests count
+            let activeQuestCount = 0;
+            try {
+                const { count: questCount } = await supabase
+                    .from('quests')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'available');
+                activeQuestCount = questCount || 0;
+            } catch {}
+
+            // Get total quests count for quetes page
+            let totalQuestCount = 0;
+            try {
+                const { count: questTotal } = await supabase
+                    .from('quests')
+                    .select('id', { count: 'exact', head: true });
+                totalQuestCount = questTotal || 0;
+            } catch {}
+
             animateCounter('statUsers', String(userCount || 0));
             animateCounter('statCharacters', String(allCharacters.length));
             animateCounter('statItems', String(allItems.length));
             animateCounter('statKaels', totalKaels.toLocaleString('fr-FR'));
+            animateCounter('statQuests', String(activeQuestCount));
+            animateCounter('statQuestsFull', String(totalQuestCount));
+            animateCounter('statQuestsActive', String(activeQuestCount));
 
             if (inventoryInspectorCharId) {
                 void loadCharacterInventoryInspector(inventoryInspectorCharId);

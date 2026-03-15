@@ -59,6 +59,12 @@
                                 <a class="dropdown-item" href="#items" data-page="items">
                                     <i class="ti ti-box me-2"></i> Objets (Codex)
                                 </a>
+                                <a class="dropdown-item" href="#quetes" data-page="quetes">
+                                    <i class="ti ti-map-2 me-2"></i> Quêtes
+                                </a>
+                                <a class="dropdown-item" href="#competences" data-page="competences">
+                                    <i class="ti ti-sparkles me-2"></i> Compétences
+                                </a>
                             </div>
                         </li>
 
@@ -245,6 +251,23 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-purple text-white avatar">
+                                                    <i class="ti ti-map-2"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuests">--</div>
+                                                <div class="text-muted">Quêtes actives</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row row-deck row-cards">
@@ -300,20 +323,57 @@
                             </div>
                         </div>
 
-                        <!-- Online Users (optional) -->
+                        <!-- Site shortcuts -->
                         <div class="row row-cards mt-4">
                             <div class="col-12">
                                 <div class="card">
                                     <div class="card-header">
                                         <h3 class="card-title">
-                                            <span class="status-dot status-dot-animated bg-green me-2"></span>
-                                            Utilisateurs connectés
+                                            <i class="ti ti-layout-grid me-2 text-muted"></i>
+                                            Accès rapide au site
                                         </h3>
                                     </div>
                                     <div class="card-body">
-                                        <div class="row" id="onlineUsersList">
-                                            <div class="col-12 text-center text-muted py-3">
-                                                <small>Fonctionnalité à venir (nécessite WebSocket)</small>
+                                        <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                                <a href="../inventaire.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-backpack"></i> Inventaire
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../quetes.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-map-2"></i> Quêtes
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../competences.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-sparkles"></i> Compétences
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../magie.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-wand"></i> Magie
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../codex.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-book-2"></i> Codex
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../craft.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-hammer"></i> Craft
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../hdv.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-building-store"></i> Marché
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../fiche.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-id-badge"></i> Fiche
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -571,6 +631,138 @@
                         <div class="card-footer d-flex align-items-center">
                             <p class="m-0 text-muted" id="adminItemsMirrorCount">0 objet(s)</p>
                         </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         QUÊTES PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="quetes">
+                        <div class="row row-cards mb-3">
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-purple text-white avatar">
+                                                    <i class="ti ti-map-2"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuestsFull">--</div>
+                                                <div class="text-muted">Quêtes au total</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-green text-white avatar">
+                                                    <i class="ti ti-circle-check"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuestsActive">--</div>
+                                                <div class="text-muted">Disponibles</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Tableau des quêtes</h3>
+                                <div class="card-actions">
+                                    <a href="../quetes.html" target="_blank" class="btn btn-primary btn-sm">
+                                        <i class="ti ti-external-link me-1"></i> Ouvrir le tableau des quêtes
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card card-body bg-purple-lt">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="ti ti-map-2" style="font-size: 2.5rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="mb-1">Tableau des Quêtes</h4>
+                                                    <p class="text-muted mb-2">Créer, modifier et valider les quêtes depuis la page principale</p>
+                                                    <a href="../quetes.html" target="_blank" class="btn btn-primary">
+                                                        <i class="ti ti-external-link me-1"></i> Gérer les quêtes
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card card-body">
+                                            <h4 class="mb-3">Actions admin quêtes</h4>
+                                            <ul class="list-unstyled text-muted mb-0">
+                                                <li class="mb-2"><i class="ti ti-plus text-success me-2"></i>Créer une nouvelle quête</li>
+                                                <li class="mb-2"><i class="ti ti-edit text-warning me-2"></i>Modifier les détails et récompenses</li>
+                                                <li class="mb-2"><i class="ti ti-user-plus text-info me-2"></i>Ajouter manuellement un participant</li>
+                                                <li class="mb-2"><i class="ti ti-circle-check text-success me-2"></i>Valider les participations et donner les rewards</li>
+                                                <li><i class="ti ti-trash text-danger me-2"></i>Supprimer une quête</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         COMPÉTENCES PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="competences">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Catalogue des compétences</h3>
+                                <div class="card-actions">
+                                    <a href="../competences.html" target="_blank" class="btn btn-primary btn-sm">
+                                        <i class="ti ti-external-link me-1"></i> Ouvrir les compétences
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card card-body" style="background: rgba(210,75,143,0.06);">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="ti ti-sparkles" style="font-size: 2.5rem; color: var(--tblr-primary);"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="mb-1">Compétences</h4>
+                                                    <p class="text-muted mb-2">Gérer le catalogue global, allouer les points par personnage</p>
+                                                    <a href="../competences.html" target="_blank" class="btn btn-primary">
+                                                        <i class="ti ti-external-link me-1"></i> Gérer les compétences
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card card-body">
+                                            <h4 class="mb-3">Actions admin compétences</h4>
+                                            <ul class="list-unstyled text-muted mb-0">
+                                                <li class="mb-2"><i class="ti ti-plus text-success me-2"></i>Ajouter une compétence au catalogue global</li>
+                                                <li class="mb-2"><i class="ti ti-edit text-warning me-2"></i>Modifier nom, icône, cap d'une compétence</li>
+                                                <li class="mb-2"><i class="ti ti-arrow-up text-info me-2"></i>Allouer des points à un personnage</li>
+                                                <li class="mb-2"><i class="ti ti-arrow-down text-danger me-2"></i>Retirer des points</li>
+                                                <li><i class="ti ti-refresh text-secondary me-2"></i>Reset les allocations</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -957,6 +1149,18 @@
                             <a href="#events" class="btn btn-outline-purple w-100 py-3" data-page="events" data-bs-dismiss="modal">
                                 <i class="ti ti-calendar-plus d-block mb-1" style="font-size: 1.5rem;"></i>
                                 Nouvel event
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#quetes" class="btn btn-outline-purple w-100 py-3" data-page="quetes" data-bs-dismiss="modal">
+                                <i class="ti ti-map-2 d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Quêtes
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#competences" class="btn btn-outline-pink w-100 py-3" data-page="competences" data-bs-dismiss="modal">
+                                <i class="ti ti-sparkles d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Compétences
                             </a>
                         </div>
                         <div class="col-12 mt-2">

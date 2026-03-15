@@ -422,6 +422,11 @@
     color: #1a1225 !important;
 }
 
+.theme-dark .bg-purple {
+    background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%) !important;
+    color: #fff !important;
+}
+
 .theme-dark .dropdown-menu {
     background: var(--admin-bg-card);
     border-color: var(--admin-border);

@@ -1,7 +1,7 @@
 ﻿(function () {
     const STORAGE_KEY_BASE = "magicSheetPages";
     const body = document.body;
-    let isAdmin = body.dataset.admin === "true" || !body.hasAttribute("data-admin");
+    let isAdmin = body.dataset.admin === "true";
 
     function getSessionAdminFallback() {
         try {
@@ -90,7 +90,7 @@
     const armeMinorFragmentsEl = document.getElementById("magicArmeMinorFragments");
     const armeUltimateFragmentsEl = document.getElementById("magicArmeUltimateFragments");
     const formFields = Array.from(
-        document.querySelectorAll(".magic-content input[id], .magic-content textarea[id], .magic-content select[id]")
+        document.querySelectorAll(".magic-content-body input[id], .magic-content-body textarea[id], .magic-content-body select[id]")
     );
 
     let pages = [];
@@ -488,7 +488,8 @@
     function updateMagicPageTitle() {
         if (!pageTitleEl) return;
         const fields = pages[activePageIndex]?.fields || {};
-        const finalLabel = getFallbackMagicName(fields, activePageIndex) || "Spécification";
+        const visibleIndex = pages.filter((p, i) => !isPageHidden(p) && i <= activePageIndex).length - 1;
+        const finalLabel = getFallbackMagicName(fields, visibleIndex) || "Spécification";
         pageTitleEl.textContent = `Fiche Magie | ${finalLabel}`;
     }
 
@@ -1749,7 +1750,7 @@
 
     function updateSaveStatus() {
         if (!saveStatus) return;
-        saveStatus.textContent = hasPendingChanges ? "Sauvegarde en attente." : "Tout est sauvegarde.";
+        saveStatus.textContent = hasPendingChanges ? "Sauvegarde en attente..." : "Tout est sauvegardé.";
         saveStatus.classList.toggle("magic-save-status--dirty", hasPendingChanges);
         if (saveRow) {
             saveRow.classList.toggle("magic-save-row--dirty", hasPendingChanges);
@@ -2095,10 +2096,12 @@
 
         const progress = loadMagicProgress();
 
+        let visibleIndex = 0;
         pages.forEach((page, index) => {
             if (isPageHidden(page)) return;
             const fields = page?.fields || {};
-            const name = getFallbackMagicName(fields, index);
+            const name = getFallbackMagicName(fields, visibleIndex);
+            visibleIndex++;
             const specValue = String(fields.magicSpecialization || "").trim();
             const specLabel = specializationLabels[specValue] || "Sans specialisation";
             const affinityKey = fields.magicAffinityKey;
@@ -3124,7 +3127,7 @@
             saveCurrentPage();
             saveToStorage();
             const ok = await flushProfilePersist();
-            saveBtn.textContent = ok ? "Sauvegarde OK" : "Échec sauvegarde";
+            saveBtn.textContent = ok ? "✓ Sauvegardé" : "✗ Échec — réessayer";
             saveBtn.classList.remove("magic-btn--shimmer");
             void saveBtn.offsetWidth;
             saveBtn.classList.add("magic-btn--shimmer");
