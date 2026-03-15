@@ -562,6 +562,16 @@
     border-color: rgba(244, 143, 177, 0.2);
 }
 
+.theme-dark .card-sm:hover .card {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(244, 143, 177, 0.18);
+    border-color: rgba(244, 143, 177, 0.22);
+}
+
+.card-sm .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
 /* Better focus states */
 .theme-dark .btn:focus {
     box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.2);
@@ -569,7 +579,7 @@
 
 /* Table row hover */
 .theme-dark .table tbody tr {
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .theme-dark .table tbody tr:hover {
@@ -660,9 +670,13 @@
 }
 
 /* Navbar brand subtle animation */
+.nav-brand-icon {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: inline-block;
+}
+
 .navbar-brand a:hover .nav-brand-icon {
-    transform: rotate(10deg);
-    transition: transform 0.2s ease;
+    transform: rotate(12deg) scale(1.15);
 }
 
 /* Active nav indicator animation */
@@ -676,6 +690,12 @@
     height: 60%;
     background: var(--tblr-primary);
     border-radius: 0 2px 2px 0;
+    animation: navBarSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes navBarSlideIn {
+    from { height: 0; opacity: 0; }
+    to { height: 60%; opacity: 1; }
 }
 
 .nav-link {
@@ -991,6 +1011,21 @@
 }
 
 /* =================================================================
+   RECENTLY ACTIVE LIST
+   ================================================================= */
+#recentlyActiveList .d-flex {
+    border-radius: 10px;
+    padding: 6px 8px;
+    margin: -6px -8px;
+    transition: background 0.15s ease;
+    cursor: default;
+}
+
+#recentlyActiveList .d-flex:hover {
+    background: rgba(244, 143, 177, 0.08);
+}
+
+/* =================================================================
    PERFORMANCE MODE
    ================================================================= */
 body.perf-lite .admin-page.active {
@@ -1082,6 +1117,10 @@ body.perf-lite .btn::before {
 [data-page="items"] th.sortable {
     cursor: pointer;
     user-select: none;
+}
+
+[data-page="items"] th.sortable {
+    transition: color 0.15s ease;
 }
 
 [data-page="items"] th.sortable:hover {
