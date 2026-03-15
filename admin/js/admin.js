@@ -15,6 +15,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
     let supabase = null;
     let allCharacters = [];
     let allItems = [];
+    let allUsers = [];
     let inventoryInspectorCharId = '';
     const itemsMirrorState = {
         search: '',
@@ -318,6 +319,53 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         // For now, keep the empty state
     }
 
+    /**
+     * Render recently active users on the dashboard
+     * Uses already-loaded allUsers, zero extra queries
+     */
+    function renderRecentlyActive() {
+        const container = document.getElementById('recentlyActiveList');
+        if (!container) return;
+
+        const now = Date.now();
+        const DAY = 24 * 60 * 60 * 1000;
+
+        const recent = allUsers
+            .filter(u => u.last_login && (now - new Date(u.last_login).getTime()) < 7 * DAY)
+            .sort((a, b) => new Date(b.last_login) - new Date(a.last_login))
+            .slice(0, 12);
+
+        if (!recent.length) {
+            container.innerHTML = '<small class="text-muted">Aucune connexion cette semaine.</small>';
+            return;
+        }
+
+        container.innerHTML = recent.map(u => {
+            const lastLogin = new Date(u.last_login);
+            const diffMs = now - lastLogin.getTime();
+            const diffH = Math.floor(diffMs / (60 * 60 * 1000));
+            const diffD = Math.floor(diffMs / DAY);
+            const timeLabel = diffH < 1 ? 'Il y a < 1h'
+                : diffH < 24 ? `Il y a ${diffH}h`
+                : `Il y a ${diffD}j`;
+            const isToday = diffMs < DAY;
+            const dotColor = isToday ? 'bg-success' : 'bg-secondary';
+
+            return `
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="avatar avatar-xs" style="background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:.7rem; font-weight:600;">
+                        ${(u.username || '?').charAt(0).toUpperCase()}
+                    </span>
+                    <div class="flex-fill" style="min-width:0;">
+                        <div class="fw-semibold text-truncate" style="font-size:.82rem;">${u.username || '-'}</div>
+                        <div class="text-muted" style="font-size:.72rem;">${timeLabel}</div>
+                    </div>
+                    <span class="status-dot ${dotColor}" style="flex-shrink:0;"></span>
+                </div>
+            `;
+        }).join('');
+    }
+
     // =================================================================
     // USERS PAGE
     // =================================================================
@@ -464,6 +512,8 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                 `;
             }).join('');
 
+            allUsers = users;
+            renderRecentlyActive();
             console.log('[Admin] Loaded', users.length, 'users');
 
         } catch (err) {
@@ -1108,6 +1158,27 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
             searchTimer = setTimeout(() => {
                 filterCharacters(searchInput.value);
             }, 200);
+        });
+
+        // Filter dropdown buttons
+        document.querySelectorAll('[data-char-filter]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const filter = btn.dataset.charFilter;
+                // Update active state on dropdown items
+                document.querySelectorAll('[data-char-filter]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (filter === 'all') {
+                    renderCharactersTable(allCharacters);
+                } else if (filter === 'active') {
+                    renderCharactersTable(allCharacters.filter(c => c.is_active !== false));
+                } else if (filter === 'inactive') {
+                    renderCharactersTable(allCharacters.filter(c => c.is_active === false));
+                }
+
+                // Also reset search
+                if (searchInput) searchInput.value = '';
+            });
         });
     }
 

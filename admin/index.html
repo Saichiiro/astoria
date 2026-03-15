@@ -272,7 +272,7 @@
 
                         <div class="row row-deck row-cards">
                             <!-- Quick Actions -->
-                            <div class="col-lg-4">
+                            <div class="col-lg-3">
                                 <div class="card">
                                     <div class="card-header">
                                         <h3 class="card-title">Actions rapides</h3>
@@ -304,8 +304,25 @@
                                 </div>
                             </div>
 
+                            <!-- Recently Active -->
+                            <div class="col-lg-2">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <span class="status-dot status-dot-animated bg-green me-1"></span>
+                                            Actifs récemment
+                                        </h3>
+                                    </div>
+                                    <div class="card-body" style="overflow-y:auto; max-height:240px;">
+                                        <div id="recentlyActiveList">
+                                            <small class="text-muted">Chargement...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Recent Activity -->
-                            <div class="col-lg-8">
+                            <div class="col-lg-7">
                                 <div class="card">
                                     <div class="card-header">
                                         <h3 class="card-title">Activité récente</h3>
@@ -394,9 +411,9 @@
                                         <span class="input-icon-addon"><i class="ti ti-search"></i></span>
                                         <input type="text" class="form-control" placeholder="Rechercher..." id="usersSearch" data-search-priority="page">
                                     </div>
-                                    <a href="#" class="btn btn-primary">
+                                    <button type="button" class="btn btn-primary" disabled title="Création de compte via inscription uniquement">
                                         <i class="ti ti-plus me-1"></i> Ajouter
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                             <div class="table-responsive table-sheet">
@@ -449,10 +466,9 @@
                                             Filtrer
                                         </button>
                                         <div class="dropdown-menu">
-                                            <a class="dropdown-item" href="#">Tous</a>
-                                            <a class="dropdown-item" href="#">En attente de validation</a>
-                                            <a class="dropdown-item" href="#">Validés</a>
-                                            <a class="dropdown-item" href="#">Archivés</a>
+                                            <button class="dropdown-item" type="button" data-char-filter="all">Tous</button>
+                                            <button class="dropdown-item" type="button" data-char-filter="active">Actifs</button>
+                                            <button class="dropdown-item" type="button" data-char-filter="inactive">Inactifs</button>
                                         </div>
                                     </div>
                                 </div>
@@ -846,9 +862,9 @@
                             <div class="card-header">
                                 <h3 class="card-title">Événements RP</h3>
                                 <div class="card-actions">
-                                    <a href="#" class="btn btn-primary" disabled>
+                                    <button type="button" class="btn btn-primary" disabled>
                                         <i class="ti ti-plus me-1"></i> Nouvel événement
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                             <div class="card-body text-center py-5">
@@ -867,9 +883,9 @@
                             <div class="card-header">
                                 <h3 class="card-title">Annonces</h3>
                                 <div class="card-actions">
-                                    <a href="#" class="btn btn-primary" disabled>
+                                    <button type="button" class="btn btn-primary" disabled>
                                         <i class="ti ti-plus me-1"></i> Nouvelle annonce
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                             <div class="card-body text-center py-5">
