@@ -510,6 +510,24 @@
    ================================================================= */
 .status-online {
     color: var(--tblr-success);
+    position: relative;
+}
+
+.status-online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tblr-success);
+    margin-right: 5px;
+    animation: statusPulse 2s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 .status-offline {
@@ -518,6 +536,20 @@
 
 .status-banned {
     color: var(--tblr-danger);
+}
+
+/* Admin role gold badge */
+.badge-role-admin {
+    background: linear-gradient(135deg, #f59f00 0%, #d4ac0d 100%);
+    color: #1a1225;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(245, 159, 0, 0.35);
+}
+
+.badge-role-player {
+    background: rgba(168, 157, 181, 0.15);
+    color: var(--admin-text-muted);
+    border: 1px solid rgba(168, 157, 181, 0.25);
 }
 
 /* User row in table */
@@ -738,6 +770,25 @@
 }
 
 /* =================================================================
+   STAT CARDS STAGGERED ENTRANCE
+   ================================================================= */
+.row-deck .col-sm-6:nth-child(1) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.05s; }
+.row-deck .col-sm-6:nth-child(2) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.10s; }
+.row-deck .col-sm-6:nth-child(3) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.15s; }
+.row-deck .col-sm-6:nth-child(4) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.20s; }
+.row-deck .col-sm-6:nth-child(5) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.25s; }
+
+@keyframes cardSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* "Active today" glow for recently active list */
+#recentlyActiveList .active-today .avatar {
+    box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.5), 0 0 8px rgba(102, 187, 106, 0.25);
+}
+
+/* =================================================================
    STAT CARD ACCENT BORDERS
    ================================================================= */
 .card-sm:nth-child(1) .card {
@@ -882,7 +933,8 @@
 .theme-dark [data-page="items"] .table tbody tr,
 .theme-dark [data-page="economy"] .table tbody tr,
 .theme-dark [data-page="market"] .table tbody tr,
-.theme-dark [data-page="logs"] .table tbody tr {
+.theme-dark [data-page="logs"] .table tbody tr,
+.theme-dark [data-page="quetes"] .table tbody tr {
     background: transparent !important;
 }
 
@@ -907,7 +959,8 @@
 .theme-dark [data-page="items"] .table tbody tr:hover,
 .theme-dark [data-page="economy"] .table tbody tr:hover,
 .theme-dark [data-page="market"] .table tbody tr:hover,
-.theme-dark [data-page="logs"] .table tbody tr:hover {
+.theme-dark [data-page="logs"] .table tbody tr:hover,
+.theme-dark [data-page="quetes"] .table tbody tr:hover {
     background: rgba(244, 143, 177, 0.08) !important;
     box-shadow: inset 0 0 0 1px rgba(244, 143, 177, 0.2);
 }
@@ -1012,6 +1065,257 @@
 .text-primary.fw-bold {
     color: #f48fb1 !important;
     text-shadow: 0 1px 3px rgba(244, 143, 177, 0.3);
+}
+
+/* =================================================================
+   FICHE JOUEUR
+   ================================================================= */
+.fj-user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--admin-border);
+    transition: background 0.12s ease;
+}
+
+.fj-user-row:hover {
+    background: var(--admin-accent-soft);
+}
+
+.fj-user-row.selected {
+    background: rgba(210, 75, 143, 0.12);
+    border-left: 3px solid var(--tblr-primary);
+}
+
+.fj-user-row.banned {
+    opacity: 0.55;
+}
+
+.fj-user-name {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.fj-user-meta {
+    font-size: .72rem;
+}
+
+.fj-arrow {
+    margin-left: auto;
+    opacity: 0.3;
+    font-size: .8rem;
+    flex-shrink: 0;
+}
+
+.fj-user-row.selected .fj-arrow {
+    opacity: 1;
+    color: var(--tblr-primary);
+}
+
+.theme-dark [data-page="fiche-joueur"] .table tbody tr {
+    background: transparent !important;
+}
+
+.theme-dark [data-page="fiche-joueur"] .table tbody tr:hover {
+    background: rgba(244, 143, 177, 0.08) !important;
+}
+
+/* =================================================================
+   QUÊTES TABLE STYLES
+   ================================================================= */
+.quest-rank-badge,
+.quest-status-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
+.quest-kaels-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #f59f00;
+    background: rgba(245,159,0,.12);
+    border-radius: 5px;
+    padding: 1px 7px;
+    margin-top: 2px;
+}
+
+.quest-type-label {
+    font-size: .82rem;
+    color: var(--admin-text-muted);
+}
+
+.quest-part-count {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.quest-repeatable-yes {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #42a5f5;
+}
+
+.fj-quest-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.fj-context-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid rgba(244, 143, 177, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.fj-context-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(210, 75, 143, 0.12);
+    border: 1px solid rgba(244, 143, 177, 0.15);
+    color: var(--admin-text);
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.fj-context-pill i {
+    color: var(--admin-text-muted);
+}
+
+.fj-quest-stat .card-body,
+.fj-quest-panel .card-body {
+    background:
+        radial-gradient(circle at top right, rgba(210, 75, 143, 0.12), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+.fj-quest-stat-label {
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--admin-text-muted);
+    margin-bottom: 8px;
+}
+
+.fj-quest-stat-value {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+}
+
+.fj-quest-stat-value--date {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.fj-quest-stat-meta {
+    font-size: .78rem;
+    color: var(--admin-text-muted);
+    margin-top: 4px;
+}
+
+.fj-quest-list,
+.fj-quest-timeline {
+    display: grid;
+    gap: 12px;
+}
+
+.fj-quest-entry,
+.fj-quest-timeline-entry {
+    position: relative;
+    border: 1px solid rgba(244, 143, 177, 0.18);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.fj-quest-entry-top,
+.fj-quest-timeline-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.fj-quest-entry-title {
+    font-size: .98rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.fj-quest-entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: .8rem;
+    color: var(--admin-text-muted);
+}
+
+.fj-quest-gains {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 193, 7, 0.08);
+    border: 1px solid rgba(255, 193, 7, 0.18);
+    color: #f9d56e;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.fj-quest-timeline-entry {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 14px;
+}
+
+.fj-quest-timeline-marker {
+    width: 10px;
+    border-radius: 999px;
+    min-height: 100%;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.03);
+}
+
+.fj-quest-timeline-date {
+    font-size: .78rem;
+    color: var(--admin-text-muted);
+    font-weight: 600;
+}
+
+.fj-quest-empty {
+    min-height: 220px;
+}
+
+@media (max-width: 1199.98px) {
+    .fj-quest-summary-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* =================================================================
@@ -1123,10 +1427,14 @@ body.perf-lite .btn::before {
     user-select: none;
 }
 
-[data-page="items"] th.sortable {
+[data-page="items"] th.sortable,
+[data-page="quetes"] th.sortable {
+    cursor: pointer;
+    user-select: none;
     transition: color 0.15s ease;
 }
 
-[data-page="items"] th.sortable:hover {
+[data-page="items"] th.sortable:hover,
+[data-page="quetes"] th.sortable:hover {
     color: #ff77b4;
 }

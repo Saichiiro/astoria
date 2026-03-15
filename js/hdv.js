@@ -15,9 +15,9 @@ import {
     getMyListings,
     getMyProfile,
     searchListings
-} from './market.js';
+} from './market.js?v=2026031602';
 import { getInventoryRows, setInventoryItem } from './api/inventory-service.js';
-import { getCategories, getCategoriesMap } from './api/categories-service.js';
+import { getCategories } from './api/categories-service.js?v=2026031701';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
 
@@ -86,6 +86,7 @@ const state = {
 };
 
 const INVENTORY_SYNC_KEY = 'astoria_inventory_sync';
+const INVENTORY_STORAGE_KEY = 'astoriaInventory';
 
 function broadcastInventorySync(reason = 'update') {
     try {
@@ -128,6 +129,54 @@ const SCROLL_TYPES = Array.isArray(window.astoriaScrollTypes) && window.astoriaS
 
 const SCROLL_TYPE_MAP = new Map(SCROLL_TYPES.map((type) => [type.key, type]));
 const SCROLL_TYPES_META_KEY = 'astoria_scroll_types_meta';
+
+function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
+function resolveInventoryStorageScopeId() {
+    const activeCharacterId = state.character?.id || getActiveCharacter?.()?.id;
+    if (activeCharacterId) return String(activeCharacterId);
+
+    try {
+        const raw = localStorage.getItem('astoria_active_character');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.id) return String(parsed.id);
+        }
+    } catch {
+        // ignore
+    }
+
+    try {
+        const raw = localStorage.getItem('astoria_character_summary');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.id) return String(parsed.id);
+        }
+    } catch {
+        // ignore
+    }
+
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const queryCharacterId = params.get('character');
+        if (queryCharacterId) return String(queryCharacterId);
+    } catch {
+        // ignore
+    }
+
+    return '';
+}
+
+function getScopedInventoryStorageKey(baseKey) {
+    const scopeId = resolveInventoryStorageScopeId();
+    return scopeId ? `${baseKey}:${scopeId}` : baseKey;
+}
+
+function getInventoryItemsStorageKey() {
+    return getScopedInventoryStorageKey(INVENTORY_STORAGE_KEY);
+}
 let scrollTypeMetaList = null;
 let scrollTypeMetaMap = null;
 const FALLBACK_SCROLL_EMOJI = String.fromCodePoint(0x2728);
@@ -513,7 +562,11 @@ function resolveListingItem(listing) {
 }
 
 function getItemById(itemId) {
-    return state.items.find((item) => item && (item.id || item.name) === itemId) || state.items.find((item) => item && item.name === itemId) || null;
+    const needle = String(itemId || '').trim();
+    return state.items.find((item) => item && String(item.id || item.name || '').trim() === needle) ||
+        state.items.find((item) => item && String(item.itemId || '').trim() === needle) ||
+        state.items.find((item) => item && item.name === itemId) ||
+        null;
 }
 
 function parseBasePrice(item) {
@@ -552,11 +605,45 @@ function resolveItemIndexByName(name) {
     return idx >= 0 ? idx : null;
 }
 
+function resolveCatalogItemFromReference(ref = {}) {
+    const itemId = String(ref?.itemId || ref?.item_id || ref?.id || '').trim();
+    if (itemId) {
+        const byId = state.items.find((entry) => entry && String(entry.id || '').trim() === itemId);
+        if (byId) return byId;
+    }
+
+    const itemKey = normalizeText(ref?.itemKey || ref?.item_key || ref?.name || '');
+    if (itemKey) {
+        const byKey = state.items.find((entry) => entry && normalizeText(entry.name) === itemKey);
+        if (byKey) return byKey;
+    }
+
+    const idx = Number(ref?.sourceIndex ?? ref?.item_index);
+    if (Number.isFinite(idx) && idx >= 0 && state.items[idx]) {
+        return state.items[idx];
+    }
+
+    return null;
+}
+
+function isCurrencyLikeItem(item) {
+    if (!item) return false;
+    if (item.isCurrency) return true;
+    const name = normalizeText(item.name || item.itemKey || item.item_key || '');
+    const category = normalizeText(item.category || '');
+    return name === 'kaels' || category === 'monnaie' || category === 'currency';
+}
+
 function mapInventoryRows(rows) {
     const items = [];
     if (!Array.isArray(rows)) return items;
 
     for (const row of rows) {
+        const resolved = resolveCatalogItemFromReference({
+            item_id: row?.item_id,
+            item_key: row?.item_key,
+            item_index: row?.item_index
+        });
         let idx = Number(row?.item_index);
         if (!Number.isFinite(idx) || idx < 0) {
             idx = resolveItemIndexByName(row?.item_key);
@@ -565,18 +652,292 @@ function mapInventoryRows(rows) {
         if (qty <= 0) continue;
         const item = Number.isFinite(idx) && idx >= 0
             ? state.items[idx]
-            : (row?.item_key ? { name: row?.item_key } : null);
+            : (resolved || (row?.item_key ? { name: row?.item_key } : null));
         if (!item) continue;
+        if (isCurrencyLikeItem(item)) continue;
+        const sourceIndex = Number.isFinite(idx) && idx >= 0
+            ? idx
+            : (Number.isFinite(resolveSourceIndex(resolved || item)) ? resolveSourceIndex(resolved || item) : null);
         items.push({
             ...item,
-            sourceIndex: Number.isFinite(idx) && idx >= 0 ? idx : null,
+            sourceIndex,
             itemId: row?.item_id ? String(row.item_id) : null,
-            itemKey: row?.item_key ? String(row.item_key) : String(item?.name || idx),
+            itemKey: String(item?.name || row?.item_key || idx),
+            inventoryQty: qty,
+            equippedQty: 0,
+            equippedSlots: [],
             quantity: qty
         });
     }
 
     return items;
+}
+
+function mapLocalInventoryItems(items) {
+    const entries = [];
+    if (!Array.isArray(items)) return entries;
+
+    for (const rawItem of items) {
+        if (!rawItem || isCurrencyLikeItem(rawItem)) continue;
+        const qty = Math.max(0, Math.floor(Number(rawItem.quantity) || 0));
+        if (!qty) continue;
+
+        const resolved = resolveCatalogItemFromReference(rawItem || {});
+        const rawItemId = String(rawItem?.item_id || rawItem?.dbItemId || '').trim();
+        const resolvedItemId = String(resolved?.id || '').trim();
+        const sourceIndex = Number.isFinite(Number(rawItem?.sourceIndex))
+            ? Number(rawItem.sourceIndex)
+            : (Number.isFinite(Number(rawItem?.item_index)) ? Number(rawItem.item_index) : resolveSourceIndex(resolved || rawItem));
+
+        entries.push({
+            ...(resolved || {}),
+            sourceIndex: Number.isFinite(sourceIndex) ? sourceIndex : null,
+            itemId: isUuid(rawItemId) ? rawItemId : (isUuid(resolvedItemId) ? resolvedItemId : null),
+            itemKey: String(rawItem?.name || rawItem?.item_key || resolved?.name || '').trim(),
+            name: rawItem?.name || rawItem?.item_key || resolved?.name || '',
+            category: rawItem?.category || resolved?.category || '',
+            rarity: rawItem?.rarity || resolved?.rarity || '',
+            image: rawItem?.image || resolved?.image || '',
+            images: rawItem?.images || resolved?.images || undefined,
+            effect: rawItem?.effect || resolved?.effect || '',
+            inventoryQty: qty,
+            equippedQty: 0,
+            equippedSlots: [],
+            quantity: qty
+        });
+    }
+
+    return entries;
+}
+
+function readLocalInventoryEntries() {
+    try {
+        const raw = localStorage.getItem(getInventoryItemsStorageKey());
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+            return mapLocalInventoryItems(parsed);
+        }
+        if (parsed && Array.isArray(parsed.items)) {
+            return mapLocalInventoryItems(parsed.items);
+        }
+    } catch (error) {
+        console.warn('[HDV] Local inventory fallback unreadable:', error);
+    }
+
+    return [];
+}
+
+function readProfileInventoryEntries() {
+    const compactItems =
+        (Array.isArray(state.character?.profile_data?.inventory?.items) && state.character.profile_data.inventory.items) ||
+        (Array.isArray(state.profile?.character?.profile_data?.inventory?.items) && state.profile.character.profile_data.inventory.items) ||
+        [];
+
+    return mapLocalInventoryItems(
+        compactItems.map((entry) => ({
+            item_id: entry?.itemId || entry?.item_id || null,
+            item_index: entry?.itemIndex ?? entry?.item_index ?? entry?.idx ?? null,
+            itemKey: entry?.itemKey || entry?.item_key || '',
+            item_key: entry?.itemKey || entry?.item_key || '',
+            name: entry?.itemKey || entry?.item_key || entry?.name || '',
+            quantity: entry?.qty
+        }))
+    );
+}
+
+function getInventoryIdentity(item) {
+    const itemKey = normalizeText(item?.itemKey || item?.item_key || item?.name || '');
+    if (itemKey) return `key:${itemKey}`;
+
+    const itemId = String(item?.itemId || item?.item_id || item?.id || '').trim();
+    if (itemId) return `id:${itemId}`;
+
+    const sourceIndex = Number(item?.sourceIndex ?? item?.item_index);
+    if (Number.isFinite(sourceIndex) && sourceIndex >= 0) return `idx:${sourceIndex}`;
+
+    return '';
+}
+
+function extractEquippedInventoryEntries(character) {
+    const equipped = character?.profile_data?.inventory?.equippedSlots;
+    if (!equipped || typeof equipped !== 'object') return [];
+
+    return Object.entries(equipped).map(([slotKey, item]) => {
+        const resolved = resolveCatalogItemFromReference(item || {});
+        const sourceIndex = Number.isFinite(Number(item?.sourceIndex)) ? Number(item.sourceIndex) : (Number.isFinite(Number(item?.item_index)) ? Number(item.item_index) : null);
+        return {
+            ...(resolved || {}),
+            ...(item || {}),
+            name: resolved?.name || item?.name || item?.item_key || '',
+            category: resolved?.category || item?.category || '',
+            rarity: resolved?.rarity || item?.rarity || '',
+            image: resolved?.image || item?.image || '',
+            images: resolved?.images || item?.images || undefined,
+            effect: resolved?.effect || item?.effect || '',
+            itemId: item?.item_id ? String(item.item_id) : (item?.id ? String(item.id) : (resolved?.id ? String(resolved.id) : null)),
+            itemKey: item?.item_key ? String(item.item_key) : String(resolved?.name || item?.name || ''),
+            sourceIndex: Number.isFinite(sourceIndex) ? sourceIndex : resolveSourceIndex(resolved || item),
+            inventoryQty: 0,
+            equippedQty: 1,
+            equippedSlots: [slotKey],
+            quantity: 1
+        };
+    }).filter((entry) => entry?.name || entry?.itemId || entry?.itemKey);
+}
+
+function mergeCharacterInventoryState(primaryCharacter, fallbackCharacter) {
+    if (!primaryCharacter) return fallbackCharacter || null;
+    if (!fallbackCharacter) return primaryCharacter;
+
+    const primaryInventory = primaryCharacter?.profile_data?.inventory;
+    const fallbackInventory = fallbackCharacter?.profile_data?.inventory;
+    const primaryHasEquipped = primaryInventory?.equippedSlots && Object.keys(primaryInventory.equippedSlots).length > 0;
+    const fallbackHasEquipped = fallbackInventory?.equippedSlots && Object.keys(fallbackInventory.equippedSlots).length > 0;
+
+    if (primaryHasEquipped || !fallbackHasEquipped) {
+        return primaryCharacter;
+    }
+
+    return {
+        ...primaryCharacter,
+        profile_data: {
+            ...(primaryCharacter.profile_data || {}),
+            inventory: {
+                ...(fallbackInventory || {}),
+                ...(primaryInventory || {}),
+                equippedSlots: fallbackInventory.equippedSlots
+            }
+        }
+    };
+}
+
+function mergeInventoryEntries(entries) {
+    const merged = new Map();
+
+    (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        const key = getInventoryIdentity(entry);
+        if (!key) return;
+
+        if (!merged.has(key)) {
+            merged.set(key, {
+                ...entry,
+                inventoryQty: Math.max(0, Number(entry?.inventoryQty) || 0),
+                equippedQty: Math.max(0, Number(entry?.equippedQty) || 0),
+                equippedSlots: Array.isArray(entry?.equippedSlots) ? [...entry.equippedSlots] : [],
+                quantity: 0
+            });
+            return;
+        }
+
+        const current = merged.get(key);
+        current.inventoryQty += Math.max(0, Number(entry?.inventoryQty) || 0);
+        current.equippedQty += Math.max(0, Number(entry?.equippedQty) || 0);
+        current.equippedSlots.push(...(Array.isArray(entry?.equippedSlots) ? entry.equippedSlots : []));
+        current.sourceIndex = current.sourceIndex ?? entry?.sourceIndex ?? null;
+        current.itemId = current.itemId || entry?.itemId || entry?.id || null;
+        current.itemKey = current.itemKey || entry?.itemKey || entry?.name || '';
+    });
+
+    return [...merged.values()].map((entry) => ({
+        ...entry,
+        quantity: entry.inventoryQty + entry.equippedQty
+    }));
+}
+
+function mergeSellableInventoryEntries(primaryEntries, fallbackEntries) {
+    const merged = new Map();
+
+    for (const entry of Array.isArray(primaryEntries) ? primaryEntries : []) {
+        const key = getInventoryIdentity(entry);
+        if (!key) continue;
+        merged.set(key, {
+            ...entry,
+            inventoryQty: Math.max(0, Math.floor(Number(entry?.inventoryQty ?? entry?.quantity) || 0)),
+            equippedQty: 0,
+            equippedSlots: [],
+            quantity: Math.max(0, Math.floor(Number(entry?.inventoryQty ?? entry?.quantity) || 0))
+        });
+    }
+
+    for (const entry of Array.isArray(fallbackEntries) ? fallbackEntries : []) {
+        const key = getInventoryIdentity(entry);
+        if (!key) continue;
+
+        if (!merged.has(key)) {
+            merged.set(key, {
+                ...entry,
+                inventoryQty: Math.max(0, Math.floor(Number(entry?.inventoryQty ?? entry?.quantity) || 0)),
+                equippedQty: 0,
+                equippedSlots: [],
+                quantity: Math.max(0, Math.floor(Number(entry?.inventoryQty ?? entry?.quantity) || 0))
+            });
+            continue;
+        }
+
+        const current = merged.get(key);
+        current.name = current.name || entry?.name || '';
+        current.category = current.category || entry?.category || '';
+        current.rarity = current.rarity || entry?.rarity || '';
+        current.image = current.image || entry?.image || '';
+        current.images = current.images || entry?.images || undefined;
+        current.effect = current.effect || entry?.effect || '';
+        current.sourceIndex = current.sourceIndex ?? entry?.sourceIndex ?? null;
+        current.itemId = current.itemId || entry?.itemId || null;
+        current.itemKey = current.itemKey || entry?.itemKey || entry?.name || '';
+    }
+
+    return [...merged.values()];
+}
+
+function entryMatchesInventoryTarget(candidate, target) {
+    const targetId = String(target?.itemId || target?.item_id || target?.id || '').trim();
+    const candidateId = String(candidate?.item_id || candidate?.itemId || candidate?.id || '').trim();
+    if (targetId && candidateId && targetId === candidateId) return true;
+
+    const targetKey = normalizeText(target?.itemKey || target?.item_key || target?.name || '');
+    const candidateKey = normalizeText(candidate?.item_key || candidate?.itemKey || candidate?.name || '');
+    if (targetKey && candidateKey && targetKey === candidateKey) return true;
+
+    const targetIndex = Number(target?.sourceIndex ?? target?.item_index);
+    const candidateIndex = Number(candidate?.sourceIndex ?? candidate?.item_index);
+    if (Number.isFinite(targetIndex) && Number.isFinite(candidateIndex) && targetIndex === candidateIndex) return true;
+
+    return false;
+}
+
+async function consumeEquippedQuantity(entry, quantity) {
+    const needed = Math.max(0, Math.floor(Number(quantity) || 0));
+    if (!needed) return true;
+    if (!state.character?.id) return false;
+
+    const profileData = { ...(state.character.profile_data || {}) };
+    const inventory = { ...(profileData.inventory || {}) };
+    const equippedSlots = { ...(inventory.equippedSlots || {}) };
+    let remaining = needed;
+
+    Object.entries(equippedSlots).forEach(([slotKey, item]) => {
+        if (remaining <= 0) return;
+        if (!entryMatchesInventoryTarget(item, entry)) return;
+        delete equippedSlots[slotKey];
+        remaining -= 1;
+    });
+
+    if (remaining > 0) return false;
+
+    inventory.equippedSlots = equippedSlots;
+    profileData.inventory = inventory;
+
+    const result = await updateCharacter(state.character.id, { profile_data: profileData });
+    if (!(result?.success && result.character)) return false;
+
+    state.character = result.character;
+    if (state.profile?.character?.id === result.character.id) {
+        state.profile.character = result.character;
+    }
+    document.dispatchEvent(new CustomEvent('astoria:character-updated', { detail: { profile_data: profileData } }));
+    broadcastInventorySync('equipped-slots');
+    return true;
 }
 
 
@@ -589,17 +950,30 @@ async function refreshInventory() {
 
     try {
         const rows = await getInventoryRows(state.character.id);
-        state.inventory = mapInventoryRows(Array.isArray(rows) ? rows : []);
+        const backpackEntries = mapInventoryRows(Array.isArray(rows) ? rows : []);
+        const profileEntries = readProfileInventoryEntries();
+        if (backpackEntries.length) {
+            state.inventory = mergeSellableInventoryEntries(backpackEntries, profileEntries);
+            return;
+        }
+        if (profileEntries.length) {
+            state.inventory = profileEntries;
+            return;
+        }
+        // No localStorage fallback here: selling must stay consistent across devices.
+        state.inventory = [];
     } catch (error) {
         console.error('Inventory load error:', error);
-        state.inventory = [];
+        const profileEntries = readProfileInventoryEntries();
+        state.inventory = profileEntries.length ? profileEntries : [];
     }
 }
 
 
 
 function getInventoryEntry(itemId) {
-    return state.inventory.find((item) => item && (item.id || item.name) === itemId) ||
+    return state.inventory.find((item) => item && (item.itemId || item.id || item.itemKey || item.name) === itemId) ||
+        state.inventory.find((item) => item && item.itemKey === itemId) ||
         state.inventory.find((item) => item && item.name === itemId) ||
         null;
 }
@@ -610,20 +984,36 @@ async function applyInventoryDelta(itemId, delta) {
     const entry = getInventoryEntry(itemId);
     const baseItem = entry || getItemById(itemId) || { name: itemId };
     const sourceIndex = resolveSourceIndex(baseItem);
-    if (!Number.isFinite(sourceIndex)) return false;
-
-    const currentQty = entry ? Math.floor(Number(entry.quantity) || 0) : 0;
+    const inventoryQty = entry ? Math.max(0, Math.floor(Number(entry.inventoryQty ?? entry.quantity) || 0)) : 0;
+    const equippedQty = entry ? Math.max(0, Math.floor(Number(entry.equippedQty) || 0)) : 0;
+    const currentQty = inventoryQty + equippedQty;
     const nextQty = currentQty + delta;
-    if (nextQty < 0) return false;
+    if (nextQty < 0 || (!Number.isFinite(sourceIndex) && !String(baseItem?.id || entry?.itemId || '').trim())) return false;
 
     const canonicalKey = baseItem?.name ? String(baseItem.name) : String(itemId || '');
     const canonicalItemId = baseItem?.id ? String(baseItem.id) : (entry?.itemId || null);
     const existingKey = entry?.itemKey ? String(entry.itemKey) : null;
     const itemKey = canonicalKey || existingKey || String(sourceIndex);
+    let nextInventoryQty = inventoryQty;
+    let nextEquippedQty = equippedQty;
+
+    if (delta > 0) {
+        nextInventoryQty = inventoryQty + delta;
+    } else if (delta < 0) {
+        let toRemove = Math.abs(delta);
+        const fromInventory = Math.min(nextInventoryQty, toRemove);
+        nextInventoryQty -= fromInventory;
+        toRemove -= fromInventory;
+        if (toRemove > 0) {
+            const equippedConsumed = await consumeEquippedQuantity(baseItem, toRemove);
+            if (!equippedConsumed) return false;
+            nextEquippedQty = Math.max(0, equippedQty - toRemove);
+        }
+    }
 
     try {
         if (existingKey && canonicalKey && existingKey !== canonicalKey) {
-            if (nextQty > 0) {
+            if (nextInventoryQty > 0) {
                 await setInventoryItem(state.character.id, {
                     item_key: existingKey,
                     item_id: entry?.itemId || null,
@@ -633,7 +1023,7 @@ async function applyInventoryDelta(itemId, delta) {
                     item_key: canonicalKey,
                     item_id: canonicalItemId,
                     item_index: sourceIndex
-                }, nextQty);
+                }, nextInventoryQty);
             } else {
                 await setInventoryItem(state.character.id, {
                     item_key: existingKey,
@@ -646,7 +1036,7 @@ async function applyInventoryDelta(itemId, delta) {
                 item_key: itemKey,
                 item_id: canonicalItemId,
                 item_index: sourceIndex
-            }, nextQty);
+            }, nextInventoryQty);
         }
     } catch (error) {
         console.error('Inventory update error:', error);
@@ -656,7 +1046,9 @@ async function applyInventoryDelta(itemId, delta) {
     if (nextQty == 0) {
         state.inventory = state.inventory.filter((item) => item !== entry);
     } else if (entry) {
-        entry.quantity = nextQty;
+        entry.inventoryQty = nextInventoryQty;
+        entry.equippedQty = nextEquippedQty;
+        entry.quantity = nextInventoryQty + nextEquippedQty;
         if (canonicalKey && existingKey && canonicalKey !== existingKey) {
             entry.itemKey = canonicalKey;
         }
@@ -667,7 +1059,10 @@ async function applyInventoryDelta(itemId, delta) {
             sourceIndex,
             itemId: canonicalItemId,
             itemKey,
-            quantity: nextQty
+            inventoryQty: Math.max(0, nextInventoryQty),
+            equippedQty: 0,
+            equippedSlots: [],
+            quantity: Math.max(0, nextInventoryQty)
         });
     }
 
@@ -704,12 +1099,13 @@ async function loadItemCatalog() {
                 .filter((row) => row && row.name)
                 .map((row) => [String(row.name).toLowerCase(), row])
         );
-        state.items = state.items.map((item) => {
+        const mergedItems = state.items.map((item) => {
             const key = String(item?.name || '').toLowerCase();
             const match = byName.get(key);
             if (!match) return item;
             return {
                 ...item,
+                id: item.id ?? match.id,
                 rarity: item.rarity ?? match.rarity,
                 description: item.description ?? match.description,
                 effect: item.effect ?? match.effect,
@@ -717,6 +1113,21 @@ async function loadItemCatalog() {
                 images: item.images ?? match.images
             };
         });
+        const knownKeys = new Set(mergedItems.map((item) => String(item?.name || '').toLowerCase()).filter(Boolean));
+        const appendedItems = rows
+            .filter((row) => row && row.name)
+            .filter((row) => !knownKeys.has(String(row.name).toLowerCase()))
+            .map((row) => ({
+                id: row.id,
+                name: row.name,
+                category: row.category,
+                rarity: row.rarity,
+                description: row.description,
+                effect: row.effect,
+                price: row.price_kaels || 0,
+                images: row.images
+            }));
+        state.items = [...mergedItems, ...appendedItems];
     } catch (error) {
         console.warn('[HDV] Item catalog enrichment failed:', error);
     }
@@ -794,6 +1205,8 @@ function renderCategories() {
                 // ignore
             }
             renderCategories();
+            populateSellSelect();
+            syncSellPriceFromSelection();
             refreshSearch();
         });
         dom.categories.appendChild(btn);
@@ -844,8 +1257,10 @@ function renderChips() {
         state.sort = 'price_asc';
         state.page = 1;
         syncFiltersToUI();
-            renderScrollTypePanel();
+        renderScrollTypePanel();
         renderCategories();
+        populateSellSelect();
+        syncSellPriceFromSelection();
         renderChips();
         refreshSearch();
     });
@@ -872,6 +1287,8 @@ function renderChips() {
             state.page = 1;
             syncFiltersToUI();
             renderCategories();
+            populateSellSelect();
+            syncSellPriceFromSelection();
             renderChips();
             refreshSearch();
         });
@@ -1112,7 +1529,7 @@ async function refreshProfile() {
     try {
         const profile = await getMyProfile();
         state.profile = profile;
-        state.character = profile.character || state.character;
+        state.character = mergeCharacterInventoryState(profile.character, state.character);
         await refreshInventory();
         dom.kaelsBadge.hidden = false;
         dom.kaelsBadge.textContent = `${formatKaels(state.profile.kaels)} kaels`;
@@ -1157,26 +1574,37 @@ async function refreshSearch() {
 
 function populateSellSelect() {
     dom.mine.item.innerHTML = '';
+    const sellableItems = state.inventory.filter((item) => {
+        if (!item) return false;
+        if (isCurrencyLikeItem(item)) return false;
+        const vendableQty = Math.max(0, Math.floor(Number(item.inventoryQty ?? item.quantity) || 0));
+        if (vendableQty <= 0) return false;
+        return true;
+    });
     const placeholder = document.createElement('option');
     placeholder.value = '';
     if (!state.user) {
         placeholder.textContent = 'Connectez-vous pour vendre';
     } else if (!state.character) {
         placeholder.textContent = 'Selectionnez un personnage';
-    } else if (!state.inventory.length) {
-        placeholder.textContent = 'Inventaire vide';
+    } else if (!sellableItems.length) {
+        placeholder.textContent = 'Aucun objet vendable';
     } else {
         placeholder.textContent = '-- Selectionner un objet --';
     }
     dom.mine.item.appendChild(placeholder);
 
-    dom.mine.item.disabled = !state.character || state.inventory.length === 0;
+    dom.mine.item.disabled = !state.character || sellableItems.length === 0;
 
-    for (const item of state.inventory) {
+    for (const item of sellableItems) {
+        const vendableQty = Math.max(0, Math.floor(Number(item.inventoryQty ?? item.quantity) || 0));
         const opt = document.createElement('option');
-        opt.value = item.name;
-        opt.textContent = `${item.name} (x${item.quantity})`;
-        opt.dataset.qty = String(item.quantity);
+        opt.value = String(item.itemId || item.id || item.itemKey || item.name || '');
+        opt.textContent = `${item.name} (x${vendableQty})`;
+        opt.dataset.qty = String(vendableQty);
+        if (item.itemId || item.id) {
+            opt.dataset.itemId = String(item.itemId || item.id);
+        }
         if (Number.isFinite(Number(item.sourceIndex))) {
             opt.dataset.idx = String(item.sourceIndex);
         }
@@ -1221,7 +1649,7 @@ function syncSellPriceFromSelection() {
     const entry = getInventoryEntry(itemId);
     const item = entry || getItemById(itemId);
     const basePrice = parseBasePrice(item);
-    const qty = entry ? Math.max(0, Number(entry.quantity) || 0) : 0;
+    const qty = entry ? Math.max(0, Number(entry.inventoryQty ?? entry.quantity) || 0) : 0;
     dom.mine.unitPrice.value = String(basePrice);
     if (item) {
         const stockText = entry ? `Stock: ${qty}` : '';
@@ -1561,8 +1989,9 @@ function wireEvents() {
             return;
         }
 
-        const itemId = dom.mine.item.value;
-        const entry = getInventoryEntry(itemId);
+        const selectedValue = String(dom.mine.item.value || '').trim();
+        const entry = getInventoryEntry(selectedValue);
+        const itemId = String(entry?.itemId || entry?.id || selectedValue || '').trim();
         let available = entry ? Math.max(0, Number(entry.quantity) || 0) : 0;
         const quantity = asInt(dom.mine.qty.value) ?? 1;
         const unitPrice = parsePriceInput(dom.mine.unitPrice.value);
@@ -1577,12 +2006,16 @@ function wireEvents() {
                 : 0;
         }
 
-        if (!itemId) {
+        if (!selectedValue) {
             setStatus(dom.mine.status, 'Selectionnez un objet.', 'error');
             return;
         }
         if (!entry) {
             setStatus(dom.mine.status, 'Objet non disponible dans votre inventaire.', 'error');
+            return;
+        }
+        if (!itemId) {
+            setStatus(dom.mine.status, 'Objet invalide pour la vente.', 'error');
             return;
         }
         if (quantity <= 0) {
@@ -1642,10 +2075,10 @@ function wireEvents() {
 async function loadCategories() {
     try {
         state.categories = await getCategories();
-        state.categoriesMap = await getCategoriesMap();
+        state.categoriesMap = new Map((state.categories || []).map((cat) => [cat.slug, cat]));
         console.log(`[HDV] Loaded ${state.categories.length} categories from database`);
     } catch (error) {
-        console.error('[HDV] Failed to load categories:', error);
+        console.warn('[HDV] Failed to load categories, using fallback:', error);
         // Fallback to hardcoded categories
         state.categories = [
             { slug: 'agricole', name: 'Agricole', icon: '🌾', is_active: true, display_order: 1 },

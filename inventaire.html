@@ -3576,7 +3576,17 @@
 
 
 
-                const idx = Number(entry?.idx);
+                const resolved = resolveItemByKey(
+                    entry?.itemKey || entry?.item_key || entry?.name,
+                    entry?.itemIndex ?? entry?.item_index ?? entry?.idx,
+                    entry?.itemId || entry?.item_id
+                );
+
+
+
+                const idx = Number.isFinite(Number(resolved?.index))
+                    ? Number(resolved.index)
+                    : Number(entry?.itemIndex ?? entry?.item_index ?? entry?.idx);
 
 
 
@@ -3588,7 +3598,7 @@
 
 
 
-                const sourceItem = allItems[idx];
+                const sourceItem = resolved?.item || allItems[idx];
 
 
 
@@ -3601,7 +3611,7 @@
 
 
                     id: nextItemId++,
-                    item_id: sourceItem?.id || row?.item_id || null,
+                    item_id: sourceItem?.id || entry?.itemId || entry?.item_id || null,
 
 
 
@@ -3834,6 +3844,43 @@
 
 
 
+        function serializeInventoryItemsCompact() {
+
+            return inventoryItems
+
+                .map((item) => {
+
+                    if (item?.isCurrency) return null;
+
+                    const qty = Math.floor(Number(item?.quantity) || 0);
+
+                    if (qty <= 0) return null;
+
+                    const resolved = resolveItemByKey(
+                        item?.name,
+                        item?.sourceIndex,
+                        item?.item_id || item?.dbItemId || item?.id
+                    );
+
+                    const maybeUuid = String(item?.item_id || item?.dbItemId || item?.id || resolved?.item?.id || '').trim();
+                    const itemId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(maybeUuid)
+                        ? maybeUuid
+                        : null;
+
+                    return {
+                        itemId,
+                        itemKey: String(item?.name || resolved?.item?.name || ''),
+                        itemIndex: Number.isFinite(resolved?.index) && resolved.index >= 0
+                            ? resolved.index
+                            : (Number.isFinite(Number(item?.sourceIndex)) ? Number(item.sourceIndex) : null),
+                        qty
+                    };
+                })
+
+                .filter(Boolean);
+
+        }
+
         function serializeInventoryForProfile() {
 
 
@@ -3881,6 +3928,10 @@
                 characterRank: currentCharacterRank,
                 characterRankScore: currentCharacterRankScore,
                 characterRankSource: currentCharacterRankSource,
+
+
+
+                items: serializeInventoryItemsCompact(),
 
 
 
@@ -4707,6 +4758,8 @@
 
                         if (scrollStoreChanged) {
                             persistInventory();
+                        } else if (!Array.isArray(payload?.items) || payload.items.length !== inventoryItems.length) {
+                            await saveInventoryToCharacterProfile();
                         }
 
 

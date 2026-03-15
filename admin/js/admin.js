@@ -39,6 +39,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         economy: { title: 'Économie', subtitle: 'Kaels et transactions' },
         market: { title: 'Marché', subtitle: 'Configuration et monitoring' },
         quetes: { title: 'Quêtes', subtitle: 'Gestion du tableau des quêtes' },
+        'fiche-joueur': { title: 'Fiche Joueur', subtitle: 'Vue complète et contrôle total par joueur' },
         competences: { title: 'Compétences', subtitle: 'Catalogue et allocations' },
         events: { title: 'Événements', subtitle: 'Gestion des events RP' },
         announcements: { title: 'Annonces', subtitle: 'Communication avec les joueurs' },
@@ -96,7 +97,11 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         }
 
         if (pageName === 'quetes') {
-            void loadDashboardStats();
+            void loadQuests();
+        }
+
+        if (pageName === 'fiche-joueur') {
+            renderFicheJoueurList(document.getElementById('ficheJoueurSearch')?.value || '');
         }
 
         console.log('[Admin] Navigated to:', pageName);
@@ -106,10 +111,10 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
      * Initialize navigation handlers
      */
     function initNavigation() {
-        // Handle all elements with data-page attribute
+        // Handle all elements with data-page attribute (nav links only, not page containers)
         document.addEventListener('click', (e) => {
             const target = e.target.closest('[data-page]');
-            if (target && target.dataset.page) {
+            if (target && target.dataset.page && !target.classList.contains('admin-page')) {
                 e.preventDefault();
                 navigateTo(target.dataset.page);
             }
@@ -339,34 +344,41 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         const DAY = 24 * 60 * 60 * 1000;
 
         const recent = allUsers
-            .filter(u => u.last_login && (now - new Date(u.last_login).getTime()) < 7 * DAY)
+            .filter(u => u.last_login && (now - new Date(u.last_login).getTime()) < 30 * DAY)
             .sort((a, b) => new Date(b.last_login) - new Date(a.last_login))
             .slice(0, 12);
 
         if (!recent.length) {
-            container.innerHTML = '<small class="text-muted">Aucune connexion cette semaine.</small>';
+            container.innerHTML = '<small class="text-muted">Aucune connexion ce mois-ci.</small>';
             return;
         }
 
         container.innerHTML = recent.map(u => {
             const lastLogin = new Date(u.last_login);
             const diffMs = now - lastLogin.getTime();
+            const diffMin = Math.floor(diffMs / (60 * 1000));
             const diffH = Math.floor(diffMs / (60 * 60 * 1000));
             const diffD = Math.floor(diffMs / DAY);
-            const timeLabel = diffH < 1 ? 'Il y a < 1h'
-                : diffH < 24 ? `Il y a ${diffH}h`
-                : `Il y a ${diffD}j`;
+            const timeLabel = diffMin < 60 ? `${diffMin}min`
+                : diffH < 24 ? `${diffH}h`
+                : diffD === 1 ? 'hier'
+                : `${diffD}j`;
             const isToday = diffMs < DAY;
             const dotColor = isToday ? 'bg-success' : 'bg-secondary';
+            const todayClass = isToday ? ' active-today' : '';
+            const isAdmin = u.role === 'admin';
+            const avatarBg = isAdmin
+                ? 'linear-gradient(135deg,#f59f00,#d4ac0d)'
+                : 'linear-gradient(135deg,#667eea,#764ba2)';
 
             return `
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="avatar avatar-xs" style="background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:.7rem; font-weight:600;">
+                <div class="d-flex align-items-center gap-2 mb-2${todayClass}">
+                    <span class="avatar avatar-xs" style="background:${avatarBg}; color:${isAdmin ? '#1a1225' : '#fff'}; font-size:.7rem; font-weight:700;">
                         ${(u.username || '?').charAt(0).toUpperCase()}
                     </span>
                     <div class="flex-fill" style="min-width:0;">
-                        <div class="fw-semibold text-truncate" style="font-size:.82rem;">${u.username || '-'}</div>
-                        <div class="text-muted" style="font-size:.72rem;">${timeLabel}</div>
+                        <div class="fw-semibold text-truncate" style="font-size:.82rem;">${u.username || '-'}${isAdmin ? ' <span style="font-size:.65rem;opacity:.7;">⚡</span>' : ''}</div>
+                        <div class="text-muted" style="font-size:.72rem;">il y a ${timeLabel}</div>
                     </div>
                     <span class="status-dot ${dotColor}" style="flex-shrink:0;"></span>
                 </div>
@@ -453,7 +465,7 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
                     })
                     : '<span class="text-muted">Jamais</span>';
 
-                const roleClass = user.role === 'admin' ? 'bg-red' : 'bg-blue';
+                const roleClass = user.role === 'admin' ? 'badge-role-admin' : 'badge-role-player';
                 const roleIcon = user.role === 'admin' ? 'ti-shield-check' : 'ti-user';
                 const roleBadge = `<span class="badge ${roleClass}"><i class="ti ${roleIcon} me-1"></i>${user.role === 'admin' ? 'Admin' : 'Joueur'}</span>`;
 
@@ -1630,6 +1642,857 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         }
     }
 
+    // =================================================================
+    // QUÊTES CRUD
+    // =================================================================
+
+    let allQuests = [];
+
+    const QUEST_STATUS_LABELS = {
+        available:   { label: 'Disponible',  color: '#66bb6a' },
+        in_progress: { label: 'En cours',    color: '#ff9800' },
+        locked:      { label: 'Verrouillée', color: '#ef5350' },
+    };
+
+    const QUEST_RANK_COLORS = {
+        F:'#78909c', E:'#90a4ae', D:'#66bb6a', C:'#42a5f5',
+        B:'#7e57c2', A:'#ef5350', S:'#ff9800', 'S+':'#f06292',
+        SS:'#ab47bc', SSS:'#d4ac0d',
+    };
+
+    async function loadQuests() {
+        const tbody = document.getElementById('questsTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>`;
+        try {
+            const { data, error } = await supabase
+                .from('quests')
+                .select('id, name, type, rank, status, repeatable, max_participants, description, rewards, completed_by')
+                .order('created_at', { ascending: false });
+            if (error) throw error;
+            allQuests = data || [];
+
+            // Get participant counts
+            const { data: parts } = await supabase
+                .from('quest_participants')
+                .select('quest_id');
+            const partCounts = {};
+            (parts || []).forEach(p => { partCounts[p.quest_id] = (partCounts[p.quest_id] || 0) + 1; });
+            allQuests.forEach(q => { q._partCount = partCounts[q.id] || 0; });
+
+            sortAndRender();
+            animateCounter('statQuestsFull', String(allQuests.length));
+            animateCounter('statQuestsActive', String(allQuests.filter(q => q.status === 'available').length));
+            animateCounter('statQuests', String(allQuests.filter(q => q.status === 'available').length));
+        } catch (err) {
+            console.error('[Admin] loadQuests error:', err);
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Erreur de chargement</td></tr>`;
+        }
+    }
+
+    function renderQuestsTable(quests) {
+        const tbody = document.getElementById('questsTableBody');
+        if (!tbody) return;
+        if (!quests.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Aucune quête</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = quests.map(q => {
+            const st = QUEST_STATUS_LABELS[q.status] || { label: q.status, color: '#999' };
+            const rankColor = QUEST_RANK_COLORS[q.rank] || '#78909c';
+            const maxP = q.max_participants || '∞';
+            const kaelsReward = (() => {
+                const r = (q.rewards || []).find(r => r.name === 'Kaels');
+                return r ? `<span class="quest-kaels-badge"><i class="ti ti-coin"></i> ${r.qty}</span>` : '';
+            })();
+            const statusBadge = `<span class="quest-status-badge" style="color:${st.color};background:${st.color}18;border-color:${st.color}35;">${st.label}</span>`;
+            const rankBadge = `<span class="quest-rank-badge" style="color:${rankColor};background:${rankColor}15;border-color:${rankColor}40;">${q.rank || '?'}</span>`;
+            return `<tr>
+                <td>
+                    <div class="fw-semibold text-white">${q.name || '—'}</div>
+                    ${kaelsReward}
+                </td>
+                <td><span class="quest-type-label">${q.type || '—'}</span></td>
+                <td>${rankBadge}</td>
+                <td>${statusBadge}</td>
+                <td><span class="quest-part-count">${q._partCount} <span class="text-muted">/ ${maxP}</span></span></td>
+                <td>${q.repeatable ? '<span class="quest-repeatable-yes">↻ Oui</span>' : '<span class="text-muted" style="font-size:.8rem;">—</span>'}</td>
+                <td>
+                    <div class="btn-list flex-nowrap">
+                        <button class="btn btn-sm btn-ghost-warning" title="Modifier" data-quest-edit="${q.id}"><i class="ti ti-edit"></i></button>
+                        <button class="btn btn-sm btn-ghost-info" title="Participants" data-quest-parts="${q.id}"><i class="ti ti-users"></i></button>
+                        <button class="btn btn-sm btn-ghost-danger" title="Supprimer" data-quest-delete="${q.id}"><i class="ti ti-trash"></i></button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    let questSortCol = null;
+    let questSortDir = 1; // 1 = asc, -1 = desc
+    let questActiveFilter = 'all';
+
+    const QUEST_RANK_ORDER = ['F','E','D','C','B','A','S','S+','SS','SSS'];
+
+    function getFilteredQuests() {
+        return questActiveFilter === 'all' ? allQuests : allQuests.filter(q => q.status === questActiveFilter);
+    }
+
+    function sortAndRender() {
+        let quests = [...getFilteredQuests()];
+        if (questSortCol) {
+            quests.sort((a, b) => {
+                let av = a[questSortCol] ?? '';
+                let bv = b[questSortCol] ?? '';
+                if (questSortCol === 'rank') {
+                    av = QUEST_RANK_ORDER.indexOf(av);
+                    bv = QUEST_RANK_ORDER.indexOf(bv);
+                    return (av - bv) * questSortDir;
+                }
+                return String(av).localeCompare(String(bv), 'fr') * questSortDir;
+            });
+        }
+        renderQuestsTable(quests);
+        // Update indicators
+        document.querySelectorAll('.sort-indicator[data-sort-col]').forEach(el => {
+            if (el.dataset.sortCol === questSortCol) {
+                el.textContent = questSortDir === 1 ? '↑' : '↓';
+                el.classList.add('active');
+            } else {
+                el.textContent = '↕';
+                el.classList.remove('active');
+            }
+        });
+    }
+
+    function initQuestsPage() {
+        // Filter buttons
+        document.getElementById('questFilterBtns')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-quest-filter]');
+            if (!btn) return;
+            document.querySelectorAll('[data-quest-filter]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            questActiveFilter = btn.dataset.questFilter;
+            sortAndRender();
+        });
+
+        // Column sort headers
+        document.querySelector('[data-page="quetes"] thead')?.addEventListener('click', (e) => {
+            const th = e.target.closest('[data-quest-sort]');
+            if (!th) return;
+            const col = th.dataset.questSort;
+            if (questSortCol === col) {
+                questSortDir *= -1;
+            } else {
+                questSortCol = col;
+                questSortDir = 1;
+            }
+            sortAndRender();
+        });
+
+        // Create button
+        document.getElementById('btnCreateQuest')?.addEventListener('click', () => openQuestModal(null));
+
+        // Table actions (delegated)
+        document.getElementById('questsTableBody')?.addEventListener('click', async (e) => {
+            const editBtn   = e.target.closest('[data-quest-edit]');
+            const partsBtn  = e.target.closest('[data-quest-parts]');
+            const deleteBtn = e.target.closest('[data-quest-delete]');
+            if (editBtn)   openQuestModal(allQuests.find(q => q.id === editBtn.dataset.questEdit));
+            if (partsBtn)  openParticipantsModal(partsBtn.dataset.questParts);
+            if (deleteBtn) await deleteQuest(deleteBtn.dataset.questDelete);
+        });
+
+        // Save quest
+        document.getElementById('btnSaveQuest')?.addEventListener('click', saveQuest);
+
+        // Add reward buttons
+        document.getElementById('btnAddKaelsReward')?.addEventListener('click', () => addRewardRow('kaels'));
+        document.getElementById('btnAddItemReward')?.addEventListener('click', () => addRewardRow('item'));
+    }
+
+    function openQuestModal(quest) {
+        document.getElementById('questModalTitle').textContent = quest ? 'Modifier la quête' : 'Nouvelle quête';
+        document.getElementById('questModalId').value = quest?.id || '';
+        document.getElementById('questFormName').value = quest?.name || '';
+        document.getElementById('questFormType').value = quest?.type || 'Expédition';
+        document.getElementById('questFormRank').value = quest?.rank || 'F';
+        document.getElementById('questFormStatus').value = quest?.status || 'available';
+        document.getElementById('questFormMaxPart').value = quest?.max_participants || 5;
+        document.getElementById('questFormRepeatable').checked = quest?.repeatable || false;
+        document.getElementById('questFormDesc').value = quest?.description || '';
+
+        // Populate rewards
+        const list = document.getElementById('questRewardsList');
+        list.innerHTML = '';
+        (quest?.rewards || []).forEach(r => {
+            if (r.name === 'Kaels') addRewardRow('kaels', r.qty);
+            else addRewardRow('item', r.qty, r.name);
+        });
+
+        new bootstrap.Modal(document.getElementById('questModal')).show();
+    }
+
+    function addRewardRow(type, qty = '', name = '') {
+        const list = document.getElementById('questRewardsList');
+        const row = document.createElement('div');
+        row.className = 'd-flex gap-2 align-items-center reward-row';
+        row.dataset.rewardType = type;
+        if (type === 'kaels') {
+            row.innerHTML = `
+                <span class="badge bg-yellow-lt text-warning flex-shrink-0"><i class="ti ti-coin"></i> Kaels</span>
+                <input type="number" class="form-control form-control-sm reward-qty" placeholder="Quantité" value="${qty}" min="1">
+                <button type="button" class="btn btn-sm btn-ghost-danger btn-remove-reward"><i class="ti ti-x"></i></button>`;
+        } else {
+            row.innerHTML = `
+                <span class="badge bg-blue-lt text-blue flex-shrink-0"><i class="ti ti-box"></i> Objet</span>
+                <input type="text" class="form-control form-control-sm reward-name" placeholder="Nom de l'objet" value="${name}">
+                <input type="number" class="form-control form-control-sm reward-qty" placeholder="Qté" value="${qty}" min="1" style="width:80px">
+                <button type="button" class="btn btn-sm btn-ghost-danger btn-remove-reward"><i class="ti ti-x"></i></button>`;
+        }
+        row.querySelector('.btn-remove-reward').addEventListener('click', () => row.remove());
+        list.appendChild(row);
+    }
+
+    function readRewards() {
+        return Array.from(document.querySelectorAll('#questRewardsList .reward-row')).map(row => {
+            const type = row.dataset.rewardType;
+            const qty = parseInt(row.querySelector('.reward-qty')?.value) || 0;
+            if (type === 'kaels') return { name: 'Kaels', qty };
+            const name = row.querySelector('.reward-name')?.value?.trim();
+            if (!name) return null;
+            return { name, qty };
+        }).filter(Boolean);
+    }
+
+    async function saveQuest() {
+        const id   = document.getElementById('questModalId').value;
+        const name = document.getElementById('questFormName').value.trim();
+        if (!name) { showToast('Le nom est requis', 'error'); return; }
+
+        const payload = {
+            name,
+            type:             document.getElementById('questFormType').value,
+            rank:             document.getElementById('questFormRank').value,
+            status:           document.getElementById('questFormStatus').value,
+            max_participants: parseInt(document.getElementById('questFormMaxPart').value) || 5,
+            repeatable:       document.getElementById('questFormRepeatable').checked,
+            description:      document.getElementById('questFormDesc').value.trim(),
+            rewards:          readRewards(),
+        };
+
+        const btn = document.getElementById('btnSaveQuest');
+        btn.disabled = true;
+        try {
+            let error;
+            if (id) {
+                ({ error } = await supabase.from('quests').update(payload).eq('id', id));
+            } else {
+                payload.completed_by = [];
+                ({ error } = await supabase.from('quests').insert(payload));
+            }
+            if (error) throw error;
+            bootstrap.Modal.getInstance(document.getElementById('questModal'))?.hide();
+            showToast(id ? 'Quête mise à jour' : 'Quête créée', 'success');
+            await loadQuests();
+        } catch (err) {
+            console.error('[Admin] saveQuest error:', err);
+            showToast('Erreur de sauvegarde', 'error');
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    async function deleteQuest(id) {
+        const quest = allQuests.find(q => q.id === id);
+        if (!confirm(`Supprimer "${quest?.name || id}" ? Cette action est irréversible.`)) return;
+        try {
+            const { error } = await supabase.from('quests').delete().eq('id', id);
+            if (error) throw error;
+            showToast('Quête supprimée', 'success');
+            await loadQuests();
+        } catch (err) {
+            console.error('[Admin] deleteQuest error:', err);
+            showToast('Erreur de suppression', 'error');
+        }
+    }
+
+    async function openParticipantsModal(questId) {
+        const quest = allQuests.find(q => q.id === questId);
+        document.getElementById('questParticipantsTitle').textContent = quest?.name || 'Participants';
+        const body = document.getElementById('questParticipantsBody');
+        body.innerHTML = `<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>`;
+        new bootstrap.Modal(document.getElementById('questParticipantsModal')).show();
+        try {
+            const { data, error } = await supabase
+                .from('quest_participants')
+                .select('joined_at, characters(id, name)')
+                .eq('quest_id', questId)
+                .order('joined_at', { ascending: true });
+            if (error) throw error;
+            if (!data?.length) {
+                body.innerHTML = `<p class="text-muted text-center py-3">Aucun participant.</p>`;
+                showToast('Aucun participant pour cette quête', 'info');
+                return;
+            }
+            body.innerHTML = `<ul class="list-group list-group-flush">
+                ${data.map(p => {
+                    const charName = p.characters?.name || 'Inconnu';
+                    const joined = p.joined_at ? new Date(p.joined_at).toLocaleDateString('fr-FR') : '—';
+                    return `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><i class="ti ti-user me-2 text-muted"></i>${charName}</span>
+                        <small class="text-muted">${joined}</small>
+                    </li>`;
+                }).join('')}
+            </ul>`;
+        } catch (err) {
+            body.innerHTML = `<p class="text-danger text-center py-3">Erreur de chargement</p>`;
+            showToast('Erreur lors du chargement des participants', 'error');
+        }
+    }
+
+    // =================================================================
+    // FICHE JOUEUR
+    // =================================================================
+
+    let fjSelectedUser = null;
+    let fjSelectedChars = [];
+    let fjActiveTab = 'characters';
+
+    function initFicheJoueur() {
+        // Search filter
+        document.getElementById('ficheJoueurSearch')?.addEventListener('input', (e) => {
+            renderFicheJoueurList(e.target.value.toLowerCase());
+        });
+
+        // Tab clicks
+        document.getElementById('fjTabs')?.addEventListener('click', (e) => {
+            const a = e.target.closest('[data-fj-tab]');
+            if (!a) return;
+            e.preventDefault();
+            document.querySelectorAll('[data-fj-tab]').forEach(t => t.classList.remove('active'));
+            a.classList.add('active');
+            fjActiveTab = a.dataset.fjTab;
+            renderFjContext();
+            renderFjTab();
+        });
+
+        // Role button
+        document.getElementById('fjBtnRole')?.addEventListener('click', async () => {
+            if (!fjSelectedUser) return;
+            const newRole = fjSelectedUser.role === 'admin' ? 'player' : 'admin';
+            if (!confirm(`Passer ${fjSelectedUser.username} en "${newRole}" ?`)) return;
+            const { error } = await supabase.from('users').update({ role: newRole }).eq('id', fjSelectedUser.id);
+            if (error) { showToast('Erreur', 'error'); return; }
+            fjSelectedUser.role = newRole;
+            const idx = allUsers.findIndex(u => u.id === fjSelectedUser.id);
+            if (idx >= 0) allUsers[idx].role = newRole;
+            showToast(`Rôle mis à jour : ${newRole}`, 'success');
+            renderFjHeader();
+        });
+
+        // Ban/unban button
+        document.getElementById('fjBtnToggleActive')?.addEventListener('click', async () => {
+            if (!fjSelectedUser) return;
+            const newActive = fjSelectedUser.is_active === false ? true : false;
+            const label = newActive ? 'réactiver' : 'bannir';
+            if (!confirm(`Voulez-vous ${label} ${fjSelectedUser.username} ?`)) return;
+            const { error } = await supabase.from('users').update({ is_active: newActive }).eq('id', fjSelectedUser.id);
+            if (error) { showToast('Erreur', 'error'); return; }
+            fjSelectedUser.is_active = newActive;
+            const idx = allUsers.findIndex(u => u.id === fjSelectedUser.id);
+            if (idx >= 0) allUsers[idx].is_active = newActive;
+            showToast(newActive ? 'Joueur réactivé' : 'Joueur banni', 'success');
+            renderFjHeader();
+        });
+
+        // Render list from already-loaded users
+        renderFicheJoueurList('');
+    }
+
+    function renderFicheJoueurList(filter) {
+        const container = document.getElementById('ficheJoueurList');
+        if (!container) return;
+        const users = allUsers.filter(u => !filter || u.username?.toLowerCase().includes(filter));
+        if (!users.length) {
+            container.innerHTML = '<div class="text-center py-3 text-muted small">Aucun résultat</div>';
+            return;
+        }
+        container.innerHTML = users.map(u => {
+            const isSelected = fjSelectedUser?.id === u.id;
+            const isAdmin = u.role === 'admin';
+            const isBanned = u.is_active === false;
+            const avatarBg = isAdmin ? 'linear-gradient(135deg,#f59f00,#d4ac0d)' : 'linear-gradient(135deg,#667eea,#764ba2)';
+            const avatarColor = isAdmin ? '#1a1225' : '#fff';
+            return `<div class="fj-user-row ${isSelected ? 'selected' : ''} ${isBanned ? 'banned' : ''}" data-fj-uid="${u.id}">
+                <span class="avatar avatar-xs" style="background:${avatarBg};color:${avatarColor};font-size:.7rem;font-weight:700;flex-shrink:0;">
+                    ${(u.username||'?').charAt(0).toUpperCase()}
+                </span>
+                <div class="flex-fill" style="min-width:0;">
+                    <div class="fj-user-name">${u.username || '—'}${isAdmin ? ' ⚡' : ''}</div>
+                    ${isBanned ? '<div class="fj-user-meta text-danger">Banni</div>' : ''}
+                </div>
+                <i class="ti ti-chevron-right fj-arrow"></i>
+            </div>`;
+        }).join('');
+
+        container.querySelectorAll('.fj-user-row').forEach(row => {
+            row.addEventListener('click', () => selectFjUser(row.dataset.fjUid));
+        });
+    }
+
+    async function selectFjUser(uid) {
+        fjSelectedUser = allUsers.find(u => u.id === uid);
+        if (!fjSelectedUser) return;
+
+        // Update selected state in list
+        document.querySelectorAll('.fj-user-row').forEach(r => r.classList.toggle('selected', r.dataset.fjUid === uid));
+
+        // Show profile panel
+        document.getElementById('ficheJoueurEmpty')?.classList.add('d-none');
+        const profile = document.getElementById('ficheJoueurProfile');
+        profile?.classList.remove('d-none');
+
+        // Load characters
+        const { data: chars } = await supabase
+            .from('characters')
+            .select('id, name, kaels, is_active, profile_data')
+            .eq('user_id', uid);
+        fjSelectedChars = chars || [];
+
+        renderFjHeader();
+
+        // Reset to characters tab
+        fjActiveTab = 'characters';
+        document.querySelectorAll('[data-fj-tab]').forEach(t => t.classList.toggle('active', t.dataset.fjTab === 'characters'));
+        renderFjContext();
+        renderFjTab();
+    }
+
+    function renderFjHeader() {
+        const u = fjSelectedUser;
+        if (!u) return;
+        const isAdmin = u.role === 'admin';
+        const isBanned = u.is_active === false;
+        const avatarBg = isAdmin ? 'linear-gradient(135deg,#f59f00,#d4ac0d)' : 'linear-gradient(135deg,#667eea,#764ba2)';
+        const avatarColor = isAdmin ? '#1a1225' : '#fff';
+
+        document.getElementById('fjAvatar').style.cssText = `background:${avatarBg};color:${avatarColor};`;
+        document.getElementById('fjAvatar').textContent = (u.username||'?').charAt(0).toUpperCase();
+        document.getElementById('fjUsername').textContent = u.username || '—';
+        document.getElementById('fjRoleBadge').innerHTML = isAdmin
+            ? '<span class="badge badge-role-admin"><i class="ti ti-shield-check me-1"></i>Admin</span>'
+            : '<span class="badge badge-role-player"><i class="ti ti-user me-1"></i>Joueur</span>';
+        document.getElementById('fjLastLogin').textContent = u.last_login
+            ? new Date(u.last_login).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })
+            : 'Jamais';
+        const totalKaels = fjSelectedChars.reduce((s, c) => s + (c.kaels || 0), 0);
+        document.getElementById('fjCharCount').textContent = fjSelectedChars.length;
+        document.getElementById('fjTotalKaels').textContent = totalKaels.toLocaleString('fr-FR');
+
+        const banBtn = document.getElementById('fjBtnToggleActive');
+        banBtn.innerHTML = isBanned
+            ? '<i class="ti ti-check me-1"></i>Réactiver'
+            : '<i class="ti ti-ban me-1"></i>Bannir';
+        banBtn.className = `btn btn-sm ${isBanned ? 'btn-outline-success' : 'btn-outline-danger'}`;
+
+        renderFjContext();
+        const roleBtn = document.getElementById('fjBtnRole');
+        roleBtn.innerHTML = isAdmin
+            ? '<i class="ti ti-user me-1"></i>→ Joueur'
+            : '<i class="ti ti-shield me-1"></i>→ Admin';
+    }
+
+    function renderFjTab() {
+        const container = document.getElementById('fjTabContent');
+        if (!container) return;
+        if (fjActiveTab === 'characters') renderFjTabCharacters(container);
+        else if (fjActiveTab === 'inventory') renderFjTabInventory(container);
+        else if (fjActiveTab === 'kaels') renderFjTabKaels(container);
+        else if (fjActiveTab === 'quests') renderFjTabQuestsV2(container);
+    }
+
+    function formatAdminQuestDate(value, { withTime = false } = {}) {
+        if (!value) return '—';
+        try {
+            return new Date(value).toLocaleString(
+                'fr-FR',
+                withTime
+                    ? { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
+                    : { day: '2-digit', month: '2-digit', year: 'numeric' }
+            );
+        } catch {
+            return '—';
+        }
+    }
+
+    function cleanAdminHtml(value) {
+        return String(value ?? '—')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderFjContext() {
+        const bar = document.getElementById('fjContextBar');
+        if (!bar) return;
+        if (!fjSelectedUser) {
+            bar.innerHTML = '';
+            bar.hidden = true;
+            return;
+        }
+
+        const activeTabLabelMap = {
+            characters: 'Personnages',
+            inventory: 'Inventaire',
+            kaels: 'Kaels',
+            quests: 'Quêtes'
+        };
+        const singleCharLabel = fjSelectedChars.length === 1 ? (fjSelectedChars[0]?.name || 'Sans nom') : null;
+        const pills = [
+            { icon: 'ti-user', label: fjSelectedUser.username || '—' },
+            { icon: 'ti-layers-subtract', label: singleCharLabel || `${fjSelectedChars.length} personnage(s)` },
+            { icon: 'ti-layout-grid', label: activeTabLabelMap[fjActiveTab] || 'Fiche joueur' }
+        ];
+
+        if (fjSelectedUser.role === 'admin') {
+            pills.push({ icon: 'ti-shield-check', label: 'Compte staff' });
+        }
+        if (fjSelectedUser.is_active === false) {
+            pills.push({ icon: 'ti-ban', label: 'Compte banni' });
+        }
+
+        bar.hidden = false;
+        bar.innerHTML = pills.map((pill) => `
+            <span class="fj-context-pill">
+                <i class="ti ${pill.icon}"></i>
+                ${cleanAdminHtml(pill.label)}
+            </span>
+        `).join('');
+    }
+
+    function renderFjTabCharacters(container) {
+        if (!fjSelectedChars.length) {
+            container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-mask"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>';
+            return;
+        }
+        container.innerHTML = `<div class="row g-3">${fjSelectedChars.map(c => {
+            const active = c.is_active !== false;
+            return `<div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="avatar" style="background:linear-gradient(135deg,#d24b8f,#880e4f);color:#fff;font-weight:700;">${(c.name||'?').charAt(0)}</span>
+                            <div class="flex-fill">
+                                <div class="fw-semibold text-white">${c.name || '—'}</div>
+                                <div class="small text-muted">${active ? '<span class="text-success">Actif</span>' : '<span class="text-danger">Inactif</span>'}</div>
+                            </div>
+                            <span class="badge bg-yellow-lt text-warning"><i class="ti ti-coin me-1"></i>${(c.kaels||0).toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="btn-list">
+                            <button class="btn btn-sm btn-outline-warning" data-fj-char-kaels="${c.id}"><i class="ti ti-coin me-1"></i>Kaels</button>
+                            <button class="btn btn-sm btn-outline-info" data-fj-char-inv="${c.id}"><i class="ti ti-backpack me-1"></i>Inventaire</button>
+                            <button class="btn btn-sm ${active ? 'btn-outline-danger' : 'btn-outline-success'}" data-fj-char-toggle="${c.id}" data-fj-char-active="${active}">
+                                ${active ? '<i class="ti ti-eye-off me-1"></i>Désactiver' : '<i class="ti ti-eye me-1"></i>Activer'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('')}</div>`;
+
+        // Wire buttons
+        container.querySelectorAll('[data-fj-char-toggle]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const charId = btn.dataset.fjCharToggle;
+                const wasActive = btn.dataset.fjCharActive === 'true';
+                const { error } = await supabase.from('characters').update({ is_active: !wasActive }).eq('id', charId);
+                if (error) { showToast('Erreur', 'error'); return; }
+                const c = fjSelectedChars.find(x => x.id === charId);
+                if (c) c.is_active = !wasActive;
+                showToast(wasActive ? 'Personnage désactivé' : 'Personnage activé', 'success');
+                renderFjTabCharacters(container);
+            });
+        });
+        container.querySelectorAll('[data-fj-char-kaels]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fjActiveTab = 'kaels';
+                document.querySelectorAll('[data-fj-tab]').forEach(t => t.classList.toggle('active', t.dataset.fjTab === 'kaels'));
+                renderFjTab();
+            });
+        });
+        container.querySelectorAll('[data-fj-char-inv]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fjActiveTab = 'inventory';
+                document.querySelectorAll('[data-fj-tab]').forEach(t => t.classList.toggle('active', t.dataset.fjTab === 'inventory'));
+                renderFjTab();
+            });
+        });
+    }
+
+    function renderFjTabKaels(container) {
+        if (!fjSelectedChars.length) {
+            container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-coin"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>';
+            return;
+        }
+        container.innerHTML = `<div class="card"><div class="card-body"><div class="row g-3">
+            ${fjSelectedChars.map(c => `
+                <div class="col-md-6">
+                    <div class="card card-body" style="background:rgba(245,159,0,.06);border-color:rgba(245,159,0,.2);">
+                        <div class="fw-semibold text-white mb-2">${c.name}</div>
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge bg-yellow-lt text-warning fs-4 px-3 py-2"><i class="ti ti-coin me-1"></i>${(c.kaels||0).toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control fj-kaels-input" placeholder="Montant (+/-)" data-char-id="${c.id}">
+                            <button class="btn btn-outline-success fj-kaels-add" data-char-id="${c.id}" title="Ajouter"><i class="ti ti-plus"></i></button>
+                            <button class="btn btn-outline-danger fj-kaels-remove" data-char-id="${c.id}" title="Retirer"><i class="ti ti-minus"></i></button>
+                            <button class="btn btn-outline-warning fj-kaels-set" data-char-id="${c.id}" title="Définir exactement"><i class="ti ti-pencil"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div></div></div>`;
+
+        async function applyKaels(charId, mode) {
+            const input = container.querySelector(`.fj-kaels-input[data-char-id="${charId}"]`);
+            const amount = parseInt(input?.value);
+            if (isNaN(amount) || amount < 0) { showToast('Montant invalide', 'error'); return; }
+            const char = fjSelectedChars.find(c => c.id === charId);
+            let newKaels;
+            if (mode === 'add') newKaels = (char.kaels || 0) + amount;
+            else if (mode === 'remove') newKaels = Math.max(0, (char.kaels || 0) - amount);
+            else newKaels = amount;
+            const { error } = await supabase.from('characters').update({ kaels: newKaels }).eq('id', charId);
+            if (error) { showToast('Erreur', 'error'); return; }
+            char.kaels = newKaels;
+            if (input) input.value = '';
+            showToast(`Kaels mis à jour : ${newKaels.toLocaleString('fr-FR')}`, 'success');
+            renderFjHeader();
+            renderFjTabKaels(container);
+        }
+
+        container.querySelectorAll('.fj-kaels-add').forEach(btn => btn.addEventListener('click', () => applyKaels(btn.dataset.charId, 'add')));
+        container.querySelectorAll('.fj-kaels-remove').forEach(btn => btn.addEventListener('click', () => applyKaels(btn.dataset.charId, 'remove')));
+        container.querySelectorAll('.fj-kaels-set').forEach(btn => btn.addEventListener('click', () => applyKaels(btn.dataset.charId, 'set')));
+    }
+
+    async function renderFjTabInventory(container) {
+        container.innerHTML = `<div class="card"><div class="card-body text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>`;
+        try {
+            const charIds = fjSelectedChars.map(c => c.id);
+            if (!charIds.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>'; return; }
+            const { data: rows } = await supabase
+                .from('inventory_rows')
+                .select('id, character_id, item_name, quantity, item_id')
+                .in('character_id', charIds)
+                .order('item_name');
+            const items = rows || [];
+            if (!items.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Inventaire vide</div></div></div>'; return; }
+            const charMap = Object.fromEntries(fjSelectedChars.map(c => [c.id, c.name]));
+            container.innerHTML = `<div class="card"><div class="table-sheet"><table class="table table-vcenter">
+                <thead><tr>
+                    <th>Objet</th><th>Personnage</th><th style="width:120px">Quantité</th><th style="width:80px">Actions</th>
+                </tr></thead>
+                <tbody>${items.map(row => `<tr>
+                    <td class="fw-semibold text-white">${row.item_name || '—'}</td>
+                    <td class="text-muted">${charMap[row.character_id] || '—'}</td>
+                    <td><span class="badge bg-blue-lt text-blue">×${row.quantity}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-ghost-danger" data-fj-inv-delete="${row.id}" title="Retirer"><i class="ti ti-trash"></i></button>
+                    </td>
+                </tr>`).join('')}
+                </tbody>
+            </table></div></div>`;
+
+            container.querySelectorAll('[data-fj-inv-delete]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('Retirer cet objet ?')) return;
+                    const { error } = await supabase.from('inventory_rows').delete().eq('id', btn.dataset.fjInvDelete);
+                    if (error) { showToast('Erreur', 'error'); return; }
+                    showToast('Objet retiré', 'success');
+                    renderFjTabInventory(container);
+                });
+            });
+        } catch { container.innerHTML = '<div class="card"><div class="empty-state text-danger">Erreur de chargement</div></div>'; }
+    }
+
+    async function renderFjTabQuests(container) {
+        container.innerHTML = `<div class="card"><div class="card-body text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>`;
+        try {
+            const charIds = fjSelectedChars.map(c => c.id);
+            if (!charIds.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>'; return; }
+            const { data: parts } = await supabase
+                .from('quest_participants')
+                .select('quest_id, joined_at, characters(name), quests(name, rank, status)')
+                .in('character_id', charIds)
+                .order('joined_at', { ascending: false });
+            const list = parts || [];
+            if (!list.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucune participation</div></div></div>'; return; }
+            container.innerHTML = `<div class="card"><div class="table-sheet"><table class="table table-vcenter">
+                <thead><tr><th>Quête</th><th style="width:70px">Rang</th><th style="width:120px">Statut</th><th>Personnage</th><th>Rejoint le</th></tr></thead>
+                <tbody>${list.map(p => {
+                    const rank = p.quests?.rank || '?';
+                    const rc = QUEST_RANK_COLORS[rank] || '#999';
+                    const st = QUEST_STATUS_LABELS[p.quests?.status] || { label: p.quests?.status || '—', color: '#999' };
+                    return `<tr>
+                        <td class="fw-semibold text-white">${p.quests?.name || '—'}</td>
+                        <td><span class="quest-rank-badge" style="color:${rc};background:${rc}15;border-color:${rc}40;">${rank}</span></td>
+                        <td><span class="quest-status-badge" style="color:${st.color};background:${st.color}18;border-color:${st.color}35;">${st.label}</span></td>
+                        <td class="text-muted">${p.characters?.name || '—'}</td>
+                        <td class="text-muted small">${p.joined_at ? new Date(p.joined_at).toLocaleDateString('fr-FR') : '—'}</td>
+                    </tr>`;
+                }).join('')}
+                </tbody>
+            </table></div></div>`;
+        } catch { container.innerHTML = '<div class="card"><div class="empty-state text-danger">Erreur de chargement</div></div>'; }
+    }
+
+    async function renderFjTabQuestsV2(container) {
+        container.innerHTML = `<div class="card"><div class="card-body text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div></div>`;
+        try {
+            const charIds = fjSelectedChars.map(c => c.id);
+            if (!charIds.length) {
+                container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>';
+                return;
+            }
+
+            const charNames = [...new Set(fjSelectedChars.map(c => String(c.name || '').trim()).filter(Boolean))];
+            const [partsRes, historyByIdRes, historyByLabelRes] = await Promise.all([
+                supabase
+                    .from('quest_participants')
+                    .select('quest_id, joined_at, characters(name), quests(id, name, rank, status, type)')
+                    .in('character_id', charIds)
+                    .order('joined_at', { ascending: false }),
+                supabase
+                    .from('quest_history')
+                    .select('*')
+                    .in('character_id', charIds)
+                    .order('date', { ascending: false })
+                    .limit(80),
+                charNames.length
+                    ? supabase
+                        .from('quest_history')
+                        .select('*')
+                        .in('character_label', charNames)
+                        .order('date', { ascending: false })
+                        .limit(80)
+                    : Promise.resolve({ data: [], error: null })
+            ]);
+
+            const activeEntries = partsRes?.data || [];
+            const historyMerged = [...(historyByIdRes?.data || []), ...(historyByLabelRes?.data || [])];
+            const historyMap = new Map();
+            historyMerged.forEach((row) => {
+                const key = String(
+                    row?.id
+                    || `${row?.date || ''}|${row?.quest_id || ''}|${row?.name || ''}|${row?.character_id || row?.character_label || ''}`
+                );
+                if (!historyMap.has(key)) historyMap.set(key, row);
+            });
+            const historyEntries = [...historyMap.values()]
+                .sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime());
+
+            if (!activeEntries.length && !historyEntries.length) {
+                container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucune trace de quête pour ce joueur</div></div></div>';
+                return;
+            }
+
+            const activeCount = activeEntries.length;
+            const completedCount = historyEntries.length;
+            const lastRun = historyEntries[0]?.date || activeEntries[0]?.joined_at || null;
+
+            container.innerHTML = `
+                <div class="fj-quest-summary-grid mb-3">
+                    <div class="card fj-quest-stat">
+                        <div class="card-body">
+                            <div class="fj-quest-stat-label">Journal de route</div>
+                            <div class="fj-quest-stat-value">${completedCount}</div>
+                            <div class="fj-quest-stat-meta">quête(s) réalisées</div>
+                        </div>
+                    </div>
+                    <div class="card fj-quest-stat">
+                        <div class="card-body">
+                            <div class="fj-quest-stat-label">Expéditions en piste</div>
+                            <div class="fj-quest-stat-value">${activeCount}</div>
+                            <div class="fj-quest-stat-meta">participation(s) active(s)</div>
+                        </div>
+                    </div>
+                    <div class="card fj-quest-stat">
+                        <div class="card-body">
+                            <div class="fj-quest-stat-label">Dernière trace</div>
+                            <div class="fj-quest-stat-value fj-quest-stat-value--date">${cleanAdminHtml(formatAdminQuestDate(lastRun, { withTime: true }))}</div>
+                            <div class="fj-quest-stat-meta">activité RP la plus récente</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 col-xl-5">
+                        <div class="card fj-quest-panel h-100">
+                            <div class="card-header">
+                                <h3 class="card-title mb-0"><i class="ti ti-swords me-2"></i>Expéditions en cours</h3>
+                            </div>
+                            <div class="card-body">
+                                ${activeEntries.length ? `<div class="fj-quest-list">
+                                    ${activeEntries.map((entry) => {
+                                        const rank = entry.quests?.rank || '?';
+                                        const rankColor = QUEST_RANK_COLORS[rank] || '#999';
+                                        const status = QUEST_STATUS_LABELS[entry.quests?.status] || { label: entry.quests?.status || '—', color: '#999' };
+                                        return `<article class="fj-quest-entry">
+                                            <div class="fj-quest-entry-top">
+                                                <span class="quest-rank-badge" style="color:${rankColor};background:${rankColor}15;border-color:${rankColor}40;">${cleanAdminHtml(rank)}</span>
+                                                <span class="quest-status-badge" style="color:${status.color};background:${status.color}18;border-color:${status.color}35;">${cleanAdminHtml(status.label)}</span>
+                                            </div>
+                                            <div class="fj-quest-entry-title">${cleanAdminHtml(entry.quests?.name || '—')}</div>
+                                            <div class="fj-quest-entry-meta">
+                                                <span><i class="ti ti-user me-1"></i>${cleanAdminHtml(entry.characters?.name || '—')}</span>
+                                                <span><i class="ti ti-clock-hour-4 me-1"></i>${cleanAdminHtml(formatAdminQuestDate(entry.joined_at, { withTime: true }))}</span>
+                                            </div>
+                                        </article>`;
+                                    }).join('')}
+                                </div>` : `<div class="empty-state fj-quest-empty"><i class="ti ti-campfire"></i><div class="mt-2 text-muted">Aucune expédition active</div></div>`}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-xl-7">
+                        <div class="card fj-quest-panel h-100">
+                            <div class="card-header">
+                                <h3 class="card-title mb-0"><i class="ti ti-scroll me-2"></i>Chronique des quêtes réalisées</h3>
+                            </div>
+                            <div class="card-body">
+                                ${historyEntries.length ? `<div class="fj-quest-timeline">
+                                    ${historyEntries.map((entry) => {
+                                        const rank = entry?.rank || '?';
+                                        const rankColor = QUEST_RANK_COLORS[rank] || '#999';
+                                        const characterLabel = entry?.character_label || fjSelectedChars.find(c => c.id === entry?.character_id)?.name || '—';
+                                        return `<article class="fj-quest-timeline-entry">
+                                            <div class="fj-quest-timeline-marker" style="background:${rankColor}"></div>
+                                            <div class="fj-quest-timeline-content">
+                                                <div class="fj-quest-timeline-top">
+                                                    <span class="quest-rank-badge" style="color:${rankColor};background:${rankColor}15;border-color:${rankColor}40;">${cleanAdminHtml(rank)}</span>
+                                                    <span class="fj-quest-timeline-date">${cleanAdminHtml(formatAdminQuestDate(entry?.date, { withTime: true }))}</span>
+                                                </div>
+                                                <div class="fj-quest-entry-title">${cleanAdminHtml(entry?.name || '—')}</div>
+                                                <div class="fj-quest-entry-meta">
+                                                    <span><i class="ti ti-user me-1"></i>${cleanAdminHtml(characterLabel)}</span>
+                                                    <span><i class="ti ti-sparkles me-1"></i>${cleanAdminHtml(entry?.type || 'Quête')}</span>
+                                                </div>
+                                                ${entry?.gains ? `<div class="fj-quest-gains"><i class="ti ti-gift me-1"></i>${cleanAdminHtml(entry.gains)}</div>` : ''}
+                                            </div>
+                                        </article>`;
+                                    }).join('')}
+                                </div>` : `<div class="empty-state fj-quest-empty"><i class="ti ti-book-off"></i><div class="mt-2 text-muted">Aucune quête validée</div></div>`}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        } catch {
+            container.innerHTML = '<div class="card"><div class="empty-state text-danger">Erreur de chargement</div></div>';
+        }
+    }
+
     async function init() {
         console.log('[Admin] Initializing...');
 
@@ -1660,6 +2523,8 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         initEconomyKaelsForm();
         initQuickActionsBridge();
         await loadItemsMirror();
+        initQuestsPage();
+        initFicheJoueur();
 
         // Logout handler
         const logoutBtn = document.getElementById('logoutBtn');

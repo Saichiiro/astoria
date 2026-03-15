@@ -3,6 +3,51 @@
     const body = document.body;
     let isAdmin = body.dataset.admin === "true";
 
+    function persistActiveCharacterSnapshot(character) {
+        try {
+            if (window?.astoriaSessionStore?.setActiveCharacterLocal) {
+                window.astoriaSessionStore.setActiveCharacterLocal(character);
+                return;
+            }
+        } catch {}
+        try {
+            if (!character) {
+                localStorage.removeItem("astoria_active_character");
+                return;
+            }
+            const profileData = character.profile_data && typeof character.profile_data === "object"
+                ? character.profile_data
+                : {};
+            const ficheSummary = profileData.fiche_summary && typeof profileData.fiche_summary === "object"
+                ? profileData.fiche_summary
+                : null;
+            localStorage.setItem("astoria_active_character", JSON.stringify({
+                id: character.id,
+                user_id: character.user_id,
+                name: character.name,
+                race: character.race,
+                class: character.class,
+                kaels: character.kaels,
+                is_active: character.is_active,
+                profile_data: {
+                    avatar_url: profileData.avatar_url,
+                    avatarUrl: profileData.avatarUrl,
+                    rank: profileData.rank,
+                    current_rank: profileData.current_rank,
+                    role: profileData.role,
+                    surnom: profileData.surnom,
+                    fiche_summary: ficheSummary ? {
+                        id: ficheSummary.id,
+                        name: ficheSummary.name,
+                        role: ficheSummary.role,
+                        avatar_url: ficheSummary.avatar_url,
+                        avatarUrl: ficheSummary.avatarUrl
+                    } : undefined
+                }
+            }));
+        } catch {}
+    }
+
     function getSessionAdminFallback() {
         try {
             const raw = localStorage.getItem("astoria_session");
@@ -942,9 +987,7 @@
         profileData.magic_progress = progress;
         authApi.updateCharacter(currentCharacter.id, { profile_data: profileData }).catch(() => {});
         currentCharacter = { ...currentCharacter, profile_data: profileData };
-        try {
-            localStorage.setItem("astoria_active_character", JSON.stringify(currentCharacter));
-        } catch {}
+        persistActiveCharacterSnapshot(currentCharacter);
     }
 
     function isPageHidden(page) {
@@ -1445,9 +1488,7 @@
             await authApi.updateCharacter(currentCharacter.id, { profile_data: profileData }).catch(() => {});
         }
         currentCharacter = { ...currentCharacter, profile_data: profileData };
-        try {
-            localStorage.setItem("astoria_active_character", JSON.stringify(currentCharacter));
-        } catch {}
+        persistActiveCharacterSnapshot(currentCharacter);
 
         try {
             const inventoryApi = await import("./api/inventory-service.js");
@@ -2895,9 +2936,7 @@
             } else {
                 currentCharacter = { ...currentCharacter, profile_data: nextProfileData };
             }
-            try {
-                localStorage.setItem("astoria_active_character", JSON.stringify(currentCharacter));
-            } catch {}
+            persistActiveCharacterSnapshot(currentCharacter);
             return true;
         } catch (error) {
             console.warn("Magic sheet save failed.", error);

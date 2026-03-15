@@ -140,6 +140,7 @@
 
     await initPersistence();
     await hydrateGlobalSkillsCatalog();
+    syncAllCategoryLockStates(true);
 
     // Synchroniser l'UI admin
     function syncAdminUI() {
@@ -1051,12 +1052,17 @@
         return skillsState.pointsByCategory[id] ?? 0;
     }
 
-    function getCategoryLockState(categoryId, persist = false) {
+    function computeCategoryLockState(categoryId) {
         if (!categoryId) return false;
         const allocations = getCategoryAllocations(categoryId);
         const hasAllocations = Object.values(allocations).some((value) => Number(value) > 0);
         const availablePoints = Math.max(0, Number(skillsState.pointsByCategory?.[categoryId]) || 0);
-        const shouldLock = availablePoints <= 0 && !hasAllocations;
+        return availablePoints <= 0 && !hasAllocations;
+    }
+
+    function syncCategoryLockState(categoryId, persist = false) {
+        if (!categoryId) return false;
+        const shouldLock = computeCategoryLockState(categoryId);
 
         if (skillsState.locksByCategory[categoryId] !== shouldLock) {
             skillsState.locksByCategory[categoryId] = shouldLock;
@@ -1068,11 +1074,24 @@
         return shouldLock;
     }
 
+    function syncAllCategoryLockStates(persist = false) {
+        skillsCategories.forEach((category) => {
+            syncCategoryLockState(category.id, false);
+        });
+        if (persist) {
+            saveToStorage(skillsLocksKey, skillsState.locksByCategory);
+        }
+    }
+
+    function getCategoryLockState(categoryId, persist = false) {
+        return syncCategoryLockState(categoryId, persist);
+    }
+
     function setCurrentCategoryPoints(value) {
         const numeric = Number.isFinite(value) ? value : parseInt(String(value), 10);
         const clamped = Math.max(0, Math.min(Number.isFinite(numeric) ? numeric : 0, MAX_CATEGORY_POINTS));
         skillsState.pointsByCategory[skillsState.activeCategoryId] = clamped;
-        getCategoryLockState(skillsState.activeCategoryId);
+        syncCategoryLockState(skillsState.activeCategoryId);
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(clamped);
         }
@@ -1387,6 +1406,7 @@
         }
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
+        syncCategoryLockState(categoryId, true);
 
         const bonusBySkill = getBonusBreakdownBySkill();
         const nextAlloc = allocations[skill.name] || 0;
@@ -1958,6 +1978,7 @@
         if (skillsState.activeCategoryId === categoryId) return;
 
         skillsState.activeCategoryId = categoryId;
+        syncCategoryLockState(categoryId);
 
         document.querySelectorAll(".skills-tab-btn").forEach((btn) => {
             const isActive = btn.dataset.id === categoryId;
@@ -1978,6 +1999,7 @@
         const activeCategory = getActiveCategory();
         if (!activeCategory) return;
 
+        syncCategoryLockState(activeCategory.id);
         const currentPoints = getCurrentCategoryPoints();
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(currentPoints);
@@ -2236,9 +2258,7 @@
         skillsState.customSkillsByCategory = competences.customSkillsByCategory || skillsState.customSkillsByCategory || {};
         skillsState.metaByCategory = competences.metaByCategory || skillsState.metaByCategory || {};
 
-        skillsCategories.forEach((category) => {
-            getCategoryLockState(category.id);
-        });
+        syncAllCategoryLockStates();
 
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);

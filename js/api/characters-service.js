@@ -5,6 +5,12 @@ import { isAdmin, refreshSessionUser } from './auth-service.js';
 let authRefreshPromise = null;
 const USER_CHARACTERS_CACHE_TTL_MS = 60000;
 const userCharactersCache = new Map();
+const CHARACTER_SUMMARY_COLUMNS = 'id,user_id,name,race,class,kaels,is_active,created_at';
+const CHARACTER_FULL_COLUMNS = 'id,user_id,name,race,class,profile_data,kaels,is_active,created_at';
+
+function resolveCharacterColumns(includeProfileData = false) {
+    return includeProfileData ? CHARACTER_FULL_COLUMNS : CHARACTER_SUMMARY_COLUMNS;
+}
 
 function rowNeedsProfileHydration(row) {
     if (!row || !row.id) return false;
@@ -67,7 +73,11 @@ function writeUserCharactersCache(userId, data) {
 
 function clearUserCharactersCache(userId = null) {
     if (userId) {
-        userCharactersCache.delete(userId);
+        for (const key of userCharactersCache.keys()) {
+            if (key === userId || key.startsWith(`${userId}:`)) {
+                userCharactersCache.delete(key);
+            }
+        }
         return;
     }
     userCharactersCache.clear();
@@ -100,19 +110,22 @@ function isPermissionLikeError(error) {
     return code === '403' || code === '42501' || msg.includes('forbidden') || msg.includes('permission');
 }
 
-export async function getUserCharacters(userId) {
+export async function getUserCharacters(userId, options = {}) {
     if (!userId) return [];
+    const includeProfileData = options?.includeProfileData === true;
+    const cacheKey = `${userId}:${includeProfileData ? 'full' : 'summary'}`;
 
-    const cached = readUserCharactersCache(userId);
+    const cached = readUserCharactersCache(cacheKey);
     if (cached) return cached;
 
     try {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
+        const columns = resolveCharacterColumns(includeProfileData);
 
         let { data, error } = await supabase
             .from('characters_list')
-            .select('*')
+            .select(columns)
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
 
@@ -121,7 +134,7 @@ export async function getUserCharacters(userId) {
             if (message.includes('relation') || message.includes('does not exist')) {
                 ({ data, error } = await supabase
                     .from('characters')
-                    .select('id, user_id, name, race, class, created_at')
+                    .select(columns)
                     .eq('user_id', userId)
                     .order('created_at', { ascending: true }));
             }
@@ -134,8 +147,10 @@ export async function getUserCharacters(userId) {
             return [];
         }
 
-        const output = await hydrateCharacterRows(supabase, data || []);
-        writeUserCharactersCache(userId, output);
+        const output = includeProfileData
+            ? await hydrateCharacterRows(supabase, data || [])
+            : (data || []);
+        writeUserCharactersCache(cacheKey, output);
         return output;
     } catch (error) {
         if (!isAbortLikeError(error)) {
@@ -145,16 +160,18 @@ export async function getUserCharacters(userId) {
     }
 }
 
-export async function getAllCharacters() {
+export async function getAllCharacters(options = {}) {
     if (!isAdmin()) return [];
+    const includeProfileData = options?.includeProfileData === true;
 
     try {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
+        const columns = resolveCharacterColumns(includeProfileData);
 
         let { data, error } = await supabase
             .from('characters_list')
-            .select('*')
+            .select(columns)
             .order('created_at', { ascending: true });
 
         if (error) {
@@ -162,7 +179,7 @@ export async function getAllCharacters() {
             if (message.includes('relation') || message.includes('does not exist')) {
                 ({ data, error } = await supabase
                     .from('characters')
-                    .select('id, name, user_id, race, class, created_at')
+                    .select(columns)
                     .order('created_at', { ascending: true }));
             }
         }
@@ -174,7 +191,9 @@ export async function getAllCharacters() {
             return [];
         }
 
-        return await hydrateCharacterRows(supabase, data || []);
+        return includeProfileData
+            ? await hydrateCharacterRows(supabase, data || [])
+            : (data || []);
     } catch (error) {
         if (!isAbortLikeError(error)) {
             console.error('Error in getAllCharacters:', error);
@@ -266,14 +285,15 @@ export async function createCharacter(userId, characterData) {
     }
 }
 
-export async function getCharacterById(characterId) {
+export async function getCharacterById(characterId, options = {}) {
     try {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
+        const columns = resolveCharacterColumns(options?.includeProfileData !== false);
 
         const { data, error } = await supabase
             .from('characters')
-            .select('*')
+            .select(columns)
             .eq('id', characterId)
             .single();
 
@@ -296,7 +316,7 @@ export async function setActiveCharacter(characterId) {
 
         const { data, error } = await supabase
             .from('characters')
-            .select('*')
+            .select(CHARACTER_SUMMARY_COLUMNS)
             .eq('id', characterId)
             .single();
 

@@ -1,5 +1,24 @@
 import { getSupabaseClient } from './supabase-client.js';
 
+const FALLBACK_CATEGORIES = [
+    { slug: 'agricole', name: 'Agricole', icon: '🌾', is_active: true, display_order: 1 },
+    { slug: 'consommable', name: 'Consommable', icon: '🧪', is_active: true, display_order: 2 },
+    { slug: 'equipement', name: 'Équipement', icon: '⚔️', is_active: true, display_order: 3 },
+    { slug: 'materiau', name: 'Matériaux', icon: '⚒️', is_active: true, display_order: 4 },
+    { slug: 'quete', name: 'Quêtes', icon: '✨', is_active: true, display_order: 5 }
+];
+
+function isMissingCategoriesTable(error) {
+    const code = String(error?.code || '').trim();
+    const message = String(error?.message || '').toLowerCase();
+    return code === '42P01'
+        || code === 'PGRST205'
+        || code === 'PGRST204'
+        || (message.includes('relation') && message.includes('categories') && message.includes('does not exist'))
+        || (message.includes('categories') && message.includes('schema cache'))
+        || (message.includes('column') && message.includes('display_order'));
+}
+
 /**
  * Get all active categories, ordered by display_order
  * @returns {Promise<Array>} Array of category objects
@@ -12,7 +31,12 @@ export async function getCategories() {
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+        if (isMissingCategoriesTable(error)) {
+            return FALLBACK_CATEGORIES;
+        }
+        throw error;
+    }
     return data || [];
 }
 
@@ -31,6 +55,9 @@ export async function getCategory(slug) {
         .single();
 
     if (error) {
+        if (isMissingCategoriesTable(error)) {
+            return FALLBACK_CATEGORIES.find((entry) => entry.slug === slug) || null;
+        }
         if (error.code === 'PGRST116') return null; // Not found
         throw error;
     }

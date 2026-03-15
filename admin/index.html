@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
     <!-- Custom overrides -->
-    <link rel="stylesheet" href="css/admin.css?v=2026021414">
+    <link rel="stylesheet" href="css/admin.css?v=2026031702">
     <!-- Items Modal CSS -->
     <link rel="stylesheet" href="../css/quetes-items-modal.css?v=1770708000">
     <link rel="stylesheet" href="../css/item-details-popover.css?v=2026021106">
@@ -52,6 +52,9 @@
                             <div class="dropdown-menu">
                                 <a class="dropdown-item" href="#users" data-page="users">
                                     <i class="ti ti-user me-2"></i> Utilisateurs
+                                </a>
+                                <a class="dropdown-item" href="#fiche-joueur" data-page="fiche-joueur">
+                                    <i class="ti ti-id-badge me-2"></i> Fiche Joueur
                                 </a>
                                 <a class="dropdown-item" href="#characters" data-page="characters">
                                     <i class="ti ti-mask me-2"></i> Personnages
@@ -450,6 +453,73 @@
                     </div>
 
                     <!-- ================================================
+                         FICHE JOUEUR PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="fiche-joueur">
+                        <div class="row g-3" style="min-height:70vh;">
+                            <!-- Left: user list -->
+                            <div class="col-lg-3">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Joueurs</h3>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="p-2 border-bottom">
+                                            <input type="text" class="form-control form-control-sm" id="ficheJoueurSearch" placeholder="Rechercher...">
+                                        </div>
+                                        <div id="ficheJoueurList" style="overflow-y:auto;max-height:calc(70vh - 80px);">
+                                            <div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right: player profile -->
+                            <div class="col-lg-9">
+                                <div id="ficheJoueurEmpty" class="card h-100 d-flex align-items-center justify-content-center">
+                                    <div class="empty-state">
+                                        <i class="ti ti-id-badge"></i>
+                                        <div class="mt-2 text-muted">Sélectionne un joueur</div>
+                                    </div>
+                                </div>
+                                <div id="ficheJoueurProfile" class="d-none">
+                                    <!-- Header -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="avatar avatar-lg" id="fjAvatar" style="font-size:1.4rem;font-weight:700;"></span>
+                                                <div class="flex-fill">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <h3 class="mb-0" id="fjUsername">—</h3>
+                                                        <span id="fjRoleBadge"></span>
+                                                    </div>
+                                                    <div class="text-muted small mt-1">
+                                                        Dernière co : <span id="fjLastLogin">—</span>
+                                                        &nbsp;·&nbsp; <span id="fjCharCount">0</span> personnage(s)
+                                                        &nbsp;·&nbsp; <span id="fjTotalKaels">0</span> Kaels au total
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-sm btn-outline-warning" id="fjBtnRole"><i class="ti ti-shield me-1"></i>Rôle</button>
+                                                    <button class="btn btn-sm btn-outline-danger" id="fjBtnToggleActive"><i class="ti ti-ban me-1"></i>Bannir</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Tabs -->
+                                    <ul class="nav nav-tabs mb-3" id="fjTabs">
+                                        <li class="nav-item"><a class="nav-link active" href="#" data-fj-tab="characters"><i class="ti ti-mask me-1"></i>Personnages</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="inventory"><i class="ti ti-backpack me-1"></i>Inventaire</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="kaels"><i class="ti ti-coin me-1"></i>Kaels</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="quests"><i class="ti ti-map-2 me-1"></i>Quêtes</a></li>
+                                    </ul>
+                                    <div class="fj-context-bar mb-3" id="fjContextBar"></div>
+                                    <div id="fjTabContent"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
                          CHARACTERS PAGE
                          ================================================ -->
                     <div class="admin-page" data-page="characters">
@@ -654,16 +724,13 @@
                          QUÊTES PAGE
                          ================================================ -->
                     <div class="admin-page" data-page="quetes">
+                        <!-- Stats -->
                         <div class="row row-cards mb-3">
                             <div class="col-sm-6 col-lg-3">
                                 <div class="card card-sm">
                                     <div class="card-body">
                                         <div class="row align-items-center">
-                                            <div class="col-auto">
-                                                <span class="bg-purple text-white avatar">
-                                                    <i class="ti ti-map-2"></i>
-                                                </span>
-                                            </div>
+                                            <div class="col-auto"><span class="bg-purple text-white avatar"><i class="ti ti-map-2"></i></span></div>
                                             <div class="col">
                                                 <div class="font-weight-medium" id="statQuestsFull">--</div>
                                                 <div class="text-muted">Quêtes au total</div>
@@ -676,11 +743,7 @@
                                 <div class="card card-sm">
                                     <div class="card-body">
                                         <div class="row align-items-center">
-                                            <div class="col-auto">
-                                                <span class="bg-green text-white avatar">
-                                                    <i class="ti ti-circle-check"></i>
-                                                </span>
-                                            </div>
+                                            <div class="col-auto"><span class="bg-green text-white avatar"><i class="ti ti-circle-check"></i></span></div>
                                             <div class="col">
                                                 <div class="font-weight-medium" id="statQuestsActive">--</div>
                                                 <div class="text-muted">Disponibles</div>
@@ -690,45 +753,135 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Quest Table -->
                         <div class="card">
                             <div class="card-header">
-                                <h3 class="card-title">Tableau des quêtes</h3>
-                                <div class="card-actions">
-                                    <a href="../quetes.html" target="_blank" class="btn btn-primary btn-sm">
-                                        <i class="ti ti-external-link me-1"></i> Ouvrir le tableau des quêtes
-                                    </a>
+                                <h3 class="card-title">Quêtes</h3>
+                                <div class="card-actions gap-2 d-flex align-items-center">
+                                    <div class="btn-group btn-group-sm" id="questFilterBtns">
+                                        <button class="btn btn-outline-secondary active" data-quest-filter="all">Toutes</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="available">Disponibles</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="in_progress">En cours</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="locked">Verrouillées</button>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" id="btnCreateQuest">
+                                        <i class="ti ti-plus me-1"></i> Nouvelle quête
+                                    </button>
                                 </div>
                             </div>
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="card card-body bg-purple-lt">
-                                            <div class="d-flex align-items-center">
-                                                <div class="me-3">
-                                                    <i class="ti ti-map-2" style="font-size: 2.5rem;"></i>
-                                                </div>
-                                                <div>
-                                                    <h4 class="mb-1">Tableau des Quêtes</h4>
-                                                    <p class="text-muted mb-2">Créer, modifier et valider les quêtes depuis la page principale</p>
-                                                    <a href="../quetes.html" target="_blank" class="btn btn-primary">
-                                                        <i class="ti ti-external-link me-1"></i> Gérer les quêtes
-                                                    </a>
-                                                </div>
+                            <div class="table-sheet">
+                                <table class="table table-vcenter">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-quest-sort="name">Nom <span class="sort-indicator" data-sort-col="name">↕</span></th>
+                                            <th class="sortable" data-quest-sort="type">Type <span class="sort-indicator" data-sort-col="type">↕</span></th>
+                                            <th class="sortable" style="width:70px" data-quest-sort="rank">Rang <span class="sort-indicator" data-sort-col="rank">↕</span></th>
+                                            <th class="sortable" style="width:120px" data-quest-sort="status">Statut <span class="sort-indicator" data-sort-col="status">↕</span></th>
+                                            <th style="width:110px">Participants</th>
+                                            <th style="width:90px">Répétable</th>
+                                            <th style="width:100px">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="questsTableBody">
+                                        <tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         MODAL — CREATE / EDIT QUEST
+                         ================================================ -->
+                    <div class="modal modal-blur fade" id="questModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="questModalTitle">Nouvelle quête</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" id="questModalId">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label required">Nom</label>
+                                            <input type="text" class="form-control" id="questFormName" placeholder="Titre de la quête">
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Type</label>
+                                            <select class="form-select" id="questFormType">
+                                                <option value="Expédition">Expédition</option>
+                                                <option value="Chasse">Chasse</option>
+                                                <option value="Assistance">Assistance</option>
+                                                <option value="Investigation">Investigation</option>
+                                                <option value="Evenementiel">Événementiel</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Rang</label>
+                                            <select class="form-select" id="questFormRank">
+                                                <option>F</option><option>E</option><option>D</option><option>C</option><option>B</option><option>A</option><option>S</option><option>S+</option><option>SS</option><option>SSS</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Statut</label>
+                                            <select class="form-select" id="questFormStatus">
+                                                <option value="available">Disponible</option>
+                                                <option value="in_progress">En cours</option>
+                                                <option value="locked">Verrouillée</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label class="form-label">Max participants</label>
+                                            <input type="number" class="form-control" id="questFormMaxPart" min="1" max="10" value="5">
+                                        </div>
+                                        <div class="col-sm-6 d-flex align-items-end">
+                                            <label class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="questFormRepeatable">
+                                                <span class="form-check-label">Répétable</span>
+                                            </label>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control" id="questFormDesc" rows="3" placeholder="Description de la quête..."></textarea>
+                                        </div>
+                                        <!-- Rewards -->
+                                        <div class="col-12">
+                                            <label class="form-label">Récompenses</label>
+                                            <div id="questRewardsList" class="d-flex flex-column gap-2 mb-2"></div>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-warning" id="btnAddKaelsReward"><i class="ti ti-coin me-1"></i>+ Kaels</button>
+                                                <button type="button" class="btn btn-outline-info" id="btnAddItemReward"><i class="ti ti-box me-1"></i>+ Objet</button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="card card-body">
-                                            <h4 class="mb-3">Actions admin quêtes</h4>
-                                            <ul class="list-unstyled text-muted mb-0">
-                                                <li class="mb-2"><i class="ti ti-plus text-success me-2"></i>Créer une nouvelle quête</li>
-                                                <li class="mb-2"><i class="ti ti-edit text-warning me-2"></i>Modifier les détails et récompenses</li>
-                                                <li class="mb-2"><i class="ti ti-user-plus text-info me-2"></i>Ajouter manuellement un participant</li>
-                                                <li class="mb-2"><i class="ti ti-circle-check text-success me-2"></i>Valider les participations et donner les rewards</li>
-                                                <li><i class="ti ti-trash text-danger me-2"></i>Supprimer une quête</li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="button" class="btn btn-primary" id="btnSaveQuest">
+                                        <i class="ti ti-device-floppy me-1"></i> Sauvegarder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         MODAL — PARTICIPANTS
+                         ================================================ -->
+                    <div class="modal modal-blur fade" id="questParticipantsModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="questParticipantsTitle">Participants</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" id="questParticipantsBody">
+                                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">Fermer</button>
                                 </div>
                             </div>
                         </div>
@@ -768,13 +921,13 @@
                                     <div class="col-md-6">
                                         <div class="card card-body">
                                             <h4 class="mb-3">Actions admin compétences</h4>
-                                            <ul class="list-unstyled text-muted mb-0">
-                                                <li class="mb-2"><i class="ti ti-plus text-success me-2"></i>Ajouter une compétence au catalogue global</li>
-                                                <li class="mb-2"><i class="ti ti-edit text-warning me-2"></i>Modifier nom, icône, cap d'une compétence</li>
-                                                <li class="mb-2"><i class="ti ti-arrow-up text-info me-2"></i>Allouer des points à un personnage</li>
-                                                <li class="mb-2"><i class="ti ti-arrow-down text-danger me-2"></i>Retirer des points</li>
-                                                <li><i class="ti ti-refresh text-secondary me-2"></i>Reset les allocations</li>
-                                            </ul>
+                                            <div class="d-flex flex-column gap-2">
+                                                <a href="../competences.html" target="_blank" class="btn btn-sm btn-outline-success text-start"><i class="ti ti-plus me-2"></i>Ajouter une compétence au catalogue global</a>
+                                                <a href="../competences.html" target="_blank" class="btn btn-sm btn-outline-warning text-start"><i class="ti ti-edit me-2"></i>Modifier nom, icône, cap d'une compétence</a>
+                                                <a href="../competences.html" target="_blank" class="btn btn-sm btn-outline-info text-start"><i class="ti ti-arrow-up me-2"></i>Allouer des points à un personnage</a>
+                                                <a href="../competences.html" target="_blank" class="btn btn-sm btn-outline-danger text-start"><i class="ti ti-arrow-down me-2"></i>Retirer des points</a>
+                                                <a href="../competences.html" target="_blank" class="btn btn-sm btn-outline-secondary text-start"><i class="ti ti-refresh me-2"></i>Reset les allocations</a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1353,7 +1506,7 @@
     <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
     <script src="../js/components/modal-manager.js?v=1770708000"></script>
     <!-- Admin JS -->
-    <script type="module" src="js/admin.js?v=2026021414"></script>
+    <script type="module" src="js/admin.js?v=2026031702"></script>
     <!-- Activity Logs -->
     <script type="module" src="js/activity-logs.js"></script>
 </body>

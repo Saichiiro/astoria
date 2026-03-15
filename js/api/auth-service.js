@@ -74,16 +74,11 @@ async function getWritableAuthSession(supabase) {
     }
 }
 
-async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProvider = "anonymous") {
+async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProvider = "anonymous", stampLogin = false) {
     if (!publicUserId || !authUserId) return;
-    await supabase
-        .from("users")
-        .update({
-            auth_user_id: authUserId,
-            auth_provider: authProvider,
-            last_login: new Date().toISOString()
-        })
-        .eq("id", publicUserId);
+    const payload = { auth_user_id: authUserId, auth_provider: authProvider };
+    if (stampLogin) payload.last_login = new Date().toISOString();
+    await supabase.from("users").update(payload).eq("id", publicUserId);
 }
 
 async function syncAuthProfileMetadata(supabase, { displayName } = {}) {
@@ -164,7 +159,7 @@ export async function login(username, password) {
             return { success: false, error: "Session anonyme Supabase impossible" };
         }
 
-        await linkPublicUserToAuth(supabase, userRow.id, anon.user.id, "anonymous");
+        await linkPublicUserToAuth(supabase, userRow.id, anon.user.id, "anonymous", true);
         await syncAuthProfileMetadata(supabase, {
             displayName: userRow.username
         });

@@ -26,6 +26,7 @@ const dom = {
     rankFilter: document.getElementById('craftRankFilter'),
     rankMode: document.getElementById('craftRankMode'),
     possibleOnly: document.getElementById('craftPossibleOnly'),
+    filterHint: document.getElementById('craftFilterHint'),
     categoryList: document.getElementById('craftCategoryList'),
     recipeList: document.getElementById('craftRecipeList'),
     pagination: document.getElementById('craftPagination'),
@@ -222,6 +223,62 @@ function getFilteredRecipes() {
     });
 
     return list;
+}
+
+function getCraftableRecipeCount() {
+    return state.recipes.filter((recipe) => canCraftRecipe(recipe, state.inventoryIndex)).length;
+}
+
+function resetPossibleFilter() {
+    state.onlyPossible = false;
+    if (dom.possibleOnly) {
+        dom.possibleOnly.checked = false;
+    }
+}
+
+function renderFilterHint(filteredCount = getFilteredRecipes().length) {
+    if (!dom.filterHint) return;
+
+    const craftableCount = getCraftableRecipeCount();
+    const hasCharacter = Boolean(state.character?.id);
+
+    dom.filterHint.hidden = true;
+    dom.filterHint.innerHTML = '';
+
+    if (!state.onlyPossible) return;
+
+    const hint = document.createElement('div');
+    hint.className = 'craft-filter-hint__content';
+
+    const text = document.createElement('span');
+    text.className = 'craft-filter-hint__text';
+
+    if (!hasCharacter) {
+        text.textContent = 'Aucun personnage actif: impossible de calculer les recettes craftables.';
+    } else if (!state.inventoryRows.length) {
+        text.textContent = 'Creation possible est active, mais l’inventaire actif est vide.';
+    } else if (craftableCount <= 0) {
+        text.textContent = 'Creation possible est active, mais aucune recette n’est craftable avec cet inventaire.';
+    } else {
+        text.textContent = `${craftableCount} recette(s) craftable(s) pour ce personnage, ${filteredCount} visible(s) avec les filtres actuels.`;
+    }
+
+    hint.appendChild(text);
+
+    if (!hasCharacter || craftableCount <= 0 || filteredCount <= 0) {
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'craft-secondary-btn craft-filter-hint__btn';
+        resetBtn.textContent = 'Voir toutes les recettes';
+        resetBtn.addEventListener('click', () => {
+            resetPossibleFilter();
+            resetPageAndRender();
+        });
+        hint.appendChild(resetBtn);
+    }
+
+    dom.filterHint.appendChild(hint);
+    dom.filterHint.hidden = false;
 }
 
 function renderPagination(filtered) {
@@ -774,6 +831,7 @@ function renderRecipes() {
     if (!dom.recipeList) return;
 
     const filtered = getFilteredRecipes();
+    renderFilterHint(filtered.length);
     renderPagination(filtered);
 
     const start = (state.page - 1) * state.pageSize;
@@ -784,7 +842,31 @@ function renderRecipes() {
     if (!paged.length) {
         const empty = document.createElement('div');
         empty.className = 'craft-empty';
-        empty.textContent = 'Aucune recette ne correspond aux filtres.';
+        const title = document.createElement('strong');
+        title.className = 'craft-empty-title';
+        title.textContent = state.onlyPossible
+            ? 'Aucune recette craftable avec les filtres actuels.'
+            : 'Aucune recette ne correspond aux filtres.';
+
+        const body = document.createElement('p');
+        body.className = 'craft-empty-copy';
+        body.textContent = state.onlyPossible
+            ? 'Retire le filtre "Creation possible" pour voir toutes les recettes, meme celles bloquees par des materiaux manquants.'
+            : 'Essaie une autre categorie, un autre rang, ou vide la recherche.';
+
+        empty.append(title, body);
+
+        if (state.onlyPossible) {
+            const resetBtn = document.createElement('button');
+            resetBtn.type = 'button';
+            resetBtn.className = 'craft-secondary-btn craft-empty-action';
+            resetBtn.textContent = 'Afficher toutes les recettes';
+            resetBtn.addEventListener('click', () => {
+                resetPossibleFilter();
+                resetPageAndRender();
+            });
+            empty.appendChild(resetBtn);
+        }
         dom.recipeList.appendChild(empty);
         renderAdminStats();
         return;
@@ -1268,6 +1350,11 @@ async function initAuthContext() {
 
 async function init() {
     bindEvents();
+
+    if (dom.possibleOnly) {
+        dom.possibleOnly.checked = false;
+    }
+    state.onlyPossible = false;
 
     await initCharacterSummary({ includeQueryParam: false, enableDropdown: true, showKaels: true });
     await initAuthContext();

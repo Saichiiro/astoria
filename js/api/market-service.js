@@ -25,6 +25,10 @@ function escapeIlike(value) {
     return String(value || '').replace(/[%_,()]/g, '');
 }
 
+function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+}
+
 function resolveItemMeta(itemId, item) {
     let found = item || null;
     if (!found) {
@@ -130,13 +134,18 @@ export async function createListing({ itemId, item, quantity, unitPrice, scrollT
 
     const safeQuantity = Math.max(1, asInt(quantity) ?? 1);
     const safeUnitPrice = Math.max(0, asInt(unitPrice) ?? 0);
+    const resolvedItemId = String(item?.itemId || item?.id || itemId || '').trim();
 
-    const meta = resolveItemMeta(itemId, item) || {};
+    if (!isUuid(resolvedItemId)) {
+        throw new Error('Objet invalide pour la vente: item_id manquant ou incorrect.');
+    }
+
+    const meta = resolveItemMeta(resolvedItemId, item) || {};
 
     const payload = {
         seller_id: user.id,
         seller_character_id: character.id,
-        item_id: String(itemId),
+        item_id: resolvedItemId,
         quantity: safeQuantity,
         unit_price: safeUnitPrice,
         scroll_type: scrollType || null,
