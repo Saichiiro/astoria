@@ -256,11 +256,35 @@ function mergeLocalItems(dbItems, disabledNames) {
     return merged;
 }
 
+const CODEX_ITEMS_CACHE_KEY = 'astoria_items_cache'; // shared with items-service.js
+const CODEX_ITEMS_CACHE_TTL = 15 * 60 * 1000;
+
+function applyItemRows(rows) {
+    const disabledNames = new Set(
+        rows.filter((row) => row && row.enabled === false)
+            .map((row) => normalizeName(row.name || row.nom || "")).filter(Boolean)
+    );
+    const mapped = rows.filter((row) => row && row.enabled !== false).map(mapDbItem);
+    replaceItems(mergeLocalItems(mapped, disabledNames));
+}
+
 async function hydrateItemsFromDb() {
     const supabaseUrl = window.ASTORIA_SUPABASE_URL || "https://eibfahbctgzqnmubrhzy.supabase.co";
     const supabaseKey = window.ASTORIA_SUPABASE_ANON_KEY ||
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVpYmZhaGJjdGd6cW5tdWJyaHp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0ODM1OTksImV4cCI6MjA4MTA1OTU5OX0.2Xc1oqi_UPhnFqJsFRO-eAHpiCLpjF16JQAGyIrl18E";
     if (!supabaseUrl || !supabaseKey) return;
+
+    // Try shared cache first
+    try {
+        const raw = localStorage.getItem(CODEX_ITEMS_CACHE_KEY);
+        if (raw) {
+            const { data, expiry } = JSON.parse(raw);
+            if (Array.isArray(data) && Date.now() < expiry) {
+                applyItemRows(data);
+                return;
+            }
+        }
+    } catch {}
 
     try {
         const res = await fetch(`${supabaseUrl}/rest/v1/items?select=*&order=name.asc`, {
@@ -273,17 +297,14 @@ async function hydrateItemsFromDb() {
         const rows = await res.json();
         if (!Array.isArray(rows) || rows.length === 0) return;
 
-        const disabledNames = new Set(
-            rows
-                .filter((row) => row && row.enabled === false)
-                .map((row) => normalizeName(row.name || row.nom || ""))
-                .filter(Boolean)
-        );
-        const mapped = rows
-            .filter((row) => row && row.enabled !== false)
-            .map(mapDbItem);
-        const merged = mergeLocalItems(mapped, disabledNames);
-        replaceItems(merged);
+        try {
+            localStorage.setItem(CODEX_ITEMS_CACHE_KEY, JSON.stringify({
+                data: rows,
+                expiry: Date.now() + CODEX_ITEMS_CACHE_TTL
+            }));
+        } catch {}
+
+        applyItemRows(rows);
     } catch (error) {
         console.warn("Codex DB items load failed:", error);
     }

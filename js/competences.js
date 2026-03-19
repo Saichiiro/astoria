@@ -979,6 +979,7 @@
                     clearTimeout(persistState.retryTimer);
                     persistState.retryTimer = null;
                 }
+                updateFeedback("Sauvegardé.");
             } catch (error) {
                 persistState.dirty = true;
                 persistState.retryCount += 1;

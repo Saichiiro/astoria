@@ -27,6 +27,7 @@ export async function toggleItemState(itemId, enabled) {
             return { success: false };
         }
 
+        invalidateItemsCache();
         return { success: true, item: data[0] };
     } catch (error) {
         console.error('Error in toggleItemState:', error);
@@ -34,7 +35,24 @@ export async function toggleItemState(itemId, enabled) {
     }
 }
 
-export async function getAllItems() {
+const ITEMS_CACHE_KEY = 'astoria_items_cache';
+const ITEMS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
+export function invalidateItemsCache() {
+    try { localStorage.removeItem(ITEMS_CACHE_KEY); } catch {}
+}
+
+export async function getAllItems({ force = false } = {}) {
+    if (!force) {
+        try {
+            const raw = localStorage.getItem(ITEMS_CACHE_KEY);
+            if (raw) {
+                const { data, expiry } = JSON.parse(raw);
+                if (Array.isArray(data) && Date.now() < expiry) return data;
+            }
+        } catch {}
+    }
+
     try {
         const supabase = await getSupabaseClient();
 
@@ -50,7 +68,14 @@ export async function getAllItems() {
             return [];
         }
 
-        return data || [];
+        const result = data || [];
+        try {
+            localStorage.setItem(ITEMS_CACHE_KEY, JSON.stringify({
+                data: result,
+                expiry: Date.now() + ITEMS_CACHE_TTL
+            }));
+        } catch {}
+        return result;
     } catch (error) {
         if (!isAbortLikeError(error)) {
             console.error('Error in getAllItems:', error);

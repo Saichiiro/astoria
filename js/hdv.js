@@ -1459,7 +1459,7 @@ async function refreshProfile() {
 
 async function refreshSearch() {
     renderChips();
-    setStatus(dom.search.status, '');
+    setStatus(dom.search.status, 'Recherche...', 'info');
 
     const filters = {
         q: state.filters.q,

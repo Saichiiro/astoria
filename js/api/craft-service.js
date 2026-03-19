@@ -11,7 +11,24 @@ function normalizeText(value) {
         .toLowerCase();
 }
 
-export async function getCraftRecipes() {
+const RECIPES_CACHE_KEY = 'astoria_craft_recipes_cache';
+const RECIPES_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+export function invalidateCraftRecipesCache() {
+    try { localStorage.removeItem(RECIPES_CACHE_KEY); } catch {}
+}
+
+export async function getCraftRecipes({ force = false } = {}) {
+    if (!force) {
+        try {
+            const raw = localStorage.getItem(RECIPES_CACHE_KEY);
+            if (raw) {
+                const { data, expiry } = JSON.parse(raw);
+                if (Array.isArray(data) && Date.now() < expiry) return data;
+            }
+        } catch {}
+    }
+
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
         .from('craft_recipes')
@@ -36,10 +53,19 @@ export async function getCraftRecipes() {
 
     if (error) throw error;
 
-    return (data || []).map((row) => ({
+    const result = (data || []).map((row) => ({
         ...row,
         ingredients: Array.isArray(row.craft_recipe_ingredients) ? row.craft_recipe_ingredients : []
     }));
+
+    try {
+        localStorage.setItem(RECIPES_CACHE_KEY, JSON.stringify({
+            data: result,
+            expiry: Date.now() + RECIPES_CACHE_TTL
+        }));
+    } catch {}
+
+    return result;
 }
 
 export async function createCraftRecipe(recipe) {
@@ -88,6 +114,7 @@ export async function createCraftRecipe(recipe) {
 
     if (ingredientsError) throw ingredientsError;
 
+    invalidateCraftRecipesCache();
     return created;
 }
 
@@ -143,6 +170,7 @@ export async function updateCraftRecipe(recipeId, recipe) {
 
     if (ingredientsError) throw ingredientsError;
 
+    invalidateCraftRecipesCache();
     return { id: recipeId };
 }
 
@@ -154,6 +182,7 @@ export async function deleteCraftRecipe(recipeId) {
         .eq('id', recipeId);
 
     if (error) throw error;
+    invalidateCraftRecipesCache();
     return { id: recipeId };
 }
 
