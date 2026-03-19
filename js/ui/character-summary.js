@@ -573,9 +573,15 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
         updateSoulCounts(context.character.id);
     }
 
-    // Update kaels if enabled
+    // Update kaels if enabled — getMyProfile() also refreshes the localStorage
+    // snapshot with avatar_url, so re-apply summary afterwards.
     if (showKaels) {
         await updateKaels();
+        const freshContext = resolveCharacterContext({ includeQueryParam });
+        const freshSummary = buildSummary(freshContext);
+        if (freshSummary?.avatar_url && freshSummary.avatar_url !== summary?.avatar_url) {
+            applySummaryToElements(resolvedElements, freshSummary);
+        }
     }
 
     // Initialize share button
