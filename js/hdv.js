@@ -2063,6 +2063,27 @@ async function init() {
     } else {
         await refreshSearch();
     }
+
+    initHdvRealtime();
+}
+
+function initHdvRealtime() {
+    let debounceTimer = null;
+    function onMarketChange() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            if (state.tab === 'mine') void refreshMine();
+            else if (state.tab === 'history') void refreshHistory();
+            else void refreshSearch();
+        }, 800);
+    }
+
+    getSupabaseClient().then(sb => {
+        if (!sb?.channel) return;
+        sb.channel('hdv-market-live')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'market' }, onMarketChange)
+            .subscribe();
+    }).catch(() => {});
 }
 
 window.addEventListener('storage', (event) => {
