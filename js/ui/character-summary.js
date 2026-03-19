@@ -36,7 +36,7 @@ function resolveAvatarUrl(profileData) {
 async function loadAuthModule() {
     if (authModule) return authModule;
     try {
-        authModule = await import("../auth.js?v=20260319");
+        authModule = await import("../auth.js?v=202603192");
         return authModule;
     } catch (error) {
         console.error("Character-summary: Failed to load auth module:", error);
@@ -235,7 +235,7 @@ async function updateKaels() {
         }
 
         // Import dynamique du module market
-        const market = await import("../market.js?v=20260319");
+        const market = await import("../market.js?v=202603192");
         if (!market || !market.getMyProfile) {
             console.warn("Character-summary: market.getMyProfile not available");
             kaelsBadge.hidden = true;

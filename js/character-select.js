@@ -7,7 +7,7 @@ import {
     createCharacter,
     logout,
     refreshSessionUser
-} from './auth.js?v=20260319';
+} from './auth.js?v=202603192';
 
 const MAX_SLOTS = 5;
 

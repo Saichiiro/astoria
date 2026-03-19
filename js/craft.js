@@ -4,7 +4,7 @@
     getActiveCharacter,
     isAdmin,
     refreshSessionUser
-} from './auth.js?v=20260319';
+} from './auth.js?v=202603192';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { getInventoryRows, getEquippedSlots } from './api/inventory-service.js?v=20260319';
 import { getAllCharacters } from './api/characters-service.js?v=20260319';

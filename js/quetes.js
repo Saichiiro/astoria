@@ -1,4 +1,4 @@
-import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js?v=20260319";
+import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js?v=202603192";
 import { initCharacterSummary } from "./ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js?v=20260319";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js?v=20260319";
