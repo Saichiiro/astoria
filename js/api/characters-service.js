@@ -379,8 +379,7 @@ export async function updateCharacter(characterId, updates) {
         clearUserCharactersCache();
         const activeChar = getActiveCharacter();
         if (activeChar && activeChar.id === characterId) {
-            const { profile_data: _pd, ...slimChar } = data[0];
-            setActiveCharacterLocal(slimChar);
+            setActiveCharacterLocal(data[0]);
         }
 
         return { success: true, character: data[0] };

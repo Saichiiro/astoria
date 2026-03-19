@@ -957,7 +957,7 @@ async function buildInventoryAdapter() {
         const character = auth.getActiveCharacter?.();
         if (character?.id) {
             characterId = character.id;
-            inventoryApi = await import("./api/inventory-service.js");
+            inventoryApi = await import("./api/inventory-service.js?v=20260319");
             mode = "character";
             console.log('[NOKORAH LS] Using Supabase inventory mode for character:', characterId);
         } else {

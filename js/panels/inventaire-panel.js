@@ -32,7 +32,7 @@ export const inventairePanel = {
 
     (async () => {
       try {
-        const inventoryApi = await import("../api/inventory-service.js");
+        const inventoryApi = await import("../api/inventory-service.js?v=20260319");
         const rows = await inventoryApi.getInventoryRows(character.id);
         const itemCount = Array.isArray(rows) ? rows.length : 0;
         const totalQty = Array.isArray(rows)

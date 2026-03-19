@@ -1,6 +1,6 @@
 import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js?v=20260319";
 import { initCharacterSummary } from "./ui/character-summary.js";
-import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
+import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js?v=20260319";
 import { getCharacterById, updateCharacter } from "./api/characters-service.js?v=20260319";
 import { initItemsModal } from "./quetes-items-modal.js";
 import { initSkillsRewardsModal } from "./quetes-skills-modal.js";

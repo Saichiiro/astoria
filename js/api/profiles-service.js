@@ -27,8 +27,8 @@ export async function getMyProfile() {
     if (error) throw error;
     if (!data) throw new Error('Personnage introuvable.');
 
-    // Strip profile_data before storing in localStorage — it can be a huge blob
-    const { profile_data: _pd, ...slimChar } = data;
-    setActiveCharacterLocal(slimChar);
+    // buildCharacterStorageSnapshot (inside setActiveCharacterLocal) already slims
+    // the data — pass the full object so avatar_url / fiche_summary are preserved.
+    setActiveCharacterLocal(data);
     return { character_id: data.id, kaels: data.kaels, character: data };
 }

@@ -5,7 +5,7 @@
 
 import { ItemsModal } from '../../js/components/ui/index.js';
 import { getAllItems } from '../../js/auth.js';
-import { getInventoryRows, setInventoryItem } from '../../js/api/inventory-service.js';
+import { getInventoryRows, setInventoryItem } from '../../js/api/inventory-service.js?v=20260319';
 
 export class AdminItemsModal {
     constructor() {
