@@ -2279,10 +2279,10 @@ import { adminItemsModal } from './admin-items-modal.js';
             const charIds = fjSelectedChars.map(c => c.id);
             if (!charIds.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>'; return; }
             const { data: rows } = await supabase
-                .from('inventory_rows')
-                .select('id, character_id, item_name, quantity, item_id')
+                .from('character_inventory')
+                .select('id, character_id, item_key, qty, item_id')
                 .in('character_id', charIds)
-                .order('item_name');
+                .order('item_key');
             const items = rows || [];
             if (!items.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Inventaire vide</div></div></div>'; return; }
             const charMap = Object.fromEntries(fjSelectedChars.map(c => [c.id, c.name]));
@@ -2291,9 +2291,9 @@ import { adminItemsModal } from './admin-items-modal.js';
                     <th>Objet</th><th>Personnage</th><th style="width:120px">Quantité</th><th style="width:80px">Actions</th>
                 </tr></thead>
                 <tbody>${items.map(row => `<tr>
-                    <td class="fw-semibold text-white">${row.item_name || '—'}</td>
+                    <td class="fw-semibold text-white">${row.item_key || '—'}</td>
                     <td class="text-muted">${charMap[row.character_id] || '—'}</td>
-                    <td><span class="badge bg-blue-lt text-blue">×${row.quantity}</span></td>
+                    <td><span class="badge bg-blue-lt text-blue">×${row.qty}</span></td>
                     <td>
                         <button class="btn btn-sm btn-ghost-danger" data-fj-inv-delete="${row.id}" title="Retirer"><i class="ti ti-trash"></i></button>
                     </td>
@@ -2304,7 +2304,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             container.querySelectorAll('[data-fj-inv-delete]').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (!confirm('Retirer cet objet ?')) return;
-                    const { error } = await supabase.from('inventory_rows').delete().eq('id', btn.dataset.fjInvDelete);
+                    const { error } = await supabase.from('character_inventory').delete().eq('id', btn.dataset.fjInvDelete);
                     if (error) { showToast('Erreur', 'error'); return; }
                     showToast('Objet retiré', 'success');
                     renderFjTabInventory(container);
