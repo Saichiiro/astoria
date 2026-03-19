@@ -132,14 +132,13 @@ export async function getUserCharacters(userId, options = {}) {
             .order('created_at', { ascending: true });
 
         if (error) {
-            const message = String(error?.message || '').toLowerCase();
-            if (message.includes('relation') || message.includes('does not exist')) {
-                ({ data, error } = await supabase
-                    .from('characters')
-                    .select(columns)
-                    .eq('user_id', userId)
-                    .order('created_at', { ascending: true }));
-            }
+            // Fall back to characters table on any characters_list error
+            // (view may not expose all columns, e.g. profile_data)
+            ({ data, error } = await supabase
+                .from('characters')
+                .select(columns)
+                .eq('user_id', userId)
+                .order('created_at', { ascending: true }));
         }
 
         if (error) {
@@ -177,13 +176,11 @@ export async function getAllCharacters(options = {}) {
             .order('created_at', { ascending: true });
 
         if (error) {
-            const message = String(error?.message || '').toLowerCase();
-            if (message.includes('relation') || message.includes('does not exist')) {
-                ({ data, error } = await supabase
-                    .from('characters')
-                    .select(columns)
-                    .order('created_at', { ascending: true }));
-            }
+            // Fall back to characters table on any characters_list error
+            ({ data, error } = await supabase
+                .from('characters')
+                .select(columns)
+                .order('created_at', { ascending: true }));
         }
 
         if (error) {
