@@ -1,4 +1,8 @@
 tmp
+node_modules
+dist
+.env
+.env.local
 
 # Scripts de migration (local seulement)
 START-SERVER.bat

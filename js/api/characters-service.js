@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
-import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js?v=202603192';
+import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
 import { isAdmin, refreshSessionUser } from './auth-service.js';
 
 let authRefreshPromise = null;

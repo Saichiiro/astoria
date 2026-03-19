@@ -5,8 +5,8 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
-import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js?v=20260319';
-import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
+import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js';
+import { adminItemsModal } from './admin-items-modal.js';
 
 (function() {
     'use strict';

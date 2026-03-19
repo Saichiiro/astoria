@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>S&#233;lection des personnages - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
-    <link rel="stylesheet" href="css/style.css?v=2026031102">
-    <link rel="stylesheet" href="css/character-select.css?v=2026031102">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/character-select.css">
     <style>
         body.perf-lite .character-select-page.fade-in {
             opacity: 1;
@@ -96,10 +96,10 @@
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
-    <script src="js/ui/performance-mode.js?v=2026031102"></script>
-    <script type="module" src="js/character-select.js?v=2026031903"></script>
+    <script src="js/ui/performance-mode.js"></script>
+    <script type="module" src="js/character-select.js"></script>
     <script type="module">
-        import { initCharacterSummary } from './js/ui/character-summary.js?v=202603192';
+        import { initCharacterSummary } from './js/ui/character-summary.js';
         // Initialize character summary with kaels and dropdown
         document.addEventListener('DOMContentLoaded', async () => {
             await initCharacterSummary({ enableDropdown: true, showKaels: true });
@@ -115,6 +115,6 @@
             }
         })();
     </script>
-    <script src="js/sidebar.js?v=2026031102"></script>
+    <script src="js/sidebar.js"></script>
 </body>
 </html>

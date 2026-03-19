@@ -1,4 +1,4 @@
-export { getMyProfile } from './api/profiles-service.js?v=202603192';
+export { getMyProfile } from './api/profiles-service.js';
 export {
     searchListings,
     createListing,

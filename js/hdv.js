@@ -6,7 +6,7 @@ import {
     setActiveCharacter,
     updateCharacter,
     getAllItems
-} from './auth.js?v=202603192';
+} from './auth.js';
 import {
     buyListing,
     cancelListing,
@@ -15,9 +15,9 @@ import {
     getMyListings,
     getMyProfile,
     searchListings
-} from './market.js?v=20260319';
-import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from './api/inventory-service.js?v=20260319';
-import { getCategories } from './api/categories-service.js?v=2026031701';
+} from './market.js';
+import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from './api/inventory-service.js';
+import { getCategories } from './api/categories-service.js';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
 

@@ -1491,7 +1491,7 @@
         persistActiveCharacterSnapshot(currentCharacter);
 
         try {
-            const inventoryApi = await import("./api/inventory-service.js?v=20260319");
+            const inventoryApi = await import("./api/inventory-service.js");
             const rows = await inventoryApi.getInventoryRows(currentCharacter.id);
             const sourceIndex = Number(baseItem.sourceIndex);
             const targetRow = rows.find((row) =>

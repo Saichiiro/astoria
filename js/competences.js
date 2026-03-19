@@ -839,7 +839,7 @@
                 skillsState.isAdmin = document.body.dataset.admin === "true";
 
                 // Warm up equipped-slots cache from DB (fire-and-forget, best effort)
-                import("./api/inventory-service.js?v=20260319").then(({ getEquippedSlots }) =>
+                import("./api/inventory-service.js").then(({ getEquippedSlots }) =>
                     getEquippedSlots(character.id)
                 ).then((rows) => {
                     persistState.equippedSlots = Object.fromEntries(

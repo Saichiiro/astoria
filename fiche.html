@@ -7,7 +7,7 @@
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/fiche.css">
-    <link rel="stylesheet" href="css/cropper-controls.css?v=2026021416">
+    <link rel="stylesheet" href="css/cropper-controls.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
 </head>
 <body class="min-h-screen">
@@ -711,12 +711,12 @@
             };
             let authApi = null;
             try {
-                authApi = await import('./js/auth.js?v=202603192');
+                authApi = await import('./js/auth.js');
             } catch (error) {
                 authApi = null;
             }
             try {
-                summaryModule = await import('./js/ui/character-summary.js?v=202603192');
+                summaryModule = await import('./js/ui/character-summary.js');
             } catch (error) {
                 summaryModule = null;
             }
@@ -1546,7 +1546,7 @@
                 } catch {}
 
                 try {
-                    const inventoryApi = await import('./js/api/inventory-service.js?v=20260319');
+                    const inventoryApi = await import('./js/api/inventory-service.js');
                     const rows = await inventoryApi.getInventoryRows(active.id);
                     const sourceIndex = Number(baseItem.sourceIndex);
                     const targetRow = rows.find((row) =>

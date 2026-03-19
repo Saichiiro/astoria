@@ -1,6 +1,6 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { getCurrentUser } from './auth-service.js';
-import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js?v=202603192';
+import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
 
 function requireCharacter() {
     const user = getCurrentUser();
