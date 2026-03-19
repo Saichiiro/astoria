@@ -101,7 +101,8 @@ SELECT
     c.id                                            AS character_id,
     kv.key                                          AS slot_key,
     CASE
-        WHEN NULLIF(TRIM(COALESCE(kv.value->>'item_id', kv.value->>'id', '')), '') IS NOT NULL
+        WHEN NULLIF(TRIM(COALESCE(kv.value->>'item_id', kv.value->>'id', '')), '')
+             ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         THEN NULLIF(TRIM(COALESCE(kv.value->>'item_id', kv.value->>'id', '')), '')::uuid
         ELSE NULL
     END                                             AS item_id,
