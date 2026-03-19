@@ -125,21 +125,11 @@ export async function getUserCharacters(userId, options = {}) {
         const supabase = await getSupabaseClient();
         const columns = resolveCharacterColumns(includeProfileData);
 
-        let { data, error } = await supabase
-            .from('characters_list')
+        const { data, error } = await supabase
+            .from('characters')
             .select(columns)
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
-
-        if (error) {
-            // Fall back to characters table on any characters_list error
-            // (view may not expose all columns, e.g. profile_data)
-            ({ data, error } = await supabase
-                .from('characters')
-                .select(columns)
-                .eq('user_id', userId)
-                .order('created_at', { ascending: true }));
-        }
 
         if (error) {
             if (!isAbortLikeError(error)) {
@@ -170,18 +160,10 @@ export async function getAllCharacters(options = {}) {
         const supabase = await getSupabaseClient();
         const columns = resolveCharacterColumns(includeProfileData);
 
-        let { data, error } = await supabase
-            .from('characters_list')
+        const { data, error } = await supabase
+            .from('characters')
             .select(columns)
             .order('created_at', { ascending: true });
-
-        if (error) {
-            // Fall back to characters table on any characters_list error
-            ({ data, error } = await supabase
-                .from('characters')
-                .select(columns)
-                .order('created_at', { ascending: true }));
-        }
 
         if (error) {
             if (!isAbortLikeError(error)) {
