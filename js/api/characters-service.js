@@ -5,7 +5,9 @@ import { isAdmin, refreshSessionUser } from './auth-service.js';
 let authRefreshPromise = null;
 const USER_CHARACTERS_CACHE_TTL_MS = 60000;
 const userCharactersCache = new Map();
-const CHARACTER_SUMMARY_COLUMNS = 'id,user_id,name,race,class,kaels,is_active,created_at';
+// profile_data is now lean (equippedSlots → character_equipped, items → character_inventory)
+// Include it in summary so avatar_url and fiche_summary are always available.
+const CHARACTER_SUMMARY_COLUMNS = 'id,user_id,name,race,class,profile_data,kaels,is_active,created_at';
 const CHARACTER_FULL_COLUMNS = 'id,user_id,name,race,class,profile_data,kaels,is_active,created_at';
 
 function resolveCharacterColumns(includeProfileData = false) {
