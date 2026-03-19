@@ -6,7 +6,6 @@ const root = resolve(__dirname);
 
 export default defineConfig({
     root,
-    base: '/astoria/',
     build: {
         outDir: resolve(__dirname, 'dist'),
         emptyOutDir: true,
