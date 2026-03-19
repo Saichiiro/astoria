@@ -1,6 +1,6 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { getCurrentUser } from './auth-service.js';
-import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
+import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js?v=20260319';
 
 function requireCharacter() {
     const user = getCurrentUser();
@@ -27,6 +27,8 @@ export async function getMyProfile() {
     if (error) throw error;
     if (!data) throw new Error('Personnage introuvable.');
 
-    setActiveCharacterLocal(data);
+    // Strip profile_data before storing in localStorage — it can be a huge blob
+    const { profile_data: _pd, ...slimChar } = data;
+    setActiveCharacterLocal(slimChar);
     return { character_id: data.id, kaels: data.kaels, character: data };
 }

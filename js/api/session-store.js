@@ -71,7 +71,22 @@ function readJson(key) {
 }
 
 function writeJson(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+        if (e && e.name === 'QuotaExceededError') {
+            console.warn('[session-store] localStorage quota exceeded for key:', key, '— clearing stale data');
+            try { localStorage.removeItem(key); } catch {}
+            // Try once more with a minimal fallback
+            try {
+                if (value && typeof value === 'object' && value.id) {
+                    localStorage.setItem(key, JSON.stringify({ id: value.id, name: value.name || '', kaels: value.kaels || 0 }));
+                }
+            } catch {}
+        } else {
+            throw e;
+        }
+    }
 }
 
 export function readSession() {

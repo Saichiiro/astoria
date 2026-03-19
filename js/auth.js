@@ -20,6 +20,6 @@ export {
     deleteCharacter,
     setActiveCharacter,
     updateCharacter
-} from './api/characters-service.js';
-export { getActiveCharacter } from './api/session-store.js';
+} from './api/characters-service.js?v=20260319';
+export { getActiveCharacter } from './api/session-store.js?v=20260319';
 export { toggleItemState, getAllItems } from './api/items-service.js';

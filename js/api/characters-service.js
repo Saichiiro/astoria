@@ -1,5 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
-import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
+import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js?v=20260319';
 import { isAdmin, refreshSessionUser } from './auth-service.js';
 
 let authRefreshPromise = null;
@@ -379,7 +379,8 @@ export async function updateCharacter(characterId, updates) {
         clearUserCharactersCache();
         const activeChar = getActiveCharacter();
         if (activeChar && activeChar.id === characterId) {
-            setActiveCharacterLocal(data[0]);
+            const { profile_data: _pd, ...slimChar } = data[0];
+            setActiveCharacterLocal(slimChar);
         }
 
         return { success: true, character: data[0] };

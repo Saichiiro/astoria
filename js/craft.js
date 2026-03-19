@@ -4,10 +4,10 @@
     getActiveCharacter,
     isAdmin,
     refreshSessionUser
-} from './auth.js';
+} from './auth.js?v=20260319';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { getInventoryRows } from './api/inventory-service.js';
-import { getAllCharacters } from './api/characters-service.js';
+import { getAllCharacters } from './api/characters-service.js?v=20260319';
 import {
     createCraftRecipe,
     updateCraftRecipe,
