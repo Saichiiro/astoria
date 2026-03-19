@@ -6,7 +6,7 @@
     refreshSessionUser
 } from './auth.js?v=20260319';
 import { initCharacterSummary } from './ui/character-summary.js';
-import { getInventoryRows } from './api/inventory-service.js';
+import { getInventoryRows, getEquippedSlots } from './api/inventory-service.js?v=20260319';
 import { getAllCharacters } from './api/characters-service.js?v=20260319';
 import {
     createCraftRecipe,
@@ -498,38 +498,36 @@ function renderAdminInventoryRows(rows) {
     });
 }
 
-function renderAdminEquipments(character) {
+async function renderAdminEquipments(character) {
     if (!dom.adminEquipments) return;
     dom.adminEquipments.innerHTML = '';
 
     const slotLabels = {
-        head: 'Tete',
-        neck: 'Cou',
-        shoulders: 'Epaules',
-        chest: 'Torse',
-        cloak: 'Cape',
-        gloves: 'Gants',
-        ring1: 'Anneau G',
-        ring2: 'Anneau D',
-        boots: 'Bottes',
-        artifact: 'Artefact',
-        pet: 'Familier',
-        weapon: 'Arme',
-        offhand: 'Main G',
-        mount: 'Monture'
+        head: 'Tete', neck: 'Cou', shoulders: 'Epaules', chest: 'Torse',
+        cape: 'Cape', cloak: 'Cape', gloves: 'Gants', belt: 'Ceinture',
+        ring1: 'Anneau G', ring2: 'Anneau D', boots: 'Bottes',
+        amulet: 'Collier', artifact: 'Artefact', companion: 'Familier',
+        pet: 'Familier', weapon: 'Arme', offhand: 'Main G', mount: 'Monture'
     };
 
-    const equipped = character?.profile_data?.inventory?.equippedSlots || {};
-    const entries = Object.entries(equipped).filter(([, item]) => Boolean(item?.item_key || item?.name));
-    if (!entries.length) {
+    if (!character?.id) {
         dom.adminEquipments.appendChild(createAdminPill('Info', 'Aucun equipement'));
         return;
     }
 
-    entries.forEach(([slot, item]) => {
-        const name = item?.item_key || item?.name || 'Inconnu';
-        dom.adminEquipments.appendChild(createAdminPill(slotLabels[slot] || slot, name));
-    });
+    try {
+        const rows = await getEquippedSlots(character.id);
+        if (!rows || !rows.length) {
+            dom.adminEquipments.appendChild(createAdminPill('Info', 'Aucun equipement'));
+            return;
+        }
+        rows.forEach((row) => {
+            const name = row.item_key || 'Inconnu';
+            dom.adminEquipments.appendChild(createAdminPill(slotLabels[row.slot_key] || row.slot_key, name));
+        });
+    } catch {
+        dom.adminEquipments.appendChild(createAdminPill('Info', 'Aucun equipement'));
+    }
 }
 
 function getCompetenceSummary(profileData) {

@@ -3935,11 +3935,8 @@
 
 
 
-                scrollTypes: normalizeScrollTypeStore(scrollTypeStore),
-
-
-
-                equippedSlots: serializeEquippedSlots()
+                scrollTypes: normalizeScrollTypeStore(scrollTypeStore)
+                // equippedSlots moved to character_equipped table
 
 
 
@@ -4729,7 +4726,8 @@
 
 
 
-            equippedSlots = normalizeEquippedSlots(payload?.equippedSlots || payload?.equipped || {});
+            // equippedSlots are now in character_equipped table — loaded below after rows
+            equippedSlots = {};
 
 
 
@@ -4766,7 +4764,22 @@
 
                         console.log(`Loaded ${inventoryItems.length} items from character_inventory`);
 
-
+                        // Load equipped slots from character_equipped table
+                        try {
+                            const equippedRows = await inventoryApi.getEquippedSlots?.(character.id);
+                            if (Array.isArray(equippedRows) && equippedRows.length > 0) {
+                                const fromDb = {};
+                                equippedRows.forEach((row) => {
+                                    const built = buildEquippedItem(row.item_key, row.item_index, row.item_id);
+                                    if (built && isItemEquippable(built)) {
+                                        fromDb[row.slot_key] = built;
+                                    }
+                                });
+                                equippedSlots = fromDb;
+                            }
+                        } catch (eqErr) {
+                            console.warn('[Inventory] Could not load equipped slots from DB:', eqErr);
+                        }
 
                         if (missingRows.length) {
 
@@ -8623,7 +8636,14 @@
 
             delete equippedSlots[slotKey];
 
-
+            // Persist to character_equipped table
+            if (inventoryStorageMode === 'character' && inventoryApi?.clearEquippedSlot) {
+                const char = authApi?.getActiveCharacter?.();
+                if (char?.id) {
+                    inventoryApi.clearEquippedSlot(char.id, slotKey)
+                        .catch((err) => console.warn('[Inventory] Failed to clear equip from DB:', err));
+                }
+            }
 
             if (shouldPersist) {
                 persistInventory();
@@ -8776,7 +8796,17 @@
                 quantity: 1
             };
 
-
+            // Persist to character_equipped table
+            if (inventoryStorageMode === 'character' && inventoryApi?.setEquippedSlot) {
+                const char = authApi?.getActiveCharacter?.();
+                if (char?.id) {
+                    inventoryApi.setEquippedSlot(char.id, slotKey, {
+                        item_id: item.item_id || item.dbItemId || item.id || null,
+                        item_key: item.name,
+                        item_index: Number.isFinite(Number(item.sourceIndex)) ? Number(item.sourceIndex) : null
+                    }).catch((err) => console.warn('[Inventory] Failed to persist equip to DB:', err));
+                }
+            }
 
             persistInventory();
             renderInventory();

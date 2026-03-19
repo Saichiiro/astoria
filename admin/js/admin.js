@@ -5,7 +5,7 @@
 
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
-import { getInventoryRows, setInventoryItem } from '../../js/api/inventory-service.js';
+import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js?v=20260319';
 import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
 
 (function() {
@@ -949,42 +949,36 @@ import { adminItemsModal } from './admin-items-modal.js?v=2026021106';
         }
     }
 
-    function renderInventoryInspectorEquipment(character) {
+    async function renderInventoryInspectorEquipment(character) {
         const container = document.getElementById('adminInventoryEquipment');
         if (!container) return;
 
         const slotLabels = {
-            head: 'Tete',
-            neck: 'Cou',
-            shoulders: 'Epaules',
-            chest: 'Torse',
-            cloak: 'Cape',
-            gloves: 'Gants',
-            ring1: 'Anneau G',
-            ring2: 'Anneau D',
-            boots: 'Bottes',
-            artifact: 'Artefact',
-            pet: 'Familier',
-            weapon: 'Arme',
-            offhand: 'Main G',
-            mount: 'Monture'
+            head: 'Tete', neck: 'Cou', shoulders: 'Epaules', chest: 'Torse',
+            cape: 'Cape', cloak: 'Cape', amulet: 'Collier', gloves: 'Gants',
+            belt: 'Ceinture', ring1: 'Anneau G', ring2: 'Anneau D', boots: 'Bottes',
+            artifact: 'Artefact', companion: 'Familier', pet: 'Familier',
+            weapon: 'Arme', offhand: 'Main G', mount: 'Monture'
         };
 
-        const equipped = character?.profile_data?.inventory?.equippedSlots || {};
-        const entries = Object.entries(equipped)
-            .filter(([, item]) => Boolean(item?.item_key || item?.name))
-            .map(([slot, item]) => {
-                const itemName = item.item_key || item.name || 'Inconnu';
-                const slotLabel = slotLabels[slot] || slot;
-                return `<span class="admin-inventory-slot"><strong>${slotLabel}</strong> ${itemName}</span>`;
-            });
-
-        if (!entries.length) {
+        if (!character?.id) {
             container.innerHTML = '<span class="text-muted">Aucun equipement enregistre.</span>';
             return;
         }
 
-        container.innerHTML = entries.join('');
+        try {
+            const rows = await getEquippedSlots(character.id);
+            if (!rows || !rows.length) {
+                container.innerHTML = '<span class="text-muted">Aucun equipement enregistre.</span>';
+                return;
+            }
+            container.innerHTML = rows.map((row) => {
+                const slotLabel = slotLabels[row.slot_key] || row.slot_key;
+                return `<span class="admin-inventory-slot"><strong>${slotLabel}</strong> ${row.item_key || 'Inconnu'}</span>`;
+            }).join('');
+        } catch {
+            container.innerHTML = '<span class="text-muted">Aucun equipement enregistre.</span>';
+        }
     }
 
     function renderInventoryInspectorRows(rows) {

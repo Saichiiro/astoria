@@ -112,6 +112,7 @@
         mode: "local", // 'local' | 'character'
         characterId: null,
         auth: null,
+        equippedSlots: {}, // cache from character_equipped table
         saveTimer: null,
         inFlight: null,
         retryTimer: null,
@@ -836,6 +837,17 @@
                 persistState.characterId = character.id;
                 document.body.dataset.admin = persistState.auth.isAdmin?.() ? "true" : "false";
                 skillsState.isAdmin = document.body.dataset.admin === "true";
+
+                // Warm up equipped-slots cache from DB (fire-and-forget, best effort)
+                import("./api/inventory-service.js?v=20260319").then(({ getEquippedSlots }) =>
+                    getEquippedSlots(character.id)
+                ).then((rows) => {
+                    persistState.equippedSlots = Object.fromEntries(
+                        (rows || []).map((r) => [r.slot_key, { item_key: r.item_key, item_index: r.item_index, item_id: r.item_id }])
+                    );
+                }).catch(() => {
+                    persistState.equippedSlots = {};
+                });
 
                 const profileData = character.profile_data || {};
                 const persisted = profileData.competences || null;
@@ -1654,21 +1666,13 @@
     function getItemBonuses() {
         const tools = window.astoriaItemModifiers;
         if (!tools?.getModifiers) return { totals: {}, details: {} };
-        const character = persistState.auth?.getActiveCharacter?.();
-        const profileInventory = character?.profile_data?.inventory;
+        const equippedSlots = persistState.equippedSlots || {};
         const fallbackInventory = readInventorySnapshotFromLocalStorage();
-        const inventory = profileInventory && typeof profileInventory === "object" ? profileInventory : fallbackInventory;
-        const equippedSlots = inventory?.equippedSlots && typeof inventory.equippedSlots === "object"
-            ? inventory.equippedSlots
-            : {};
-        const legacyEquipped = inventory?.equipped && typeof inventory.equipped === "object"
-            ? inventory.equipped
-            : {};
-        const activeConsumables = Array.isArray(inventory?.activeConsumableEffects)
-            ? inventory.activeConsumableEffects
+        const activeConsumables = Array.isArray(fallbackInventory?.activeConsumableEffects)
+            ? fallbackInventory.activeConsumableEffects
             : [];
-        const legacyConsumables = Array.isArray(inventory?.activeEffects)
-            ? inventory.activeEffects
+        const legacyConsumables = Array.isArray(fallbackInventory?.activeEffects)
+            ? fallbackInventory.activeEffects
             : [];
 
         const skillNameMap = new Map();
@@ -1728,7 +1732,7 @@
             });
         };
 
-        Object.values({ ...legacyEquipped, ...equippedSlots }).forEach((entry) => {
+        Object.values(equippedSlots).forEach((entry) => {
             if (!entry) return;
             const item = resolveCatalogItem(entry.item_key || entry.name, entry.item_index ?? entry.sourceIndex);
             const sourceLabel = item?.name || entry?.item_key || entry?.name || "Equipement";

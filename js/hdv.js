@@ -16,7 +16,7 @@ import {
     getMyProfile,
     searchListings
 } from './market.js?v=20260319';
-import { getInventoryRows, setInventoryItem } from './api/inventory-service.js';
+import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from './api/inventory-service.js?v=20260319';
 import { getCategories } from './api/categories-service.js?v=2026031701';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
@@ -639,30 +639,28 @@ function mapInventoryRows(rows) {
     if (!Array.isArray(rows)) return items;
 
     for (const row of rows) {
+        const qty = Math.floor(Number(row?.qty) || 0);
+        if (qty <= 0) continue;
+
+        // Always resolve via catalog first (item_id > item_key > item_index).
+        // Never jump directly to state.items[item_index] — stale indexes cause
+        // the wrong item to appear (classic Kaels/Fruit bug).
         const resolved = resolveCatalogItemFromReference({
             item_id: row?.item_id,
             item_key: row?.item_key,
             item_index: row?.item_index
         });
-        let idx = Number(row?.item_index);
-        if (!Number.isFinite(idx) || idx < 0) {
-            idx = resolveItemIndexByName(row?.item_key);
-        }
-        const qty = Math.floor(Number(row?.qty) || 0);
-        if (qty <= 0) continue;
-        const item = Number.isFinite(idx) && idx >= 0
-            ? state.items[idx]
-            : (resolved || (row?.item_key ? { name: row?.item_key } : null));
+
+        const item = resolved || (row?.item_key ? { name: row.item_key } : null);
         if (!item) continue;
         if (isCurrencyLikeItem(item)) continue;
-        const sourceIndex = Number.isFinite(idx) && idx >= 0
-            ? idx
-            : (Number.isFinite(resolveSourceIndex(resolved || item)) ? resolveSourceIndex(resolved || item) : null);
+
+        const sourceIndex = Number.isFinite(resolveSourceIndex(item)) ? resolveSourceIndex(item) : null;
         items.push({
             ...item,
             sourceIndex,
             itemId: row?.item_id ? String(row.item_id) : null,
-            itemKey: String(item?.name || row?.item_key || idx),
+            itemKey: String(item?.name || row?.item_key || ''),
             inventoryQty: qty,
             equippedQty: 0,
             equippedSlots: [],
@@ -728,24 +726,6 @@ function readLocalInventoryEntries() {
     return [];
 }
 
-function readProfileInventoryEntries() {
-    const compactItems =
-        (Array.isArray(state.character?.profile_data?.inventory?.items) && state.character.profile_data.inventory.items) ||
-        (Array.isArray(state.profile?.character?.profile_data?.inventory?.items) && state.profile.character.profile_data.inventory.items) ||
-        [];
-
-    return mapLocalInventoryItems(
-        compactItems.map((entry) => ({
-            item_id: entry?.itemId || entry?.item_id || null,
-            item_index: entry?.itemIndex ?? entry?.item_index ?? entry?.idx ?? null,
-            itemKey: entry?.itemKey || entry?.item_key || '',
-            item_key: entry?.itemKey || entry?.item_key || '',
-            name: entry?.itemKey || entry?.item_key || entry?.name || '',
-            quantity: entry?.qty
-        }))
-    );
-}
-
 function getInventoryIdentity(item) {
     const itemKey = normalizeText(item?.itemKey || item?.item_key || item?.name || '');
     if (itemKey) return `key:${itemKey}`;
@@ -757,59 +737,6 @@ function getInventoryIdentity(item) {
     if (Number.isFinite(sourceIndex) && sourceIndex >= 0) return `idx:${sourceIndex}`;
 
     return '';
-}
-
-function extractEquippedInventoryEntries(character) {
-    const equipped = character?.profile_data?.inventory?.equippedSlots;
-    if (!equipped || typeof equipped !== 'object') return [];
-
-    return Object.entries(equipped).map(([slotKey, item]) => {
-        const resolved = resolveCatalogItemFromReference(item || {});
-        const sourceIndex = Number.isFinite(Number(item?.sourceIndex)) ? Number(item.sourceIndex) : (Number.isFinite(Number(item?.item_index)) ? Number(item.item_index) : null);
-        return {
-            ...(resolved || {}),
-            ...(item || {}),
-            name: resolved?.name || item?.name || item?.item_key || '',
-            category: resolved?.category || item?.category || '',
-            rarity: resolved?.rarity || item?.rarity || '',
-            image: resolved?.image || item?.image || '',
-            images: resolved?.images || item?.images || undefined,
-            effect: resolved?.effect || item?.effect || '',
-            itemId: item?.item_id ? String(item.item_id) : (item?.id ? String(item.id) : (resolved?.id ? String(resolved.id) : null)),
-            itemKey: item?.item_key ? String(item.item_key) : String(resolved?.name || item?.name || ''),
-            sourceIndex: Number.isFinite(sourceIndex) ? sourceIndex : resolveSourceIndex(resolved || item),
-            inventoryQty: 0,
-            equippedQty: 1,
-            equippedSlots: [slotKey],
-            quantity: 1
-        };
-    }).filter((entry) => entry?.name || entry?.itemId || entry?.itemKey);
-}
-
-function mergeCharacterInventoryState(primaryCharacter, fallbackCharacter) {
-    if (!primaryCharacter) return fallbackCharacter || null;
-    if (!fallbackCharacter) return primaryCharacter;
-
-    const primaryInventory = primaryCharacter?.profile_data?.inventory;
-    const fallbackInventory = fallbackCharacter?.profile_data?.inventory;
-    const primaryHasEquipped = primaryInventory?.equippedSlots && Object.keys(primaryInventory.equippedSlots).length > 0;
-    const fallbackHasEquipped = fallbackInventory?.equippedSlots && Object.keys(fallbackInventory.equippedSlots).length > 0;
-
-    if (primaryHasEquipped || !fallbackHasEquipped) {
-        return primaryCharacter;
-    }
-
-    return {
-        ...primaryCharacter,
-        profile_data: {
-            ...(primaryCharacter.profile_data || {}),
-            inventory: {
-                ...(fallbackInventory || {}),
-                ...(primaryInventory || {}),
-                equippedSlots: fallbackInventory.equippedSlots
-            }
-        }
-    };
 }
 
 function mergeInventoryEntries(entries) {
@@ -911,31 +838,26 @@ async function consumeEquippedQuantity(entry, quantity) {
     if (!needed) return true;
     if (!state.character?.id) return false;
 
-    const profileData = { ...(state.character.profile_data || {}) };
-    const inventory = { ...(profileData.inventory || {}) };
-    const equippedSlots = { ...(inventory.equippedSlots || {}) };
+    // Fetch live equipped slots from character_equipped table
+    let equippedRows;
+    try {
+        equippedRows = await getEquippedSlots(state.character.id);
+    } catch {
+        return false;
+    }
+
+    const toRemove = [];
     let remaining = needed;
-
-    Object.entries(equippedSlots).forEach(([slotKey, item]) => {
-        if (remaining <= 0) return;
-        if (!entryMatchesInventoryTarget(item, entry)) return;
-        delete equippedSlots[slotKey];
-        remaining -= 1;
-    });
-
+    for (const row of (equippedRows || [])) {
+        if (remaining <= 0) break;
+        if (entryMatchesInventoryTarget(row, entry)) {
+            toRemove.push(row.slot_key);
+            remaining -= 1;
+        }
+    }
     if (remaining > 0) return false;
 
-    inventory.equippedSlots = equippedSlots;
-    profileData.inventory = inventory;
-
-    const result = await updateCharacter(state.character.id, { profile_data: profileData });
-    if (!(result?.success && result.character)) return false;
-
-    state.character = result.character;
-    if (state.profile?.character?.id === result.character.id) {
-        state.profile.character = result.character;
-    }
-    document.dispatchEvent(new CustomEvent('astoria:character-updated', { detail: { profile_data: profileData } }));
+    await Promise.all(toRemove.map((slotKey) => clearEquippedSlot(state.character.id, slotKey)));
     broadcastInventorySync('equipped-slots');
     return true;
 }
@@ -950,22 +872,11 @@ async function refreshInventory() {
 
     try {
         const rows = await getInventoryRows(state.character.id);
-        const backpackEntries = mapInventoryRows(Array.isArray(rows) ? rows : []);
-        const profileEntries = readProfileInventoryEntries();
-        if (backpackEntries.length) {
-            state.inventory = mergeSellableInventoryEntries(backpackEntries, profileEntries);
-            return;
-        }
-        if (profileEntries.length) {
-            state.inventory = profileEntries;
-            return;
-        }
-        // No localStorage fallback here: selling must stay consistent across devices.
-        state.inventory = [];
+        // character_inventory is the single source of truth — no localStorage fallback
+        state.inventory = mapInventoryRows(Array.isArray(rows) ? rows : []);
     } catch (error) {
         console.error('Inventory load error:', error);
-        const profileEntries = readProfileInventoryEntries();
-        state.inventory = profileEntries.length ? profileEntries : [];
+        state.inventory = [];
     }
 }
 
@@ -1527,9 +1438,10 @@ async function refreshProfile() {
     }
 
     try {
+        // getMyProfile fetches kaels + scrollTypes from profile_data (lean after migration)
         const profile = await getMyProfile();
         state.profile = profile;
-        state.character = mergeCharacterInventoryState(profile.character, state.character);
+        state.character = profile.character;
         await refreshInventory();
         dom.kaelsBadge.hidden = false;
         dom.kaelsBadge.textContent = `${formatKaels(state.profile.kaels)} kaels`;
