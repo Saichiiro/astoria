@@ -431,26 +431,15 @@ const searchHistory = window.astoriaSearchHistory
     : null;
 
 function resolveCurrentUser() {
-    console.log('[HDV] resolveCurrentUser - location:', window.location.href);
-
     // PRIORITÉ 1 : Lire directement localStorage (plus fiable sur GitHub Pages)
     try {
         const raw = localStorage.getItem('astoria_session');
-        console.log('[HDV] localStorage astoria_session:', raw ? '✓ EXISTE' : '✗ NULL');
-
         if (raw) {
             const parsed = JSON.parse(raw);
-
-            // Vérifier expiration
             const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
             const isExpired = !parsed.timestamp || (Date.now() - parsed.timestamp) > SESSION_MAX_AGE_MS;
-
-            if (!isExpired && parsed.user && parsed.user.id) {
-                console.log('[HDV] ✅ User trouvé via localStorage:', parsed.user.username);
-                return parsed.user;
-            } else if (isExpired) {
-                console.warn('[HDV] ⚠️ Session expirée');
-            }
+            if (!isExpired && parsed.user && parsed.user.id) return parsed.user;
+            if (isExpired) console.warn('[HDV] Session expirée');
         }
     } catch (err) {
         console.error('[HDV] Erreur lecture localStorage:', err);
@@ -459,30 +448,21 @@ function resolveCurrentUser() {
     // PRIORITÉ 2 : Fallback sur getCurrentUser()
     try {
         const direct = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-        console.log('[HDV] getCurrentUser():', direct ? `✓ ${direct.username}` : '✗ NULL');
         if (direct && direct.id) return direct;
     } catch (err) {
         console.error('[HDV] Erreur getCurrentUser():', err);
     }
 
-    console.error('[HDV] ❌ AUCUN USER - Affichage "Se connecter"');
     return null;
 }
 
 function resolveActiveCharacter() {
-    console.log('[HDV] resolveActiveCharacter appelé');
-
     // PRIORITÉ 1 : Lire directement localStorage
     try {
         const raw = localStorage.getItem('astoria_active_character');
-        console.log('[HDV] localStorage astoria_active_character:', raw ? '✓ EXISTE' : '✗ NULL');
-
         if (raw) {
             const parsed = JSON.parse(raw);
-            if (parsed && parsed.id) {
-                console.log('[HDV] ✅ Character trouvé via localStorage:', parsed.name);
-                return parsed;
-            }
+            if (parsed && parsed.id) return parsed;
         }
     } catch (err) {
         console.error('[HDV] Erreur lecture localStorage character:', err);
@@ -491,7 +471,6 @@ function resolveActiveCharacter() {
     // PRIORITÉ 2 : Fallback sur getActiveCharacter()
     try {
         const direct = typeof getActiveCharacter === 'function' ? getActiveCharacter() : null;
-        console.log('[HDV] getActiveCharacter():', direct ? `✓ ${direct.name}` : '✗ NULL');
         if (direct && direct.id) return direct;
     } catch (err) {
         console.error('[HDV] Erreur getActiveCharacter():', err);
@@ -1988,7 +1967,6 @@ async function loadCategories() {
     try {
         state.categories = await getCategories();
         state.categoriesMap = new Map((state.categories || []).map((cat) => [cat.slug, cat]));
-        console.log(`[HDV] Loaded ${state.categories.length} categories from database`);
     } catch (error) {
         console.warn('[HDV] Failed to load categories, using fallback:', error);
         // Fallback to hardcoded categories
@@ -2004,10 +1982,6 @@ async function loadCategories() {
 }
 
 async function init() {
-    console.log('[HDV] ========== INIT HDV ==========');
-    console.log('[HDV] Location:', window.location.href);
-    console.log('[HDV] Origin:', window.location.origin);
-
     await loadCategories();
     await loadItemCatalog();
     populateSellSelect();
@@ -2017,26 +1991,11 @@ async function init() {
 
     if (typeof refreshSessionUser === 'function') {
         try {
-            console.log('[HDV] Tentative refreshSessionUser...');
-            const result = await refreshSessionUser();
-            console.log('[HDV] refreshSessionUser result:', result);
-
-            // Attendre que localStorage soit écrit
+            await refreshSessionUser();
             await new Promise(resolve => setTimeout(resolve, 100));
         } catch (err) {
             console.error('[HDV] refreshSessionUser error:', err);
         }
-    } else {
-        console.warn('[HDV] refreshSessionUser non disponible');
-    }
-
-    // Log localStorage après refresh
-    try {
-        const hasSession = !!localStorage.getItem('astoria_session');
-        const hasChar = !!localStorage.getItem('astoria_active_character');
-        console.log('[HDV] Après refresh - Session:', hasSession, '| Character:', hasChar);
-    } catch (err) {
-        console.error('[HDV] Erreur check localStorage:', err);
     }
 
     await refreshProfile();

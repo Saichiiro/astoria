@@ -637,7 +637,7 @@ async function ensureLuckySoul(cost) {
 
     if (current < cost) {
         console.log('[NOKORAH LS] Insufficient Lucky Souls!', current, '/', cost);
-        alert(`Lucky Soul insuffisantes (${current}/${cost}).`);
+        window.toastManager?.error(`Lucky Soul insuffisantes (${current}/${cost}).`);
         return false;
     }
 
@@ -646,7 +646,7 @@ async function ensureLuckySoul(cost) {
     console.log('[NOKORAH LS] Delta applied:', ok);
 
     if (!ok) {
-        alert("Impossible de consommer les Lucky Soul pour le moment.");
+        window.toastManager?.error("Impossible de consommer les Lucky Soul pour le moment.");
         return false;
     }
 
@@ -768,7 +768,7 @@ async function handleRarityUpgrade() {
     if (!next) return;
     const levelCap = getLevelCapForRarity(state.rarity);
     if (state.upgradeLevel < levelCap) {
-        alert("La rarete ne peut evoluer qu'apres un palier de 5 niveaux.");
+        window.toastManager?.warning("La rareté ne peut évoluer qu'après un palier de 5 niveaux.");
         return;
     }
     const cost = RARITY_COSTS[state.rarity];
@@ -782,7 +782,7 @@ async function handleRarityUpgrade() {
 
 async function handleStatsUpgrade() {
     if (!state.skills.length) {
-        alert("Aucune comp&eacute;tence disponible pour la roulette.");
+        window.toastManager?.warning("Aucune compétence disponible pour la roulette.");
         return;
     }
     const nextLevel = state.upgradeLevel + 1;
@@ -790,16 +790,16 @@ async function handleStatsUpgrade() {
     const nextRarity = getNextRarity(state.rarity);
     if (nextLevel > levelCap) {
         if (nextRarity) {
-            alert("Niveau max atteint pour cette raret&eacute;. Am&eacute;liore la raret&eacute; pour continuer.");
+            window.toastManager?.warning("Niveau max atteint pour cette rareté. Améliore la rareté pour continuer.");
         } else {
-            alert("Niveau maximum atteint.");
+            window.toastManager?.warning("Niveau maximum atteint.");
         }
         return;
     }
     const maxTotal = getMaxTotalPoints(state.rarity, nextLevel);
     const currentTotal = getTotalBonusPoints();
     if (currentTotal >= maxTotal) {
-        alert("Plafond de points atteint pour ce niveau.");
+        window.toastManager?.warning("Plafond de points atteint pour ce niveau.");
         return;
     }
 
@@ -809,7 +809,7 @@ async function handleStatsUpgrade() {
 
     const available = maxTotal - currentTotal;
     if (available <= 0) {
-        alert("Plafond de points atteint pour ce niveau.");
+        window.toastManager?.warning("Plafond de points atteint pour ce niveau.");
         return;
     }
 
