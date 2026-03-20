@@ -38,7 +38,7 @@
         </header>
 
         <section class="craft-toolbar tw-panel" aria-label="Controles craft">
-            <div class="craft-toolbar-left">
+            <div class="craft-toolbar-left" data-search-priority="page">
                 <input id="craftSearchInput" class="tw-input craft-search" type="search" placeholder="Rechercher une recette..." aria-label="Rechercher une recette">
                 <select id="craftRankFilter" class="tw-input craft-select" aria-label="Filtrer par rang">
                     <option value="Tous">Tous les rangs</option>
@@ -252,6 +252,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
     <script src="js/components/toast-manager.js"></script>
     <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/type-to-search.js"></script>
     <script type="module" src="js/craft.js"></script>
     <script src="js/sidebar.js"></script>
 </body>
