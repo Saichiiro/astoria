@@ -29,12 +29,13 @@ const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
 const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
 const QUEST_VIEW_STORAGE_KEY = "astoria_quests_view_mode";
 const QUEST_CACHE_VERSION = 1;
-const QUEST_CACHE_TTL_MS = 10 * 60 * 1000;
+const QUEST_CACHE_TTL_MS = 30 * 60 * 1000;
 const QUESTS_TABLE = "quests";
 const QUESTS_LIST_VIEW = "quests_list";
 const QUEST_HISTORY_TABLE = "quest_history";
 const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
 const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
+const QUESTS_POLL_COLUMNS = "id,status,max_participants,completed_by";
 const QUEST_HISTORY_SELECT_COLUMNS = "*";
 const HISTORY_INITIAL_VISIBLE = 30;
 const HISTORY_VISIBLE_STEP = 30;
@@ -867,6 +868,30 @@ async function fetchQuestsPage(supabase, from, to) {
     return Array.isArray(data) ? data : [];
 }
 
+async function fetchQuestsDeltaPoll(supabase) {
+    const { data, error } = await supabase
+        .from(QUESTS_TABLE)
+        .select(QUESTS_POLL_COLUMNS)
+        .order("created_at", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+function hasQuestDeltaChanged(deltaRows) {
+    if (deltaRows.length !== state.quests.length) return true;
+    const map = new Map(state.quests.map(q => [q.id, q]));
+    for (const row of deltaRows) {
+        const cached = map.get(row.id);
+        if (!cached) return true;
+        if (cached.status !== row.status) return true;
+        const cachedMax = cached.maxParticipants ?? cached.max_participants;
+        if (String(cachedMax) !== String(row.max_participants)) return true;
+        const cachedCompleted = JSON.stringify(cached.completed_by ?? []);
+        if (cachedCompleted !== JSON.stringify(row.completed_by ?? [])) return true;
+    }
+    return false;
+}
+
 async function fetchQuestDetailById(questId) {
     const supabase = await getSupabaseClient();
     let { data, error } = await supabase
@@ -1274,12 +1299,25 @@ async function insertHistoryToDb(entry) {
 }
 
 async function refreshQuestStateFromBackend(options = {}) {
-    const { refreshHistory = false } = options;
+    const { refreshHistory = false, deltaCheck = false } = options;
     if (isQuestRealtimeRefreshing) return false;
     if (dom.editorModal?.classList.contains("open")) return false;
     isQuestRealtimeRefreshing = true;
-    setSyncBadge(true, refreshHistory ? "Syncing quests and history..." : "Syncing quests...");
     try {
+        // Delta poll: fetch lightweight columns first; skip full reload if nothing changed
+        if (deltaCheck && !refreshHistory && state.quests.length > 0) {
+            try {
+                const supabase = await getSupabaseClient();
+                const deltaRows = await fetchQuestsDeltaPoll(supabase);
+                if (!hasQuestDeltaChanged(deltaRows)) {
+                    return false; // finally releases lock
+                }
+            } catch {
+                // Delta check failed — fall through to full reload
+            }
+        }
+
+        setSyncBadge(true, refreshHistory ? "Syncing quests and history..." : "Syncing quests...");
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
         const useProgressiveRefresh = !detailOpen && state.quests.length > QUEST_INITIAL_BATCH_SIZE;
@@ -1335,7 +1373,7 @@ function startQuestPollingFallback() {
     if (questRealtimePollingTimer) return;
     questRealtimePollingTimer = window.setInterval(() => {
         if (document.hidden) return;
-        void refreshQuestStateFromBackend({ refreshHistory: false });
+        void refreshQuestStateFromBackend({ refreshHistory: false, deltaCheck: true });
     }, QUEST_POLLING_FALLBACK_MS);
 }
 

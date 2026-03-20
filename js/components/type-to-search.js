@@ -121,6 +121,27 @@
     function handleKeyDown(event) {
         if (!isEnabled) return;
 
+        // ESC: blur active search input if focused, or clear it
+        if (event.key === 'Escape') {
+            const active = document.activeElement;
+            if (active && IGNORED_TAGS.includes(active.tagName)) {
+                const container = active.closest('[data-search-priority]');
+                if (container) {
+                    if (active.value) {
+                        active.value = '';
+                        active.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        active.blur();
+                        // Click clear button if present
+                        const clearBtn = container.querySelector('.inventory-search-clear');
+                        if (clearBtn && !clearBtn.hidden) clearBtn.click();
+                    }
+                    event.preventDefault();
+                }
+            }
+            return;
+        }
+
         // Ignore if already in an input field
         if (IGNORED_TAGS.includes(document.activeElement?.tagName)) return;
 
@@ -144,10 +165,8 @@
         expandSearch(container);
 
         // Focus the input and let the character be typed
-        // We use a small delay to ensure the expansion animation has started
         requestAnimationFrame(() => {
             input.focus();
-            // The keypress will naturally type the character since we didn't prevent default
         });
     }
 

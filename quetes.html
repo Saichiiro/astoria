@@ -65,7 +65,7 @@
                             <option value="all">Tous les rangs</option>
                         </select>
                     </label>
-                    <div class="inventory-search" id="questSearch">
+                    <div class="inventory-search" id="questSearch" data-search-priority="page">
                         <button type="button" class="inventory-search-toggle tw-press" id="questSearchToggle" aria-label="Rechercher" aria-expanded="false">
                             <span class="inventory-search-icon">&#128269;</span>
                         </button>
@@ -455,6 +455,7 @@
 
     <script src="js/data.js"></script>
     <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
     <script type="module" src="js/quetes.js"></script>
     <script src="js/sidebar.js"></script>
 </body>

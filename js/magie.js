@@ -1533,7 +1533,7 @@
         const progress = loadMagicProgress();
         const entry = progress.affinities[affinityKey];
         if (!entry || !entry.unlocked) {
-            alert("Cette magie n'est pas débloquée.");
+            window.toastManager?.error("Cette magie n'est pas débloquée.");
             return false;
         }
         const affinityType = entry.affinityType || "none";
@@ -1550,12 +1550,12 @@
         const nextLevel = ascensionLevel + 1;
         const cost = getAscensionCost(affinityType, nextLevel);
         if (!cost) {
-            alert("Ascension maximale atteinte pour cette affinité.");
+            window.toastManager?.warning("Ascension maximale atteinte pour cette affinité.");
             return false;
         }
         const result = await applyScrollCost({ category: "ascension", affinityKey, cost });
         if (!result.ok) {
-            alert("Parchemins d'ascension insuffisants.");
+            window.toastManager?.error("Parchemins d'ascension insuffisants.");
             return false;
         }
         entry.ascensionLevel = nextLevel;
@@ -1611,7 +1611,7 @@
                 if (availableSpells <= 0) {
                     const rankLabel = isMinor ? "mineur" : "ultime";
                     const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
-                    alert(`Vous n'avez pas de sorts ${rankLabel} disponibles${aliceLabel}.\n\nAugmentez votre Contrôle Alice ${aliceNumber} dans la fiche de compétences.`);
+                    window.toastManager?.error(`Pas de sorts ${rankLabel} disponibles${aliceLabel}. Augmentez votre Contrôle Alice ${aliceNumber} dans les compétences.`);
                     return false;
                 }
                 // Consume spell point matching rank
@@ -1626,7 +1626,7 @@
                 if (availableUpgrades <= 0) {
                     const rankLabel = isMinor ? "mineure" : "ultime";
                     const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
-                    alert(`Vous n'avez pas d'améliorations ${rankLabel} disponibles${aliceLabel}.\n\nAugmentez votre Puissance Alice ${aliceNumber} dans la fiche de compétences.`);
+                    window.toastManager?.error(`Pas d'améliorations ${rankLabel} disponibles${aliceLabel}. Augmentez votre Puissance Alice ${aliceNumber} dans les compétences.`);
                     return false;
                 }
                 // Consume upgrade point matching rank
@@ -1661,7 +1661,7 @@
                 if (isNewFragment) {
                     // Ajouter un fragment mineur: consommer Maîtrise
                     if (skills.maitriseAvailable <= 0) {
-                        alert(`Vous n'avez pas de points Maîtrise disponibles.\n\nAugmentez "Maîtrise de la capacité unique" dans les compétences.`);
+                        window.toastManager?.error(`Pas de points Maîtrise disponibles. Augmentez "Maîtrise de la capacité unique" dans les compétences.`);
                         return false;
                     }
                     progress.meisterSkills.maitriseUsed += 1;
@@ -1672,19 +1672,19 @@
                     } else if (skills.maitriseAvailable > 0) {
                         progress.meisterSkills.maitriseUsed += 1;
                     } else {
-                        alert(`Vous n'avez pas de points Puissance ou Maîtrise disponibles.\n\nAugmentez vos compétences.`);
+                        window.toastManager?.error("Pas de points Puissance ou Maîtrise disponibles. Augmentez vos compétences.");
                         return false;
                     }
                 }
             } else {
                 // Fragment ultime
                 if (isNewFragment) {
-                    alert(`Les fragments ultimes ne peuvent pas être ajoutés pour Meister.\n\nSeules les améliorations sont possibles.`);
+                    window.toastManager?.warning("Les fragments ultimes ne peuvent pas être ajoutés pour Meister. Seules les améliorations sont possibles.");
                     return false;
                 }
                 // Améliorer un fragment ultime: consommer Résonnance
                 if (skills.resonanceAvailable <= 0) {
-                    alert(`Vous n'avez pas de points Résonnance disponibles.\n\nAugmentez "Résonnance des Âmes" dans les compétences.`);
+                    window.toastManager?.error(`Pas de points Résonnance disponibles. Augmentez "Résonnance des Âmes" dans les compétences.`);
                     return false;
                 }
                 progress.meisterSkills.resonanceUsed += 1;
@@ -1719,7 +1719,7 @@
                     } else if (weapon.soulsMinorAvailable > 0) {
                         progress.weaponFragments.soulsMinorUsed += 1;
                     } else {
-                        alert(`Vous n'avez pas de fragments mineurs disponibles.\n\nAugmentez "Maîtrise de la capacité unique" ou consommez des âmes de progression.`);
+                        window.toastManager?.error(`Pas de fragments mineurs disponibles. Augmentez "Maîtrise de la capacité unique" ou consommez des âmes de progression.`);
                         return false;
                     }
                 } else {
@@ -1731,7 +1731,7 @@
                     } else if (weapon.soulsMinorAvailable > 0) {
                         progress.weaponFragments.soulsMinorUsed += 1;
                     } else {
-                        alert(`Vous n'avez pas de fragments mineurs disponibles.\n\nAugmentez vos compétences ou consommez des âmes de progression.`);
+                        window.toastManager?.error("Pas de fragments mineurs disponibles. Augmentez vos compétences ou consommez des âmes de progression.");
                         return false;
                     }
                 }
@@ -1739,14 +1739,14 @@
                 // Fragment ultime: uniquement via âmes
                 if (isNewFragment) {
                     if (weapon.soulsUltimateAvailable <= 0) {
-                        alert(`Vous n'avez pas de fragments ultimes disponibles.\n\nConsommez des âmes de progression (seuils: 100, 250, 400).`);
+                        window.toastManager?.error("Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: 100, 250, 400).");
                         return false;
                     }
                     progress.weaponFragments.soulsUltimateUsed += 1;
                 } else {
                     // Améliorer ultime
                     if (weapon.soulsUltimateAvailable <= 0) {
-                        alert(`Vous n'avez pas de fragments ultimes disponibles.\n\nConsommez des âmes de progression (seuils: 100, 250, 400).`);
+                        window.toastManager?.error("Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: 100, 250, 400).");
                         return false;
                     }
                     progress.weaponFragments.soulsUltimateUsed += 1;
@@ -1764,13 +1764,13 @@
         }
         const affinityKey = page?.fields?.magicAffinityKey;
         if (!affinityKey) {
-            alert("Affinite manquante pour calculer l'ascension.");
+            window.toastManager?.error("Affinité manquante pour calculer l'ascension.");
             return false;
         }
         const cost = getUltimeAscensionCost(nextLevel || 1);
         const result = await applyScrollCost({ category: "ascension", affinityKey, cost });
         if (!result.ok) {
-            alert("Parchemins d'ascension insuffisants.");
+            window.toastManager?.error("Parchemins d'ascension insuffisants.");
             return false;
         }
         return true;
@@ -2768,7 +2768,7 @@
                             const nextRp = upgradeRp?.value.trim() || "";
                             const nextEffect = upgradeEffect?.value.trim() || "";
                             if (!nextName || !nextSummary || !nextRp || !nextEffect) {
-                                alert("Nom, aperçu, description RP et effet mécanique sont requis.");
+                                window.toastManager?.warning("Nom, aperçu, description RP et effet mécanique sont requis.");
                                 return;
                             }
                             const previousLevel = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1);
@@ -2888,7 +2888,7 @@
         const rp = capRpInput?.value.trim() || "";
         const effect = capEffectInput?.value.trim() || "";
         if (!name || !summary || !rp || !effect) {
-            alert("Nom, aperçu, description RP et effet mécanique sont requis.");
+            window.toastManager?.warning("Nom, aperçu, description RP et effet mécanique sont requis.");
             return null;
         }
         return {
@@ -3147,7 +3147,7 @@
             if (!isAdmin) return;
             const newCap = buildCapacityFromForm();
             if (!newCap) {
-                alert("Ajoutez un nom pour le fragment.");
+                window.toastManager?.warning("Ajoutez un nom pour le fragment.");
                 return;
             }
             if (!pages[activePageIndex]) return;

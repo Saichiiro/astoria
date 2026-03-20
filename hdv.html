@@ -57,7 +57,7 @@
             <section class="hdv-content">
                 <div class="hdv-panel active tw-surface tw-panel" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
                     <section class="hdv-filterbar" aria-label="Filtres">
-                        <div class="inventory-search" id="hdvSearch">
+                        <div class="inventory-search" id="hdvSearch" data-search-priority="page">
                             <button type="button" class="inventory-search-toggle tw-press" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
                                 <span class="inventory-search-icon">&#x1F50D;</span>
                             </button>
@@ -197,6 +197,7 @@
     <script src="js/ui/list-helpers.js"></script>
     <script src="js/ui/search-history.js"></script>
     <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
