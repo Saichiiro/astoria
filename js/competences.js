@@ -118,6 +118,7 @@
         retryTimer: null,
         retryCount: 0,
         dirty: false,
+        initializing: false, // true during initPersistence load — suppresses dirty/save triggers
         lastErrorToastAt: 0,
     };
 
@@ -460,7 +461,7 @@
             console.warn("Impossible d'enregistrer", key, error);
         }
 
-        if (persistState.mode === "character") {
+        if (persistState.mode === "character" && !persistState.initializing) {
             persistState.dirty = true;
             scheduleProfileSave();
             void persistProfileNow();
@@ -873,12 +874,14 @@
                     getCategoryLockState(category.id);
                 });
 
+                persistState.initializing = true;
                 saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
                 saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
                 saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
                 saveToStorage(skillsLocksKey, skillsState.locksByCategory);
                 saveToStorage(skillsCustomKey, skillsState.customSkillsByCategory);
                 saveToStorage(skillsMetaKey, skillsState.metaByCategory);
+                persistState.initializing = false;
 
                 if (!persisted) {
                     await flushProfileSave();
@@ -952,7 +955,12 @@
         const character = persistState.auth.getActiveCharacter?.();
         if (!character || !character.id) return;
 
-        const profileData = character.profile_data || {};
+        // Prefer the full in-memory character (window.astoriaActiveCharacter has unstripped profile_data)
+        // to avoid overwriting keys like nokorahBonuses that session-store strips from localStorage.
+        const fullChar = (typeof window !== 'undefined' && window.astoriaActiveCharacter?.id === character.id)
+            ? window.astoriaActiveCharacter
+            : character;
+        const profileData = fullChar.profile_data || {};
         const persistedDefinitions = buildPersistedSkillDefinitions();
         const nextProfileData = {
             ...profileData,
