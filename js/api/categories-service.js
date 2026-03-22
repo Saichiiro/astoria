@@ -8,6 +8,9 @@ const FALLBACK_CATEGORIES = [
     { slug: 'quete', name: 'Quêtes', icon: '✨', is_active: true, display_order: 5 }
 ];
 
+let _categoriesCache = null;
+let _categoriesCacheExpiry = 0;
+
 function isMissingCategoriesTable(error) {
     const code = String(error?.code || '').trim();
     const message = String(error?.message || '').toLowerCase();
@@ -24,6 +27,10 @@ function isMissingCategoriesTable(error) {
  * @returns {Promise<Array>} Array of category objects
  */
 export async function getCategories() {
+    if (_categoriesCache && Date.now() < _categoriesCacheExpiry) {
+        return _categoriesCache;
+    }
+
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
         .from('categories')
@@ -37,7 +44,10 @@ export async function getCategories() {
         }
         throw error;
     }
-    return data || [];
+
+    _categoriesCache = data || [];
+    _categoriesCacheExpiry = Date.now() + 5 * 60 * 1000;
+    return _categoriesCache;
 }
 
 /**

@@ -2565,13 +2565,13 @@ import { adminItemsModal } from './admin-items-modal.js';
                                 <td class="fw-semibold text-white" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${row.name}">${row.name}</td>
                                 ${row.cats.map(cat => {
                                     const r = cat.remaining;
-                                    const color = r === 0 ? '#2fb344' : r > 0 ? '#4299e1' : '#d63939';
-                                    return `<td class="text-center text-muted" title="${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}">
-                                        <span style="color:${color};font-weight:600;">${r}</span>
+                                    const color = r === 0 ? '#2fb344' : r <= 10 ? '#f59f00' : '#d63939';
+                                    return `<td class="text-center" title="${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}">
+                                        <span style="color:${color};font-weight:700;">${r}</span>
                                     </td>`;
                                 }).join('')}
                                 <td class="text-center">
-                                    <strong style="color:${row.totalRemaining === 0 ? '#2fb344' : '#4299e1'};">${row.totalRemaining}</strong>
+                                    <strong style="color:${row.totalRemaining === 0 ? '#2fb344' : row.totalRemaining <= 30 ? '#f59f00' : '#d63939'};">${row.totalRemaining}</strong>
                                 </td>
                             </tr>`;
                         }).join('')}
@@ -2579,8 +2579,9 @@ import { adminItemsModal } from './admin-items-modal.js';
                 </table>
             </div>
             <div class="px-3 pb-2 text-muted small">
-                <span style="color:#2fb344;font-weight:600;">0</span> = tout alloué &nbsp;·&nbsp;
-                <span style="color:#4299e1;font-weight:600;">N</span> = points restants à distribuer
+                <span style="color:#2fb344;font-weight:700;">0</span> tout alloué &nbsp;·&nbsp;
+                <span style="color:#f59f00;font-weight:700;">≤10</span> quelques pts restants &nbsp;·&nbsp;
+                <span style="color:#d63939;font-weight:700;">&gt;10</span> à distribuer
             </div>`;
 
             container.innerHTML = html;

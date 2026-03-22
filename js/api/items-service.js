@@ -36,7 +36,7 @@ export async function toggleItemState(itemId, enabled) {
 }
 
 const ITEMS_CACHE_KEY = 'astoria_items_cache';
-const ITEMS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const ITEMS_CACHE_TTL = 60 * 60 * 1000; // 60 minutes
 
 export function invalidateItemsCache() {
     try { localStorage.removeItem(ITEMS_CACHE_KEY); } catch {}
