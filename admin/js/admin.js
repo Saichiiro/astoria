@@ -104,6 +104,10 @@ import { adminItemsModal } from './admin-items-modal.js';
             renderFicheJoueurList(document.getElementById('ficheJoueurSearch')?.value || '');
         }
 
+        if (pageName === 'competences') {
+            void loadCompetencesHealth();
+        }
+
         console.log('[Admin] Navigated to:', pageName);
     }
 
@@ -2487,6 +2491,105 @@ import { adminItemsModal } from './admin-items-modal.js';
         }
     }
 
+    // =================================================================
+    // COMPÉTENCES HEALTH
+    // =================================================================
+
+    const COMP_CATEGORIES = [
+        { id: 'arts',          label: 'Arts' },
+        { id: 'connaissances', label: 'Conn.' },
+        { id: 'combat',        label: 'Combat' },
+        { id: 'social',        label: 'Social' },
+        { id: 'nature',        label: 'Nature' },
+        { id: 'physique',      label: 'Physique' },
+        { id: 'pouvoirs',      label: 'Pouvoirs' },
+        { id: 'artisanat',     label: 'Artisanat' },
+        { id: 'reputation',    label: 'Réputation' },
+    ];
+
+    async function loadCompetencesHealth() {
+        const container = document.getElementById('competencesHealthTable');
+        if (!container) return;
+        container.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Chargement...</div>';
+
+        try {
+            if (!supabase) supabase = await getSupabaseClient();
+            const { data: characters, error } = await supabase
+                .from('characters')
+                .select('name, profile_data')
+                .order('name');
+
+            if (error) throw error;
+            if (!characters?.length) {
+                container.innerHTML = '<div class="text-center p-4 text-muted">Aucun personnage trouvé.</div>';
+                return;
+            }
+
+            const rows = characters.map(char => {
+                const competences = char.profile_data?.competences;
+                if (!competences) return { name: char.name, noData: true };
+
+                const points = competences.pointsByCategory || {};
+                const base = competences.baseValuesByCategory || {};
+
+                const cats = COMP_CATEGORIES.map(cat => {
+                    const remaining = points[cat.id] ?? 0;
+                    const spent = Object.values(base[cat.id] || {})
+                        .reduce((s, v) => s + (Number(v) || 0), 0);
+                    return { ...cat, remaining, spent };
+                });
+
+                const totalRemaining = cats.reduce((s, c) => s + c.remaining, 0);
+                return { name: char.name, cats, totalRemaining };
+            });
+
+            const html = `
+            <div class="table-responsive">
+                <table class="table table-sm table-hover table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Personnage</th>
+                            ${COMP_CATEGORIES.map(c => `<th class="text-center">${c.label}</th>`).join('')}
+                            <th class="text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => {
+                            if (row.noData) return `
+                                <tr>
+                                    <td>${row.name}</td>
+                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-center">
+                                        <span class="badge bg-secondary-lt text-muted">Jamais visité</span>
+                                    </td>
+                                </tr>`;
+
+                            return `<tr>
+                                <td><strong>${row.name}</strong></td>
+                                ${row.cats.map(cat => {
+                                    const r = cat.remaining;
+                                    const cls = r === 0 ? 'bg-success-lt text-success' : r > 0 ? 'bg-azure-lt text-azure' : 'bg-danger-lt text-danger';
+                                    const title = `Dépensé: ${cat.spent} | Restant: ${r}`;
+                                    return `<td class="text-center"><span class="badge ${cls}" title="${title}">${r}</span></td>`;
+                                }).join('')}
+                                <td class="text-center">
+                                    <span class="badge ${row.totalRemaining === 0 ? 'bg-success' : 'bg-azure'} fw-bold">${row.totalRemaining}</span>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-3 pb-2 text-muted small">
+                <span class="badge bg-success-lt text-success me-1">0</span> Tout alloué &nbsp;
+                <span class="badge bg-azure-lt text-azure me-1">N</span> Points restants à distribuer
+            </div>`;
+
+            container.innerHTML = html;
+        } catch (err) {
+            container.innerHTML = `<div class="text-center p-4 text-danger"><i class="ti ti-alert-circle me-2"></i>Erreur : ${err.message}</div>`;
+        }
+    }
+
     async function init() {
         console.log('[Admin] Initializing...');
 
@@ -2519,6 +2622,11 @@ import { adminItemsModal } from './admin-items-modal.js';
         await loadItemsMirror();
         initQuestsPage();
         initFicheJoueur();
+
+        // Competences health refresh button
+        document.getElementById('refreshCompetencesHealth')?.addEventListener('click', () => {
+            void loadCompetencesHealth();
+        });
 
         // Logout handler
         const logoutBtn = document.getElementById('logoutBtn');
