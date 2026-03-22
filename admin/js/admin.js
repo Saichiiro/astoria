@@ -2545,34 +2545,34 @@ import { adminItemsModal } from './admin-items-modal.js';
 
             const html = `
             <div class="table-responsive">
-                <table class="table table-sm table-hover table-vcenter card-table">
+                <table class="table table-vcenter card-table" style="font-size:0.875rem;">
                     <thead>
-                        <tr>
-                            <th>Personnage</th>
-                            ${COMP_CATEGORIES.map(c => `<th class="text-center">${c.label}</th>`).join('')}
-                            <th class="text-center">Total</th>
+                        <tr style="white-space:nowrap;">
+                            <th style="min-width:160px;">Personnage</th>
+                            ${COMP_CATEGORIES.map(c => `<th class="text-center" style="width:72px;">${c.label}</th>`).join('')}
+                            <th class="text-center" style="width:72px;">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows.map(row => {
                             if (row.noData) return `
                                 <tr>
-                                    <td>${row.name}</td>
-                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-center">
-                                        <span class="badge bg-secondary-lt text-muted">Jamais visité</span>
-                                    </td>
+                                    <td class="text-muted">${row.name}</td>
+                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-muted small fst-italic">Jamais visité</td>
                                 </tr>`;
 
                             return `<tr>
-                                <td><strong>${row.name}</strong></td>
+                                <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;" title="${row.name}">${row.name}</td>
                                 ${row.cats.map(cat => {
                                     const r = cat.remaining;
-                                    const cls = r === 0 ? 'bg-success-lt text-success' : r > 0 ? 'bg-azure-lt text-azure' : 'bg-danger-lt text-danger';
-                                    const title = `Dépensé: ${cat.spent} | Restant: ${r}`;
-                                    return `<td class="text-center"><span class="badge ${cls}" title="${title}">${r}</span></td>`;
+                                    const color = r === 0 ? '#2fb344' : r > 0 ? '#4299e1' : '#d63939';
+                                    const title = `${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}`;
+                                    return `<td class="text-center" title="${title}">
+                                        <span style="color:${color};font-weight:600;">${r}</span>
+                                    </td>`;
                                 }).join('')}
                                 <td class="text-center">
-                                    <span class="badge ${row.totalRemaining === 0 ? 'bg-success' : 'bg-azure'} fw-bold">${row.totalRemaining}</span>
+                                    <strong style="color:${row.totalRemaining === 0 ? '#2fb344' : '#4299e1'};">${row.totalRemaining}</strong>
                                 </td>
                             </tr>`;
                         }).join('')}
@@ -2580,8 +2580,8 @@ import { adminItemsModal } from './admin-items-modal.js';
                 </table>
             </div>
             <div class="px-3 pb-2 text-muted small">
-                <span class="badge bg-success-lt text-success me-1">0</span> Tout alloué &nbsp;
-                <span class="badge bg-azure-lt text-azure me-1">N</span> Points restants à distribuer
+                <span style="color:#2fb344;font-weight:600;">0</span> = tout alloué &nbsp;·&nbsp;
+                <span style="color:#4299e1;font-weight:600;">N</span> = points restants à distribuer
             </div>`;
 
             container.innerHTML = html;
