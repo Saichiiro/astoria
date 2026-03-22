@@ -160,9 +160,6 @@ export async function login(username, password) {
         }
 
         await linkPublicUserToAuth(supabase, userRow.id, anon.user.id, "anonymous", true);
-        await syncAuthProfileMetadata(supabase, {
-            displayName: userRow.username
-        });
 
         const finalUser = {
             ...userRow,
@@ -224,10 +221,6 @@ export async function register(username, password) {
             console.error("[Auth] register insert error:", error);
             return { success: false, error: "Impossible de creer le compte" };
         }
-
-        await syncAuthProfileMetadata(supabase, {
-            displayName: data.username
-        });
 
         const sessionUser = writeAppSession(data);
         clearActiveCharacter();
@@ -313,9 +306,6 @@ export async function refreshSessionUser() {
                 .eq("id", localUser.id)
                 .single();
             if (!error && data) {
-                await syncAuthProfileMetadata(supabase, {
-                    displayName: data.username
-                });
                 const sessionUser = writeAppSession(data);
                 return { success: true, user: sessionUser };
             }
