@@ -851,13 +851,16 @@
                 });
 
                 // session-store strips profile_data from localStorage to avoid QuotaExceededError.
-                // Fetch from DB to get real competences data (avoids overwriting with defaults).
+                // 'competences' is never stored in the localStorage snapshot, so we must always
+                // fetch the full character from DB to get real competences data.
                 let profileData = character.profile_data || null;
-                if (!profileData) {
+                let fetchedFromDb = false;
+                if (!profileData || !profileData.competences) {
                     try {
                         const fullChar = await persistState.auth.getCharacterById?.(character.id);
                         if (fullChar?.profile_data) {
                             profileData = fullChar.profile_data;
+                            fetchedFromDb = true;
                             try { window.astoriaActiveCharacter = fullChar; } catch {}
                         }
                     } catch {}
@@ -895,7 +898,10 @@
                 saveToStorage(skillsMetaKey, skillsState.metaByCategory);
                 persistState.initializing = false;
 
-                if (!persisted) {
+                // Only write defaults to DB if the DB fetch confirmed no competences exist.
+                // If fetchedFromDb is false (fetch failed), keep defaults in-memory only —
+                // never overwrite DB with defaults when we don't know the real state.
+                if (!persisted && fetchedFromDb) {
                     await flushProfileSave();
                 }
             }
