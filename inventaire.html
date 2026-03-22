@@ -6373,10 +6373,6 @@
 
 
 
-            clearScrollCountsForItem(item);
-
-
-
             const nextQty = Math.max(0, Math.floor(Number(item?.quantity) || 0));
 
 
@@ -6385,42 +6381,23 @@
 
 
 
-            if (seededTypeKey && nextQty > 0) {
+            if (seededTypeKey) {
+                // Fixed element: clear and rewrite with exact qty
+                clearScrollCountsForItem(item);
 
-
-
-                const counts = getEmptyScrollCounts();
-
-
-
-                if (counts[seededTypeKey] === undefined) {
-
-
-
-                    counts[seededTypeKey] = 0;
-
-
-
+                if (nextQty > 0) {
+                    const counts = getEmptyScrollCounts();
+                    if (counts[seededTypeKey] === undefined) {
+                        counts[seededTypeKey] = 0;
+                    }
+                    counts[seededTypeKey] = nextQty;
+                    saveScrollCounts(category, item, counts);
+                } else {
+                    persistInventory();
                 }
-
-
-
-                counts[seededTypeKey] = nextQty;
-
-
-
-                saveScrollCounts(category, item, counts);
-
-
-
             } else {
-
-
-
+                // Random element (e.g. Parchemin d'Éveil): preserve existing element assignment
                 persistInventory();
-
-
-
             }
 
 
