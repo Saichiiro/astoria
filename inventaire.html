@@ -4694,7 +4694,18 @@
 
 
 
-            const payload = character?.profile_data?.inventory;
+            let payload = character?.profile_data?.inventory || null;
+
+            // session-store strips profile_data from localStorage to avoid QuotaExceededError.
+            // If inventory is missing from the cached character, fetch the full row from DB.
+            if (!payload && character?.id && authApi.getCharacterById) {
+                try {
+                    const freshChar = await authApi.getCharacterById(character.id);
+                    payload = freshChar?.profile_data?.inventory || null;
+                } catch (e) {
+                    console.warn('[Inventory Storage] Could not fetch fresh character profile for scroll types:', e);
+                }
+            }
 
 
 
@@ -11325,6 +11336,11 @@
 
 
         window.addEventListener('DOMContentLoaded', initInventory);
+
+        window.addEventListener('astoria:character-changed', async () => {
+            await initInventoryStorage();
+            await loadInventory();
+        });
 
 
 

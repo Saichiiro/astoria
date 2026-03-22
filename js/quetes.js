@@ -1891,7 +1891,11 @@ async function applyCompetenceDelta(characterId, categoryId, delta) {
         profileData = row?.profile_data || null;
     }
 
-    const nextProfile = profileData && typeof profileData === "object" ? { ...profileData } : {};
+    if (!profileData || typeof profileData !== "object") {
+        console.warn("[Quetes] profileData unavailable, abandon pour éviter d'écraser la DB");
+        return false;
+    }
+    const nextProfile = { ...profileData };
     const competences = nextProfile.competences && typeof nextProfile.competences === "object"
         ? { ...nextProfile.competences }
         : {};
@@ -1940,7 +1944,11 @@ async function applyScrollTypeRewards(characterId, entries) {
         profileData = row?.profile_data || null;
     }
 
-    const nextProfile = profileData && typeof profileData === "object" ? { ...profileData } : {};
+    if (!profileData || typeof profileData !== "object") {
+        console.warn("[Quetes] profileData unavailable, abandon pour éviter d'écraser la DB");
+        return false;
+    }
+    const nextProfile = { ...profileData };
     const inventory = { ...(nextProfile.inventory || {}) };
     const scrollTypes = { ...(inventory.scrollTypes || {}) };
     let updated = false;

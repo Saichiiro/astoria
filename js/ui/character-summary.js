@@ -418,43 +418,47 @@ function wireDropdownToggle(avatarEl, dropdownEl) {
         dropdownEl.style.position = "fixed";
         dropdownEl.style.visibility = "hidden";
 
-        if (hasFloatingUI) {
-            const { x, y } = await window.FloatingUIDOM.computePosition(avatarEl, dropdownEl, {
-                strategy: "fixed",
-                placement: "bottom-start",
-                middleware: [
-                    window.FloatingUIDOM.offset(10),
-                    window.FloatingUIDOM.flip({ padding: 12 }),
-                    window.FloatingUIDOM.shift({ padding: 12 })
-                ]
-            });
+        try {
+            if (hasFloatingUI) {
+                const { x, y } = await window.FloatingUIDOM.computePosition(avatarEl, dropdownEl, {
+                    strategy: "fixed",
+                    placement: "bottom-start",
+                    middleware: [
+                        window.FloatingUIDOM.offset(10),
+                        window.FloatingUIDOM.flip({ padding: 12 }),
+                        window.FloatingUIDOM.shift({ padding: 12 })
+                    ]
+                });
 
-            dropdownEl.style.left = `${x}px`;
-            dropdownEl.style.top = `${y}px`;
-            dropdownEl.style.visibility = "visible";
-            return;
-        }
-
-        const rect = avatarEl.getBoundingClientRect();
-        const dropdownRect = dropdownEl.getBoundingClientRect();
-        const margin = 8;
-        let left = rect.left;
-        let top = rect.bottom + 8;
-
-        if (left + dropdownRect.width > window.innerWidth - margin) {
-            left = Math.max(margin, window.innerWidth - dropdownRect.width - margin);
-        }
-
-        if (top + dropdownRect.height > window.innerHeight - margin) {
-            const aboveTop = rect.top - dropdownRect.height - 8;
-            if (aboveTop > margin) {
-                top = aboveTop;
+                dropdownEl.style.left = `${x}px`;
+                dropdownEl.style.top = `${y}px`;
+                dropdownEl.style.visibility = "visible";
+                return;
             }
-        }
 
-        dropdownEl.style.left = `${left}px`;
-        dropdownEl.style.top = `${top}px`;
-        dropdownEl.style.visibility = "visible";
+            const rect = avatarEl.getBoundingClientRect();
+            const dropdownRect = dropdownEl.getBoundingClientRect();
+            const margin = 8;
+            let left = rect.left;
+            let top = rect.bottom + 8;
+
+            if (left + dropdownRect.width > window.innerWidth - margin) {
+                left = Math.max(margin, window.innerWidth - dropdownRect.width - margin);
+            }
+
+            if (top + dropdownRect.height > window.innerHeight - margin) {
+                const aboveTop = rect.top - dropdownRect.height - 8;
+                if (aboveTop > margin) {
+                    top = aboveTop;
+                }
+            }
+
+            dropdownEl.style.left = `${left}px`;
+            dropdownEl.style.top = `${top}px`;
+        } finally {
+            // Always make the dropdown visible — prevents it getting stuck as invisible
+            dropdownEl.style.visibility = "visible";
+        }
     };
 
     const openDropdown = async () => {
