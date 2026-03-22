@@ -78,6 +78,10 @@ export async function searchListings(filters = {}, sort = 'price_asc', page = 1,
         query = query.eq('item_category', filters.category);
     }
 
+    if (filters.vendorCharacterId) {
+        query = query.eq('seller_character_id', filters.vendorCharacterId);
+    }
+
     if (filters.rarity && filters.rarity !== 'all') {
         query = query.eq('item_rarity', filters.rarity);
     }

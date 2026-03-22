@@ -72,7 +72,9 @@ const state = {
         minLevel: '',
         maxLevel: '',
         rarity: 'all',
-        affordableOnly: false
+        affordableOnly: false,
+        vendorCharacterId: null,
+        vendorName: ''
     },
     sort: 'price_asc',
     page: 1,
@@ -1125,6 +1127,9 @@ function renderChips() {
     if (state.filters.affordableOnly) {
         chips.push({ key: 'affordableOnly', label: `Achetable` });
     }
+    if (state.filters.vendorCharacterId) {
+        chips.push({ key: 'vendor', label: `Vendeur: ${state.filters.vendorName || state.filters.vendorCharacterId.slice(0, 8)}` });
+    }
     if (state.sort !== 'price_asc') {
         const labelMap = {
             price_desc: 'Tri: plus chers',
@@ -1144,7 +1149,7 @@ function renderChips() {
     reset.textContent = 'Réinitialiser';
     reset.addEventListener('click', () => {
         state.category = 'all';
-        state.filters = { q: '', minLevel: '', maxLevel: '', rarity: 'all', affordableOnly: false };
+        state.filters = { q: '', minLevel: '', maxLevel: '', rarity: 'all', affordableOnly: false, vendorCharacterId: null, vendorName: '' };
         state.sort = 'price_asc';
         state.page = 1;
         syncFiltersToUI();
@@ -1175,6 +1180,7 @@ function renderChips() {
             if (chip.key === 'rarity') state.filters.rarity = 'all';
             if (chip.key === 'affordableOnly') state.filters.affordableOnly = false;
             if (chip.key === 'sort') state.sort = 'price_asc';
+            if (chip.key === 'vendor') { state.filters.vendorCharacterId = null; state.filters.vendorName = ''; }
             state.page = 1;
             syncFiltersToUI();
             renderCategories();
@@ -1275,10 +1281,9 @@ function renderListings(listings) {
         const scrollLabel = listing.scroll_type ? getScrollTypeLabel(listing.scroll_type) : '';
         if (scrollLabel) metaLines.push(`<div class="hdv-item-meta hdv-item-meta--scroll">${scrollLabel}</div>`);
         if (item.category) metaLines.push(`<div class="hdv-item-meta">${categoryLabel(item.category)}</div>`);
-        const sellerName = resolveCharacterName(listing.seller_character);
-        const sellerLink = formatCharacterLink(listing.seller_character_id, sellerName || 'Profil');
-        if (sellerLink) {
-            metaLines.push(`<div class="hdv-item-meta">Vendeur: ${sellerLink}</div>`);
+        const sellerName = resolveCharacterName(listing.seller_character) || 'Vendeur';
+        if (listing.seller_character_id) {
+            metaLines.push(`<div class="hdv-item-meta">Vendeur: <button type="button" class="hdv-vendor-btn" data-vendor-id="${listing.seller_character_id}" data-vendor-name="${sellerName.replace(/"/g, '&quot;')}">${sellerName}</button></div>`);
         }
         tdItem.innerHTML = `
             <div class="hdv-item-cell">
@@ -1289,6 +1294,13 @@ function renderListings(listings) {
                 </div>
             </div>
         `;
+        const vendorBtn = tdItem.querySelector('.hdv-vendor-btn');
+        if (vendorBtn) {
+            vendorBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                filterByVendor(vendorBtn.dataset.vendorId, vendorBtn.dataset.vendorName);
+            });
+        }
 
         const tdLvl = document.createElement('td');
         tdLvl.textContent = String(listing.item_level ?? 0);
@@ -1475,6 +1487,14 @@ async function refreshProfile() {
     }
 }
 
+function filterByVendor(characterId, name) {
+    state.filters.vendorCharacterId = characterId || null;
+    state.filters.vendorName = name || '';
+    state.page = 1;
+    renderChips();
+    refreshSearch();
+}
+
 async function refreshSearch() {
     renderChips();
     setStatus(dom.search.status, 'Recherche...', 'info');
@@ -1485,7 +1505,8 @@ async function refreshSearch() {
         rarity: state.filters.rarity,
         minLevel: state.filters.minLevel,
         maxLevel: state.filters.maxLevel,
-        maxTotalPrice: state.filters.affordableOnly && state.profile ? state.profile.kaels : null
+        maxTotalPrice: state.filters.affordableOnly && state.profile ? state.profile.kaels : null,
+        vendorCharacterId: state.filters.vendorCharacterId || null
     };
 
     try {

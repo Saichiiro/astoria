@@ -384,6 +384,22 @@
     opacity: 0.75;
 }
 
+/* Vendor filter button */
+.hdv-vendor-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-primary, #e91e8c);
+    cursor: pointer;
+    font-size: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.hdv-vendor-btn:hover {
+    opacity: 0.75;
+}
+
 /* Qty selector for bulk buy */
 .hdv-buy-ctrl {
     display: flex;

@@ -6817,7 +6817,12 @@
 
 
 
-                if (!inventoryMigrated) {
+                // Only migrate localStorage → DB if the character has NO scrollTypes data at all in their profile.
+                // If scrollTypeStore has any data (DB was already set), skip localStorage entirely to avoid
+                // overwriting manually-assigned or admin-rerolled elements with stale localStorage values.
+                const hasAnyProfileScrollData = scrollTypeStore && Object.keys(scrollTypeStore).length > 0;
+
+                if (!inventoryMigrated && !hasAnyProfileScrollData) {
 
 
 
