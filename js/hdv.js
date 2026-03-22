@@ -14,7 +14,8 @@ import {
     getMyHistory,
     getMyListings,
     getMyProfile,
-    searchListings
+    searchListings,
+    updateListingPrice
 } from './market.js';
 import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from './api/inventory-service.js';
 import { getCategories } from './api/categories-service.js';
@@ -1265,8 +1266,7 @@ function renderListings(listings) {
     for (const listing of listings) {
         const item = resolveListingItem(listing);
         const img = resolveItemImage(item);
-        const total = listing.total_price ?? (listing.quantity * listing.unit_price);
-        const canAfford = state.profile ? state.profile.kaels >= total : false;
+        const canAffordFull = state.profile ? state.profile.kaels >= (listing.total_price ?? listing.quantity * listing.unit_price) : false;
 
         const tr = document.createElement('tr');
 
@@ -1299,14 +1299,20 @@ function renderListings(listings) {
         const tdLot = document.createElement('td');
         tdLot.textContent = `x${listing.quantity}`;
 
+        // Price cell — total updates live when qty input changes
         const tdPrice = document.createElement('td');
-        tdPrice.innerHTML = `
-            <div class="hdv-price-cell">
-                <div class="hdv-price-total">${formatKaels(total)}</div>
-                <div class="hdv-price-unit">${formatKaels(listing.unit_price)}/u</div>
-            </div>
-        `;
         tdPrice.className = 'hdv-td-price';
+        const totalDisplay = document.createElement('div');
+        totalDisplay.className = 'hdv-price-total';
+        totalDisplay.textContent = formatKaels(listing.quantity * listing.unit_price);
+        const unitDisplay = document.createElement('div');
+        unitDisplay.className = 'hdv-price-unit';
+        unitDisplay.textContent = `${formatKaels(listing.unit_price)}/u`;
+        const priceCell = document.createElement('div');
+        priceCell.className = 'hdv-price-cell';
+        priceCell.appendChild(totalDisplay);
+        priceCell.appendChild(unitDisplay);
+        tdPrice.appendChild(priceCell);
 
         const tdAction = document.createElement('td');
         const btn = document.createElement('button');
@@ -1317,39 +1323,48 @@ function renderListings(listings) {
             btn.textContent = 'Connexion';
             btn.disabled = true;
             btn.classList.add('is-disabled');
+            tdAction.appendChild(btn);
         } else if (!state.character) {
             btn.textContent = 'Choisir perso';
             btn.disabled = true;
             btn.classList.add('is-disabled');
-        } else if (!canAfford) {
+            tdAction.appendChild(btn);
+        } else if (!canAffordFull && listing.quantity === 1) {
             btn.textContent = 'Trop cher';
             btn.disabled = true;
             btn.classList.add('is-disabled');
+            tdAction.appendChild(btn);
         } else {
+            // Mutable selected qty (shared by input and click handler via closure)
+            let selectedQty = listing.quantity;
+
             btn.textContent = 'Acheter';
+            if (!canAffordFull) {
+                btn.disabled = true;
+                btn.classList.add('is-disabled');
+            }
+
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                const buyQty = selectedQty;
+                const buyTotal = buyQty * listing.unit_price;
                 const currentKaels = Number(state.profile?.kaels);
-                if (Number.isFinite(currentKaels) && currentKaels < total) {
-                    setStatus(
-                        dom.search.status,
-                        `Kaels insuffisants (${formatKaels(currentKaels)}/${formatKaels(total)}).`,
-                        'error'
-                    );
+                if (Number.isFinite(currentKaels) && currentKaels < buyTotal) {
+                    setStatus(dom.search.status, `Kaels insuffisants (${formatKaels(currentKaels)}/${formatKaels(buyTotal)}).`, 'error');
                     return;
                 }
-                const ok = window.confirm(`Acheter "${item.name}" pour ${formatKaels(total)} kaels ?`);
+                const ok = window.confirm(`Acheter ${buyQty > 1 ? `${buyQty}x ` : ''}"${item.name}" pour ${formatKaels(buyTotal)} kaels ?`);
                 if (!ok) return;
 
                 btn.disabled = true;
                 btn.textContent = '...';
                 try {
-                    await buyListing(listing.id);
+                    await buyListing(listing.id, buyQty < listing.quantity ? buyQty : null);
                     await refreshProfile();
-                    const inventoryUpdated = await applyInventoryDelta(listing.item_id, listing.quantity);
+                    const inventoryUpdated = await applyInventoryDelta(listing.item_id, buyQty);
                     const restockEntry = resolveRestockEntry(listing.item_id, item);
                     const scrollUpdated = listing.scroll_type && isScrollItem(restockEntry)
-                        ? await applyScrollTypeRestock(restockEntry, listing.scroll_type, listing.quantity)
+                        ? await applyScrollTypeRestock(restockEntry, listing.scroll_type, buyQty)
                         : true;
                     populateSellSelect();
                     await refreshSearch();
@@ -1357,13 +1372,12 @@ function renderListings(listings) {
                         setStatus(dom.search.status, 'Achat effectue, inventaire non mis a jour.', 'error');
                     } else {
                         setStatus(dom.search.status, 'Achat effectue.', 'success');
-                        // Log the purchase activity
                         await logItemPurchase({
                             characterId: state.character?.id,
                             itemName: item.name,
                             itemId: listing.item_id,
                             price: listing.unit_price,
-                            quantity: listing.quantity
+                            quantity: buyQty
                         });
                     }
                 } catch (err) {
@@ -1371,11 +1385,36 @@ function renderListings(listings) {
                     setStatus(dom.search.status, err?.message || "Erreur lors de l'achat.", 'error');
                 } finally {
                     btn.disabled = false;
+                    btn.textContent = 'Acheter';
                 }
             });
-        }
 
-        tdAction.appendChild(btn);
+            if (listing.quantity > 1) {
+                const buyCtrl = document.createElement('div');
+                buyCtrl.className = 'hdv-buy-ctrl';
+
+                const qtyInput = document.createElement('input');
+                qtyInput.type = 'number';
+                qtyInput.className = 'hdv-buy-qty';
+                qtyInput.min = '1';
+                qtyInput.max = String(listing.quantity);
+                qtyInput.value = String(listing.quantity);
+                qtyInput.addEventListener('input', () => {
+                    const v = Math.min(listing.quantity, Math.max(1, parseInt(qtyInput.value) || 1));
+                    selectedQty = v;
+                    totalDisplay.textContent = formatKaels(v * listing.unit_price);
+                    const canAffordQty = state.profile ? state.profile.kaels >= v * listing.unit_price : false;
+                    btn.disabled = !canAffordQty;
+                    btn.classList.toggle('is-disabled', !canAffordQty);
+                });
+
+                buyCtrl.appendChild(qtyInput);
+                buyCtrl.appendChild(btn);
+                tdAction.appendChild(buyCtrl);
+            } else {
+                tdAction.appendChild(btn);
+            }
+        }
 
         tr.appendChild(tdItem);
         tr.appendChild(tdLvl);
@@ -1596,41 +1635,106 @@ function renderMyListings(listings) {
         const tdLot = document.createElement('td');
         tdLot.textContent = `x${listing.quantity}`;
 
+        // Price cell built as DOM so edit can replace it
         const tdPrice = document.createElement('td');
-        tdPrice.innerHTML = `
-            <div class="hdv-price-cell">
-                <div class="hdv-price-total">${formatKaels(total)}</div>
-                <div class="hdv-price-unit">${formatKaels(listing.unit_price)}/u</div>
-            </div>
-        `;
         tdPrice.className = 'hdv-td-price';
+        function renderPriceCell(unitPrice) {
+            const t = unitPrice * listing.quantity;
+            tdPrice.innerHTML = '';
+            const cell = document.createElement('div');
+            cell.className = 'hdv-price-cell';
+            cell.innerHTML = `<div class="hdv-price-total">${formatKaels(t)}</div><div class="hdv-price-unit">${formatKaels(unitPrice)}/u</div>`;
+            tdPrice.appendChild(cell);
+        }
+        renderPriceCell(listing.unit_price);
 
         const tdAction = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.type = 'button';
 
         const needsSwitch = !state.character || listing.seller_character_id !== state.character.id;
         if (needsSwitch) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
             btn.className = 'btn-secondary hdv-action-btn';
             btn.textContent = 'Choisir perso';
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 if (typeof setActiveCharacter !== 'function') return;
                 const res = await setActiveCharacter(listing.seller_character_id);
-                if (res && res.success) {
-                    window.location.reload();
-                }
+                if (res && res.success) window.location.reload();
             });
+            tdAction.appendChild(btn);
         } else {
-            btn.className = 'btn-danger hdv-action-btn';
-            btn.textContent = 'Retirer';
-            btn.addEventListener('click', async (e) => {
+            const btnWrapper = document.createElement('div');
+            btnWrapper.className = 'hdv-action-btns';
+
+            // Edit price button
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'btn-secondary hdv-action-btn';
+            editBtn.textContent = 'Éditer prix';
+            editBtn.addEventListener('click', () => {
+                tdPrice.innerHTML = '';
+                const form = document.createElement('div');
+                form.className = 'hdv-edit-form';
+
+                const priceInput = document.createElement('input');
+                priceInput.type = 'number';
+                priceInput.className = 'hdv-edit-price-input';
+                priceInput.value = String(listing.unit_price);
+                priceInput.min = '0';
+
+                const saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.className = 'hdv-edit-save';
+                saveBtn.textContent = '✓';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'hdv-edit-cancel';
+                cancelBtn.textContent = '✗';
+
+                form.appendChild(priceInput);
+                form.appendChild(saveBtn);
+                form.appendChild(cancelBtn);
+                tdPrice.appendChild(form);
+                priceInput.focus();
+                priceInput.select();
+
+                cancelBtn.addEventListener('click', () => renderPriceCell(listing.unit_price));
+
+                saveBtn.addEventListener('click', async () => {
+                    const newPrice = parsePriceInput(priceInput.value);
+                    if (newPrice === null || newPrice < 0) {
+                        priceInput.style.outline = '2px solid red';
+                        return;
+                    }
+                    saveBtn.disabled = true;
+                    try {
+                        await updateListingPrice(listing.id, newPrice);
+                        listing.unit_price = newPrice;
+                        listing.total_price = newPrice * listing.quantity;
+                        renderPriceCell(newPrice);
+                        setStatus(dom.mine.status, 'Prix mis à jour.', 'success');
+                    } catch (err) {
+                        console.error(err);
+                        setStatus(dom.mine.status, err?.message || 'Erreur lors de la modification.', 'error');
+                        saveBtn.disabled = false;
+                    }
+                });
+            });
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-danger hdv-action-btn';
+            removeBtn.textContent = 'Retirer';
+            removeBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const ok = window.confirm(`Retirer l'offre "${item.name}" ?`);
                 if (!ok) return;
 
-                btn.disabled = true;
-                btn.textContent = '...';
+                removeBtn.disabled = true;
+                removeBtn.textContent = '...';
                 try {
                     await cancelListing(listing.id);
                     const inventoryUpdated = await applyInventoryDelta(listing.item_id, listing.quantity);
@@ -1649,13 +1753,16 @@ function renderMyListings(listings) {
                     console.error(err);
                     setStatus(dom.mine.status, err?.message || 'Erreur lors du retrait.', 'error');
                 } finally {
-                    btn.disabled = false;
-                    btn.textContent = 'Retirer';
+                    removeBtn.disabled = false;
+                    removeBtn.textContent = 'Retirer';
                 }
             });
+
+            btnWrapper.appendChild(editBtn);
+            btnWrapper.appendChild(removeBtn);
+            tdAction.appendChild(btnWrapper);
         }
 
-        tdAction.appendChild(btn);
         tr.appendChild(tdItem);
         tr.appendChild(tdLot);
         tr.appendChild(tdPrice);

@@ -162,33 +162,69 @@ export async function createListing({ itemId, item, quantity, unitPrice, scrollT
     return data;
 }
 
-export async function buyListing(listingId) {
+export async function buyListing(listingId, quantity = null) {
     const { user, character } = requireCharacter();
     const supabase = await getSupabaseClient();
 
-    const { data, error } = await supabase.rpc('buy_listing', {
+    const params = {
         p_listing_id: listingId,
         p_buyer_id: user.id,
         p_buyer_character_id: character.id
-    });
+    };
+    if (quantity !== null) {
+        params.p_quantity = Math.max(1, asInt(quantity) ?? 1);
+    }
+
+    const { data, error } = await supabase.rpc('buy_listing', params);
 
     if (error) throw error;
     return data;
 }
 
 export async function getMyListings() {
-    const { user, character } = requireCharacter();
+    const { character } = requireCharacter();
     const supabase = await getSupabaseClient();
 
     const { data, error } = await supabase
         .from('market')
         .select('*, items(id,name,description,category,rarity)')
         .in('status', ['active'])
-        .or(`seller_id.eq.${user.id},seller_character_id.eq.${character.id}`)
+        .eq('seller_character_id', character.id)
         .order('created_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
+}
+
+export async function updateListingPrice(listingId, unitPrice) {
+    const { user } = requireCharacter();
+    const supabase = await getSupabaseClient();
+
+    const safeUnitPrice = Math.max(0, asInt(unitPrice) ?? 0);
+
+    const { data: listing, error: fetchError } = await supabase
+        .from('market')
+        .select('quantity')
+        .eq('id', listingId)
+        .eq('seller_id', user.id)
+        .eq('status', 'active')
+        .single();
+
+    if (fetchError || !listing) throw new Error('Annonce introuvable.');
+
+    const totalPrice = safeUnitPrice * listing.quantity;
+
+    const { data, error } = await supabase
+        .from('market')
+        .update({ unit_price: safeUnitPrice, total_price: totalPrice })
+        .eq('id', listingId)
+        .eq('seller_id', user.id)
+        .eq('status', 'active')
+        .select('*')
+        .single();
+
+    if (error) throw error;
+    return data;
 }
 
 export async function cancelListing(listingId) {

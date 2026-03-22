@@ -5,5 +5,6 @@ export {
     buyListing,
     getMyListings,
     cancelListing,
-    getMyHistory
+    getMyHistory,
+    updateListingPrice
 } from './api/market-service.js';
