@@ -249,7 +249,9 @@ export async function logout() {
     try {
         const supabase = await getSupabaseClient();
         await supabase.auth.signOut();
-    } catch {}
+    } catch (signOutErr) {
+        console.warn('[Auth] signOut failed (session locale déjà nettoyée):', signOutErr);
+    }
 
     clearSession();
     clearActiveCharacter();

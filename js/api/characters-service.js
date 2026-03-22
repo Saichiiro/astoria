@@ -339,8 +339,16 @@ export async function updateCharacter(characterId, updates) {
 
             if (!fallback.error) {
                 const activeChar = getActiveCharacter();
+                // Deep-merge profile_data so a partial update.profile_data never wipes
+                // fields (inventory, nokorahBonuses, etc.) that aren't in the update payload.
                 const mergedCharacter = activeChar && activeChar.id === characterId
-                    ? { ...activeChar, ...updates }
+                    ? {
+                        ...activeChar,
+                        ...updates,
+                        ...(updates.profile_data != null ? {
+                            profile_data: { ...(activeChar.profile_data || {}), ...updates.profile_data }
+                        } : {})
+                    }
                     : null;
 
                 clearUserCharactersCache();

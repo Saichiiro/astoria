@@ -863,7 +863,9 @@
                             fetchedFromDb = true;
                             try { window.astoriaActiveCharacter = fullChar; } catch {}
                         }
-                    } catch {}
+                    } catch (fetchErr) {
+                        console.error('[Competences] Échec fetch DB profil complet:', fetchErr);
+                    }
                 }
                 profileData = profileData || {};
                 const persisted = profileData.competences || null;
