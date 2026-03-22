@@ -2544,11 +2544,11 @@ import { adminItemsModal } from './admin-items-modal.js';
             });
 
             const html = `
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table" style="font-size:0.875rem;">
+            <div class="table-sheet">
+                <table class="table table-vcenter">
                     <thead>
-                        <tr style="white-space:nowrap;">
-                            <th style="min-width:160px;">Personnage</th>
+                        <tr>
+                            <th>Personnage</th>
                             ${COMP_CATEGORIES.map(c => `<th class="text-center" style="width:72px;">${c.label}</th>`).join('')}
                             <th class="text-center" style="width:72px;">Total</th>
                         </tr>
@@ -2562,12 +2562,11 @@ import { adminItemsModal } from './admin-items-modal.js';
                                 </tr>`;
 
                             return `<tr>
-                                <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;" title="${row.name}">${row.name}</td>
+                                <td class="fw-semibold text-white" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${row.name}">${row.name}</td>
                                 ${row.cats.map(cat => {
                                     const r = cat.remaining;
                                     const color = r === 0 ? '#2fb344' : r > 0 ? '#4299e1' : '#d63939';
-                                    const title = `${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}`;
-                                    return `<td class="text-center" title="${title}">
+                                    return `<td class="text-center text-muted" title="${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}">
                                         <span style="color:${color};font-weight:600;">${r}</span>
                                     </td>`;
                                 }).join('')}
