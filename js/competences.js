@@ -850,7 +850,19 @@
                     persistState.equippedSlots = {};
                 });
 
-                const profileData = character.profile_data || {};
+                // session-store strips profile_data from localStorage to avoid QuotaExceededError.
+                // Fetch from DB to get real competences data (avoids overwriting with defaults).
+                let profileData = character.profile_data || null;
+                if (!profileData) {
+                    try {
+                        const fullChar = await persistState.auth.getCharacterById?.(character.id);
+                        if (fullChar?.profile_data) {
+                            profileData = fullChar.profile_data;
+                            try { window.astoriaActiveCharacter = fullChar; } catch {}
+                        }
+                    } catch {}
+                }
+                profileData = profileData || {};
                 const persisted = profileData.competences || null;
                 const fallback = buildDefaultCompetences();
 
