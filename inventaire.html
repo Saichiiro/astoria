@@ -6859,7 +6859,11 @@
 
                 }
 
-
+                // Character mode: never fall through to localStorage.
+                // If the item wasn't found in scrollTypeStore (key mismatch or new item),
+                // return empty counts so the caller assigns a random element fresh from DB data,
+                // NOT from stale localStorage eau/feu values.
+                return { counts: getEmptyScrollCounts(), hasStored: false };
 
             }
 
