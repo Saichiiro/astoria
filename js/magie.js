@@ -1823,17 +1823,19 @@
         currentCharacter = summaryState?.context?.character || null;
         storageKey = buildStorageKey(currentCharacterKey);
         migrateLegacyFicheStorageKeys();
+    }
 
-        // Fetch full character from DB so profile_data.competences is available
-        // (session-store strips it — needed for getFicheTabData("competences"))
-        if (currentCharacter?.id && authApi?.getCharacterById) {
-            try {
-                const fresh = await authApi.getCharacterById(currentCharacter.id);
-                if (fresh?.profile_data) {
-                    try { window.astoriaActiveCharacter = fresh; } catch {}
-                }
-            } catch {}
-        }
+    async function hydrateFullCharacter() {
+        // authApi is loaded AFTER initSummary — call this once authApi is available.
+        // Fetches full profile_data from DB (session-store strips competences, inventory, etc.)
+        // and caches it in window.astoriaActiveCharacter for getFicheTabData and write helpers.
+        if (!currentCharacter?.id || !authApi?.getCharacterById) return;
+        try {
+            const fresh = await authApi.getCharacterById(currentCharacter.id);
+            if (fresh?.profile_data) {
+                try { window.astoriaActiveCharacter = fresh; } catch {}
+            }
+        } catch {}
     }
 
     function updateSaveStatus() {
@@ -3262,6 +3264,9 @@
         } catch (error) {
             authApi = null;
         }
+
+        // Now authApi is loaded — fetch full profile_data for profile_data.competences reads
+        await hydrateFullCharacter();
 
         if (authApi) {
             const previousAdmin = isAdmin || getSessionAdminFallback();
