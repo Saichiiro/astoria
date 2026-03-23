@@ -983,11 +983,28 @@
             localStorage.setItem(getMagicProgressKey(), JSON.stringify(progress));
         } catch {}
         if (!persistProfile || !currentCharacter?.id || !authApi?.updateCharacter) return;
-        const profileData = { ...(currentCharacter.profile_data || {}) };
-        profileData.magic_progress = progress;
-        authApi.updateCharacter(currentCharacter.id, { profile_data: profileData }).catch(() => {});
-        currentCharacter = { ...currentCharacter, profile_data: profileData };
-        persistActiveCharacterSnapshot(currentCharacter);
+        // Async IIFE: fetch full profile_data before DB write (session-store strips it).
+        const charId = currentCharacter.id;
+        const charSnapshot = currentCharacter;
+        (async () => {
+            let freshProfile = null;
+            const cached = window.astoriaActiveCharacter;
+            if (cached?.id === charId && cached.profile_data) {
+                freshProfile = cached.profile_data;
+            } else {
+                try {
+                    const fresh = await authApi.getCharacterById?.(charId);
+                    if (fresh?.profile_data) {
+                        freshProfile = fresh.profile_data;
+                        try { window.astoriaActiveCharacter = fresh; } catch {}
+                    }
+                } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
+            }
+            const profileData = { ...(freshProfile || charSnapshot.profile_data || {}), magic_progress: progress };
+            authApi.updateCharacter(charId, { profile_data: profileData }).catch(() => {});
+            currentCharacter = { ...charSnapshot, profile_data: { ...(charSnapshot.profile_data || {}), magic_progress: progress } };
+            persistActiveCharacterSnapshot(currentCharacter);
+        })();
     }
 
     function isPageHidden(page) {
@@ -1454,7 +1471,21 @@
         const baseItem = getScrollBaseItem(category);
         if (!baseItem) return { ok: false, reason: "missing-scroll-item" };
 
-        const profileData = { ...(currentCharacter.profile_data || {}) };
+        // Fetch full profile_data: session-store strips inventory.scrollTypes → current=0 → insufficient
+        let freshProfile = null;
+        const cached = window.astoriaActiveCharacter;
+        if (cached?.id === currentCharacter.id && cached.profile_data) {
+            freshProfile = cached.profile_data;
+        } else {
+            try {
+                const fresh = await authApi.getCharacterById?.(currentCharacter.id);
+                if (fresh?.profile_data) {
+                    freshProfile = fresh.profile_data;
+                    try { window.astoriaActiveCharacter = fresh; } catch {}
+                }
+            } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
+        }
+        const profileData = { ...(freshProfile || currentCharacter.profile_data || {}) };
         const inventory = { ...(profileData.inventory || {}) };
         const scrollTypes = { ...(inventory.scrollTypes || {}) };
         const bucket = { ...(scrollTypes[category] || {}) };
@@ -2923,7 +2954,21 @@
 
     async function persistToProfile(payload) {
         if (!authApi?.updateCharacter || !currentCharacter?.id) return false;
-        const profileData = currentCharacter.profile_data || {};
+        // Fetch full profile_data before write (session-store strips competences, inventory, etc.)
+        let freshProfile = null;
+        const cached = window.astoriaActiveCharacter;
+        if (cached?.id === currentCharacter.id && cached.profile_data) {
+            freshProfile = cached.profile_data;
+        } else {
+            try {
+                const fresh = await authApi.getCharacterById?.(currentCharacter.id);
+                if (fresh?.profile_data) {
+                    freshProfile = fresh.profile_data;
+                    try { window.astoriaActiveCharacter = fresh; } catch {}
+                }
+            } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
+        }
+        const profileData = freshProfile || currentCharacter.profile_data || {};
         const nextProfileData = {
             ...profileData,
             magic_sheet: payload

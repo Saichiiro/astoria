@@ -1031,13 +1031,31 @@
                     summaryModule.applySummaryToElements(summaryElements, summary);
                 }
                 if (authApi?.updateCharacter && active?.id) {
-                    const updates = {
-                        profile_data: { ...profileData, fiche_summary: summary }
-                    };
-                    if (name) updates.name = name;
-                    if (race) updates.race = race;
-                    if (roleLabel) updates.class = roleLabel;
-                    authApi.updateCharacter(active.id, updates).catch(() => {});
+                    // Async IIFE: fetch full profile_data before write to avoid wiping
+                    // fields (competences, inventory, etc.) stripped by session-store.
+                    (async () => {
+                        let freshProfile = null;
+                        const cached = window.astoriaActiveCharacter;
+                        if (cached?.id === active.id && cached.profile_data) {
+                            freshProfile = cached.profile_data;
+                        } else {
+                            try {
+                                const fresh = await authApi.getCharacterById?.(active.id);
+                                if (fresh?.profile_data) {
+                                    freshProfile = fresh.profile_data;
+                                    try { window.astoriaActiveCharacter = fresh; } catch {}
+                                }
+                            } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                        }
+                        const safeProfile = freshProfile || profileData;
+                        const updates = {
+                            profile_data: { ...safeProfile, fiche_summary: summary }
+                        };
+                        if (name) updates.name = name;
+                        if (race) updates.race = race;
+                        if (roleLabel) updates.class = roleLabel;
+                        authApi.updateCharacter(active.id, updates).catch(() => {});
+                    })();
                 }
             }
             /**
@@ -1391,11 +1409,28 @@
                 if (!persistProfile) return;
                 const active = getActiveCharacter();
                 if (!active?.id || !authApi?.updateCharacter) return;
-                const profileData = { ...(active.profile_data || {}) };
-                profileData.magic_progress = progress;
-                authApi.updateCharacter(active.id, { profile_data: profileData }).catch(() => {});
+                // Async IIFE: fetch full profile_data before DB write (session-store strips it).
+                // localStorage write keeps only the stripped snapshot + magic_progress (quota-safe).
+                (async () => {
+                    let freshProfile = null;
+                    const cached = window.astoriaActiveCharacter;
+                    if (cached?.id === active.id && cached.profile_data) {
+                        freshProfile = cached.profile_data;
+                    } else {
+                        try {
+                            const fresh = await authApi.getCharacterById?.(active.id);
+                            if (fresh?.profile_data) {
+                                freshProfile = fresh.profile_data;
+                                try { window.astoriaActiveCharacter = fresh; } catch {}
+                            }
+                        } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                    }
+                    const profileData = { ...(freshProfile || active.profile_data || {}), magic_progress: progress };
+                    authApi.updateCharacter(active.id, { profile_data: profileData }).catch(() => {});
+                })();
                 try {
-                    const next = { ...active, profile_data: profileData };
+                    // Quota-safe local cache: only stripped snapshot + magic_progress
+                    const next = { ...active, profile_data: { ...(active.profile_data || {}), magic_progress: progress } };
                     localStorage.setItem(CHARACTER_STORAGE_KEY, JSON.stringify(next));
                 } catch {}
             }
@@ -1509,7 +1544,22 @@
                 const baseItem = getScrollBaseItem(category);
                 if (!baseItem) return { ok: false, reason: 'missing-scroll-item' };
 
-                const profileData = { ...(active.profile_data || {}) };
+                // Fetch full profile_data from DB: session-store strips inventory.scrollTypes,
+                // so reading from stripped data would always return current=0 → insufficient.
+                let freshProfile = null;
+                const cached = window.astoriaActiveCharacter;
+                if (cached?.id === active.id && cached.profile_data) {
+                    freshProfile = cached.profile_data;
+                } else {
+                    try {
+                        const fresh = await authApi.getCharacterById?.(active.id);
+                        if (fresh?.profile_data) {
+                            freshProfile = fresh.profile_data;
+                            try { window.astoriaActiveCharacter = fresh; } catch {}
+                        }
+                    } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                }
+                const profileData = { ...(freshProfile || active.profile_data || {}) };
                 const inventory = { ...(profileData.inventory || {}) };
                 const scrollTypes = { ...(inventory.scrollTypes || {}) };
                 const bucket = { ...(scrollTypes[category] || {}) };
@@ -2105,7 +2155,21 @@
                     return;
                 }
 
-                const profileData = character.profile_data || {};
+                // session-store strips profile_data — fetch full from DB to avoid wiping other fields
+                let freshProfile = null;
+                const cached = window.astoriaActiveCharacter;
+                if (cached?.id === character.id && cached.profile_data) {
+                    freshProfile = cached.profile_data;
+                } else {
+                    try {
+                        const fresh = await authApi.getCharacterById?.(character.id);
+                        if (fresh?.profile_data) {
+                            freshProfile = fresh.profile_data;
+                            try { window.astoriaActiveCharacter = fresh; } catch {}
+                        }
+                    } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                }
+                const profileData = freshProfile || character.profile_data || {};
                 const nextProfileData = {
                     ...profileData,
                     [tabName]: tabData

@@ -232,7 +232,21 @@ async function saveState() {
         try {
             const character = state.auth.getActiveCharacter();
             if (character?.id) {
-                const profileData = character.profile_data || {};
+                // Fetch full profile_data before write (session-store strips competences, inventory, etc.)
+                let freshProfile = null;
+                const cached = window.astoriaActiveCharacter;
+                if (cached?.id === character.id && cached.profile_data) {
+                    freshProfile = cached.profile_data;
+                } else {
+                    try {
+                        const fresh = await state.auth.getCharacterById?.(character.id);
+                        if (fresh?.profile_data) {
+                            freshProfile = fresh.profile_data;
+                            try { window.astoriaActiveCharacter = fresh; } catch {}
+                        }
+                    } catch (e) { console.warn('[Nokorah] fetch fresh profile failed:', e); }
+                }
+                const profileData = freshProfile || character.profile_data || {};
                 const nextProfileData = {
                     ...profileData,
                     nokorahBonuses: Array.isArray(state.bonuses) ? state.bonuses : []

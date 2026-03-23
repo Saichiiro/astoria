@@ -1083,7 +1083,21 @@
         }
         async function persistPresentations({ showError = true } = {}) {
             if (!currentCharacter || !canEditProfile()) return false;
-            const profileData = currentCharacter.profile_data || {};
+            // Fetch full profile_data before write (session-store strips competences, inventory, etc.)
+            let freshProfile = null;
+            const cached = window.astoriaActiveCharacter;
+            if (cached?.id === currentCharacter.id && cached.profile_data) {
+                freshProfile = cached.profile_data;
+            } else {
+                try {
+                    const fresh = await getCharacterById(currentCharacter.id);
+                    if (fresh?.profile_data) {
+                        freshProfile = fresh.profile_data;
+                        try { window.astoriaActiveCharacter = fresh; } catch {}
+                    }
+                } catch (e) { console.warn('[Profil] fetch fresh profile failed:', e); }
+            }
+            const profileData = freshProfile || currentCharacter.profile_data || {};
             const payload = presentations.map((item, index) => ({
                 id: item.id,
                 name: normalizePresentationName(item.name, `Presentation ${index + 1}`),
@@ -1993,7 +2007,21 @@
                     toastManager.error('URL avatar introuvable');
                     return;
                 }
-                const profileData = currentCharacter.profile_data || {};
+                // Fetch full profile_data before write (session-store strips other fields)
+                let freshProfile = null;
+                const cachedForAvatar = window.astoriaActiveCharacter;
+                if (cachedForAvatar?.id === currentCharacter.id && cachedForAvatar.profile_data) {
+                    freshProfile = cachedForAvatar.profile_data;
+                } else {
+                    try {
+                        const freshChar = await getCharacterById(currentCharacter.id);
+                        if (freshChar?.profile_data) {
+                            freshProfile = freshChar.profile_data;
+                            try { window.astoriaActiveCharacter = freshChar; } catch {}
+                        }
+                    } catch (e) { console.warn('[Profil] fetch fresh profile failed:', e); }
+                }
+                const profileData = freshProfile || currentCharacter.profile_data || {};
                 const res = await updateCharacter(currentCharacter.id, {
                     profile_data: {
                         ...profileData,
