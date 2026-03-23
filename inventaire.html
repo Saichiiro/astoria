@@ -2407,7 +2407,9 @@
 
         function getCompetencesSnapshot() {
             const character = authApi?.getActiveCharacter?.();
-            const fromProfile = character?.profile_data?.competences;
+            // Prefer window.astoriaActiveCharacter (full from DB) over session-store (stripped)
+            const fullChar = (window.astoriaActiveCharacter?.id === character?.id) ? window.astoriaActiveCharacter : character;
+            const fromProfile = fullChar?.profile_data?.competences;
             if (fromProfile && typeof fromProfile === 'object') {
                 return fromProfile;
             }

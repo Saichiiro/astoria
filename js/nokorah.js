@@ -374,7 +374,9 @@ function loadCompetencesSnapshot() {
         const character = state.auth.getActiveCharacter();
         if (character?.id) {
             characterId = character.id;
-            competences = character.profile_data?.competences || null;
+            // Prefer window.astoriaActiveCharacter (full from DB) over session-store (stripped)
+            const fullChar = (window.astoriaActiveCharacter?.id === character.id) ? window.astoriaActiveCharacter : character;
+            competences = fullChar.profile_data?.competences || null;
         }
     }
 

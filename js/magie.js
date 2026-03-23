@@ -320,9 +320,14 @@
     function getFicheTabData(tabName) {
         if (!currentCharacterKey) return null;
 
-        // Pour les compétences, lire depuis profile_data.competences si disponible
-        if (tabName === "competences" && currentCharacter?.profile_data?.competences) {
-            const competences = currentCharacter.profile_data.competences;
+        // Pour les compétences, préférer window.astoriaActiveCharacter (profil complet depuis DB)
+        // car currentCharacter vient du session-store strippé (sans profile_data.competences)
+        if (tabName === "competences") {
+            const charForComp = (window.astoriaActiveCharacter?.id === currentCharacter?.id && window.astoriaActiveCharacter?.profile_data?.competences)
+                ? window.astoriaActiveCharacter
+                : currentCharacter;
+            if (!charForComp?.profile_data?.competences) return null;
+            const competences = charForComp.profile_data.competences;
             const pouvoirs = competences.allocationsByCategory?.pouvoirs || {};
 
             // Mapper les noms de compétences vers les clés utilisées dans magie.js
@@ -1818,6 +1823,17 @@
         currentCharacter = summaryState?.context?.character || null;
         storageKey = buildStorageKey(currentCharacterKey);
         migrateLegacyFicheStorageKeys();
+
+        // Fetch full character from DB so profile_data.competences is available
+        // (session-store strips it — needed for getFicheTabData("competences"))
+        if (currentCharacter?.id && authApi?.getCharacterById) {
+            try {
+                const fresh = await authApi.getCharacterById(currentCharacter.id);
+                if (fresh?.profile_data) {
+                    try { window.astoriaActiveCharacter = fresh; } catch {}
+                }
+            } catch {}
+        }
     }
 
     function updateSaveStatus() {
