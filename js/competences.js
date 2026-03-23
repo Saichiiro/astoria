@@ -1007,6 +1007,16 @@
                     clearTimeout(persistState.retryTimer);
                     persistState.retryTimer = null;
                 }
+                // Keep in-memory cache fresh so other write paths on the same page
+                // don't spread stale profile_data and silently erase these competences.
+                try {
+                    if (window.astoriaActiveCharacter?.id === character.id) {
+                        window.astoriaActiveCharacter = {
+                            ...window.astoriaActiveCharacter,
+                            profile_data: nextProfileData
+                        };
+                    }
+                } catch {}
                 updateFeedback("Sauvegardé.");
             } catch (error) {
                 persistState.dirty = true;
