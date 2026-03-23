@@ -1526,7 +1526,12 @@
     }
 
     function getNokorahBonusesFromProfile() {
-        const character = persistState.auth?.getActiveCharacter?.();
+        // Prefer window.astoriaActiveCharacter (full, fetched from DB) over session-store
+        // which strips profile_data fields including nokorahBonuses.
+        const sessionChar = persistState.auth?.getActiveCharacter?.();
+        const character = (window.astoriaActiveCharacter?.id && window.astoriaActiveCharacter.id === sessionChar?.id)
+            ? window.astoriaActiveCharacter
+            : sessionChar;
         const list = character?.profile_data?.nokorahBonuses;
         return Array.isArray(list) ? list : [];
     }
