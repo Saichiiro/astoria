@@ -1413,6 +1413,11 @@ body.quest-board {
     z-index: 2;
 }
 
+.quest-editor-field textarea {
+    resize: vertical;
+    max-height: 280px;
+}
+
 .quest-editor-field select {
     background-color: #fff;
     color: #4c3a63;

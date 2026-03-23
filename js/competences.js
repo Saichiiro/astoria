@@ -1098,7 +1098,11 @@
         const allocations = getCategoryAllocations(categoryId);
         const hasAllocations = Object.values(allocations).some((value) => Number(value) > 0);
         const availablePoints = Math.max(0, Number(skillsState.pointsByCategory?.[categoryId]) || 0);
-        return availablePoints <= 0 && !hasAllocations;
+        const baseValues = skillsState.baseValuesByCategory?.[categoryId] || {};
+        const hasBaseValues = Object.values(baseValues).some((value) => Number(value) > 0);
+        // Lock only if truly nothing usable: no points, no pending, and no confirmed base values.
+        // If base values exist the player can still rearrange (dec base → free points → inc elsewhere).
+        return availablePoints <= 0 && !hasAllocations && !hasBaseValues;
     }
 
     function syncCategoryLockState(categoryId, persist = false) {
@@ -1281,7 +1285,7 @@
             decBtn.className = "skill-point-btn";
             decBtn.textContent = "-";
             decBtn.setAttribute("aria-label", `Retirer un point sur ${skill.name}`);
-            decBtn.disabled = allocation <= 0 || isLocked;
+            decBtn.disabled = (allocation <= 0 && base <= 0) || isLocked;
 
             const value = document.createElement("span");
             value.className = "skills-value";
@@ -1432,7 +1436,7 @@
         const cap = getSkillCap(skill);
 
         if (delta > 0 && (available <= 0 || currentTotal >= cap)) return;
-        if (delta < 0 && currentAlloc <= 0) return;
+        if (delta < 0 && currentAlloc <= 0 && base <= 0) return;
 
         if (delta > 0) {
             const increment = Math.min(delta, available, cap - currentTotal);
@@ -1440,10 +1444,23 @@
             allocations[skill.name] = currentAlloc + increment;
             skillsState.pointsByCategory[categoryId] = Math.max(0, available - increment);
         } else if (delta < 0) {
-            const decrement = Math.min(-delta, currentAlloc);
-            if (decrement <= 0) return;
-            allocations[skill.name] = currentAlloc - decrement;
-            skillsState.pointsByCategory[categoryId] = available + decrement;
+            if (currentAlloc > 0) {
+                // Reduce pending allocation first.
+                const decrement = Math.min(-delta, currentAlloc);
+                if (decrement <= 0) return;
+                allocations[skill.name] = currentAlloc - decrement;
+                skillsState.pointsByCategory[categoryId] = available + decrement;
+            } else {
+                // No pending: reduce the confirmed base value to free up points for rearrangement.
+                const decrement = Math.min(-delta, base);
+                if (decrement <= 0) return;
+                if (!skillsState.baseValuesByCategory[categoryId]) {
+                    skillsState.baseValuesByCategory[categoryId] = {};
+                }
+                skillsState.baseValuesByCategory[categoryId][skill.name] = base - decrement;
+                skillsState.pointsByCategory[categoryId] = available + decrement;
+                saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+            }
         }
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
         saveToStorage(skillsStorageKey, skillsState.pointsByCategory);
@@ -1451,12 +1468,13 @@
 
         const bonusBySkill = getBonusBreakdownBySkill();
         const nextAlloc = allocations[skill.name] || 0;
+        const updatedBase = skillsState.baseValuesByCategory[categoryId]?.[skill.name] ?? 0;
         const bonus = bonusBySkill[skill.name]?.total || 0;
-        const newTotal = base + nextAlloc + bonus;
+        const newTotal = updatedBase + nextAlloc + bonus;
         valueEl.textContent = `${newTotal} / ${cap}`;
         const isLocked = getCategoryLockState(categoryId);
-        decBtn.disabled = nextAlloc <= 0 || isLocked;
-        incBtn.disabled = base + nextAlloc >= cap || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
+        decBtn.disabled = (nextAlloc <= 0 && updatedBase <= 0) || isLocked;
+        incBtn.disabled = updatedBase + nextAlloc >= cap || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
 
         updateSkillsPointsDisplay();
         updatePendingHighlights(categoryId);
@@ -2095,7 +2113,7 @@
                 nokorahDetails: bonusEntry.nokorahDetails || []
             });
             const atMax = base + allocation >= cap;
-            decBtn.disabled = allocation <= 0 || isLocked;
+            decBtn.disabled = (allocation <= 0 && base <= 0) || isLocked;
             incBtn.disabled = atMax || currentPoints <= 0 || isLocked;
         });
 
