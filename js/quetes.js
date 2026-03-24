@@ -1320,8 +1320,9 @@ async function refreshQuestStateFromBackend(options = {}) {
         setSyncBadge(true, refreshHistory ? "Syncing quests and history..." : "Syncing quests...");
         const activeQuestId = state.activeQuestId;
         const detailOpen = dom.detailModal?.classList.contains("open");
-        const useProgressiveRefresh = !detailOpen && state.quests.length > QUEST_INITIAL_BATCH_SIZE;
-        const questsLoaded = await loadQuestsFromDb({ progressive: useProgressiveRefresh });
+        // Progressive loading is for initial page load only. Realtime/polling refreshes
+        // must load all quests in one shot to avoid the list jumping between renders.
+        const questsLoaded = await loadQuestsFromDb({ progressive: false });
         const historyLoaded = refreshHistory ? await loadHistoryFromDb() : false;
         const activityLoaded = refreshHistory ? await loadQuestCompletionsFromActivity() : false;
         if (!questsLoaded && !historyLoaded && !activityLoaded) {
