@@ -14,9 +14,12 @@
             targets.push(el);
         });
 
-        // Sidebar toggle — déjà fixed, on lui ajoute juste le comportement scroll
+        // Sidebar toggle — déjà fixed, transition inline pour bypasser sidebar.css
         var toggle = document.querySelector('.sidebarIconToggle');
-        if (toggle) targets.push(toggle);
+        if (toggle) {
+            toggle.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
+            targets.push(toggle);
+        }
 
         if (!targets.length) return;
 

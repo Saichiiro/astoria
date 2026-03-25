@@ -3288,19 +3288,21 @@ button:hover .shortcut-icon {
     top: 12px;
     right: 12px;
     z-index: 180;
+    /* Forcer layout horizontal même sur petits écrans */
+    flex-direction: row !important;
+    align-items: center !important;
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
 
-/* Sidebar toggle : déjà fixed via sidebar.css, on ajoute juste la transition */
-.sidebarIconToggle {
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+/* Masqué sur scroll down — !important pour passer au-dessus de sidebar.css */
+.headroom-character.headroom--hidden {
+    transform: translateY(-200%) !important;
+    pointer-events: none;
 }
 
-/* Masqué sur scroll down */
-.headroom-character.headroom--hidden,
 .sidebarIconToggle.headroom--hidden {
-    transform: translateY(-200%);
+    transform: translateY(-200%) !important;
     pointer-events: none;
 }
 
