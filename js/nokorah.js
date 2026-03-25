@@ -112,6 +112,7 @@ const state = {
     characterId: null,
     auth: null,
     mode: 'local', // 'local' or 'supabase'
+    cachedCompetences: null,
     selectedAppearance: PRESET_APPEARANCES[0],
     uploadDataUrl: ""
 };
@@ -374,9 +375,7 @@ function loadCompetencesSnapshot() {
         const character = state.auth.getActiveCharacter();
         if (character?.id) {
             characterId = character.id;
-            // Prefer window.astoriaActiveCharacter (full from DB) over session-store (stripped)
-            const fullChar = (window.astoriaActiveCharacter?.id === character.id) ? window.astoriaActiveCharacter : character;
-            competences = fullChar.profile_data?.competences || null;
+            competences = state.cachedCompetences || null;
         }
     }
 
@@ -951,6 +950,14 @@ async function buildNokorahAdapter() {
             state.nokorahService = nokorahService;
             state.characterId = character.id;
             state.mode = 'supabase';
+
+            // Load competences from dedicated table
+            try {
+                const { getCharacterCompetences } = await import('./api/competences-service.js');
+                state.cachedCompetences = await getCharacterCompetences(character.id);
+            } catch {
+                state.cachedCompetences = null;
+            }
         } else {
             state.mode = 'local';
         }

@@ -1823,6 +1823,7 @@
 
 
         let authApi = null;
+        let cachedCompetences = null;
 
 
 
@@ -2406,13 +2407,11 @@
         }
 
         function getCompetencesSnapshot() {
-            const character = authApi?.getActiveCharacter?.();
-            // Prefer window.astoriaActiveCharacter (full from DB) over session-store (stripped)
-            const fullChar = (window.astoriaActiveCharacter?.id === character?.id) ? window.astoriaActiveCharacter : character;
-            const fromProfile = fullChar?.profile_data?.competences;
-            if (fromProfile && typeof fromProfile === 'object') {
-                return fromProfile;
+            if (cachedCompetences && typeof cachedCompetences === 'object') {
+                return cachedCompetences;
             }
+
+            const character = authApi?.getActiveCharacter?.();
 
             const characterId = character?.id ? String(character.id) : '';
             return {
@@ -4608,7 +4607,12 @@
 
                 if (user && character && character.id) {
 
-
+                    // Load competences from dedicated table — awaited so getCompetencesSnapshot()
+                    // always has data on first call.
+                    try {
+                        const { getCharacterCompetences } = await import('./js/api/competences-service.js');
+                        cachedCompetences = await getCharacterCompetences(character.id);
+                    } catch {}
 
                     inventoryStorageMode = 'character';
 

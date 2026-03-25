@@ -146,6 +146,7 @@
     let currentCharacterKey = "default";
     let currentCharacter = null;
     let storageKey = STORAGE_KEY_BASE;
+    let cachedCompetences = null; // loaded from character_competences table on init
     let authApi = null;
     let hasPendingChanges = false;
     let summaryModule = null;
@@ -320,14 +321,9 @@
     function getFicheTabData(tabName) {
         if (!currentCharacterKey) return null;
 
-        // Pour les compétences, préférer window.astoriaActiveCharacter (profil complet depuis DB)
-        // car currentCharacter vient du session-store strippé (sans profile_data.competences)
         if (tabName === "competences") {
-            const charForComp = (window.astoriaActiveCharacter?.id === currentCharacter?.id && window.astoriaActiveCharacter?.profile_data?.competences)
-                ? window.astoriaActiveCharacter
-                : currentCharacter;
-            if (!charForComp?.profile_data?.competences) return null;
-            const competences = charForComp.profile_data.competences;
+            if (!cachedCompetences) return null;
+            const competences = cachedCompetences;
             const pouvoirs = competences.allocationsByCategory?.pouvoirs || {};
 
             // Mapper les noms de compétences vers les clés utilisées dans magie.js
@@ -1826,10 +1822,14 @@
     }
 
     async function hydrateFullCharacter() {
-        // authApi is loaded AFTER initSummary — call this once authApi is available.
-        // Fetches full profile_data from DB (session-store strips competences, inventory, etc.)
-        // and caches it in window.astoriaActiveCharacter for getFicheTabData and write helpers.
-        if (!currentCharacter?.id || !authApi?.getCharacterById) return;
+        // Loads competences from dedicated table + caches full profile for write helpers.
+        if (!currentCharacter?.id) return;
+        try {
+            const { getCharacterCompetences } = await import("./api/competences-service.js");
+            cachedCompetences = await getCharacterCompetences(currentCharacter.id);
+        } catch {}
+        // Also hydrate window.astoriaActiveCharacter for write helpers that spread profile_data.
+        if (!authApi?.getCharacterById) return;
         try {
             const fresh = await authApi.getCharacterById(currentCharacter.id);
             if (fresh?.profile_data) {
@@ -3318,6 +3318,11 @@
 
         saveToStorage();
         markSaved();
+
+        // Refresh competences cache when character switches
+        window.addEventListener("astoria:character-changed", () => {
+            void hydrateFullCharacter();
+        });
 
         window.addEventListener("storage", (event) => {
             if (!event.key || event.key !== getMagicProgressKey()) return;

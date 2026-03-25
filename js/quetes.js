@@ -1877,60 +1877,64 @@ async function applyKaelsDelta(characterId, delta) {
     return Boolean(result?.success);
 }
 
+// Per-character queue to prevent lost-update races when multiple rewards
+// fire for the same character in parallel (read-modify-write on the same row).
+const _competenceDeltaQueue = new Map();
+
 async function applyCompetenceDelta(characterId, categoryId, delta) {
     const safeDelta = Math.trunc(Number(delta) || 0);
     const safeCategoryId = String(categoryId || "").trim();
     if (!characterId || !safeCategoryId || !safeDelta) return false;
 
-    const active = getActiveCharacter?.();
-    let profileData = null;
-    if (active && active.id === characterId && active.profile_data) {
-        profileData = active.profile_data;
-    }
-    if (!profileData) {
-        const row = await getCharacterById(characterId);
-        profileData = row?.profile_data || null;
-    }
+    // Serialize writes per character: wait for any in-flight delta to finish first.
+    const previous = _competenceDeltaQueue.get(characterId) ?? Promise.resolve();
+    let resolve;
+    const gate = new Promise(r => { resolve = r; });
+    _competenceDeltaQueue.set(characterId, previous.then(() => gate));
+    await previous;
 
-    if (!profileData || typeof profileData !== "object") {
-        console.warn("[Quetes] profileData unavailable, abandon pour éviter d'écraser la DB");
-        return false;
-    }
-    const nextProfile = { ...profileData };
-    const competences = nextProfile.competences && typeof nextProfile.competences === "object"
-        ? { ...nextProfile.competences }
-        : {};
-
-    const pointsByCategory = competences.pointsByCategory && typeof competences.pointsByCategory === "object"
-        ? { ...competences.pointsByCategory }
-        : {};
-    const current = Math.floor(Number(pointsByCategory[safeCategoryId]) || 0);
-    const next = current + safeDelta;
-    if (next < 0) return false;
-    pointsByCategory[safeCategoryId] = next;
-
-    competences.version = Number(competences.version) || 1;
-    competences.baseValuesByCategory = competences.baseValuesByCategory || {};
-    competences.pointsByCategory = pointsByCategory;
-    competences.allocationsByCategory = competences.allocationsByCategory || {};
-    competences.locksByCategory = competences.locksByCategory || {};
-    competences.locksByCategory[safeCategoryId] = next <= 0;
-    competences.customSkillsByCategory = competences.customSkillsByCategory || {};
-    nextProfile.competences = competences;
-
+    // All paths beyond this point must call resolve() to unblock the queue.
+    let success = false;
     try {
-        const prefix = `astoria_competences_${characterId}:`;
-        localStorage.setItem(`${prefix}skillsPointsByCategory`, JSON.stringify(competences.pointsByCategory || {}));
-        localStorage.setItem(`${prefix}skillsLocksByCategory`, JSON.stringify(competences.locksByCategory || {}));
-    } catch (error) {
-        console.warn("[Quetes] Failed to mirror competence rewards to localStorage:", error);
-    }
+        const supabase = await getSupabaseClient();
+        const { data: compRow } = await supabase
+            .from('character_competences')
+            .select('data')
+            .eq('character_id', characterId)
+            .maybeSingle();
 
-    const result = await updateCharacter(characterId, { profile_data: nextProfile });
-    if (result?.success && active && active.id === characterId) {
-        document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { profile_data: nextProfile } }));
+        const competences = (compRow?.data && typeof compRow.data === 'object') ? { ...compRow.data } : {};
+        const pointsByCategory = competences.pointsByCategory && typeof competences.pointsByCategory === "object"
+            ? { ...competences.pointsByCategory }
+            : {};
+        const current = Math.floor(Number(pointsByCategory[safeCategoryId]) || 0);
+        const next = current + safeDelta;
+        if (next < 0) return false; // success stays false, finally still fires
+
+        pointsByCategory[safeCategoryId] = next;
+        competences.version = Number(competences.version) || 1;
+        competences.baseValuesByCategory = competences.baseValuesByCategory || {};
+        competences.pointsByCategory = pointsByCategory;
+        competences.allocationsByCategory = competences.allocationsByCategory || {};
+        competences.locksByCategory = competences.locksByCategory || {};
+        competences.locksByCategory[safeCategoryId] = next <= 0;
+        competences.customSkillsByCategory = competences.customSkillsByCategory || {};
+
+        const { error } = await supabase
+            .from('character_competences')
+            .upsert({ character_id: characterId, data: competences });
+        if (error) {
+            console.warn("[Quetes] Failed to apply competence delta:", error);
+        } else {
+            success = true;
+            document.dispatchEvent(new CustomEvent("astoria:competences-updated", {
+                detail: { characterId, competences }
+            }));
+        }
+    } finally {
+        resolve(); // always unblock next queued delta for this character
     }
-    return Boolean(result?.success);
+    return success;
 }
 
 async function applyScrollTypeRewards(characterId, entries) {

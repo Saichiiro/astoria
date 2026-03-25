@@ -839,6 +839,10 @@
                 document.body.dataset.admin = persistState.auth.isAdmin?.() ? "true" : "false";
                 skillsState.isAdmin = document.body.dataset.admin === "true";
 
+                // Load Supabase client for direct table access
+                const { getSupabaseClient } = await import("./api/supabase-client.js");
+                persistState.supabase = getSupabaseClient;
+
                 // Warm up equipped-slots cache from DB (fire-and-forget, best effort)
                 import("./api/inventory-service.js").then(({ getEquippedSlots }) =>
                     getEquippedSlots(character.id)
@@ -850,27 +854,24 @@
                     persistState.equippedSlots = {};
                 });
 
-                // session-store strips profile_data from localStorage to avoid QuotaExceededError.
-                // 'competences' is never stored in the localStorage snapshot, so we must always
-                // fetch the full character from DB to get real competences data.
-                let profileData = character.profile_data || null;
+                // Read competences from dedicated table (no profile_data fetch needed).
+                let persisted = null;
                 let fetchedFromDb = false;
-                if (!profileData || !profileData.competences) {
-                    try {
-                        const fullChar = await persistState.auth.getCharacterById?.(character.id);
-                        if (fullChar?.profile_data) {
-                            profileData = fullChar.profile_data;
-                            fetchedFromDb = true;
-                            try { window.astoriaActiveCharacter = fullChar; } catch {}
-                        }
-                    } catch (fetchErr) {
-                        console.error('[Competences] Échec fetch DB profil complet:', fetchErr);
-                    }
+                try {
+                    const supabase = await persistState.supabase();
+                    const { data: compRow, error: compErr } = await supabase
+                        .from('character_competences')
+                        .select('data')
+                        .eq('character_id', character.id)
+                        .maybeSingle();
+                    if (compErr) throw compErr;
+                    persisted = compRow?.data || null;
+                    fetchedFromDb = true;
+                } catch (fetchErr) {
+                    console.error('[Competences] Échec fetch table character_competences:', fetchErr);
                 }
-                profileData = profileData || {};
-                const persisted = profileData.competences || null;
-                const fallback = buildDefaultCompetences();
 
+                const fallback = buildDefaultCompetences();
                 const merged = {
                     version: 1,
                     pointsByCategory: persisted?.pointsByCategory || fallback.pointsByCategory,
@@ -900,9 +901,7 @@
                 saveToStorage(skillsMetaKey, skillsState.metaByCategory);
                 persistState.initializing = false;
 
-                // Only write defaults to DB if the DB fetch confirmed no competences exist.
-                // If fetchedFromDb is false (fetch failed), keep defaults in-memory only —
-                // never overwrite DB with defaults when we don't know the real state.
+                // Write defaults to DB only if the fetch confirmed no record exists yet.
                 if (!persisted && fetchedFromDb) {
                     await flushProfileSave();
                 }
@@ -963,7 +962,7 @@
     }
 
     async function flushProfileSave() {
-        if (persistState.mode !== "character" || !persistState.auth) return;
+        if (persistState.mode !== "character" || !persistState.auth || !persistState.supabase) return;
         if (persistState.saveTimer) {
             clearTimeout(persistState.saveTimer);
             persistState.saveTimer = null;
@@ -975,48 +974,31 @@
         const character = persistState.auth.getActiveCharacter?.();
         if (!character || !character.id) return;
 
-        // Prefer the full in-memory character (window.astoriaActiveCharacter has unstripped profile_data)
-        // to avoid overwriting keys like nokorahBonuses that session-store strips from localStorage.
-        const fullChar = (typeof window !== 'undefined' && window.astoriaActiveCharacter?.id === character.id)
-            ? window.astoriaActiveCharacter
-            : character;
-        const profileData = fullChar.profile_data || {};
+        const characterId = character.id;
         const persistedDefinitions = buildPersistedSkillDefinitions();
-        const nextProfileData = {
-            ...profileData,
-            competences: {
-                version: 1,
-                pointsByCategory: skillsState.pointsByCategory,
-                allocationsByCategory: skillsState.allocationsByCategory,
-                baseValuesByCategory: skillsState.baseValuesByCategory,
-                locksByCategory: skillsState.locksByCategory,
-                customSkillsByCategory: persistedDefinitions.customSkillsByCategory,
-                metaByCategory: persistedDefinitions.metaByCategory,
-            },
+        const nextData = {
+            version: 1,
+            pointsByCategory: skillsState.pointsByCategory,
+            allocationsByCategory: skillsState.allocationsByCategory,
+            baseValuesByCategory: skillsState.baseValuesByCategory,
+            locksByCategory: skillsState.locksByCategory,
+            customSkillsByCategory: persistedDefinitions.customSkillsByCategory,
+            metaByCategory: persistedDefinitions.metaByCategory,
         };
 
         persistState.inFlight = (async () => {
             try {
-                const result = await persistState.auth.updateCharacter?.(character.id, { profile_data: nextProfileData });
-                if (!result || result.success !== true) {
-                    throw new Error("updateCharacter returned success=false");
-                }
+                const supabase = await persistState.supabase();
+                const { error } = await supabase
+                    .from('character_competences')
+                    .upsert({ character_id: characterId, data: nextData });
+                if (error) throw error;
                 persistState.dirty = false;
                 persistState.retryCount = 0;
                 if (persistState.retryTimer) {
                     clearTimeout(persistState.retryTimer);
                     persistState.retryTimer = null;
                 }
-                // Keep in-memory cache fresh so other write paths on the same page
-                // don't spread stale profile_data and silently erase these competences.
-                try {
-                    if (window.astoriaActiveCharacter?.id === character.id) {
-                        window.astoriaActiveCharacter = {
-                            ...window.astoriaActiveCharacter,
-                            profile_data: nextProfileData
-                        };
-                    }
-                } catch {}
                 updateFeedback("Sauvegardé.");
             } catch (error) {
                 persistState.dirty = true;
@@ -2313,8 +2295,8 @@
         }
     });
 
-    document.addEventListener("astoria:character-updated", (event) => {
-        const competences = event?.detail?.profile_data?.competences;
+    document.addEventListener("astoria:competences-updated", (event) => {
+        const competences = event?.detail?.competences;
         if (!competences || typeof competences !== "object") return;
 
         skillsState.pointsByCategory = competences.pointsByCategory || skillsState.pointsByCategory || {};
