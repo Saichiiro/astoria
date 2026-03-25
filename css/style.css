@@ -3288,12 +3288,21 @@ button:hover .shortcut-icon {
     left: 0;
     right: 0;
     z-index: 150;
+    /* Wrapper ne capture aucun clic — seul le header à l'intérieur le fait */
+    pointer-events: none;
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
 
+.headroom-outer > * {
+    pointer-events: auto;
+}
+
 .headroom-outer.headroom--hidden {
     transform: translateY(-110%);
+}
+
+.headroom-outer.headroom--hidden > * {
     pointer-events: none;
 }
 
