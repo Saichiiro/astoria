@@ -198,6 +198,10 @@ body.quest-board {
     display: none;
 }
 
+body.quest-board {
+    --headroom-bg: rgba(255, 232, 250, 0.94);
+}
+
 .quest-search-panel {
     background: rgba(255, 191, 228, 0.5);
     border-radius: 22px;

@@ -3279,6 +3279,36 @@ button:hover .shortcut-icon {
 }
 
 /* =================================================================
+   HEADROOM — Smart sticky header
+   ================================================================= */
+
+:root {
+    --headroom-bg: rgba(255, 255, 255, 0.94);
+}
+
+.headroom {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 150;
+    margin: 0 !important;
+    background: var(--headroom-bg);
+    backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.07);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.32s ease;
+    will-change: transform;
+}
+
+.headroom--hidden {
+    transform: translateY(-110%);
+    box-shadow: none !important;
+    pointer-events: none;
+}
+
+/* =================================================================
    RESPONSIVE HEADERS
    ================================================================= */
 
