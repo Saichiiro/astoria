@@ -65,6 +65,27 @@
                             <option value="all">Tous les rangs</option>
                         </select>
                     </label>
+                    <label class="quest-filter">
+                        <span class="quest-filter-label">Statut</span>
+                        <select id="questStatusFilter" class="quest-filter-select">
+                            <option value="all">Tous les statuts</option>
+                            <option value="available">Disponible</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="locked">Accès restreint</option>
+                        </select>
+                    </label>
+                    <label class="quest-filter">
+                        <span class="quest-filter-label">Trier par</span>
+                        <select id="questSortFilter" class="quest-filter-select">
+                            <option value="default">Par défaut</option>
+                            <option value="name">Nom (A→Z)</option>
+                            <option value="inprogress">En cours d'abord</option>
+                        </select>
+                    </label>
+                    <div class="quest-filter quest-filter--toggle">
+                        <span class="quest-filter-label">Mes quêtes</span>
+                        <button type="button" class="quest-my-quests-btn tw-press" id="questMyQuestsBtn" aria-pressed="false">Toutes</button>
+                    </div>
                     <div class="inventory-search" id="questSearch" data-search-priority="page">
                         <button type="button" class="inventory-search-toggle tw-press" id="questSearchToggle" aria-label="Rechercher" aria-expanded="false">
                             <span class="inventory-search-icon">&#128269;</span>

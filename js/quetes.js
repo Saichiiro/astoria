@@ -6,6 +6,7 @@ import { initItemsModal } from "./quetes-items-modal.js";
 import { initSkillsRewardsModal } from "./quetes-skills-modal.js";
 import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
 import { logQuestJoin, logActivity, ActionTypes } from "./api/activity-logger.js";
+import { createFilterBar, itemMatchesFilters, sortItemsBy, normalizeFilter } from "./components/ui/FilterBar.js";
 
 // Safe sanitizer wrapper with fallback when sanitizer not available
 function clean(value) {
@@ -73,6 +74,9 @@ const state = {
         search: "",
         type: "all",
         rank: "all",
+        status: "all",
+        sort: "default",
+        myQuests: false,
         historyType: "all"
     },
     viewMode: "carousel",
@@ -190,6 +194,9 @@ function saveAdminNotesMap(map) {
 const dom = {
     typeFilter: document.getElementById("questTypeFilter"),
     rankFilter: document.getElementById("questRankFilter"),
+    statusFilter: document.getElementById("questStatusFilter"),
+    sortFilter: document.getElementById("questSortFilter"),
+    myQuestsBtn: document.getElementById("questMyQuestsBtn"),
     searchRoot: document.getElementById("questSearch"),
     searchInput: document.getElementById("questSearchInput"),
     searchToggle: document.getElementById("questSearchToggle"),
@@ -2203,23 +2210,26 @@ function fillFilters() {
     dom.historyFilters.prepend(allBtn);
 }
 
+const QUEST_FILTER_MATCHERS = [
+    { id: "type",     match: (q, v) => v === "all" || q.type === v },
+    { id: "rank",     match: (q, v) => v === "all" || q.rank === v },
+    { id: "status",   match: (q, v) => v === "all" || q.status === v },
+    { id: "myQuests", match: (q, v) => !v || isParticipant(q) },
+    { id: "search",   match: (q, v) => !v || normalizeFilter(q.name).includes(v) },
+];
+
+const QUEST_SORTERS = {
+    name:       (a, b) => normalizeFilter(a.name).localeCompare(normalizeFilter(b.name), "fr", { sensitivity: "base" }),
+    inprogress: (a, b) => (a.status === "in_progress" ? 0 : 1) - (b.status === "in_progress" ? 0 : 1),
+};
+
 function getFilteredQuests() {
-    const search = normalize(state.filters.search);
-    return state.quests.filter((quest) => {
-        if (state.filters.type !== "all" && quest.type !== state.filters.type) return false;
-        if (state.filters.rank !== "all" && quest.rank !== state.filters.rank) return false;
-        if (!search) return true;
-        return normalize(quest.name).includes(search);
-    });
+    const filtered = state.quests.filter((q) => itemMatchesFilters(q, state.filters, QUEST_FILTER_MATCHERS));
+    return sortItemsBy(filtered, state.filters.sort, QUEST_SORTERS);
 }
 
 function questMatchesActiveFilters(quest) {
-    if (!quest) return false;
-    const search = normalize(state.filters.search);
-    if (state.filters.type !== "all" && quest.type !== state.filters.type) return false;
-    if (state.filters.rank !== "all" && quest.rank !== state.filters.rank) return false;
-    if (!search) return true;
-    return normalize(quest.name).includes(search);
+    return itemMatchesFilters(quest, state.filters, QUEST_FILTER_MATCHERS);
 }
 
 function buildQuestCard(quest, index) {
@@ -3823,23 +3833,28 @@ function bindEvents() {
             dropdown: dom.searchHistory,
             debounceWait: 200,
             onSearch: (value) => {
-                state.filters.search = String(value || "");
+                state.filters.search = normalizeFilter(value);
                 renderQuestList();
             }
         });
     } else {
         dom.searchInput.addEventListener("input", () => {
-            state.filters.search = dom.searchInput.value;
+            state.filters.search = normalizeFilter(dom.searchInput.value);
             renderQuestList();
         });
     }
-    dom.typeFilter.addEventListener("change", () => {
-        state.filters.type = dom.typeFilter.value;
-        renderQuestList();
-    });
-    dom.rankFilter.addEventListener("change", () => {
-        state.filters.rank = dom.rankFilter.value;
-        renderQuestList();
+    createFilterBar({
+        filters: [
+            { id: "type",     type: "select", el: dom.typeFilter,   default: "all" },
+            { id: "rank",     type: "select", el: dom.rankFilter,   default: "all" },
+            { id: "status",   type: "select", el: dom.statusFilter, default: "all" },
+            { id: "sort",     type: "select", el: dom.sortFilter,   default: "default" },
+            { id: "myQuests", type: "toggle", el: dom.myQuestsBtn,  default: false, labels: ["Toutes", "Mes quêtes"] },
+        ],
+        onChange: (filters) => {
+            Object.assign(state.filters, filters);
+            renderQuestList();
+        },
     });
     document.querySelector('a[href="#questHistory"]')?.addEventListener("click", () => {
         void ensureHistoryDataLoaded();

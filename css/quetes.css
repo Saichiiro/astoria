@@ -225,7 +225,7 @@ body.quest-board {
 
 .quest-search-controls {
     display: grid;
-    grid-template-columns: repeat(2, minmax(160px, 1fr)) minmax(240px, 1.4fr);
+    grid-template-columns: repeat(4, minmax(130px, 1fr)) minmax(200px, 1.4fr);
     gap: 16px;
     align-items: end;
 }
@@ -257,6 +257,30 @@ body.quest-board {
     font-weight: 600;
     min-width: 0;
     width: 100%;
+}
+
+.quest-filter--toggle {
+    justify-content: flex-end;
+}
+
+.quest-my-quests-btn {
+    border-radius: 999px;
+    border: 2px solid rgba(255, 106, 162, 0.5);
+    padding: 8px 16px;
+    background: #fff;
+    font-weight: 600;
+    font-family: var(--quest-font-body);
+    color: var(--quest-ink);
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.quest-my-quests-btn.is-active {
+    background: var(--quest-pink);
+    border-color: var(--quest-pink);
+    color: #fff;
 }
 
 .quest-search-controls .inventory-search {
@@ -2271,6 +2295,10 @@ body.quest-board {
 
     .quest-search-controls {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .quest-search-controls .inventory-search {
+        grid-column: 1 / -1;
     }
 }
 
