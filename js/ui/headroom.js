@@ -8,19 +8,30 @@
         if (el._headroom) return;
         el._headroom = true;
 
-        el.classList.add('headroom');
+        // Inject a fixed wrapper around the header.
+        // The header stays in normal-flow layout inside the wrapper —
+        // its internal flex/responsive layout is untouched.
+        var outer = document.createElement('div');
+        outer.className = 'headroom-outer';
+        el.parentNode.insertBefore(outer, el);
+        outer.appendChild(el);
 
+        // Spacer keeps the space the header used to occupy in the flow.
         var spacer = document.createElement('div');
         spacer.className = 'headroom-spacer';
-        spacer.style.height = el.offsetHeight + 'px';
-        el.parentNode.insertBefore(spacer, el.nextSibling);
+        outer.parentNode.insertBefore(spacer, outer.nextSibling);
+
+        function syncHeight() {
+            var h = el.offsetHeight;
+            outer.style.height = h + 'px';
+            spacer.style.height = h + 'px';
+        }
+        syncHeight();
 
         if (window.ResizeObserver) {
-            var ro = new ResizeObserver(function () {
-                spacer.style.height = el.offsetHeight + 'px';
-            });
-            ro.observe(el);
+            new ResizeObserver(syncHeight).observe(el);
         }
+        window.addEventListener('resize', syncHeight, { passive: true });
 
         var lastY = window.scrollY;
         var ticking = false;
@@ -32,15 +43,15 @@
 
             if (y < THRESHOLD) {
                 if (hidden) {
-                    el.classList.remove('headroom--hidden');
+                    outer.classList.remove('headroom--hidden');
                     hidden = false;
                 }
             } else if (Math.abs(delta) >= TOLERANCE) {
                 if (delta > 0 && !hidden) {
-                    el.classList.add('headroom--hidden');
+                    outer.classList.add('headroom--hidden');
                     hidden = true;
                 } else if (delta < 0 && hidden) {
-                    el.classList.remove('headroom--hidden');
+                    outer.classList.remove('headroom--hidden');
                     hidden = false;
                 }
             }
