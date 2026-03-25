@@ -3279,30 +3279,28 @@ button:hover .shortcut-icon {
 }
 
 /* =================================================================
-   HEADROOM — Smart sticky header
+   HEADROOM — Éléments flottants (character-summary + sidebar toggle)
    ================================================================= */
 
-.headroom-outer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 150;
-    /* Wrapper ne capture aucun clic — seul le header à l'intérieur le fait */
-    pointer-events: none;
+/* Character summary : fixed en haut à droite */
+.headroom-character {
+    position: fixed !important;
+    top: 12px;
+    right: 12px;
+    z-index: 180;
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
 
-.headroom-outer > * {
-    pointer-events: auto;
+/* Sidebar toggle : déjà fixed via sidebar.css, on ajoute juste la transition */
+.sidebarIconToggle {
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.headroom-outer.headroom--hidden {
-    transform: translateY(-110%);
-}
-
-.headroom-outer.headroom--hidden > * {
+/* Masqué sur scroll down */
+.headroom-character.headroom--hidden,
+.sidebarIconToggle.headroom--hidden {
+    transform: translateY(-200%);
     pointer-events: none;
 }
 

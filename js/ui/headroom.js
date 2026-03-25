@@ -4,75 +4,52 @@
     var THRESHOLD = 60;
     var TOLERANCE = 6;
 
-    function bindHeadroom(el) {
-        if (el._headroom) return;
-        el._headroom = true;
+    function init() {
+        var targets = [];
 
-        // Inject a fixed wrapper around the header.
-        // The header stays in normal-flow layout inside the wrapper —
-        // its internal flex/responsive layout is untouched.
-        var outer = document.createElement('div');
-        outer.className = 'headroom-outer';
-        el.parentNode.insertBefore(outer, el);
-        outer.appendChild(el);
+        // Character summaries inside page headers (pas dans les modals)
+        document.querySelectorAll('.page-header .character-summary').forEach(function (el) {
+            if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
+            el.classList.add('headroom-character');
+            targets.push(el);
+        });
 
-        // Spacer keeps the space the header used to occupy in the flow.
-        var spacer = document.createElement('div');
-        spacer.className = 'headroom-spacer';
-        outer.parentNode.insertBefore(spacer, outer.nextSibling);
+        // Sidebar toggle — déjà fixed, on lui ajoute juste le comportement scroll
+        var toggle = document.querySelector('.sidebarIconToggle');
+        if (toggle) targets.push(toggle);
 
-        function syncHeight() {
-            var h = el.offsetHeight;
-            outer.style.height = h + 'px';
-            spacer.style.height = h + 'px';
-        }
-        syncHeight();
-
-        if (window.ResizeObserver) {
-            new ResizeObserver(syncHeight).observe(el);
-        }
-        window.addEventListener('resize', syncHeight, { passive: true });
+        if (!targets.length) return;
 
         var lastY = window.scrollY;
         var ticking = false;
         var hidden = false;
 
-        function update() {
-            var y = window.scrollY;
-            var delta = y - lastY;
-
-            if (y < THRESHOLD) {
-                if (hidden) {
-                    outer.classList.remove('headroom--hidden');
-                    hidden = false;
-                }
-            } else if (Math.abs(delta) >= TOLERANCE) {
-                if (delta > 0 && !hidden) {
-                    outer.classList.add('headroom--hidden');
-                    hidden = true;
-                } else if (delta < 0 && hidden) {
-                    outer.classList.remove('headroom--hidden');
-                    hidden = false;
-                }
-            }
-
-            lastY = y;
-            ticking = false;
+        function setHidden(next) {
+            if (next === hidden) return;
+            hidden = next;
+            targets.forEach(function (el) {
+                el.classList.toggle('headroom--hidden', hidden);
+            });
         }
 
         window.addEventListener('scroll', function () {
             if (!ticking) {
-                requestAnimationFrame(update);
+                requestAnimationFrame(function () {
+                    var y = window.scrollY;
+                    var delta = y - lastY;
+
+                    if (y < THRESHOLD) {
+                        setHidden(false);
+                    } else if (Math.abs(delta) >= TOLERANCE) {
+                        setHidden(delta > 0);
+                    }
+
+                    lastY = y;
+                    ticking = false;
+                });
                 ticking = true;
             }
         }, { passive: true });
-    }
-
-    function init() {
-        document.querySelectorAll('.page-header').forEach(function (el) {
-            if (el.closest('[role="dialog"], [aria-modal="true"], .panel-host, .sidebar-panel')) return;
-            bindHeadroom(el);
-        });
     }
 
     if (document.readyState === 'loading') {
@@ -81,5 +58,5 @@
         init();
     }
 
-    window.astoriaHeadroom = { bind: bindHeadroom, init: init };
+    window.astoriaHeadroom = { init: init };
 })();
