@@ -32,7 +32,6 @@
 
         var toggle = document.querySelector('.sidebarIconToggle');
         if (toggle) {
-            toggle.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
             targets.push(toggle);
         }
 

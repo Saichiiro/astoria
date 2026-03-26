@@ -9,8 +9,8 @@
  * Safe to call multiple times — previous scroll listener is cleaned up automatically.
  */
 
-const THRESHOLD = 60;   // px from top before hiding kicks in
-const TOLERANCE = 6;    // minimum delta to trigger hide/show
+const THRESHOLD = 30;   // px from top before hiding kicks in
+const TOLERANCE = 4;    // minimum delta to trigger hide/show
 
 let _removeListener = null;
 
@@ -30,10 +30,9 @@ export function initScrollUI() {
         targets.push(el);
     });
 
-    // Sidebar hamburger toggle
+    // Sidebar hamburger toggle (transition définie dans sidebar.css)
     const toggle = document.querySelector('.sidebarIconToggle');
     if (toggle) {
-        toggle.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
         targets.push(toggle);
     }
 

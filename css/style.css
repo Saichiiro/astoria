@@ -3291,18 +3291,19 @@ button:hover .shortcut-icon {
     /* Forcer layout horizontal même sur petits écrans */
     flex-direction: row !important;
     align-items: center !important;
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
 
-/* Masqué sur scroll down — !important pour passer au-dessus de sidebar.css */
+/* Masqué sur scroll down */
 .headroom-character.headroom--hidden {
     transform: translateY(-200%) !important;
     pointer-events: none;
 }
 
+/* Fallback si sidebar.css non chargé — règles spécifiques dans sidebar.css prennent le dessus */
 .sidebarIconToggle.headroom--hidden {
-    transform: translateY(-200%) !important;
+    transform: translateY(-160%) !important;
     pointer-events: none;
 }
 

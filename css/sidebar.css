@@ -34,6 +34,8 @@ body.sidebar-layout {
   box-shadow: 6px 0 16px rgba(216, 27, 96, 0.12);
   z-index: 20;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   font-family: var(--font-family, "Segoe UI", Arial, sans-serif);
 }
@@ -367,4 +369,15 @@ body.sidebar-layout {
     top: 10px;
     left: 10px;
   }
+}
+
+/* Headroom scroll-hide — spécificité 0,3,0 pour passer au-dessus des règles style.css */
+.sidebar-layout .sidebarIconToggle {
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.sidebar-layout .sidebarIconToggle.headroom--hidden {
+  transform: translateY(-160%) !important;
+  pointer-events: none;
 }
