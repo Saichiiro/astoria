@@ -21,7 +21,7 @@
             return;
         }
 
-        // Fallback: inline headroom (same logic, no cleanup guard — scroll-ui will take over later)
+        // Fallback: inline headroom
         var targets = [];
 
         document.querySelectorAll('.page-header .character-summary').forEach(function (el) {
@@ -30,13 +30,14 @@
             targets.push(el);
         });
 
+        // Hamburger — inverse : caché au sommet, apparaît quand la carte se cache
         var toggle = document.querySelector('.sidebarIconToggle');
         if (toggle) {
             toggle.classList.add('headroom-hamburger');
-            targets.push(toggle);
+            toggle.classList.add('headroom--hidden'); // caché par défaut
         }
 
-        if (!targets.length) return;
+        if (!targets.length && !toggle) return;
 
         var lastY = window.scrollY;
         var ticking = false;
@@ -48,6 +49,8 @@
             targets.forEach(function (el) {
                 el.classList.toggle('headroom--hidden', hidden);
             });
+            // Hamburger : inverse
+            if (toggle) toggle.classList.toggle('headroom--hidden', !hidden);
         }
 
         window.addEventListener('scroll', function () {

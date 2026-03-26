@@ -1,9 +1,9 @@
 /**
  * scroll-ui.js — Headroom utility (ES module)
  *
- * Même mécanique pour les deux éléments :
- *   - .page-header .character-summary → reçoit headroom-character + headroom--hidden
- *   - .sidebarIconToggle              → reçoit headroom-hamburger + headroom--hidden
+ * Comportements :
+ *   - .page-header .character-summary → visible au sommet, se cache en scrollant bas
+ *   - .sidebarIconToggle              → caché au sommet, apparaît quand la carte se cache
  *
  * CSS dans style.css (chargé en premier, jamais async).
  * Safe to call multiple times — listener précédent nettoyé automatiquement.
@@ -22,21 +22,21 @@ export function initScrollUI() {
 
     const targets = [];
 
-    // Character summary
+    // Character summary — visible au sommet, cache au scroll bas
     document.querySelectorAll('.page-header .character-summary').forEach(el => {
         if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
         el.classList.add('headroom-character');
         targets.push(el);
     });
 
-    // Hamburger — classe dédiée, CSS dans style.css comme headroom-character
+    // Hamburger — inverse : caché au sommet, apparaît quand la carte se cache
     const toggle = document.querySelector('.sidebarIconToggle');
     if (toggle) {
         toggle.classList.add('headroom-hamburger');
-        targets.push(toggle);
+        toggle.classList.add('headroom--hidden'); // caché par défaut
     }
 
-    if (!targets.length) return;
+    if (!targets.length && !toggle) return;
 
     let lastY = window.scrollY;
     let ticking = false;
@@ -45,7 +45,10 @@ export function initScrollUI() {
     function setHidden(next) {
         if (next === hidden) return;
         hidden = next;
+        // Carte : se cache quand hidden=true
         targets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
+        // Hamburger : inverse — apparaît quand la carte se cache
+        if (toggle) toggle.classList.toggle('headroom--hidden', !hidden);
     }
 
     function onScroll() {
