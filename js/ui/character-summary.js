@@ -1,3 +1,5 @@
+import { initScrollUI } from './scroll-ui.js';
+
 const CHARACTER_STORAGE_KEY = "astoria_active_character";
 const LEGACY_SUMMARY_KEY = "astoria_character_summary";
 
@@ -651,6 +653,8 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
             void refreshFromState();
         });
     }
+
+    initScrollUI();
 
     return { context, summary, elements: resolvedElements };
 }

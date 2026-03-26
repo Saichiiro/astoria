@@ -162,6 +162,13 @@ import { adminItemsModal } from './admin-items-modal.js';
                 return redirectToLogin('Session invalide');
             }
 
+            // Check session version (bump SESSION_VERSION in session-store.js to force re-login)
+            const SESSION_VERSION = 'v2';
+            if (session.version !== SESSION_VERSION) {
+                localStorage.removeItem('astoria_session');
+                return redirectToLogin('Session expirée — reconnexion requise');
+            }
+
             // Check expiration (7 days)
             const maxAge = 7 * 24 * 60 * 60 * 1000;
             if (Date.now() - session.timestamp > maxAge) {
@@ -176,8 +183,9 @@ import { adminItemsModal } from './admin-items-modal.js';
             // Update UI with user info
             updateUserInfo(session.user);
 
-            // Refresh session timestamp (sliding expiration)
+            // Refresh session timestamp (sliding expiration) — re-stamp version
             session.timestamp = Date.now();
+            session.version = SESSION_VERSION;
             localStorage.setItem('astoria_session', JSON.stringify(session));
 
             return true;

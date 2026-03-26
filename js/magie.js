@@ -49,10 +49,13 @@
     }
 
     function getSessionAdminFallback() {
+        // SESSION_VERSION must match session-store.js SESSION_VERSION
+        const SESSION_VERSION = 'v2';
         try {
             const raw = localStorage.getItem("astoria_session");
             if (raw) {
                 const parsed = JSON.parse(raw);
+                if (parsed?.version !== SESSION_VERSION) return false;
                 if (parsed?.user?.role === "admin") return true;
             }
         } catch {}

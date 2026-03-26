@@ -7,6 +7,7 @@ import {
     updateCharacter,
     getAllItems
 } from './auth.js';
+import { SESSION_VERSION } from './api/session-store.js';
 import {
     buyListing,
     cancelListing,
@@ -439,6 +440,7 @@ function resolveCurrentUser() {
         const raw = localStorage.getItem('astoria_session');
         if (raw) {
             const parsed = JSON.parse(raw);
+            if (parsed.version !== SESSION_VERSION) return null;
             const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
             const isExpired = !parsed.timestamp || (Date.now() - parsed.timestamp) > SESSION_MAX_AGE_MS;
             if (!isExpired && parsed.user && parsed.user.id) return parsed.user;

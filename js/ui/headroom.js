@@ -1,20 +1,35 @@
+/**
+ * headroom.js — legacy IIFE shim
+ *
+ * Kept for backward compatibility (pages include this via <script src>).
+ * The real logic lives in scroll-ui.js (ES module).
+ *
+ * On DOMContentLoaded, calls initScrollUI() if available, otherwise falls back
+ * to the inline implementation so the page still works even if character-summary
+ * hasn't called initScrollUI() yet.
+ */
 (function () {
     'use strict';
 
     var THRESHOLD = 60;
     var TOLERANCE = 6;
 
-    function init() {
+    function initFallback() {
+        // Delegate to scroll-ui.js if already loaded via the module path
+        if (window.astoriaScrollUI && typeof window.astoriaScrollUI.init === 'function') {
+            window.astoriaScrollUI.init();
+            return;
+        }
+
+        // Fallback: inline headroom (same logic, no cleanup guard — scroll-ui will take over later)
         var targets = [];
 
-        // Character summaries inside page headers (pas dans les modals)
         document.querySelectorAll('.page-header .character-summary').forEach(function (el) {
             if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
             el.classList.add('headroom-character');
             targets.push(el);
         });
 
-        // Sidebar toggle — déjà fixed, transition inline pour bypasser sidebar.css
         var toggle = document.querySelector('.sidebarIconToggle');
         if (toggle) {
             toggle.style.transition = 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -40,13 +55,11 @@
                 requestAnimationFrame(function () {
                     var y = window.scrollY;
                     var delta = y - lastY;
-
                     if (y < THRESHOLD) {
                         setHidden(false);
                     } else if (Math.abs(delta) >= TOLERANCE) {
                         setHidden(delta > 0);
                     }
-
                     lastY = y;
                     ticking = false;
                 });
@@ -56,10 +69,11 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', initFallback);
     } else {
-        init();
+        initFallback();
     }
 
-    window.astoriaHeadroom = { init: init };
+    // Expose for any legacy callers
+    window.astoriaHeadroom = { init: initFallback };
 })();

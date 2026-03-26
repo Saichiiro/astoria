@@ -1,5 +1,9 @@
 const SESSION_KEY = 'astoria_session';
 const ACTIVE_CHARACTER_KEY = 'astoria_active_character';
+
+// Bump this string to force-logout all users on next page load.
+// Examples: 'v2', 'v3', '2026-03-26', 'post-migration-1'
+export const SESSION_VERSION = 'v2';
 let sessionCache = null;
 let activeCharacterCache = null;
 
@@ -92,6 +96,12 @@ function writeJson(key, value) {
 export function readSession() {
     const stored = readJson(SESSION_KEY);
     if (stored) {
+        if (stored.version !== SESSION_VERSION) {
+            localStorage.removeItem(SESSION_KEY);
+            sessionCache = null;
+            try { if (window) window.astoriaSessionUser = null; } catch {}
+            return null;
+        }
         sessionCache = stored;
         try {
             if (window) window.astoriaSessionUser = stored?.user || null;
@@ -110,6 +120,9 @@ export function readSession() {
 }
 
 export function writeSession(session) {
+    if (session && typeof session === 'object') {
+        session.version = SESSION_VERSION;
+    }
     sessionCache = session;
     writeJson(SESSION_KEY, session);
     try {
