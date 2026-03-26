@@ -11,8 +11,34 @@
 
 const THRESHOLD = 10;
 const TOLERANCE = 2;
+const CHARACTER_SELECTOR = '.page-header .character-summary';
+const HAMBURGER_SELECTOR = '.sidebarIconToggle';
+const MODAL_SELECTOR = '[role="dialog"], [aria-modal="true"]';
 
 let _removeListener = null;
+
+function collectTargets() {
+    const characters = [];
+    const hamburgers = [];
+
+    document.querySelectorAll(CHARACTER_SELECTOR).forEach((el) => {
+        if (el.closest(MODAL_SELECTOR)) return;
+        el.classList.add('headroom-character');
+        characters.push(el);
+    });
+
+    document.querySelectorAll(HAMBURGER_SELECTOR).forEach((el) => {
+        el.classList.add('headroom-hamburger');
+        hamburgers.push(el);
+    });
+
+    return { characters, hamburgers };
+}
+
+function applyHiddenState(characters, hamburgers, hidden) {
+    characters.forEach((el) => el.classList.toggle('headroom--hidden', hidden));
+    hamburgers.forEach((el) => el.classList.toggle('headroom--hidden', !hidden));
+}
 
 export function initScrollUI() {
     if (_removeListener) {
@@ -20,54 +46,50 @@ export function initScrollUI() {
         _removeListener = null;
     }
 
-    const targets = [];
-
-    // Character summary — visible au sommet, cache au scroll bas
-    document.querySelectorAll('.page-header .character-summary').forEach(el => {
-        if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
-        el.classList.add('headroom-character');
-        targets.push(el);
-    });
-
-    // Hamburger — inverse : caché au sommet, apparaît quand la carte se cache
-    const toggle = document.querySelector('.sidebarIconToggle');
-    if (toggle) {
-        toggle.classList.add('headroom-hamburger');
-        toggle.classList.add('headroom--hidden'); // caché par défaut
-    }
-
-    if (!targets.length && !toggle) return;
+    const { characters, hamburgers } = collectTargets();
+    if (!characters.length && !hamburgers.length) return;
 
     let lastY = window.scrollY;
     let ticking = false;
-    let hidden = false;
+    let hidden = window.scrollY >= THRESHOLD;
 
-    function setHidden(next) {
-        if (next === hidden) return;
-        hidden = next;
-        // Carte : se cache quand hidden=true
-        targets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
-        // Hamburger : inverse — apparaît quand la carte se cache
-        if (toggle) toggle.classList.toggle('headroom--hidden', !hidden);
+    applyHiddenState(characters, hamburgers, hidden);
+
+    function syncVisibility({ force = false } = {}) {
+        const y = window.scrollY;
+        const delta = y - lastY;
+
+        if (y < THRESHOLD) {
+            hidden = false;
+        } else if (force) {
+            hidden = true;
+        } else if (Math.abs(delta) >= TOLERANCE) {
+            hidden = delta > 0;
+        }
+
+        applyHiddenState(characters, hamburgers, hidden);
+        lastY = y;
     }
 
     function onScroll() {
         if (ticking) return;
         ticking = true;
         requestAnimationFrame(() => {
-            const y = window.scrollY;
-            const delta = y - lastY;
-            if (y < THRESHOLD) {
-                setHidden(false);
-            } else if (Math.abs(delta) >= TOLERANCE) {
-                setHidden(delta > 0);
-            }
-            lastY = y;
+            syncVisibility();
             ticking = false;
         });
     }
 
+    function onPageShow() {
+        syncVisibility({ force: true });
+    }
+
     window.addEventListener('scroll', onScroll, { passive: true });
-    _removeListener = () => window.removeEventListener('scroll', onScroll);
-    window.astoriaScrollUI = { init: initScrollUI };
+    window.addEventListener('pageshow', onPageShow);
+    _removeListener = () => {
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('pageshow', onPageShow);
+    };
 }
+
+window.astoriaScrollUI = { init: initScrollUI };

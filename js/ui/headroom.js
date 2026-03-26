@@ -1,74 +1,108 @@
 /**
- * headroom.js — legacy IIFE shim
+ * headroom.js - legacy IIFE shim
  *
  * Kept for backward compatibility (pages include this via <script src>).
  * The real logic lives in scroll-ui.js (ES module).
  *
  * On DOMContentLoaded, calls initScrollUI() if available, otherwise falls back
  * to the inline implementation so the page still works even if character-summary
- * hasn't called initScrollUI() yet.
+ * has not called initScrollUI() yet.
  */
 (function () {
     'use strict';
 
     var THRESHOLD = 10;
     var TOLERANCE = 2;
+    var CHARACTER_SELECTOR = '.page-header .character-summary';
+    var HAMBURGER_SELECTOR = '.sidebarIconToggle';
+    var MODAL_SELECTOR = '[role="dialog"], [aria-modal="true"]';
+    var removeListener = null;
+
+    function collectTargets() {
+        var characters = [];
+        var hamburgers = [];
+
+        document.querySelectorAll(CHARACTER_SELECTOR).forEach(function (el) {
+            if (el.closest(MODAL_SELECTOR)) return;
+            el.classList.add('headroom-character');
+            characters.push(el);
+        });
+
+        document.querySelectorAll(HAMBURGER_SELECTOR).forEach(function (el) {
+            el.classList.add('headroom-hamburger');
+            hamburgers.push(el);
+        });
+
+        return { characters: characters, hamburgers: hamburgers };
+    }
+
+    function applyHiddenState(characters, hamburgers, hidden) {
+        characters.forEach(function (el) {
+            el.classList.toggle('headroom--hidden', hidden);
+        });
+        hamburgers.forEach(function (el) {
+            el.classList.toggle('headroom--hidden', !hidden);
+        });
+    }
 
     function initFallback() {
-        // Delegate to scroll-ui.js if already loaded via the module path
+        if (removeListener) {
+            removeListener();
+            removeListener = null;
+        }
+
         if (window.astoriaScrollUI && typeof window.astoriaScrollUI.init === 'function') {
             window.astoriaScrollUI.init();
             return;
         }
 
-        // Fallback: inline headroom
-        var targets = [];
+        var collected = collectTargets();
+        var targets = collected.characters;
+        var hamburgers = collected.hamburgers;
 
-        document.querySelectorAll('.page-header .character-summary').forEach(function (el) {
-            if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
-            el.classList.add('headroom-character');
-            targets.push(el);
-        });
-
-        // Hamburger — inverse : caché au sommet, apparaît quand la carte se cache
-        var toggle = document.querySelector('.sidebarIconToggle');
-        if (toggle) {
-            toggle.classList.add('headroom-hamburger');
-            toggle.classList.add('headroom--hidden'); // caché par défaut
-        }
-
-        if (!targets.length && !toggle) return;
+        if (!targets.length && !hamburgers.length) return;
 
         var lastY = window.scrollY;
         var ticking = false;
-        var hidden = false;
+        var hidden = window.scrollY >= THRESHOLD;
 
-        function setHidden(next) {
-            if (next === hidden) return;
-            hidden = next;
-            targets.forEach(function (el) {
-                el.classList.toggle('headroom--hidden', hidden);
-            });
-            // Hamburger : inverse
-            if (toggle) toggle.classList.toggle('headroom--hidden', !hidden);
+        applyHiddenState(targets, hamburgers, hidden);
+
+        function syncVisibility(force) {
+            var y = window.scrollY;
+            var delta = y - lastY;
+
+            if (y < THRESHOLD) {
+                hidden = false;
+            } else if (force) {
+                hidden = true;
+            } else if (Math.abs(delta) >= TOLERANCE) {
+                hidden = delta > 0;
+            }
+
+            applyHiddenState(targets, hamburgers, hidden);
+            lastY = y;
         }
 
-        window.addEventListener('scroll', function () {
-            if (!ticking) {
-                requestAnimationFrame(function () {
-                    var y = window.scrollY;
-                    var delta = y - lastY;
-                    if (y < THRESHOLD) {
-                        setHidden(false);
-                    } else if (Math.abs(delta) >= TOLERANCE) {
-                        setHidden(delta > 0);
-                    }
-                    lastY = y;
-                    ticking = false;
-                });
-                ticking = true;
-            }
-        }, { passive: true });
+        function onScroll() {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(function () {
+                syncVisibility(false);
+                ticking = false;
+            });
+        }
+
+        function onPageShow() {
+            syncVisibility(true);
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('pageshow', onPageShow);
+        removeListener = function () {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('pageshow', onPageShow);
+        };
     }
 
     if (document.readyState === 'loading') {
@@ -77,6 +111,5 @@
         initFallback();
     }
 
-    // Expose for any legacy callers
     window.astoriaHeadroom = { init: initFallback };
 })();

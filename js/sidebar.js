@@ -143,6 +143,16 @@
 
   body.insertAdjacentHTML("afterbegin", markup);
 
+  const refreshHeadroom = () => {
+    if (window.astoriaScrollUI && typeof window.astoriaScrollUI.init === "function") {
+      window.astoriaScrollUI.init();
+      return;
+    }
+    if (window.astoriaHeadroom && typeof window.astoriaHeadroom.init === "function") {
+      window.astoriaHeadroom.init();
+    }
+  };
+
   const resolveModuleUrl = (relativePath) => {
     const current = document.currentScript;
     if (current && current.src) {
@@ -184,6 +194,7 @@
 
   // Always boot closed to avoid stale bfcache/checkbox state across pages.
   closeSidebar();
+  refreshHeadroom();
 
   if (toggle) {
     toggle.addEventListener("change", () => {
@@ -249,9 +260,11 @@
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
       closeSidebar();
+      refreshHeadroom();
       return;
     }
     syncSidebarState();
+    refreshHeadroom();
   });
   window.addEventListener("pagehide", () => {
     closeSidebar();
