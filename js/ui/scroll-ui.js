@@ -1,16 +1,14 @@
 /**
  * scroll-ui.js — Headroom utility (ES module)
  *
- * Handles scroll-aware hiding/showing of:
- *   - .page-header .character-summary  → becomes fixed, slides up on scroll-down
- *   - .sidebarIconToggle               → slides up on scroll-down
+ * - .page-header .character-summary : CSS class (headroom-character / headroom--hidden)
+ * - .sidebarIconToggle              : inline style direct (bypass CSS cascade)
  *
- * Safe to call multiple times — previous listener is cleaned up automatically.
- * The toggle is re-queried on each state change to handle late DOM insertion.
+ * Safe to call multiple times. Toggle re-queried à chaque changement d'état.
  */
 
-const THRESHOLD = 10;   // px from top before hiding kicks in
-const TOLERANCE = 2;    // minimum delta to trigger hide/show
+const THRESHOLD = 10;
+const TOLERANCE = 2;
 
 let _removeListener = null;
 
@@ -21,14 +19,12 @@ export function initScrollUI() {
     }
 
     const summaryTargets = [];
-
     document.querySelectorAll('.page-header .character-summary').forEach(el => {
         if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
         el.classList.add('headroom-character');
         summaryTargets.push(el);
     });
 
-    // No summary found = nothing to do
     if (!summaryTargets.length) return;
 
     let lastY = window.scrollY;
@@ -39,11 +35,16 @@ export function initScrollUI() {
         if (next === hidden) return;
         hidden = next;
 
+        // Character summary via CSS class
         summaryTargets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
 
-        // Toggle re-queried fresh each time — immune to late DOM insertion timing
+        // Hamburger via inline style — spécificité maximale, 0 dépendance CSS externe
         const toggle = document.querySelector('.sidebarIconToggle');
-        if (toggle) toggle.classList.toggle('headroom--hidden', hidden);
+        if (toggle) {
+            toggle.style.transition = 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)';
+            toggle.style.transform = hidden ? 'translateY(-200%)' : '';
+            toggle.style.pointerEvents = hidden ? 'none' : '';
+        }
     }
 
     function onScroll() {
@@ -64,6 +65,5 @@ export function initScrollUI() {
 
     window.addEventListener('scroll', onScroll, { passive: true });
     _removeListener = () => window.removeEventListener('scroll', onScroll);
-
     window.astoriaScrollUI = { init: initScrollUI };
 }
