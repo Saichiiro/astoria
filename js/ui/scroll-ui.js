@@ -5,38 +5,31 @@
  *   - .page-header .character-summary  → becomes fixed, slides up on scroll-down
  *   - .sidebarIconToggle               → slides up on scroll-down
  *
- * Call initScrollUI() after the page UI is ready (e.g. after initCharacterSummary).
- * Safe to call multiple times — previous scroll listener is cleaned up automatically.
+ * Safe to call multiple times — previous listener is cleaned up automatically.
+ * The toggle is re-queried on each state change to handle late DOM insertion.
  */
 
-const THRESHOLD = 30;   // px from top before hiding kicks in
-const TOLERANCE = 4;    // minimum delta to trigger hide/show
+const THRESHOLD = 10;   // px from top before hiding kicks in
+const TOLERANCE = 2;    // minimum delta to trigger hide/show
 
 let _removeListener = null;
 
 export function initScrollUI() {
-    // Clean up previous listener to avoid stacking
     if (_removeListener) {
         _removeListener();
         _removeListener = null;
     }
 
-    const targets = [];
+    const summaryTargets = [];
 
-    // Character summary cards in page headers (not inside modals)
     document.querySelectorAll('.page-header .character-summary').forEach(el => {
         if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
         el.classList.add('headroom-character');
-        targets.push(el);
+        summaryTargets.push(el);
     });
 
-    // Sidebar hamburger toggle (transition définie dans sidebar.css)
-    const toggle = document.querySelector('.sidebarIconToggle');
-    if (toggle) {
-        targets.push(toggle);
-    }
-
-    if (!targets.length) return;
+    // No summary found = nothing to do
+    if (!summaryTargets.length) return;
 
     let lastY = window.scrollY;
     let ticking = false;
@@ -45,7 +38,12 @@ export function initScrollUI() {
     function setHidden(next) {
         if (next === hidden) return;
         hidden = next;
-        targets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
+
+        summaryTargets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
+
+        // Toggle re-queried fresh each time — immune to late DOM insertion timing
+        const toggle = document.querySelector('.sidebarIconToggle');
+        if (toggle) toggle.classList.toggle('headroom--hidden', hidden);
     }
 
     function onScroll() {
@@ -67,6 +65,5 @@ export function initScrollUI() {
     window.addEventListener('scroll', onScroll, { passive: true });
     _removeListener = () => window.removeEventListener('scroll', onScroll);
 
-    // Bridge for legacy IIFE callers (headroom.js)
     window.astoriaScrollUI = { init: initScrollUI };
 }

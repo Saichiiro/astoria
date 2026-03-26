@@ -11,8 +11,8 @@
 (function () {
     'use strict';
 
-    var THRESHOLD = 60;
-    var TOLERANCE = 6;
+    var THRESHOLD = 10;
+    var TOLERANCE = 2;
 
     function initFallback() {
         // Delegate to scroll-ui.js if already loaded via the module path
@@ -47,6 +47,9 @@
             targets.forEach(function (el) {
                 el.classList.toggle('headroom--hidden', hidden);
             });
+            // Toggle re-queried fresh — immune à la late DOM insertion
+            var t = document.querySelector('.sidebarIconToggle');
+            if (t && targets.indexOf(t) === -1) t.classList.toggle('headroom--hidden', hidden);
         }
 
         window.addEventListener('scroll', function () {
