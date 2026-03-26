@@ -3825,18 +3825,20 @@ function syncAdminUI() {
 
 function bindEvents() {
     if (dom.searchRoot && dom.searchInput && window.astoriaSearchBar) {
-        window.astoriaSearchBar.bind({
+        const searchBar = window.astoriaSearchBar.bind({
             root: dom.searchRoot,
             input: dom.searchInput,
             toggle: dom.searchToggle,
             clearButton: dom.searchClear,
             dropdown: dom.searchHistory,
             debounceWait: 200,
+            collapseWhenEmpty: false,
             onSearch: (value) => {
                 state.filters.search = normalizeFilter(value);
                 renderQuestList();
             }
         });
+        searchBar?.setOpen?.(true);
     } else {
         dom.searchInput.addEventListener("input", () => {
             state.filters.search = normalizeFilter(dom.searchInput.value);

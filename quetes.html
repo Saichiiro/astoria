@@ -51,8 +51,17 @@
         </header>
         <section class="quest-search" aria-label="Recherche de qu&#234;tes">
             <div class="quest-search-panel tw-panel tw-surface">
-                <div class="quest-search-title">Recherche</div>
                 <div class="quest-search-controls">
+                    <div class="quest-search-field">
+                        <div class="inventory-search is-open" id="questSearch" data-search-priority="page">
+                            <button type="button" class="inventory-search-toggle tw-press" id="questSearchToggle" aria-label="Rechercher" aria-expanded="true">
+                                <span class="inventory-search-icon">&#128269;</span>
+                            </button>
+                            <input id="questSearchInput" type="search" class="inventory-search-input" placeholder="Rechercher une qu&#234;te..." aria-label="Rechercher une qu&#234;te">
+                            <button type="button" class="inventory-search-clear tw-press" id="questSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <div class="recent-searches-dropdown inventory-search-history" id="questSearchHistory"></div>
+                        </div>
+                    </div>
                     <label class="quest-filter">
                         <span class="quest-filter-label">Type</span>
                         <select id="questTypeFilter" class="quest-filter-select">
@@ -85,14 +94,6 @@
                     <div class="quest-filter quest-filter--toggle">
                         <span class="quest-filter-label">Mes quêtes</span>
                         <button type="button" class="quest-my-quests-btn tw-press" id="questMyQuestsBtn" aria-pressed="false">Toutes</button>
-                    </div>
-                    <div class="inventory-search" id="questSearch" data-search-priority="page">
-                        <button type="button" class="inventory-search-toggle tw-press" id="questSearchToggle" aria-label="Rechercher" aria-expanded="false">
-                            <span class="inventory-search-icon">&#128269;</span>
-                        </button>
-                        <input id="questSearchInput" type="search" class="inventory-search-input" placeholder="Rechercher une qu&#234;te..." aria-label="Rechercher une qu&#234;te">
-                        <button type="button" class="inventory-search-clear tw-press" id="questSearchClear" aria-label="Effacer la recherche" hidden>x</button>
-                        <div class="recent-searches-dropdown inventory-search-history" id="questSearchHistory"></div>
                     </div>
                 </div>
             </div>

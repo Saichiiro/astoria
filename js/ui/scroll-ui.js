@@ -37,7 +37,7 @@ function collectTargets() {
 
 function applyHiddenState(characters, hamburgers, hidden) {
     characters.forEach((el) => el.classList.toggle('headroom--hidden', hidden));
-    hamburgers.forEach((el) => el.classList.toggle('headroom--hidden', !hidden));
+    hamburgers.forEach((el) => el.classList.toggle('headroom--hidden', hidden));
 }
 
 export function initScrollUI() {

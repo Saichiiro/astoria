@@ -41,7 +41,7 @@
             el.classList.toggle('headroom--hidden', hidden);
         });
         hamburgers.forEach(function (el) {
-            el.classList.toggle('headroom--hidden', !hidden);
+            el.classList.toggle('headroom--hidden', hidden);
         });
     }
 
