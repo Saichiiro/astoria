@@ -59,7 +59,7 @@ const filterChips = document.getElementById("filterChips");
 const recentSearchesDropdown = document.getElementById("recentSearchesDropdown");
 const statsBadge = document.getElementById("statsBadge");
 const pageTitle = document.getElementById("pageTitle");
-const sortHeaders = document.querySelectorAll('th.sortable[data-sort]');
+const sortHeaders = document.querySelectorAll('.sortable[data-sort]');
 
 const listHelpers = window.astoriaListHelpers || {};
 const debounce = listHelpers.debounce || ((fn) => fn);
@@ -571,7 +571,7 @@ function buildRow(item, globalIndex) {
     const rowHtml = `
         <tr class="item-row" data-key="${keyAttr}" data-global-index="${globalIndex}" data-category="${clean(category || "")}">
             <td class="img-cell" data-label="Illustration">
-                <img src="${clean(images.primary)}" alt="${clean(name || "Illustration")}" width="86" height="86" decoding="async" fetchpriority="low">
+                <img class="item-thumb" src="${clean(images.primary)}" alt="${clean(name || "Illustration")}" width="86" height="86" decoding="async" fetchpriority="low">
             </td>
             <td class="name-cell" data-label="Nom">
                 <span class="category-icon" title="${clean(category || 'Autre')}">${categoryIcon}</span>
@@ -589,7 +589,7 @@ function buildRow(item, globalIndex) {
                 <span class="commerce-line">${highlightedBuyLine}</span>
                 <span class="commerce-line">${highlightedSellLine}</span>
             </td>
-            <td class="effect-cell" data-label="Effet">
+            <td class="effect-cell" data-label="Effets & bonus">
                 ${highlightedEffect ? `<div class="effect-group"><span class="effect-group-label">${effectLabel}</span><div class="effect-summary">${highlightedEffect}</div></div>` : ""}
                 ${modifiersHtml ? `<div class="effect-group"><span class="effect-group-label">Modificateurs</span>${modifiersHtml}</div>` : ""}
                 ${(!highlightedEffect && !modifiersHtml) ? `<span class="text-muted">-</span>` : ""}
@@ -597,7 +597,7 @@ function buildRow(item, globalIndex) {
             <td class="action-cell" data-label="Action">
                 ${window.astoriaIsAdmin
                     ? `<button class="edit-btn" type="button" data-edit-index="${globalIndex}" title="Modifier l'objet">Modifier</button>`
-                    : `<button class="copy-btn" type="button" data-copy-text="${escapeForAttribute(copyText)}">Copy</button>`}
+                    : `<button class="view-btn" type="button">Détails</button>`}
             </td>
         </tr>
     `;
@@ -779,15 +779,8 @@ if (tableBody && tableBody.dataset.modalBound !== "1") {
             return;
         }
 
-        const row = target.closest && target.closest("tr.item-row");
+        const row = target.closest && target.closest(".item-row");
         if (!row) return;
-
-        const shouldOpen =
-            Boolean(target.closest(".img-cell")) ||
-            Boolean(target.closest(".name-cell")) ||
-            Boolean(target.closest(".more-link"));
-
-        if (!shouldOpen) return;
 
         const index = parseInt(row.dataset.index || "", 10);
         if (!Number.isFinite(index)) return;
@@ -1234,7 +1227,7 @@ function bindPageEvents() {
     }
 
     if (searchRoot && searchInput && window.astoriaSearchBar) {
-        window.astoriaSearchBar.bind({
+        const searchBar = window.astoriaSearchBar.bind({
             root: searchRoot,
             input: searchInput,
             toggle: searchToggle,
@@ -1242,6 +1235,7 @@ function bindPageEvents() {
             dropdown: recentSearchesDropdown,
             history: searchHistory,
             debounceWait: 200,
+            collapseWhenEmpty: false,
             onSearch: (value) => {
                 if (searchInput) {
                     searchInput.value = value || '';
@@ -1249,6 +1243,7 @@ function bindPageEvents() {
                 applyFilters();
             }
         });
+        searchBar?.setOpen?.(true);
     } else {
         if (searchInput) {
             searchInput.addEventListener('keyup', () => filterTable());
@@ -1307,7 +1302,7 @@ function sortTable(column) {
 }
 
 function updateSortIndicators() {
-    const sortableHeaders = document.querySelectorAll('th.sortable');
+    const sortableHeaders = document.querySelectorAll('.sortable');
 
     sortableHeaders.forEach(header => {
         const indicator = header.querySelector('.sort-indicator');
@@ -1319,13 +1314,14 @@ function updateSortIndicators() {
     });
 
     if (currentSortColumn) {
-        const header = document.querySelector(`th[data-sort="${currentSortColumn}"]`);
-        if (header) {
+        document.querySelectorAll(`[data-sort="${currentSortColumn}"]`).forEach((header) => {
             const indicator = header.querySelector('.sort-indicator');
-            indicator.textContent = currentSortDirection === 'asc' ? 'â–²' : 'â–¼';
-            indicator.classList.add('active');
+            if (indicator) {
+                indicator.textContent = currentSortDirection === 'asc' ? '▲' : '▼';
+                indicator.classList.add('active');
+            }
             header.setAttribute('aria-sort', currentSortDirection === 'asc' ? 'ascending' : 'descending');
-        }
+        });
     }
 }
 

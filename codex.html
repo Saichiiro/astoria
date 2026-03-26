@@ -52,8 +52,8 @@
                 <span class="stats-badge" id="statsBadge">0 objet</span>
                 <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
                 <div class="codex-toolbar-spacer"></div>
-                <div class="inventory-search" id="codexSearch" data-search-priority="page">
-                    <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                <div class="inventory-search is-open" id="codexSearch" data-search-priority="page">
+                    <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="true">
                         <span class="inventory-search-icon">&#x1F50D;</span>
                     </button>
                     <input
@@ -107,15 +107,25 @@
                 <option value="materiau">Matériaux</option>
                 <option value="quete">Quêtes</option>
             </select>
+            <div class="filter-chips" id="filterChips" aria-live="polite"></div>
         </section>
-        <div class="table-container tw-panel">
+        <div class="codex-sort-bar">
+            <span class="codex-sort-label">Trier :</span>
+            <button type="button" class="codex-sort-btn sortable" data-sort="name" aria-sort="none">Nom <span class="sort-indicator"></span></button>
+            <button type="button" class="codex-sort-btn sortable" data-sort="price" aria-sort="none">Commerce <span class="sort-indicator"></span></button>
+        </div>
+        <div class="table-container tw-panel codex-table-shell">
             <table id="inventoryTable">
                 <thead>
                     <tr>
                         <th scope="col">Illustration</th>
-                        <th scope="col" class="sortable name-column" aria-sort="none" data-sort="name">Nom <span class="sort-indicator"></span></th>
+                        <th scope="col" class="name-column">
+                            <button type="button" class="codex-table-sort sortable" data-sort="name" aria-sort="none">Nom <span class="sort-indicator"></span></button>
+                        </th>
                         <th scope="col">Description</th>
-                        <th scope="col" class="sortable" aria-sort="none" data-sort="price">Commerce <span class="sort-indicator"></span></th>
+                        <th scope="col">
+                            <button type="button" class="codex-table-sort sortable" data-sort="price" aria-sort="none">Commerce <span class="sort-indicator"></span></button>
+                        </th>
                         <th scope="col">Effets &amp; bonus</th>
                         <th scope="col">Action</th>
                     </tr>
