@@ -1,10 +1,12 @@
 /**
  * scroll-ui.js — Headroom utility (ES module)
  *
- * - .page-header .character-summary : CSS class (headroom-character / headroom--hidden)
- * - .sidebarIconToggle              : inline style direct (bypass CSS cascade)
+ * Même mécanique pour les deux éléments :
+ *   - .page-header .character-summary → reçoit headroom-character + headroom--hidden
+ *   - .sidebarIconToggle              → reçoit headroom-hamburger + headroom--hidden
  *
- * Safe to call multiple times. Toggle re-queried à chaque changement d'état.
+ * CSS dans style.css (chargé en premier, jamais async).
+ * Safe to call multiple times — listener précédent nettoyé automatiquement.
  */
 
 const THRESHOLD = 10;
@@ -18,14 +20,23 @@ export function initScrollUI() {
         _removeListener = null;
     }
 
-    const summaryTargets = [];
+    const targets = [];
+
+    // Character summary
     document.querySelectorAll('.page-header .character-summary').forEach(el => {
         if (el.closest('[role="dialog"], [aria-modal="true"]')) return;
         el.classList.add('headroom-character');
-        summaryTargets.push(el);
+        targets.push(el);
     });
 
-    if (!summaryTargets.length) return;
+    // Hamburger — classe dédiée, CSS dans style.css comme headroom-character
+    const toggle = document.querySelector('.sidebarIconToggle');
+    if (toggle) {
+        toggle.classList.add('headroom-hamburger');
+        targets.push(toggle);
+    }
+
+    if (!targets.length) return;
 
     let lastY = window.scrollY;
     let ticking = false;
@@ -34,17 +45,7 @@ export function initScrollUI() {
     function setHidden(next) {
         if (next === hidden) return;
         hidden = next;
-
-        // Character summary via CSS class
-        summaryTargets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
-
-        // Hamburger via inline style — spécificité maximale, 0 dépendance CSS externe
-        const toggle = document.querySelector('.sidebarIconToggle');
-        if (toggle) {
-            toggle.style.transition = 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)';
-            toggle.style.transform = hidden ? 'translateY(-200%)' : '';
-            toggle.style.pointerEvents = hidden ? 'none' : '';
-        }
+        targets.forEach(el => el.classList.toggle('headroom--hidden', hidden));
     }
 
     function onScroll() {

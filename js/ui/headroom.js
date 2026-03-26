@@ -32,6 +32,7 @@
 
         var toggle = document.querySelector('.sidebarIconToggle');
         if (toggle) {
+            toggle.classList.add('headroom-hamburger');
             targets.push(toggle);
         }
 
@@ -47,13 +48,6 @@
             targets.forEach(function (el) {
                 el.classList.toggle('headroom--hidden', hidden);
             });
-            // Hamburger inline style — immune à tout problème CSS
-            var t = document.querySelector('.sidebarIconToggle');
-            if (t) {
-                t.style.transition = 'transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)';
-                t.style.transform = hidden ? 'translateY(-200%)' : '';
-                t.style.pointerEvents = hidden ? 'none' : '';
-            }
         }
 
         window.addEventListener('scroll', function () {

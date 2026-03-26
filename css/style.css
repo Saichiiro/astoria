@@ -3301,9 +3301,14 @@ button:hover .shortcut-icon {
     pointer-events: none;
 }
 
-/* Fallback si sidebar.css non chargé — règles spécifiques dans sidebar.css prennent le dessus */
-.sidebarIconToggle.headroom--hidden {
-    transform: translateY(-160%) !important;
+/* Hamburger : même mécanique que headroom-character */
+.headroom-hamburger {
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    will-change: transform;
+}
+
+.headroom-hamburger.headroom--hidden {
+    transform: translateY(-200%) !important;
     pointer-events: none;
 }
 
