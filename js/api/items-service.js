@@ -35,7 +35,7 @@ export async function toggleItemState(itemId, enabled) {
     }
 }
 
-const ITEMS_CACHE_KEY = 'astoria_items_cache';
+export const ITEMS_CACHE_KEY = 'astoria_items_cache';
 const ITEMS_CACHE_TTL = 60 * 60 * 1000; // 60 minutes
 
 export function invalidateItemsCache() {

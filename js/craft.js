@@ -20,6 +20,7 @@ import {
 } from './api/craft-service.js';
 
 const RANK_ORDER = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
+const ADMIN_ITEMS_REFRESH_TTL_MS = 15000;
 
 const dom = {
     searchInput: document.getElementById('craftSearchInput'),
@@ -103,6 +104,10 @@ const state = {
         query: ''
     }
 };
+
+let adminItemsRefreshPromise = null;
+let adminItemsLastRefreshAt = 0;
+let adminItemsDirty = false;
 
 function normalizeText(value) {
     return String(value || '')
@@ -776,7 +781,7 @@ function renderRecipe(recipe) {
         editBtn.textContent = 'Modifier';
         editBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            openRecipeModal(recipe);
+            void openRecipeModal(recipe);
         });
 
         const deleteBtn = document.createElement('button');
@@ -894,7 +899,38 @@ function updateOutputLabel() {
     dom.outputItemLabel.value = output ? output.name : '';
 }
 
-function openItemPicker(target, ingredientIndex = -1) {
+function isModalOpen(modal) {
+    if (!modal) return false;
+    if (window.modalManager?.isOpen?.(modal)) return true;
+    return modal.classList.contains('open') && modal.hidden !== true;
+}
+
+async function syncAdminRecipeItems() {
+    if (!state.admin) return;
+
+    const stale = (Date.now() - adminItemsLastRefreshAt) > ADMIN_ITEMS_REFRESH_TTL_MS;
+    const shouldRefresh = adminItemsDirty || !state.items.length || stale;
+    if (!shouldRefresh) return;
+
+    if (!adminItemsRefreshPromise) {
+        adminItemsRefreshPromise = (async () => {
+            await loadItems({ force: true });
+            adminItemsDirty = false;
+        })()
+            .catch((error) => {
+                console.error('[Craft] item refresh error:', error);
+                toastError('Impossible de rafraichir la liste des items.');
+            })
+            .finally(() => {
+                adminItemsRefreshPromise = null;
+            });
+    }
+
+    await adminItemsRefreshPromise;
+}
+
+async function openItemPicker(target, ingredientIndex = -1) {
+    await syncAdminRecipeItems();
     state.picker.target = target;
     state.picker.ingredientIndex = ingredientIndex;
     state.picker.query = '';
@@ -1007,11 +1043,13 @@ function renderIngredientDraftRows() {
         const selected = state.itemById.get(String(line.itemId || '').trim());
         labelInput.value = selected?.name || '';
         labelInput.placeholder = 'Selectionner un item';
-        labelInput.addEventListener('click', () => openItemPicker('ingredient', index));
+        labelInput.addEventListener('click', () => {
+            void openItemPicker('ingredient', index);
+        });
         labelInput.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                openItemPicker('ingredient', index);
+                void openItemPicker('ingredient', index);
             }
         });
 
@@ -1019,7 +1057,9 @@ function renderIngredientDraftRows() {
         pickBtn.type = 'button';
         pickBtn.className = 'craft-secondary-btn';
         pickBtn.textContent = 'Choisir';
-        pickBtn.addEventListener('click', () => openItemPicker('ingredient', index));
+        pickBtn.addEventListener('click', () => {
+            void openItemPicker('ingredient', index);
+        });
 
         const qtyInput = document.createElement('input');
         qtyInput.className = 'tw-input';
@@ -1095,8 +1135,9 @@ function prefillRecipeForm(recipe) {
     renderIngredientDraftRows();
 }
 
-function openRecipeModal(recipe = null) {
+async function openRecipeModal(recipe = null) {
     if (!dom.modal) return;
+    await syncAdminRecipeItems();
     resetRecipeForm();
     if (recipe) prefillRecipeForm(recipe);
 
@@ -1188,8 +1229,8 @@ async function saveRecipeFromModal() {
     }
 }
 
-async function loadItems() {
-    const items = await getAllItems();
+async function loadItems({ force = false } = {}) {
+    const items = await getAllItems({ force });
     state.items = (Array.isArray(items) ? items : []).map((item) => {
         const normalized = { ...item };
         normalized.images = safeJson(item?.images);
@@ -1205,6 +1246,7 @@ async function loadItems() {
         if (id) state.itemById.set(id, item);
         if (key && !state.itemByKey.has(key)) state.itemByKey.set(key, item);
     });
+    adminItemsLastRefreshAt = Date.now();
     updateOutputLabel();
 }
 
@@ -1266,7 +1308,9 @@ function bindEvents() {
         setCategory(button.dataset.category || 'Tous');
     });
 
-    dom.addBtn?.addEventListener('click', () => openRecipeModal());
+    dom.addBtn?.addEventListener('click', () => {
+        void openRecipeModal();
+    });
     dom.modalClose?.addEventListener('click', closeRecipeModal);
     dom.modalCancel?.addEventListener('click', closeRecipeModal);
     dom.modalBackdrop?.addEventListener('click', closeRecipeModal);
@@ -1288,13 +1332,17 @@ function bindEvents() {
         }
     });
 
-    dom.pickOutputBtn?.addEventListener('click', () => openItemPicker('output'));
+    dom.pickOutputBtn?.addEventListener('click', () => {
+        void openItemPicker('output');
+    });
     dom.outputItemSelect?.addEventListener('change', updateOutputLabel);
-    dom.outputItemLabel?.addEventListener('click', () => openItemPicker('output'));
+    dom.outputItemLabel?.addEventListener('click', () => {
+        void openItemPicker('output');
+    });
     dom.outputItemLabel?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            openItemPicker('output');
+            void openItemPicker('output');
         }
     });
 
@@ -1320,6 +1368,24 @@ function bindEvents() {
 
     window.addEventListener('astoria:character-changed', () => {
         void refreshCharacterContext();
+    });
+
+    window.addEventListener('storage', (event) => {
+        adminItemsDirty = true;
+
+        if (!isModalOpen(dom.modal) && !isModalOpen(dom.pickerModal)) {
+            return;
+        }
+
+        void syncAdminRecipeItems().then(() => {
+            if (isModalOpen(dom.modal)) {
+                updateOutputLabel();
+                renderIngredientDraftRows();
+            }
+            if (isModalOpen(dom.pickerModal)) {
+                renderPickerList();
+            }
+        });
     });
 }
 

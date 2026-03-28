@@ -4,6 +4,7 @@ import {
     isAdmin,
     refreshSessionUser
 } from './auth.js';
+import { invalidateItemsCache } from './api/items-service.js';
 
 const ITEMS_BUCKET = 'items';
 const IMAGE_SIZE = 256;
@@ -916,6 +917,7 @@ async function confirmDelete() {
         console.log('[DELETE] Removed from UI');
         await loadDbItems();
 
+        invalidateItemsCache();
         toastManager.success(`"${editingItem.name}" supprimé avec succès`);
 
         // Close modals
@@ -1175,6 +1177,7 @@ async function saveItem(event) {
         imageBlob = null;
         imageMeta = null;
 
+        invalidateItemsCache();
         toastManager.success(isUpdate ? `"${name}" mis à jour` : `"${name}" ajouté au codex`);
         closeAdminModal();
     } catch (error) {
