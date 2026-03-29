@@ -279,7 +279,7 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
     document.body.dataset.admin = adminMode ? "true" : "false";
 
     try {
-        const characters = await auth.getUserCharacters(user.id);
+        const characters = await auth.getUserCharacters(user.id, { includeProfileData: true });
         if (!characters || characters.length === 0) {
             dropdownEl.hidden = true;
             return;
@@ -287,6 +287,40 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
         dropdownEl.innerHTML = "";
         dropdownEl.className = "character-dropdown";
+
+        if (adminMode && currentCharacterId && typeof auth.clearActiveCharacter === "function") {
+            const clearItem = document.createElement("button");
+            clearItem.type = "button";
+            clearItem.className = "character-dropdown-item character-dropdown-item--create";
+
+            const avatar = document.createElement("div");
+            avatar.className = "character-dropdown-avatar";
+            avatar.textContent = "×";
+
+            const text = document.createElement("div");
+            text.className = "character-dropdown-text";
+
+            const name = document.createElement("div");
+            name.className = "character-dropdown-name";
+            name.textContent = "Quitter la cible admin";
+
+            const role = document.createElement("div");
+            role.className = "character-dropdown-role";
+            role.textContent = "Revenir sans personnage actif";
+
+            text.appendChild(name);
+            text.appendChild(role);
+            clearItem.appendChild(avatar);
+            clearItem.appendChild(text);
+
+            clearItem.addEventListener("click", (e) => {
+                e.stopPropagation();
+                auth.clearActiveCharacter();
+                window.location.reload();
+            });
+
+            dropdownEl.appendChild(clearItem);
+        }
 
         characters.forEach((char) => {
             const item = document.createElement("button");

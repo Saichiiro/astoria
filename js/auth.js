@@ -21,5 +21,5 @@ export {
     setActiveCharacter,
     updateCharacter
 } from './api/characters-service.js';
-export { getActiveCharacter } from './api/session-store.js';
+export { getActiveCharacter, clearActiveCharacter } from './api/session-store.js';
 export { toggleItemState, getAllItems } from './api/items-service.js';

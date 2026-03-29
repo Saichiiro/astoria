@@ -1085,6 +1085,10 @@
         return skillsState.pointsByCategory[id] ?? 0;
     }
 
+    function canReclaimConfirmedBasePoints() {
+        return Boolean(skillsState.isAdmin);
+    }
+
     function computeCategoryLockState(categoryId) {
         if (!categoryId) return false;
         const allocations = getCategoryAllocations(categoryId);
@@ -1094,7 +1098,8 @@
         const hasBaseValues = Object.values(baseValues).some((value) => Number(value) > 0);
         // Lock only if truly nothing usable: no points, no pending, and no confirmed base values.
         // If base values exist the player can still rearrange (dec base → free points → inc elsewhere).
-        return availablePoints <= 0 && !hasAllocations && !hasBaseValues;
+        const hasReclaimableBaseValues = canReclaimConfirmedBasePoints() && hasBaseValues;
+        return availablePoints <= 0 && !hasAllocations && !hasReclaimableBaseValues;
     }
 
     function syncCategoryLockState(categoryId, persist = false) {
@@ -1277,7 +1282,8 @@
             decBtn.className = "skill-point-btn";
             decBtn.textContent = "-";
             decBtn.setAttribute("aria-label", `Retirer un point sur ${skill.name}`);
-            decBtn.disabled = (allocation <= 0 && base <= 0) || isLocked;
+            const canDecreaseConfirmedBase = canReclaimConfirmedBasePoints() && base > 0;
+            decBtn.disabled = (allocation <= 0 && !canDecreaseConfirmedBase) || isLocked;
 
             const value = document.createElement("span");
             value.className = "skills-value";
@@ -1428,7 +1434,7 @@
         const cap = getSkillCap(skill);
 
         if (delta > 0 && (available <= 0 || currentTotal >= cap)) return;
-        if (delta < 0 && currentAlloc <= 0 && base <= 0) return;
+        if (delta < 0 && currentAlloc <= 0 && (!canReclaimConfirmedBasePoints() || base <= 0)) return;
 
         if (delta > 0) {
             const increment = Math.min(delta, available, cap - currentTotal);
@@ -1442,7 +1448,7 @@
                 if (decrement <= 0) return;
                 allocations[skill.name] = currentAlloc - decrement;
                 skillsState.pointsByCategory[categoryId] = available + decrement;
-            } else {
+            } else if (canReclaimConfirmedBasePoints()) {
                 // No pending: reduce the confirmed base value to free up points for rearrangement.
                 const decrement = Math.min(-delta, base);
                 if (decrement <= 0) return;
@@ -1452,6 +1458,8 @@
                 skillsState.baseValuesByCategory[categoryId][skill.name] = base - decrement;
                 skillsState.pointsByCategory[categoryId] = available + decrement;
                 saveToStorage(skillsBaseValuesKey, skillsState.baseValuesByCategory);
+            } else {
+                return;
             }
         }
         saveToStorage(skillsAllocStorageKey, skillsState.allocationsByCategory);
@@ -1465,7 +1473,8 @@
         const newTotal = updatedBase + nextAlloc + bonus;
         valueEl.textContent = `${newTotal} / ${cap}`;
         const isLocked = getCategoryLockState(categoryId);
-        decBtn.disabled = (nextAlloc <= 0 && updatedBase <= 0) || isLocked;
+        const canDecreaseConfirmedBase = canReclaimConfirmedBasePoints() && updatedBase > 0;
+        decBtn.disabled = (nextAlloc <= 0 && !canDecreaseConfirmedBase) || isLocked;
         incBtn.disabled = updatedBase + nextAlloc >= cap || (skillsState.pointsByCategory[categoryId] ?? 0) <= 0 || isLocked;
 
         updateSkillsPointsDisplay();
@@ -2105,7 +2114,8 @@
                 nokorahDetails: bonusEntry.nokorahDetails || []
             });
             const atMax = base + allocation >= cap;
-            decBtn.disabled = (allocation <= 0 && base <= 0) || isLocked;
+            const canDecreaseConfirmedBase = canReclaimConfirmedBasePoints() && base > 0;
+            decBtn.disabled = (allocation <= 0 && !canDecreaseConfirmedBase) || isLocked;
             incBtn.disabled = atMax || currentPoints <= 0 || isLocked;
         });
 

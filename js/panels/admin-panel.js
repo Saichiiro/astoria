@@ -4,6 +4,7 @@ import {
   getAllCharacters,
   setActiveCharacter,
   getActiveCharacter,
+  clearActiveCharacter,
   updateCharacter,
   deleteCharacter,
   getCurrentUser,
@@ -549,10 +550,20 @@ export const adminPanel = {
         const activateBtn = document.createElement("button");
         activateBtn.type = "button";
         activateBtn.className = "auth-button secondary";
-        activateBtn.textContent = "Activer";
+        const isCurrentTarget = typeof getActiveCharacter === "function" && getActiveCharacter()?.id === character.id;
+        activateBtn.textContent = isCurrentTarget ? "Quitter" : "Activer";
         activateBtn.addEventListener("click", async () => {
+          if (typeof getActiveCharacter === "function" && getActiveCharacter()?.id === character.id) {
+            if (typeof clearActiveCharacter === "function") {
+              clearActiveCharacter();
+              renderCharacters(characterInput.value);
+              window.dispatchEvent(new CustomEvent("astoria:character-changed"));
+            }
+            return;
+          }
           const res = await setActiveCharacter(character.id);
           if (res && res.success) {
+            renderCharacters(characterInput.value);
             window.dispatchEvent(new CustomEvent("astoria:character-changed"));
           }
         });

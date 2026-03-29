@@ -3,7 +3,7 @@
  * Built with Tabler UI Framework
  */
 
-import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, getAllItems } from '../../js/auth.js';
+import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, clearActiveCharacter, getActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
 import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js';
 import { adminItemsModal } from './admin-items-modal.js';
@@ -657,6 +657,8 @@ import { adminItemsModal } from './admin-items-modal.js';
             return;
         }
 
+        const activeCharacterId = getActiveCharacter?.()?.id || '';
+
         tbody.innerHTML = characters.map(char => {
             const avatarUrl = char.profile_data?.avatar_url || '';
             const avatarHtml = avatarUrl
@@ -670,6 +672,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             const ownerShort = char.user_id ? char.user_id.slice(0, 8) + '...' : '-';
             const raceClass = `${char.race || ''} ${char.class || ''}`.trim() || '-';
             const kaels = char.kaels != null ? char.kaels.toLocaleString('fr-FR') : '0';
+            const isActiveTarget = activeCharacterId === char.id;
 
             return `
                 <tr>
@@ -683,8 +686,8 @@ import { adminItemsModal } from './admin-items-modal.js';
                     <td class="text-muted">${createdDate}</td>
                     <td>
                         <div class="btn-list flex-nowrap">
-                            <button class="btn btn-sm btn-ghost-primary" data-action="select" data-char-id="${char.id}" title="Activer">
-                                <i class="ti ti-user-check"></i>
+                            <button class="btn btn-sm ${isActiveTarget ? 'btn-warning' : 'btn-ghost-primary'}" data-action="select" data-char-id="${char.id}" title="${isActiveTarget ? 'Quitter cette cible' : 'Activer'}">
+                                <i class="ti ${isActiveTarget ? 'ti-arrow-back-up' : 'ti-user-check'}"></i>
                             </button>
                             <button class="btn btn-sm btn-ghost-warning" data-action="edit-kaels" data-char-id="${char.id}" title="Modifier Kaels">
                                 <i class="ti ti-coin"></i>
@@ -1226,8 +1229,16 @@ import { adminItemsModal } from './admin-items-modal.js';
 
             switch (action) {
                 case 'select':
+                    if (getActiveCharacter?.()?.id === charId) {
+                        clearActiveCharacter?.();
+                        renderCharactersTable(allCharacters);
+                        showToast('Cible admin retirÃ©e', 'success');
+                        break;
+                    }
+
                     const result = await setActiveCharacter(charId);
                     if (result && result.success) {
+                        renderCharactersTable(allCharacters);
                         showToast('Personnage activé', 'success');
                     }
                     break;
