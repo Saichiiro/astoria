@@ -57,6 +57,9 @@
                     <option value="exact">Rang exact</option>
                     <option value="min">Rang min (et +)</option>
                 </select>
+                <select id="craftSlotFilter" class="tw-input craft-select" aria-label="Filtrer par type d'equipement">
+                    <option value="Tous">Tous les types</option>
+                </select>
                 <label class="craft-toggle">
                     <input id="craftPossibleOnly" type="checkbox">
                     <span>Creation possible</span>
@@ -241,7 +244,12 @@
                 <button id="craftItemPickerClose" type="button" class="craft-modal-close" aria-label="Fermer">x</button>
             </header>
             <div class="craft-modal-body">
-                <input id="craftItemPickerSearch" class="tw-input" type="search" placeholder="Rechercher un item...">
+                <div class="craft-picker-toolbar">
+                    <input id="craftItemPickerSearch" class="tw-input" type="search" placeholder="Rechercher un item...">
+                    <select id="craftItemPickerSlotFilter" class="tw-input" aria-label="Filtrer les items par type d'equipement">
+                        <option value="">Tous les types</option>
+                    </select>
+                </div>
                 <div id="craftItemPickerList" class="craft-picker-list"></div>
             </div>
         </div>

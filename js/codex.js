@@ -54,6 +54,8 @@ const searchRoot = document.getElementById("codexSearch");
 const searchToggle = document.getElementById("codexSearchToggle");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
+const equipmentSlotFilter = document.getElementById("equipmentSlotFilter");
+const codexSubfilters = document.getElementById("codexSubfilters");
 // const clearSearchBtn = document.getElementById("clearSearchBtn"); // Removed: using native search input clear
 const filterChips = document.getElementById("filterChips");
 const recentSearchesDropdown = document.getElementById("recentSearchesDropdown");
@@ -65,6 +67,23 @@ const listHelpers = window.astoriaListHelpers || {};
 const debounce = listHelpers.debounce || ((fn) => fn);
 const filterItems = listHelpers.filterItems;
 const sortItems = listHelpers.sortItems;
+
+const EQUIPMENT_SLOT_LABELS = Object.freeze({
+    casque: 'Casque',
+    cape: 'Cape',
+    epaulettes: 'Epaulettes',
+    collier: 'Collier',
+    plastron: 'Plastron',
+    ceinture: 'Ceinture',
+    gantelets: 'Gantelets',
+    anneau: 'Anneau',
+    bottes: 'Bottes',
+    arme: 'Arme',
+    'arme-deux-mains': 'Arme 2 mains',
+    artefact: 'Artefact',
+    familier: 'Familier',
+    monture: 'Monture'
+});
 
 let currentCarouselImages = [];
 let currentCarouselIndex = 0;
@@ -96,6 +115,34 @@ const normalizeName = window.astoriaImageHelpers && window.astoriaImageHelpers.n
             .replace(/[^a-zA-Z0-9]+/g, "")
             .toLowerCase();
     };
+
+function normalizeEquipmentSlot(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_\s]+/g, "-");
+}
+
+function getEquipmentSlotLabel(value) {
+    const key = normalizeEquipmentSlot(value);
+    if (!key) return "";
+    if (EQUIPMENT_SLOT_LABELS[key]) return EQUIPMENT_SLOT_LABELS[key];
+    return key
+        .split("-")
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+}
+
+function getItemEquipmentSlot(item) {
+    const helper = window.astoriaItemDisplayMeta;
+    const raw = helper?.getEquipmentSlot
+        ? helper.getEquipmentSlot(item)
+        : (item?.equipment_slot || item?.equipmentSlot || "");
+    return normalizeEquipmentSlot(raw);
+}
 
 function highlightText(text, query) {
     if (!query || !text) return clean(text);
@@ -150,6 +197,7 @@ function mapDbItem(row) {
         modifiers: Array.isArray(modifiers) ? modifiers : [],
         image: primary,
         images: images,
+        equipment_slot: row.equipment_slot || "",
         rarity: row.rarity || "",
         rank: row.rank || ""
     };
@@ -325,6 +373,8 @@ function replaceItems(nextItems) {
     rowCache.clear();
     allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));
     preloadItems(allItems);
+    populateEquipmentSlotOptions();
+    syncEquipmentSlotFilterVisibility();
 }
 
 
@@ -962,6 +1012,7 @@ function copyToClipboard(text, button) {
 
 // Filtrage dynamique par catÃ©gorie
 let currentCategory = '';
+let currentEquipmentSlot = '';
 let currentSortColumn = null;
 let currentSortDirection = 'asc';
 const MAX_RECENT_SEARCHES = 3;
@@ -979,7 +1030,8 @@ const filterFields = [
     (item) => item?.effect,
     (item) => getModifierSearchText(item),
     (item) => item?.buyPrice,
-    (item) => item?.sellPrice
+    (item) => item?.sellPrice,
+    (item) => getEquipmentSlotLabel(getItemEquipmentSlot(item))
 ];
 
 const sorters = {
@@ -987,10 +1039,50 @@ const sorters = {
     price: (item) => parseInt(String(item?.sellPrice || item?.buyPrice || '0').replace(/\D/g, ''), 10) || 0
 };
 
+function populateEquipmentSlotOptions() {
+    if (!equipmentSlotFilter) return;
+
+    const previousValue = currentEquipmentSlot || equipmentSlotFilter.value || '';
+    const slotKeys = Array.from(new Set(
+        allItems
+            .filter((item) => String(item?.category || '').toLowerCase() === 'equipement')
+            .map((item) => getItemEquipmentSlot(item))
+            .filter(Boolean)
+    )).sort((a, b) => getEquipmentSlotLabel(a).localeCompare(getEquipmentSlotLabel(b), 'fr'));
+
+    equipmentSlotFilter.innerHTML = [
+        '<option value="">Tous les types</option>',
+        ...slotKeys.map((slotKey) => `<option value="${clean(slotKey)}">${clean(getEquipmentSlotLabel(slotKey))}</option>`)
+    ].join('');
+
+    if (previousValue && slotKeys.includes(previousValue)) {
+        equipmentSlotFilter.value = previousValue;
+    } else {
+        equipmentSlotFilter.value = '';
+        currentEquipmentSlot = '';
+    }
+}
+
+function syncEquipmentSlotFilterVisibility() {
+    if (!codexSubfilters || !equipmentSlotFilter) return;
+    const shouldShow = currentCategory === 'equipement' && equipmentSlotFilter.options.length > 1;
+    codexSubfilters.hidden = !shouldShow;
+    if (!shouldShow) {
+        equipmentSlotFilter.value = '';
+        currentEquipmentSlot = '';
+    }
+}
+
 function filterByCategory() {
     const select = categoryFilter;
     if (!select) return;
     currentCategory = select.value;
+    if (currentCategory !== 'equipement') {
+        currentEquipmentSlot = '';
+        if (equipmentSlotFilter) {
+            equipmentSlotFilter.value = '';
+        }
+    }
 
     // Mise Ã  jour du titre
     const titles = {
@@ -1006,6 +1098,7 @@ function filterByCategory() {
     }
 
     // Application du filtre
+    syncEquipmentSlotFilterVisibility();
     applyFilters();
     updateFilterChips();
 }
@@ -1015,6 +1108,10 @@ function clearCategoryFilter() {
         categoryFilter.value = '';
     }
     currentCategory = '';
+    currentEquipmentSlot = '';
+    if (equipmentSlotFilter) {
+        equipmentSlotFilter.value = '';
+    }
     if (pageTitle) {
         pageTitle.textContent = 'Codex d\'Astoria';
     }
@@ -1027,6 +1124,7 @@ function clearCategoryFilter() {
         if (allPill) allPill.classList.add('active');
     }
 
+    syncEquipmentSlotFilterVisibility();
     applyFilters();
     updateFilterChips();
 }
@@ -1035,10 +1133,14 @@ function clearAllFilters() {
     if (categoryFilter) {
         categoryFilter.value = '';
     }
+    if (equipmentSlotFilter) {
+        equipmentSlotFilter.value = '';
+    }
     if (searchInput) {
         searchInput.value = '';
     }
     currentCategory = '';
+    currentEquipmentSlot = '';
 
     // Reset active pill
     const categoryPills = document.getElementById('categoryPills');
@@ -1048,6 +1150,7 @@ function clearAllFilters() {
         if (allPill) allPill.classList.add('active');
     }
 
+    syncEquipmentSlotFilterVisibility();
     applyFilters();
     updateFilterChips('');
 }
@@ -1099,7 +1202,9 @@ function updateFilterChips(searchQuery = '') {
         const categoryNames = {
             equipement: '\u00c9quipements',
             consommable: 'Consommables',
-            agricole: 'Agricole'
+            agricole: 'Agricole',
+            materiau: 'Materiaux',
+            quete: 'Quetes'
         };
 
         const chip = document.createElement('div');
@@ -1107,6 +1212,16 @@ function updateFilterChips(searchQuery = '') {
         chip.innerHTML = `
             <span>${categoryNames[currentCategory] || ''}</span>
             <button type="button" class="chip-remove" data-chip-action="clear-category">\u00D7</button>
+        `;
+        chipsContainer.appendChild(chip);
+    }
+
+    if (currentEquipmentSlot) {
+        const chip = document.createElement('div');
+        chip.className = 'filter-chip';
+        chip.innerHTML = `
+            <span>${clean(getEquipmentSlotLabel(currentEquipmentSlot))}</span>
+            <button type="button" class="chip-remove" data-chip-action="clear-slot">\u00D7</button>
         `;
         chipsContainer.appendChild(chip);
     }
@@ -1130,7 +1245,12 @@ function applyFilters() {
             query: searchQuery,
             fields: filterFields
         })
-        : allItems;
+        : allItems.slice();
+
+    if (currentEquipmentSlot) {
+        const normalizedSlot = currentEquipmentSlot;
+        filtered.splice(0, filtered.length, ...filtered.filter((item) => getItemEquipmentSlot(item) === normalizedSlot));
+    }
 
     if (currentSortColumn && sortItems) {
         sortItems(filtered, currentSortColumn, currentSortDirection, sorters);
@@ -1226,6 +1346,14 @@ function bindPageEvents() {
         categoryFilter.addEventListener('change', () => filterByCategory());
     }
 
+    if (equipmentSlotFilter) {
+        equipmentSlotFilter.addEventListener('change', () => {
+            currentEquipmentSlot = equipmentSlotFilter.value || '';
+            applyFilters();
+            updateFilterChips();
+        });
+    }
+
     if (searchRoot && searchInput && window.astoriaSearchBar) {
         const searchBar = window.astoriaSearchBar.bind({
             root: searchRoot,
@@ -1264,6 +1392,13 @@ function bindPageEvents() {
             if (!actionTarget) return;
             if (actionTarget.dataset.chipAction === 'clear-category') {
                 clearCategoryFilter();
+            } else if (actionTarget.dataset.chipAction === 'clear-slot') {
+                currentEquipmentSlot = '';
+                if (equipmentSlotFilter) {
+                    equipmentSlotFilter.value = '';
+                }
+                applyFilters();
+                updateFilterChips();
             }
         });
     }
@@ -1330,12 +1465,15 @@ function initFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const urlCategory = params.get('category');
 
+    populateEquipmentSlotOptions();
+
     if (urlCategory && categoryFilter) {
         const select = categoryFilter;
         select.value = urlCategory;
         currentCategory = urlCategory;
         filterByCategory();
     } else {
+        syncEquipmentSlotFilterVisibility();
         loadTable(allItems);
     }
 
@@ -1344,6 +1482,8 @@ function initFromUrl() {
 }
 
 function populateCategoryCounts() {
+    populateEquipmentSlotOptions();
+    syncEquipmentSlotFilterVisibility();
     const counts = allItems.reduce((acc, item) => {
         const key = item.category || 'other';
         acc[key] = (acc[key] || 0) + 1;
@@ -1382,6 +1522,8 @@ window.astoriaCodex = {
             allItems.push(item);
             getOrCreateItemMeta(item, allItems.length - 1);
         });
+        populateEquipmentSlotOptions();
+        syncEquipmentSlotFilterVisibility();
         applyFilters();
         populateCategoryCounts();
     },
@@ -1390,6 +1532,8 @@ window.astoriaCodex = {
         const index = allItems.indexOf(itemRef);
         if (index < 0) return;
         allItems.splice(index, 1);
+        populateEquipmentSlotOptions();
+        syncEquipmentSlotFilterVisibility();
         applyFilters();
         populateCategoryCounts();
     },
@@ -1399,6 +1543,8 @@ window.astoriaCodex = {
         if (!target) return null;
         Object.assign(target, updates || {});
         rowCache.clear();
+        populateEquipmentSlotOptions();
+        syncEquipmentSlotFilterVisibility();
         applyFilters();
         populateCategoryCounts();
         return target;

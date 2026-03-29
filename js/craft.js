@@ -21,11 +21,28 @@ import {
 
 const RANK_ORDER = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
 const ADMIN_ITEMS_REFRESH_TTL_MS = 15000;
+const EQUIPMENT_SLOT_LABELS = Object.freeze({
+    casque: 'Casque',
+    cape: 'Cape',
+    epaulettes: 'Epaulettes',
+    collier: 'Collier',
+    plastron: 'Plastron',
+    ceinture: 'Ceinture',
+    gantelets: 'Gantelets',
+    anneau: 'Anneau',
+    bottes: 'Bottes',
+    arme: 'Arme',
+    'arme-deux-mains': 'Arme 2 mains',
+    artefact: 'Artefact',
+    familier: 'Familier',
+    monture: 'Monture'
+});
 
 const dom = {
     searchInput: document.getElementById('craftSearchInput'),
     rankFilter: document.getElementById('craftRankFilter'),
     rankMode: document.getElementById('craftRankMode'),
+    slotFilter: document.getElementById('craftSlotFilter'),
     possibleOnly: document.getElementById('craftPossibleOnly'),
     filterHint: document.getElementById('craftFilterHint'),
     categoryList: document.getElementById('craftCategoryList'),
@@ -67,6 +84,7 @@ const dom = {
     pickerClose: document.getElementById('craftItemPickerClose'),
     pickerBackdrop: document.querySelector('[data-craft-picker-close]'),
     pickerSearch: document.getElementById('craftItemPickerSearch'),
+    pickerSlotFilter: document.getElementById('craftItemPickerSlotFilter'),
     pickerList: document.getElementById('craftItemPickerList')
 };
 
@@ -89,6 +107,7 @@ const state = {
     search: '',
     rank: 'Tous',
     rankMode: 'exact',
+    slot: 'Tous',
     onlyPossible: false,
 
     page: 1,
@@ -101,7 +120,8 @@ const state = {
     picker: {
         target: null,
         ingredientIndex: -1,
-        query: ''
+        query: '',
+        slot: ''
     }
 };
 
@@ -115,6 +135,26 @@ function normalizeText(value) {
         .replace(/[\u0300-\u036f]/g, '')
         .trim()
         .toLowerCase();
+}
+
+function normalizeEquipmentSlot(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[_\s]+/g, '-');
+}
+
+function getEquipmentSlotLabel(value) {
+    const key = normalizeEquipmentSlot(value);
+    if (!key) return '';
+    if (EQUIPMENT_SLOT_LABELS[key]) return EQUIPMENT_SLOT_LABELS[key];
+    return key
+        .split('-')
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
 }
 
 function safeJson(value) {
@@ -204,6 +244,47 @@ function normalizeItemKey(value) {
     return normalizeText(value);
 }
 
+function getItemEquipmentSlot(item) {
+    return normalizeEquipmentSlot(item?.equipment_slot || item?.equipmentSlot || '');
+}
+
+function populateEquipmentSlotFilters() {
+    const slotKeys = Array.from(new Set(
+        state.items
+            .filter((item) => normalizeText(item?.category) === 'equipement')
+            .map((item) => getItemEquipmentSlot(item))
+            .filter(Boolean)
+    )).sort((a, b) => getEquipmentSlotLabel(a).localeCompare(getEquipmentSlotLabel(b), 'fr'));
+
+    if (dom.slotFilter) {
+        const previous = state.slot !== 'Tous' ? state.slot : '';
+        dom.slotFilter.innerHTML = [
+            '<option value="Tous">Tous les types</option>',
+            ...slotKeys.map((slotKey) => `<option value="${slotKey}">${getEquipmentSlotLabel(slotKey)}</option>`)
+        ].join('');
+        if (previous && slotKeys.includes(previous)) {
+            dom.slotFilter.value = previous;
+        } else {
+            dom.slotFilter.value = 'Tous';
+            state.slot = 'Tous';
+        }
+    }
+
+    if (dom.pickerSlotFilter) {
+        const previous = state.picker.slot || '';
+        dom.pickerSlotFilter.innerHTML = [
+            '<option value="">Tous les types</option>',
+            ...slotKeys.map((slotKey) => `<option value="${slotKey}">${getEquipmentSlotLabel(slotKey)}</option>`)
+        ].join('');
+        if (previous && slotKeys.includes(previous)) {
+            dom.pickerSlotFilter.value = previous;
+        } else {
+            dom.pickerSlotFilter.value = '';
+            state.picker.slot = '';
+        }
+    }
+}
+
 function getFilteredRecipes() {
     const query = normalizeText(state.search);
 
@@ -211,8 +292,12 @@ function getFilteredRecipes() {
         if (state.category !== 'Tous' && recipe.category !== state.category) return false;
         if (!rankPasses(recipe.rank)) return false;
 
+        const outputItem = getRecipeOutputItem(recipe);
+        const outputSlot = getItemEquipmentSlot(outputItem);
+        if (state.slot !== 'Tous' && outputSlot !== state.slot) return false;
+
         if (query) {
-            const haystack = normalizeText(`${recipe.title || ''} ${recipe.output_item_key || ''}`);
+            const haystack = normalizeText(`${recipe.title || ''} ${recipe.output_item_key || ''} ${outputItem?.category || ''} ${getEquipmentSlotLabel(outputSlot)}`);
             if (!haystack.includes(query)) return false;
         }
 
@@ -934,6 +1019,7 @@ async function openItemPicker(target, ingredientIndex = -1) {
     state.picker.target = target;
     state.picker.ingredientIndex = ingredientIndex;
     state.picker.query = '';
+    state.picker.slot = dom.pickerSlotFilter?.value || '';
     if (dom.pickerSearch) dom.pickerSearch.value = '';
     renderPickerList();
 
@@ -986,8 +1072,11 @@ function renderPickerList() {
 
     const query = normalizeText(state.picker.query);
     const list = state.items.filter((item) => {
+        if (state.picker.slot && getItemEquipmentSlot(item) !== state.picker.slot) {
+            return false;
+        }
         if (!query) return true;
-        return normalizeText(item.name).includes(query);
+        return normalizeText(`${item.name} ${getEquipmentSlotLabel(getItemEquipmentSlot(item))}`).includes(query);
     });
 
     dom.pickerList.innerHTML = '';
@@ -1246,6 +1335,7 @@ async function loadItems({ force = false } = {}) {
         if (id) state.itemById.set(id, item);
         if (key && !state.itemByKey.has(key)) state.itemByKey.set(key, item);
     });
+    populateEquipmentSlotFilters();
     adminItemsLastRefreshAt = Date.now();
     updateOutputLabel();
 }
@@ -1294,6 +1384,11 @@ function bindEvents() {
 
     dom.rankMode?.addEventListener('change', () => {
         state.rankMode = dom.rankMode.value || 'exact';
+        resetPageAndRender();
+    });
+
+    dom.slotFilter?.addEventListener('change', () => {
+        state.slot = dom.slotFilter.value || 'Tous';
         resetPageAndRender();
     });
 
@@ -1355,6 +1450,10 @@ function bindEvents() {
     dom.pickerBackdrop?.addEventListener('click', closeItemPicker);
     dom.pickerSearch?.addEventListener('input', () => {
         state.picker.query = dom.pickerSearch.value || '';
+        renderPickerList();
+    });
+    dom.pickerSlotFilter?.addEventListener('change', () => {
+        state.picker.slot = dom.pickerSlotFilter.value || '';
         renderPickerList();
     });
 

@@ -25,13 +25,16 @@
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    flex: 1 1 640px;
 }
 
 .craft-search {
+    flex: 1 1 280px;
     min-width: 260px;
 }
 
 .craft-select {
+    min-height: 42px;
     min-width: 130px;
 }
 
@@ -39,6 +42,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-height: 42px;
+    padding: 0 2px;
     color: #5c2b4a;
     font-weight: 600;
 }
@@ -746,6 +751,22 @@
     width: min(860px, 96vw);
 }
 
+.craft-picker-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid rgba(216, 27, 96, 0.14);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 247, 251, 0.92));
+}
+
+.craft-picker-toolbar .tw-input {
+    min-height: 42px;
+}
+
 .craft-picker-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -765,11 +786,14 @@
     align-items: center;
     text-align: left;
     cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .craft-picker-item:hover {
     border-color: rgba(216, 27, 96, 0.45);
     background: #fff7fb;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(216, 27, 96, 0.08);
 }
 
 .craft-picker-text {
@@ -875,6 +899,11 @@
         grid-template-columns: 1fr;
     }
 
+    .craft-picker-toolbar {
+        grid-template-columns: 1fr;
+        padding: 9px;
+    }
+
     .craft-modal-header,
     .craft-modal-body,
     .craft-modal-footer {
@@ -928,6 +957,10 @@
     .craft-select,
     #craftRankMode {
         min-width: 0;
+    }
+
+    .craft-toggle {
+        padding-left: 0;
     }
 
     .craft-content,
