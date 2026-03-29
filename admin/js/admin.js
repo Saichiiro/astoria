@@ -1684,7 +1684,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         try {
             const { data, error } = await supabase
                 .from('quests')
-                .select('id, name, type, rank, status, repeatable, max_participants, description, rewards, completed_by')
+                .select('id, name, type, rank, status, repeatable, max_participants, description, rewards, images, completed_by')
                 .order('created_at', { ascending: false });
             if (error) throw error;
             allQuests = data || [];
@@ -1748,6 +1748,7 @@ import { adminItemsModal } from './admin-items-modal.js';
     let questSortCol = null;
     let questSortDir = 1; // 1 = asc, -1 = desc
     let questActiveFilter = 'all';
+    let questModalInstance = null;
 
     const QUEST_RANK_ORDER = ['F','E','D','C','B','A','S','S+','SS','SSS'];
 
@@ -1783,6 +1784,9 @@ import { adminItemsModal } from './admin-items-modal.js';
     }
 
     function initQuestsPage() {
+        const questModalEl = document.getElementById('questModal');
+        questModalInstance = questModalEl ? bootstrap.Modal.getOrCreateInstance(questModalEl) : null;
+
         // Filter buttons
         document.getElementById('questFilterBtns')?.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-quest-filter]');
@@ -1826,9 +1830,43 @@ import { adminItemsModal } from './admin-items-modal.js';
         // Add reward buttons
         document.getElementById('btnAddKaelsReward')?.addEventListener('click', () => addRewardRow('kaels'));
         document.getElementById('btnAddItemReward')?.addEventListener('click', () => addRewardRow('item'));
+
+        questModalEl?.addEventListener('hidden.bs.modal', resetQuestForm);
+    }
+
+    function resetQuestForm() {
+        document.getElementById('questModalTitle').textContent = 'Nouvelle quÃªte';
+        document.getElementById('questModalId').value = '';
+        document.getElementById('questFormName').value = '';
+        document.getElementById('questFormType').value = 'ExpÃ©dition';
+        document.getElementById('questFormRank').value = 'F';
+        document.getElementById('questFormStatus').value = 'available';
+        document.getElementById('questFormMaxPart').value = 5;
+        document.getElementById('questFormRepeatable').checked = false;
+        document.getElementById('questFormDesc').value = '';
+        const imagesInput = document.getElementById('questFormImages');
+        if (imagesInput) imagesInput.value = '';
+        const list = document.getElementById('questRewardsList');
+        if (list) list.innerHTML = '';
+    }
+
+    function serializeQuestImages(images) {
+        return (Array.isArray(images) ? images : [])
+            .map((value) => String(value || '').trim())
+            .filter(Boolean)
+            .join('\n');
+    }
+
+    function parseQuestImagesInput() {
+        const rawValue = document.getElementById('questFormImages')?.value || '';
+        return rawValue
+            .split(/\r?\n/)
+            .map((value) => value.trim())
+            .filter(Boolean);
     }
 
     function openQuestModal(quest) {
+        resetQuestForm();
         document.getElementById('questModalTitle').textContent = quest ? 'Modifier la quête' : 'Nouvelle quête';
         document.getElementById('questModalId').value = quest?.id || '';
         document.getElementById('questFormName').value = quest?.name || '';
@@ -1838,6 +1876,10 @@ import { adminItemsModal } from './admin-items-modal.js';
         document.getElementById('questFormMaxPart').value = quest?.max_participants || 5;
         document.getElementById('questFormRepeatable').checked = quest?.repeatable || false;
         document.getElementById('questFormDesc').value = quest?.description || '';
+        const imagesInput = document.getElementById('questFormImages');
+        if (imagesInput) {
+            imagesInput.value = serializeQuestImages(quest?.images);
+        }
 
         // Populate rewards
         const list = document.getElementById('questRewardsList');
@@ -1847,7 +1889,8 @@ import { adminItemsModal } from './admin-items-modal.js';
             else addRewardRow('item', r.qty, r.name);
         });
 
-        new bootstrap.Modal(document.getElementById('questModal')).show();
+        questModalInstance = bootstrap.Modal.getOrCreateInstance(document.getElementById('questModal'));
+        questModalInstance.show();
     }
 
     function addRewardRow(type, qty = '', name = '') {
@@ -1895,6 +1938,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             max_participants: parseInt(document.getElementById('questFormMaxPart').value) || 5,
             repeatable:       document.getElementById('questFormRepeatable').checked,
             description:      document.getElementById('questFormDesc').value.trim(),
+            images:           parseQuestImagesInput(),
             rewards:          readRewards(),
         };
 
@@ -1909,7 +1953,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                 ({ error } = await supabase.from('quests').insert(payload));
             }
             if (error) throw error;
-            bootstrap.Modal.getInstance(document.getElementById('questModal'))?.hide();
+            questModalInstance?.hide();
             showToast(id ? 'Quête mise à jour' : 'Quête créée', 'success');
             await loadQuests();
         } catch (err) {
