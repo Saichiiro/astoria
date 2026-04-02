@@ -46,6 +46,41 @@ async function loadAuthModule() {
     }
 }
 
+async function resolveLiveCharacterContext({ includeQueryParam = false } = {}) {
+    const auth = await loadAuthModule();
+
+    try {
+        await auth?.refreshSessionUser?.();
+    } catch (error) {
+        console.warn("Character-summary: Session refresh skipped", error);
+    }
+
+    const runtimeUser = auth?.getCurrentUser?.() || null;
+    const adminMode = typeof auth?.isAdmin === "function" && auth.isAdmin();
+    let runtimeCharacter = auth?.getActiveCharacter?.() || null;
+
+    if (runtimeCharacter?.id && runtimeUser?.id && !adminMode && runtimeCharacter.user_id && runtimeCharacter.user_id !== runtimeUser.id) {
+        auth?.clearActiveCharacter?.();
+        runtimeCharacter = null;
+    }
+
+    if (runtimeCharacter?.id) {
+        return {
+            key: runtimeCharacter.id,
+            character: runtimeCharacter,
+            user: runtimeUser,
+            auth
+        };
+    }
+
+    const fallback = resolveCharacterContext({ includeQueryParam });
+    return {
+        ...fallback,
+        user: runtimeUser,
+        auth
+    };
+}
+
 export function getActiveCharacterFromStorage() {
     const raw = localStorage.getItem(CHARACTER_STORAGE_KEY);
     if (!raw) return null;
@@ -228,9 +263,10 @@ async function updateKaels() {
     if (!kaelsBadge) return;
 
     try {
-        const auth = await loadAuthModule();
-        const user = auth?.getCurrentUser?.();
-        const activeCharacter = auth?.getActiveCharacter?.();
+        const runtimeContext = await resolveLiveCharacterContext();
+        const auth = runtimeContext?.auth || await loadAuthModule();
+        const user = runtimeContext?.user || auth?.getCurrentUser?.();
+        const activeCharacter = runtimeContext?.character || auth?.getActiveCharacter?.();
         if (!user?.id || !activeCharacter?.id) {
             kaelsBadge.hidden = true;
             return;
@@ -268,6 +304,10 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
         console.warn("Character-summary: Auth module not available for dropdown");
         return;
     }
+
+    try {
+        await auth.refreshSessionUser?.();
+    } catch {}
 
     const user = auth.getCurrentUser();
     if (!user || !user.id) {
@@ -599,11 +639,11 @@ function initShareButton(characterId) {
 
 export async function initCharacterSummary({ includeQueryParam = false, elements, enableDropdown = true, showKaels = false } = {}) {
     const resolvedElements = elements || getDefaultSummaryElements();
-    const context = resolveCharacterContext({ includeQueryParam });
+    const context = await resolveLiveCharacterContext({ includeQueryParam });
     const summary = buildSummary(context);
     applySummaryToElements(resolvedElements, summary);
 
-    const auth = await loadAuthModule();
+    const auth = context?.auth || await loadAuthModule();
     if (auth && typeof auth.isAdmin === "function") {
         document.body.dataset.admin = auth.isAdmin() ? "true" : "false";
     }
@@ -617,7 +657,7 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
     // snapshot with avatar_url, so re-apply summary afterwards.
     if (showKaels) {
         await updateKaels();
-        const freshContext = resolveCharacterContext({ includeQueryParam });
+        const freshContext = await resolveLiveCharacterContext({ includeQueryParam });
         const freshSummary = buildSummary(freshContext);
         if (freshSummary?.avatar_url && freshSummary.avatar_url !== summary?.avatar_url) {
             applySummaryToElements(resolvedElements, freshSummary);
@@ -650,11 +690,11 @@ export async function initCharacterSummary({ includeQueryParam = false, elements
                 enableDropdown: allowDropdown,
                 showKaels: allowKaels
             } = lastInitState;
-            const nextContext = resolveCharacterContext({ includeQueryParam: includeQuery });
+            const nextContext = await resolveLiveCharacterContext({ includeQueryParam: includeQuery });
             const nextSummary = buildSummary(nextContext);
             applySummaryToElements(latestElements, nextSummary);
 
-            const auth = await loadAuthModule();
+            const auth = nextContext?.auth || await loadAuthModule();
             if (auth && typeof auth.isAdmin === "function") {
                 document.body.dataset.admin = auth.isAdmin() ? "true" : "false";
             }

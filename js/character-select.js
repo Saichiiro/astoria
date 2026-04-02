@@ -3,6 +3,7 @@ import {
     getCurrentUser,
     getUserCharacters,
     getActiveCharacter,
+    clearActiveCharacter,
     setActiveCharacter,
     createCharacter,
     logout,
@@ -308,6 +309,10 @@ async function init() {
 
     activeCharacterId = getActiveCharacter()?.id || null;
     await loadCharacters();
+    if (activeCharacterId && !userCharacters.some((character) => character.id === activeCharacterId)) {
+        clearActiveCharacter?.();
+        activeCharacterId = null;
+    }
     updateHeader();
     renderGrid();
     setStatus('');

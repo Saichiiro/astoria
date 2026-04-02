@@ -4565,6 +4565,8 @@
 
 
             inventoryStorageMode = 'local';
+            inventoryAccessAllowed = true;
+            cachedCompetences = null;
 
 
 
@@ -4586,17 +4588,27 @@
 
                 inventoryApi = await import('./js/api/inventory-service.js');
 
+                try {
+                    await authApi.refreshSessionUser?.();
+                } catch (refreshError) {
+                    console.warn('[Inventory Storage] Session refresh skipped:', refreshError);
+                }
+
 
 
                 const user = authApi.getCurrentUser?.();
 
 
 
-                const character = authApi.getActiveCharacter?.();
+                let character = authApi.getActiveCharacter?.();
 
 
 
                 const isAdmin = authApi.isAdmin?.() || false;
+                if (character?.id && user?.id && !isAdmin && character.user_id && character.user_id !== user.id) {
+                    authApi.clearActiveCharacter?.();
+                    character = null;
+                }
                 inventoryAdminMode = Boolean(isAdmin);
                 applyInventoryRoleGuards();
                 syncInventoryAdminMode();
@@ -4605,7 +4617,7 @@
 
                 console.log('[Inventory Storage] Init:', { user: !!user, character: !!character, characterId: character?.id, isAdmin });
 
-                if (user && character && character.id) {
+                if (character && character.id) {
 
                     // Load competences from dedicated table — awaited so getCompetencesSnapshot()
                     // always has data on first call.
@@ -4622,7 +4634,7 @@
 
 
 
-                    if (character.user_id && !isAdmin && character.user_id !== user.id) {
+                    if (user && character.user_id && !isAdmin && character.user_id !== user.id) {
 
 
 
@@ -4639,7 +4651,7 @@
 
 
                     console.warn('[Inventory Storage] Mode remains LOCAL - items will only save to localStorage', {
-                        reason: !user ? 'No user logged in' : !character ? 'No active character' : 'No character ID'
+                        reason: !character ? 'No active character' : 'No character ID'
                     });
 
 
