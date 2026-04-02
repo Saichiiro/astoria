@@ -1,5 +1,6 @@
 ﻿(function () {
     const STORAGE_KEY_BASE = "magicSheetPages";
+    const FULL_PROFILE_FLAG = "__astoriaProfileHydrated";
     const body = document.body;
     let isAdmin = body.dataset.admin === "true";
 
@@ -46,6 +47,72 @@
                 }
             }));
         } catch {}
+    }
+
+    function markCharacterAsHydrated(character) {
+        if (!character || typeof character !== "object") return character || null;
+        try {
+            Object.defineProperty(character, FULL_PROFILE_FLAG, {
+                value: true,
+                configurable: true,
+                writable: true
+            });
+        } catch {
+            character[FULL_PROFILE_FLAG] = true;
+        }
+        return character;
+    }
+
+    function hasHydratedProfile(character) {
+        return Boolean(
+            character &&
+            typeof character === "object" &&
+            character[FULL_PROFILE_FLAG] === true &&
+            character.profile_data &&
+            typeof character.profile_data === "object"
+        );
+    }
+
+    function cacheHydratedCharacter(character) {
+        const hydrated = markCharacterAsHydrated(character);
+        if (!hydrated) return null;
+        if (currentCharacter?.id === hydrated.id) {
+            currentCharacter = hydrated;
+        }
+        try { window.astoriaActiveCharacter = hydrated; } catch {}
+        return hydrated;
+    }
+
+    async function getHydratedCharacter(characterId = currentCharacter?.id, { logContext = "general" } = {}) {
+        if (!characterId) return null;
+
+        if (currentCharacter?.id === characterId && hasHydratedProfile(currentCharacter)) {
+            return currentCharacter;
+        }
+
+        const cached = window.astoriaActiveCharacter;
+        if (cached?.id === characterId && hasHydratedProfile(cached)) {
+            return cacheHydratedCharacter(cached);
+        }
+
+        if (authApi?.getCharacterById) {
+            try {
+                const fresh = await authApi.getCharacterById(characterId);
+                if (fresh?.profile_data) {
+                    return cacheHydratedCharacter(fresh);
+                }
+            } catch (error) {
+                console.warn(`[Magie] fetch fresh profile failed (${logContext}):`, error);
+            }
+        }
+
+        if (currentCharacter?.id === characterId && currentCharacter?.profile_data) {
+            return currentCharacter;
+        }
+        if (cached?.id === characterId && cached?.profile_data) {
+            return cached;
+        }
+        return null;
     }
 
     function getSessionAdminFallback() {
@@ -987,22 +1054,16 @@
         const charId = currentCharacter.id;
         const charSnapshot = currentCharacter;
         (async () => {
-            let freshProfile = null;
-            const cached = window.astoriaActiveCharacter;
-            if (cached?.id === charId && cached.profile_data) {
-                freshProfile = cached.profile_data;
-            } else {
-                try {
-                    const fresh = await authApi.getCharacterById?.(charId);
-                    if (fresh?.profile_data) {
-                        freshProfile = fresh.profile_data;
-                        try { window.astoriaActiveCharacter = fresh; } catch {}
-                    }
-                } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
-            }
-            const profileData = { ...(freshProfile || charSnapshot.profile_data || {}), magic_progress: progress };
+            const hydratedCharacter = await getHydratedCharacter(charId, { logContext: "persistMagicProgress" });
+            const profileData = {
+                ...((hydratedCharacter?.profile_data) || charSnapshot.profile_data || {}),
+                magic_progress: progress
+            };
             authApi.updateCharacter(charId, { profile_data: profileData }).catch(() => {});
-            currentCharacter = { ...charSnapshot, profile_data: { ...(charSnapshot.profile_data || {}), magic_progress: progress } };
+            currentCharacter = cacheHydratedCharacter({
+                ...(hydratedCharacter || charSnapshot),
+                profile_data: profileData
+            });
             persistActiveCharacterSnapshot(currentCharacter);
         })();
     }
@@ -1471,21 +1532,8 @@
         const baseItem = getScrollBaseItem(category);
         if (!baseItem) return { ok: false, reason: "missing-scroll-item" };
 
-        // Fetch full profile_data: session-store strips inventory.scrollTypes → current=0 → insufficient
-        let freshProfile = null;
-        const cached = window.astoriaActiveCharacter;
-        if (cached?.id === currentCharacter.id && cached.profile_data) {
-            freshProfile = cached.profile_data;
-        } else {
-            try {
-                const fresh = await authApi.getCharacterById?.(currentCharacter.id);
-                if (fresh?.profile_data) {
-                    freshProfile = fresh.profile_data;
-                    try { window.astoriaActiveCharacter = fresh; } catch {}
-                }
-            } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
-        }
-        const profileData = { ...(freshProfile || currentCharacter.profile_data || {}) };
+        const hydratedCharacter = await getHydratedCharacter(currentCharacter.id, { logContext: "applyScrollCost" });
+        const profileData = { ...((hydratedCharacter?.profile_data) || currentCharacter.profile_data || {}) };
         const inventory = { ...(profileData.inventory || {}) };
         const scrollTypes = { ...(inventory.scrollTypes || {}) };
         const bucket = { ...(scrollTypes[category] || {}) };
@@ -1827,14 +1875,7 @@
             const { getCharacterCompetences } = await import("./api/competences-service.js");
             cachedCompetences = await getCharacterCompetences(currentCharacter.id);
         } catch {}
-        // Also hydrate window.astoriaActiveCharacter for write helpers that spread profile_data.
-        if (!authApi?.getCharacterById) return;
-        try {
-            const fresh = await authApi.getCharacterById(currentCharacter.id);
-            if (fresh?.profile_data) {
-                try { window.astoriaActiveCharacter = fresh; } catch {}
-            }
-        } catch {}
+        await getHydratedCharacter(currentCharacter.id, { logContext: "hydrateFullCharacter" });
     }
 
     function updateSaveStatus() {
@@ -2972,32 +3013,18 @@
     async function persistToProfile(payload) {
         if (!authApi?.updateCharacter || !currentCharacter?.id) return false;
         // Fetch full profile_data before write (session-store strips competences, inventory, etc.)
-        let freshProfile = null;
-        const cached = window.astoriaActiveCharacter;
-        if (cached?.id === currentCharacter.id && cached.profile_data) {
-            freshProfile = cached.profile_data;
-        } else {
-            try {
-                const fresh = await authApi.getCharacterById?.(currentCharacter.id);
-                if (fresh?.profile_data) {
-                    freshProfile = fresh.profile_data;
-                    try { window.astoriaActiveCharacter = fresh; } catch {}
-                }
-            } catch (e) { console.warn('[Magie] fetch fresh profile failed:', e); }
-        }
-        const profileData = freshProfile || currentCharacter.profile_data || {};
+        const hydratedCharacter = await getHydratedCharacter(currentCharacter.id, { logContext: "persistToProfile" });
+        const profileData = hydratedCharacter?.profile_data || currentCharacter.profile_data || {};
         const nextProfileData = {
             ...profileData,
             magic_sheet: payload
         };
         try {
             await authApi.updateCharacter(currentCharacter.id, { profile_data: nextProfileData });
-            const refreshed = authApi.getActiveCharacter?.();
-            if (refreshed && refreshed.id === currentCharacter.id) {
-                currentCharacter = refreshed;
-            } else {
-                currentCharacter = { ...currentCharacter, profile_data: nextProfileData };
-            }
+            currentCharacter = cacheHydratedCharacter({
+                ...(hydratedCharacter || currentCharacter),
+                profile_data: nextProfileData
+            });
             persistActiveCharacterSnapshot(currentCharacter);
             return true;
         } catch (error) {
