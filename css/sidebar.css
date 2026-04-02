@@ -252,7 +252,7 @@ body.sidebar-layout {
 .sidebar-layout .sidebarIconToggle {
   cursor: pointer;
   position: fixed;
-  z-index: 200;
+  z-index: 2147482500;
   top: 12px;
   left: 12px;
   height: 32px;
@@ -266,6 +266,19 @@ body.sidebar-layout {
   justify-content: center;
   backdrop-filter: blur(8px);
   font-family: var(--font-family, "Segoe UI", Arial, sans-serif);
+  isolation: isolate;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.sidebar-layout .sidebarIconToggle::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.sidebar-layout .sidebarIconToggle > * {
+  pointer-events: none;
 }
 
 .sidebar-layout .spinner {

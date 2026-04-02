@@ -199,7 +199,7 @@ const inventoryData = [
         ]
     },
     {
-        name: "Lucky Soul",
+        name: "Ames chances",
         category: "consommable",
         image: "assets/nokorah/lucky-soul.svg",
         description: "Ressource rare consommee pour invoquer, ameliorer ou abandonner un Nokorah.",

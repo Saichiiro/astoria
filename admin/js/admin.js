@@ -2579,7 +2579,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             if (!supabase) supabase = await getSupabaseClient();
             const { data: characters, error } = await supabase
                 .from('characters')
-                .select('name, profile_data')
+                .select('id, name, profile_data')
                 .order('name');
 
             if (error) throw error;
@@ -2588,9 +2588,32 @@ import { adminItemsModal } from './admin-items-modal.js';
                 return;
             }
 
+            const characterIds = characters
+                .map((char) => char?.id)
+                .filter(Boolean);
+
+            let competencesByCharacterId = new Map();
+            if (characterIds.length) {
+                const { data: competencesRows, error: competencesError } = await supabase
+                    .from('character_competences')
+                    .select('character_id, data')
+                    .in('character_id', characterIds);
+
+                if (competencesError) throw competencesError;
+
+                competencesByCharacterId = new Map(
+                    (competencesRows || [])
+                        .filter((row) => row?.character_id)
+                        .map((row) => [String(row.character_id), row?.data || null])
+                );
+            }
+
             const rows = characters.map(char => {
-                const competences = char.profile_data?.competences;
-                if (!competences) return { name: char.name, noData: true };
+                const dbCompetences = competencesByCharacterId.get(String(char.id)) || null;
+                const legacyCompetences = char.profile_data?.competences || null;
+                const competences = dbCompetences || legacyCompetences || null;
+                const source = dbCompetences ? 'table' : (legacyCompetences ? 'legacy' : 'missing');
+                if (!competences) return { name: char.name, source, noData: true };
 
                 const points = competences.pointsByCategory || {};
                 const base = competences.baseValuesByCategory || {};
@@ -2603,10 +2626,22 @@ import { adminItemsModal } from './admin-items-modal.js';
                 });
 
                 const totalRemaining = cats.reduce((s, c) => s + c.remaining, 0);
-                return { name: char.name, cats, totalRemaining };
+                return { name: char.name, cats, totalRemaining, source };
             });
 
+            const summary = rows.reduce((acc, row) => {
+                if (row.source === 'table') acc.table += 1;
+                else if (row.source === 'legacy') acc.legacy += 1;
+                else acc.missing += 1;
+                return acc;
+            }, { table: 0, legacy: 0, missing: 0 });
+
             const html = `
+            <div class="competences-health-summary">
+                <div class="competences-health-pill is-table">Table dédiée: <strong>${summary.table}</strong></div>
+                <div class="competences-health-pill is-legacy">Profil hérité: <strong>${summary.legacy}</strong></div>
+                <div class="competences-health-pill is-missing">Aucune donnée: <strong>${summary.missing}</strong></div>
+            </div>
             <div class="table-sheet">
                 <table class="table table-vcenter">
                     <thead>
@@ -2618,14 +2653,26 @@ import { adminItemsModal } from './admin-items-modal.js';
                     </thead>
                     <tbody>
                         ${rows.map(row => {
+                            const sourceLabel = row.source === 'table'
+                                ? '<span class="competences-health-source is-table">Table</span>'
+                                : row.source === 'legacy'
+                                    ? '<span class="competences-health-source is-legacy">Profil hérité</span>'
+                                    : '<span class="competences-health-source is-missing">Aucune donnée</span>';
+
                             if (row.noData) return `
                                 <tr>
-                                    <td class="text-muted">${row.name}</td>
-                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-muted small fst-italic">Jamais visité</td>
+                                    <td>
+                                        <div class="competences-health-name">${row.name}</div>
+                                        ${sourceLabel}
+                                    </td>
+                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-muted small fst-italic">Aucune donnée détectée dans la table dédiée ni dans le profil hérité.</td>
                                 </tr>`;
 
                             return `<tr>
-                                <td class="fw-semibold text-white" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${row.name}">${row.name}</td>
+                                <td title="${row.name}">
+                                    <div class="competences-health-name">${row.name}</div>
+                                    ${sourceLabel}
+                                </td>
                                 ${row.cats.map(cat => {
                                     const r = cat.remaining;
                                     const color = r === 0 ? '#2fb344' : r <= 10 ? '#f59f00' : '#d63939';
@@ -2644,7 +2691,8 @@ import { adminItemsModal } from './admin-items-modal.js';
             <div class="px-3 pb-2 text-muted small">
                 <span style="color:#2fb344;font-weight:700;">0</span> tout alloué &nbsp;·&nbsp;
                 <span style="color:#f59f00;font-weight:700;">≤10</span> quelques pts restants &nbsp;·&nbsp;
-                <span style="color:#d63939;font-weight:700;">&gt;10</span> à distribuer
+                <span style="color:#d63939;font-weight:700;">&gt;10</span> à distribuer &nbsp;·&nbsp;
+                <span class="text-muted">Table prioritaire, profil hérité utilisé seulement en secours.</span>
             </div>`;
 
             container.innerHTML = html;

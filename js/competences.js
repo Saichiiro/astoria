@@ -26,6 +26,9 @@
     const skillsAddCap = document.getElementById("skillsAddCap");
     const skillsAddCancel = document.getElementById("skillsAddCancel");
     const skillsAddSubmit = document.getElementById("skillsAddSubmit");
+    const skillsStatusNoticeEl = document.getElementById("skillsStatusNotice");
+    const skillsStatusNoticeBadgeEl = document.getElementById("skillsStatusNoticeBadge");
+    const skillsStatusNoticeTextEl = document.getElementById("skillsStatusNoticeText");
     const HIGHLIGHT_LINE_CLASS = "skills-line-highlight";
     const HIGHLIGHT_CONFIRM_CLASS = "skills-confirm-btn--pending";
     const ADD_MODAL_OPEN_CLASS = "skills-add-open";
@@ -118,6 +121,8 @@
         retryTimer: null,
         retryCount: 0,
         dirty: false,
+        readOnlyFallback: false,
+        readOnlyReason: "",
         initializing: false, // true during initPersistence load — suppresses dirty/save triggers
         lastErrorToastAt: 0,
     };
@@ -143,6 +148,23 @@
     await initPersistence();
     await hydrateGlobalSkillsCatalog();
     syncAllCategoryLockStates(true);
+    updateSkillsStatusNotice();
+
+    function isReadOnlyFallbackMode() {
+        return Boolean(persistState.readOnlyFallback);
+    }
+
+    function updateSkillsStatusNotice() {
+        if (!skillsStatusNoticeEl || !skillsStatusNoticeTextEl || !skillsStatusNoticeBadgeEl) return;
+        const isFallback = isReadOnlyFallbackMode();
+        skillsStatusNoticeEl.classList.toggle("is-visible", isFallback);
+        skillsStatusNoticeEl.classList.toggle("is-warning", isFallback);
+        skillsStatusNoticeEl.classList.toggle("is-ok", !isFallback);
+        skillsStatusNoticeBadgeEl.textContent = "!";
+        skillsStatusNoticeTextEl.textContent = isFallback
+            ? (persistState.readOnlyReason || "Lecture locale uniquement. Les modifications sont bloquées tant que la source distante n'est pas confirmée.")
+            : "";
+    }
 
     // Synchroniser l'UI admin
     function syncAdminUI() {
@@ -206,7 +228,7 @@
     function updateBulkSelectionUI() {
         if (!skillsBulkBar) return;
         const categoryId = skillsState.activeCategoryId;
-        const isVisible = skillsState.isAdmin && isCategoryEditMode(categoryId);
+        const isVisible = skillsState.isAdmin && !isReadOnlyFallbackMode() && isCategoryEditMode(categoryId);
         const selected = getSelectedSkills(categoryId);
         skillsBulkBar.hidden = !isVisible;
         skillsBulkBar.classList.toggle("is-visible", isVisible);
@@ -228,6 +250,7 @@
             return;
         }
         skillsEditModeBtn.hidden = false;
+        skillsEditModeBtn.disabled = isReadOnlyFallbackMode();
         const enabled = isCategoryEditMode(skillsState.activeCategoryId);
         skillsEditModeBtn.classList.toggle("is-active", enabled);
         skillsEditModeBtn.textContent = enabled ? "Edition active" : "Mode édition";
@@ -241,6 +264,10 @@
         if (skillsPointsResetEl) skillsPointsResetEl.hidden = true;
         if (skillsPointsValueEl) skillsPointsValueEl.readOnly = true;
         if (skillsAddForm) skillsAddForm.hidden = true;
+    }
+
+    if (skillsAddBtn) {
+        skillsAddBtn.disabled = isReadOnlyFallbackMode();
     }
 
     if (!skillsCategories.length) {
@@ -303,6 +330,7 @@
 
     if (skillsAddBtn) {
         skillsAddBtn.addEventListener("click", () => {
+            if (isReadOnlyFallbackMode()) return;
             if (!skillsAddForm) return;
             if (skillsAddForm.hidden) {
                 openAddForm();
@@ -314,6 +342,7 @@
 
     if (skillsEditModeBtn) {
         skillsEditModeBtn.addEventListener("click", () => {
+            if (isReadOnlyFallbackMode()) return;
             if (!skillsState.isAdmin) return;
             const categoryId = skillsState.activeCategoryId;
             setCategoryEditMode(categoryId, !isCategoryEditMode(categoryId));
@@ -329,6 +358,7 @@
     });
 
     skillsBulkApply?.addEventListener("click", () => {
+        if (isReadOnlyFallbackMode()) return;
         const category = getActiveCategory();
         if (!category || !skillsState.isAdmin || !isCategoryEditMode(category.id)) return;
         const selected = getSelectedSkills(category.id);
@@ -416,6 +446,7 @@
 
     if (skillsAddSubmit) {
         skillsAddSubmit.addEventListener("click", () => {
+            if (isReadOnlyFallbackMode()) return;
             if (!skillsState.isAdmin) return;
             const name = skillsAddName?.value.trim() || "";
             const icon = skillsAddIcon?.value.trim() || "";
@@ -461,7 +492,7 @@
             console.warn("Impossible d'enregistrer", key, error);
         }
 
-        if (persistState.mode === "character" && !persistState.initializing) {
+        if (persistState.mode === "character" && !persistState.initializing && !persistState.readOnlyFallback) {
             persistState.dirty = true;
             scheduleProfileSave();
             void persistProfileNow();
@@ -819,10 +850,27 @@
         return { version: 1, pointsByCategory, allocationsByCategory, baseValuesByCategory, locksByCategory, customSkillsByCategory, metaByCategory };
     }
 
+    function hasStoredCompetenceData(value) {
+        return Boolean(value && typeof value === "object" && Object.keys(value).length);
+    }
+
+    function readScopedCompetencesSnapshot() {
+        return {
+            pointsByCategory: loadFromStorage(skillsStorageKey),
+            allocationsByCategory: loadFromStorage(skillsAllocStorageKey),
+            baseValuesByCategory: loadFromStorage(skillsBaseValuesKey),
+            locksByCategory: loadFromStorage(skillsLocksKey),
+            customSkillsByCategory: loadFromStorage(skillsCustomKey),
+            metaByCategory: loadFromStorage(skillsMetaKey),
+        };
+    }
+
     async function initPersistence() {
         persistState.mode = "local";
         persistState.characterId = null;
         persistState.auth = null;
+        persistState.readOnlyFallback = false;
+        persistState.readOnlyReason = "";
         document.body.dataset.admin = "false";
 
         try {
@@ -871,15 +919,42 @@
                     console.error('[Competences] Échec fetch table character_competences:', fetchErr);
                 }
 
+                const localSnapshot = readScopedCompetencesSnapshot();
+                const hasRemoteSnapshot = Boolean(persisted && typeof persisted === "object" && Object.keys(persisted).length);
+                const hasLocalSnapshot = [
+                    localSnapshot.pointsByCategory,
+                    localSnapshot.allocationsByCategory,
+                    localSnapshot.baseValuesByCategory,
+                    localSnapshot.locksByCategory,
+                    localSnapshot.customSkillsByCategory,
+                    localSnapshot.metaByCategory,
+                ].some((entry) => hasStoredCompetenceData(entry));
+
+                if (!hasRemoteSnapshot && hasLocalSnapshot) {
+                    persistState.readOnlyFallback = true;
+                    persistState.readOnlyReason = fetchedFromDb
+                        ? "Compétences chargées depuis le cache local de ce personnage. Modifications bloquées tant que la source distante n'est pas revalidée."
+                        : "Sync distante indisponible. Compétences affichées depuis le cache local en lecture seule.";
+                } else if (!fetchedFromDb) {
+                    persistState.readOnlyFallback = true;
+                    persistState.readOnlyReason = "Impossible de relire les compétences depuis la source distante. Modifications temporairement bloquées pour éviter d'écraser des données.";
+                }
+
                 const fallback = buildDefaultCompetences();
                 const merged = {
                     version: 1,
-                    pointsByCategory: persisted?.pointsByCategory || fallback.pointsByCategory,
-                    allocationsByCategory: persisted?.allocationsByCategory || fallback.allocationsByCategory,
-                    baseValuesByCategory: persisted?.baseValuesByCategory || fallback.baseValuesByCategory,
-                    locksByCategory: persisted?.locksByCategory || fallback.locksByCategory,
-                    customSkillsByCategory: persisted?.customSkillsByCategory || fallback.customSkillsByCategory,
-                    metaByCategory: persisted?.metaByCategory || fallback.metaByCategory,
+                    pointsByCategory: persisted?.pointsByCategory
+                        || (hasStoredCompetenceData(localSnapshot.pointsByCategory) ? localSnapshot.pointsByCategory : fallback.pointsByCategory),
+                    allocationsByCategory: persisted?.allocationsByCategory
+                        || (hasStoredCompetenceData(localSnapshot.allocationsByCategory) ? localSnapshot.allocationsByCategory : fallback.allocationsByCategory),
+                    baseValuesByCategory: persisted?.baseValuesByCategory
+                        || (hasStoredCompetenceData(localSnapshot.baseValuesByCategory) ? localSnapshot.baseValuesByCategory : fallback.baseValuesByCategory),
+                    locksByCategory: persisted?.locksByCategory
+                        || (hasStoredCompetenceData(localSnapshot.locksByCategory) ? localSnapshot.locksByCategory : fallback.locksByCategory),
+                    customSkillsByCategory: persisted?.customSkillsByCategory
+                        || (hasStoredCompetenceData(localSnapshot.customSkillsByCategory) ? localSnapshot.customSkillsByCategory : fallback.customSkillsByCategory),
+                    metaByCategory: persisted?.metaByCategory
+                        || (hasStoredCompetenceData(localSnapshot.metaByCategory) ? localSnapshot.metaByCategory : fallback.metaByCategory),
                 };
 
                 skillsState.pointsByCategory = merged.pointsByCategory;
@@ -902,7 +977,7 @@
                 persistState.initializing = false;
 
                 // Write defaults to DB only if the fetch confirmed no record exists yet.
-                if (!persisted && fetchedFromDb) {
+                if (!persisted && fetchedFromDb && !persistState.readOnlyFallback) {
                     await flushProfileSave();
                 }
             }
@@ -911,6 +986,8 @@
             persistState.mode = "local";
             persistState.characterId = null;
             persistState.auth = null;
+            persistState.readOnlyFallback = false;
+            persistState.readOnlyReason = "";
             document.body.dataset.admin = "false";
             skillsState.isAdmin = false;
         }
@@ -963,6 +1040,7 @@
 
     async function flushProfileSave() {
         if (persistState.mode !== "character" || !persistState.auth || !persistState.supabase) return;
+        if (persistState.readOnlyFallback) return;
         if (persistState.saveTimer) {
             clearTimeout(persistState.saveTimer);
             persistState.saveTimer = null;
@@ -2057,9 +2135,12 @@
         if (!activeCategory) return;
 
         syncCategoryLockState(activeCategory.id);
+        updateSkillsStatusNotice();
         const currentPoints = getCurrentCategoryPoints();
+        const isReadOnly = isReadOnlyFallbackMode();
         if (skillsPointsValueEl) {
             skillsPointsValueEl.value = String(currentPoints);
+            skillsPointsValueEl.readOnly = !skillsState.isAdmin || isReadOnly;
             const pointsBox = skillsPointsValueEl.closest(".skills-points-box");
             if (pointsBox) {
                 pointsBox.classList.toggle("is-empty", currentPoints <= 0);
@@ -2071,10 +2152,10 @@
         const bonusBySkill = getBonusBreakdownBySkill();
 
         if (skillsPointsMinusEl) {
-            skillsPointsMinusEl.disabled = !skillsState.isAdmin || !hasPoints || isLocked;
+            skillsPointsMinusEl.disabled = !skillsState.isAdmin || !hasPoints || isLocked || isReadOnly;
         }
         if (skillsPointsPlusEl) {
-            skillsPointsPlusEl.disabled = !skillsState.isAdmin || isLocked;
+            skillsPointsPlusEl.disabled = !skillsState.isAdmin || isLocked || isReadOnly;
         }
         const allocations = getCategoryAllocations(activeCategory.id);
         const baseValues = skillsState.baseValuesByCategory[activeCategory.id] || {};
@@ -2082,7 +2163,13 @@
         const hasBaseValues = Object.values(baseValues).some((value) => Number(value) > 0);
         const canReset = skillsState.isAdmin && (hasPoints || hasAllocations || hasBaseValues);
         if (skillsPointsResetEl) {
-            skillsPointsResetEl.disabled = !canReset;
+            skillsPointsResetEl.disabled = !canReset || isReadOnly;
+        }
+        if (skillsAddBtn) {
+            skillsAddBtn.disabled = isReadOnly;
+        }
+        if (skillsEditModeBtn) {
+            skillsEditModeBtn.disabled = isReadOnly;
         }
 
         skillsListEl.querySelectorAll(".skills-line").forEach((line) => {
@@ -2115,14 +2202,15 @@
             });
             const atMax = base + allocation >= cap;
             const canDecreaseConfirmedBase = canReclaimConfirmedBasePoints() && base > 0;
-            decBtn.disabled = (allocation <= 0 && !canDecreaseConfirmedBase) || isLocked;
-            incBtn.disabled = atMax || currentPoints <= 0 || isLocked;
+            decBtn.disabled = (allocation <= 0 && !canDecreaseConfirmedBase) || isLocked || isReadOnly;
+            incBtn.disabled = atMax || currentPoints <= 0 || isLocked || isReadOnly;
         });
 
         updatePendingHighlights(activeCategory.id);
     }
 
     skillsPointsPlusEl.addEventListener("click", (event) => {
+        if (isReadOnlyFallbackMode()) return;
         if (!skillsState.isAdmin) return;
         const step = resolveStepFromClick(event);
         const nextValue = Math.min(getCurrentCategoryPoints() + step, MAX_CATEGORY_POINTS);
@@ -2131,6 +2219,7 @@
     });
 
     skillsPointsMinusEl.addEventListener("click", (event) => {
+        if (isReadOnlyFallbackMode()) return;
         if (!skillsState.isAdmin) return;
         const current = getCurrentCategoryPoints();
         const step = resolveStepFromClick(event);
@@ -2143,6 +2232,10 @@
 
     if (skillsPointsValueEl) {
         skillsPointsValueEl.addEventListener("change", () => {
+            if (isReadOnlyFallbackMode()) {
+                skillsPointsValueEl.value = String(getCurrentCategoryPoints());
+                return;
+            }
             if (!skillsState.isAdmin) {
                 // Reset to state if non-admin tries to edit
                 skillsPointsValueEl.value = String(getCurrentCategoryPoints());
@@ -2167,6 +2260,7 @@
     }
 
     skillsPointsResetEl.addEventListener("click", () => {
+        if (isReadOnlyFallbackMode()) return;
         if (!skillsState.isAdmin) return;
 
         const categoryId = skillsState.activeCategoryId;
@@ -2202,6 +2296,7 @@
     // Validation / verrouillage
     // -----------------------------------------------------------------
     skillsConfirmEl.addEventListener("click", () => {
+        if (isReadOnlyFallbackMode()) return;
         const activeCategory = getActiveCategory();
         if (!activeCategory) return;
 
@@ -2245,7 +2340,7 @@
     });
 
     function updateLockState(isLocked) {
-        skillsConfirmEl.disabled = isLocked;
+        skillsConfirmEl.disabled = isLocked || isReadOnlyFallbackMode();
         if (isLocked) {
             skillsConfirmEl.classList.add("is-locked");
         } else {
@@ -2276,6 +2371,7 @@
     }
 
     function hasPendingChanges(categoryId) {
+        if (isReadOnlyFallbackMode()) return false;
         if (getCategoryLockState(categoryId)) return false;
         const allocations = getCategoryAllocations(categoryId);
         return Object.values(allocations).some((points) => Number(points) > 0);

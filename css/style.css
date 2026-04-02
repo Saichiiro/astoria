@@ -3306,7 +3306,7 @@ button:hover .shortcut-icon {
     position: fixed !important;
     top: 12px;
     left: 12px;
-    z-index: 200;
+    z-index: 2147482500;
     transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
     will-change: transform;
 }

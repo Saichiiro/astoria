@@ -28,29 +28,75 @@ const UPGRADE_STEPS = {
 };
 const MAX_NOKORAH_LEVEL = 113;
 
-const LUCKY_SOUL_ITEM = {
+const LUCKY_SOUL_RESOURCE = {
     key: "Lucky Soul",
-    aliases: ["lucky_soul"],
-    name: "Lucky Soul",
+    aliases: [
+        "lucky_soul",
+        "lucky soul",
+        "ames chances",
+        "ames chance",
+        "ame chance",
+        "ame de chance"
+    ],
+    fallbackName: "Ames chances",
     image: "assets/nokorah/lucky-soul.svg",
     category: "consommable",
     description: "Ressource rare consomm&eacute;e pour invoquer et &eacute;voluer un Nokorah."
 };
 
+function normalizeLuckySoulText(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase();
+}
+
+function getLuckySoulNames() {
+    return new Set([
+        normalizeLuckySoulText(LUCKY_SOUL_RESOURCE.key),
+        normalizeLuckySoulText(LUCKY_SOUL_RESOURCE.fallbackName),
+        ...LUCKY_SOUL_RESOURCE.aliases.map((alias) => normalizeLuckySoulText(alias))
+    ].filter(Boolean));
+}
+
+function getLuckySoulSourceItem() {
+    if (typeof window === "undefined") return null;
+    const items = window.inventoryData;
+    if (!Array.isArray(items)) return null;
+    const names = getLuckySoulNames();
+    return items.find((item) => names.has(normalizeLuckySoulText(item?.name || item?.nom || ""))) || null;
+}
+
+function getLuckySoulDescriptor() {
+    const sourceItem = getLuckySoulSourceItem();
+    return {
+        key: sourceItem?.name || LUCKY_SOUL_RESOURCE.key,
+        name: sourceItem?.name || LUCKY_SOUL_RESOURCE.fallbackName,
+        image: sourceItem?.image || LUCKY_SOUL_RESOURCE.image,
+        category: sourceItem?.category || LUCKY_SOUL_RESOURCE.category,
+        description: sourceItem?.description || LUCKY_SOUL_RESOURCE.description
+    };
+}
+
+function getLuckySoulLabel() {
+    return getLuckySoulDescriptor().name;
+}
+
 function resolveLuckySoulIndex() {
     if (typeof window === "undefined") return null;
     const items = window.inventoryData;
     if (!Array.isArray(items)) return null;
-    const idx = items.findIndex((item) => item?.name === LUCKY_SOUL_ITEM.name || item?.name === LUCKY_SOUL_ITEM.key);
+    const names = getLuckySoulNames();
+    const idx = items.findIndex((item) => names.has(normalizeLuckySoulText(item?.name || item?.nom || "")));
     return idx >= 0 ? idx : null;
 }
 
 function isLuckySoulKey(value, luckyIndex) {
     if (value == null) return false;
-    const key = String(value);
+    const key = normalizeLuckySoulText(value);
     if (!key) return false;
-    if (key === LUCKY_SOUL_ITEM.key || key === LUCKY_SOUL_ITEM.name) return true;
-    if (LUCKY_SOUL_ITEM.aliases.includes(key)) return true;
+    if (getLuckySoulNames().has(key)) return true;
     if (luckyIndex != null && key === String(luckyIndex)) return true;
     return false;
 }
@@ -510,7 +556,7 @@ function renderEmpty(root) {
             <img src="assets/nokorah/silhouette-1.svg" alt="Silhouette Nokorah">
             <h3>Aucun Nokorah actuellement.</h3>
             <p>Invoque un petit esprit pour commencer l'aventure. La raret&eacute; initiale est toujours Commun.</p>
-            <button class="action-buttons focus-outline" data-action="invoke">Invoquer un Nokorah <span>25 Lucky Soul</span></button>
+            <button class="action-buttons focus-outline" data-action="invoke">Invoquer un Nokorah <span>25 ${getLuckySoulLabel()}</span></button>
         </div>
     `;
 
@@ -548,7 +594,7 @@ function renderActive(root) {
                         </div>
                     </div>
                     <div class="nokorah-side-info">
-                        <div class="lucky-soul-meter">Lucky Soul: <strong>${state.luckySoulCount}</strong></div>
+                        <div class="lucky-soul-meter">${getLuckySoulLabel()}: <strong>${state.luckySoulCount}</strong></div>
                         <div class="nokorah-level">Niveau <strong>${state.upgradeLevel}</strong> / ${levelCap}</div>
                     </div>
                 </div>
@@ -565,16 +611,16 @@ function renderActive(root) {
 
                 <div class="nokorah-actions">
                     <button class="action-buttons focus-outline" data-action="rarity" ${!canUpgradeRarity ? "disabled" : ""}>
-                        Am&eacute;liorer la raret&eacute; <span>${rarityCost ? rarityCost + " Lucky Soul" : "Max"}</span>
+                        Am&eacute;liorer la raret&eacute; <span>${rarityCost ? `${rarityCost} ${getLuckySoulLabel()}` : "Max"}</span>
                     </button>
                     <button class="action-buttons secondary focus-outline" data-action="stats" ${!canUpgradeStats ? "disabled" : ""}>
-                        Am&eacute;liorer les stats <span>${upgradeCost} Lucky Soul</span>
+                        Am&eacute;liorer les stats <span>${upgradeCost} ${getLuckySoulLabel()}</span>
                     </button>
                     <button class="action-buttons secondary focus-outline" data-action="appearance">
                         Changer l'apparence <span>Gratuit</span>
                     </button>
                     <button class="action-buttons danger focus-outline" data-action="abandon">
-                        Abandonner mon Nokorah <span>100 Lucky Soul</span>
+                        Abandonner mon Nokorah <span>100 ${getLuckySoulLabel()}</span>
                     </button>
                     ${rarity === "legendaire" ? `
                         <label class="helper">
@@ -646,13 +692,14 @@ async function refreshLuckySoul() {
 }
 
 async function ensureLuckySoul(cost) {
+    const luckySoulLabel = getLuckySoulLabel();
     console.log('[NOKORAH LS] Checking Lucky Souls, need:', cost);
     const current = await state.inventory.getCount();
     console.log('[NOKORAH LS] Current count:', current);
 
     if (current < cost) {
         console.log('[NOKORAH LS] Insufficient Lucky Souls!', current, '/', cost);
-        window.toastManager?.error(`Lucky Soul insuffisantes (${current}/${cost}).`);
+        window.toastManager?.error(`${luckySoulLabel} insuffisantes (${current}/${cost}).`);
         return false;
     }
 
@@ -661,7 +708,7 @@ async function ensureLuckySoul(cost) {
     console.log('[NOKORAH LS] Delta applied:', ok);
 
     if (!ok) {
-        window.toastManager?.error("Impossible de consommer les Lucky Soul pour le moment.");
+        window.toastManager?.error(`Impossible de consommer les ${luckySoulLabel} pour le moment.`);
         return false;
     }
 
@@ -1100,7 +1147,7 @@ async function buildInventoryAdapter() {
             }
             try {
                 const luckyIndex = resolveLuckySoulIndex();
-                const fallbackKey = luckyIndex != null ? String(luckyIndex) : LUCKY_SOUL_ITEM.key;
+                const fallbackKey = luckyIndex != null ? String(luckyIndex) : getLuckySoulDescriptor().key;
                 const itemKey = entry?.item_key ? String(entry.item_key) : fallbackKey;
                 const itemIndex = Number.isFinite(Number(entry?.item_index))
                     ? Number(entry.item_index)
@@ -1130,15 +1177,16 @@ async function buildInventoryAdapter() {
             entry.quantity = next;
         } else {
             const luckyIndex = resolveLuckySoulIndex();
-            const fallbackKey = luckyIndex != null ? String(luckyIndex) : LUCKY_SOUL_ITEM.key;
+            const luckySoul = getLuckySoulDescriptor();
+            const fallbackKey = luckyIndex != null ? String(luckyIndex) : luckySoul.key;
             console.log('[NOKORAH LS] Creating new Lucky Soul entry with quantity:', next);
             const payload = {
                 id: Date.now(),
-                name: LUCKY_SOUL_ITEM.name,
+                name: luckySoul.name,
                 itemKey: fallbackKey,
-                category: LUCKY_SOUL_ITEM.category,
-                description: LUCKY_SOUL_ITEM.description,
-                image: LUCKY_SOUL_ITEM.image,
+                category: luckySoul.category,
+                description: luckySoul.description,
+                image: luckySoul.image,
                 quantity: next
             };
             if (luckyIndex != null) {

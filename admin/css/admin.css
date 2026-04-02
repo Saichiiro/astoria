@@ -930,6 +930,65 @@
     border-bottom: 2px solid rgba(124, 77, 255, 0.3);
 }
 
+.competences-health-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 0;
+}
+
+.competences-health-pill,
+.competences-health-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.competences-health-pill {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+}
+
+.competences-health-source {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.68rem;
+    margin-top: 0.35rem;
+}
+
+.competences-health-pill.is-table,
+.competences-health-source.is-table {
+    color: #8ff0a4;
+    background: rgba(47, 179, 68, 0.12);
+    border-color: rgba(47, 179, 68, 0.24);
+}
+
+.competences-health-pill.is-legacy,
+.competences-health-source.is-legacy {
+    color: #ffd66b;
+    background: rgba(245, 159, 0, 0.14);
+    border-color: rgba(245, 159, 0, 0.24);
+}
+
+.competences-health-pill.is-missing,
+.competences-health-source.is-missing {
+    color: #ff9aa2;
+    background: rgba(214, 57, 57, 0.14);
+    border-color: rgba(214, 57, 57, 0.24);
+}
+
+.competences-health-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.96);
+    font-weight: 700;
+}
+
 /* Better contrast for all table rows - remove white backgrounds */
 .theme-dark [data-page="users"] .table tbody tr,
 .theme-dark [data-page="characters"] .table tbody tr,

@@ -297,6 +297,7 @@
             z-index: 1;
         }
         .skills-panel-header,
+        .skills-status-notice,
         .skills-list,
         .skills-validation,
         .skills-actions {
@@ -316,6 +317,49 @@
             margin-bottom: var(--space-3);
             padding-bottom: var(--space-2);
             border-bottom: 1px solid rgba(244, 215, 227, 0.9);
+        }
+        .skills-status-notice {
+            display: none;
+            align-items: flex-start;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(216, 27, 96, 0.18);
+            background: rgba(255, 255, 255, 0.82);
+            color: #7a1242;
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+        .skills-status-notice.is-visible {
+            display: flex;
+        }
+        .skills-status-notice.is-warning {
+            border-color: rgba(245, 159, 0, 0.32);
+            background: linear-gradient(180deg, rgba(255, 248, 229, 0.98), rgba(255, 243, 205, 0.94));
+            color: #8a5a00;
+        }
+        .skills-status-notice.is-ok {
+            border-color: rgba(47, 179, 68, 0.24);
+            background: linear-gradient(180deg, rgba(237, 250, 240, 0.98), rgba(226, 245, 231, 0.94));
+            color: #1f6f32;
+        }
+        .skills-status-notice-badge {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid currentColor;
+            font-size: 0.82rem;
+            font-weight: 800;
+        }
+        .skills-status-notice-copy {
+            flex: 1;
+            min-width: 0;
         }
         .skills-panel-heading {
             display: flex;
@@ -1224,6 +1268,10 @@
                         <button type="button" class="skills-confirm-btn tw-press" id="skillsConfirmBtn" aria-label="Valider mes points" title="Valider mes points"></button>
                     </div>
                 </div>
+                <div class="skills-status-notice" id="skillsStatusNotice" role="status" aria-live="polite">
+                    <span class="skills-status-notice-badge" id="skillsStatusNoticeBadge">!</span>
+                    <span class="skills-status-notice-copy" id="skillsStatusNoticeText"></span>
+                </div>
                 <div class="skills-bulk-bar" id="skillsBulkBar" data-admin-only hidden>
                     <span class="skills-bulk-label">Selection</span>
                     <span class="skills-bulk-count" id="skillsBulkCount">0</span>
@@ -1276,4 +1324,3 @@
     <script src="js/ui/headroom.js"></script>
 </body>
 </html>
-
