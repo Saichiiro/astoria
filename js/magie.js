@@ -70,6 +70,7 @@
     const navButtons = Array.from(document.querySelectorAll(".magic-nav-btn"));
     const sections = Array.from(document.querySelectorAll(".magic-section"));
     const categoryCards = Array.from(document.querySelectorAll(".category-card[data-specialization]"));
+    const categoryEmptyStateEl = document.getElementById("magicCategoryEmptyState");
     const saveBtn = document.getElementById("magicSaveBtn");
     const saveStatus = document.getElementById("magicSaveStatus");
     const saveRow = document.querySelector(".magic-save-row");
@@ -439,13 +440,8 @@
         });
 
         const hasVisible = categoryCards.some((card) => !card.hidden);
-        if (!hasVisible) {
-            const fallback = categoryCards.find((card) => card.dataset.specialization === "sorcellerie");
-            if (fallback) {
-                fallback.hidden = false;
-                fallback.classList.remove("category-card--hidden");
-                fallback.setAttribute("aria-hidden", "false");
-            }
+        if (categoryEmptyStateEl) {
+            categoryEmptyStateEl.hidden = hasVisible;
         }
     }
 

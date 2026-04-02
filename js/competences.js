@@ -904,17 +904,14 @@
 
                 // Read competences from dedicated table (no profile_data fetch needed).
                 let persisted = null;
-                let fetchedFromDb = false;
+                let persistedSource = "missing";
+                let fetchedFromServer = false;
                 try {
-                    const supabase = await persistState.supabase();
-                    const { data: compRow, error: compErr } = await supabase
-                        .from('character_competences')
-                        .select('data')
-                        .eq('character_id', character.id)
-                        .maybeSingle();
-                    if (compErr) throw compErr;
-                    persisted = compRow?.data || null;
-                    fetchedFromDb = true;
+                    const { getCharacterCompetencesSnapshot } = await import("./api/competences-service.js");
+                    const snapshot = await getCharacterCompetencesSnapshot(character.id);
+                    persisted = snapshot?.data || null;
+                    persistedSource = snapshot?.source || "missing";
+                    fetchedFromServer = persistedSource !== "error";
                 } catch (fetchErr) {
                     console.error('[Competences] Échec fetch table character_competences:', fetchErr);
                 }
@@ -930,12 +927,12 @@
                     localSnapshot.metaByCategory,
                 ].some((entry) => hasStoredCompetenceData(entry));
 
-                if (!hasRemoteSnapshot && hasLocalSnapshot) {
+                if (persistedSource === "missing" && hasLocalSnapshot) {
                     persistState.readOnlyFallback = true;
-                    persistState.readOnlyReason = fetchedFromDb
+                    persistState.readOnlyReason = fetchedFromServer
                         ? "Compétences chargées depuis le cache local de ce personnage. Modifications bloquées tant que la source distante n'est pas revalidée."
                         : "Sync distante indisponible. Compétences affichées depuis le cache local en lecture seule.";
-                } else if (!fetchedFromDb) {
+                } else if (persistedSource === "error" || !fetchedFromServer) {
                     persistState.readOnlyFallback = true;
                     persistState.readOnlyReason = "Impossible de relire les compétences depuis la source distante. Modifications temporairement bloquées pour éviter d'écraser des données.";
                 }
@@ -976,8 +973,8 @@
                 saveToStorage(skillsMetaKey, skillsState.metaByCategory);
                 persistState.initializing = false;
 
-                // Write defaults to DB only if the fetch confirmed no record exists yet.
-                if (!persisted && fetchedFromDb && !persistState.readOnlyFallback) {
+                // Migrate legacy server competences or create the dedicated row when missing.
+                if ((persistedSource === "legacy" || (!persisted && fetchedFromServer)) && !persistState.readOnlyFallback) {
                     await flushProfileSave();
                 }
             }
