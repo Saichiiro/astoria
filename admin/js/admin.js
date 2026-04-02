@@ -6,6 +6,7 @@
 import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, clearActiveCharacter, getActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
 import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js';
+import { getRouteHref } from '../../js/config/routes.js';
 import { adminItemsModal } from './admin-items-modal.js';
 
 (function() {
@@ -218,7 +219,7 @@ import { adminItemsModal } from './admin-items-modal.js';
     function redirectToLogin(reason) {
         console.warn('[Admin] Access denied:', reason);
         alert('Accès refusé: ' + reason);
-        window.location.href = '../index.html';
+        window.location.href = getRouteHref('characterHub');
         return false;
     }
 
@@ -229,7 +230,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
             localStorage.removeItem('astoria_session');
             localStorage.removeItem('astoria_active_character');
-            window.location.href = '../index.html';
+            window.location.href = getRouteHref('characterHub');
         }
     }
 

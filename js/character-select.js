@@ -9,6 +9,7 @@ import {
     logout,
     refreshSessionUser
 } from './auth.js';
+import { redirectToRoute } from './config/routes.js';
 
 const MAX_SLOTS = 5;
 
@@ -257,7 +258,7 @@ async function handleCardAction(card) {
         card.classList.remove('is-loading');
         return;
     }
-    window.location.href = 'profil.html';
+    redirectToRoute('profile');
 }
 
 async function loadCharacters() {
@@ -293,7 +294,7 @@ function updateHeader() {
 
 async function init() {
     if (!isAuthenticated()) {
-        window.location.href = 'login.html';
+        redirectToRoute('login');
         return;
     }
 
@@ -303,7 +304,7 @@ async function init() {
 
     currentUser = getCurrentUser();
     if (!currentUser) {
-        window.location.href = 'login.html';
+        redirectToRoute('login');
         return;
     }
 
@@ -330,7 +331,7 @@ if (dom.logoutBtns.length) {
     dom.logoutBtns.forEach((btn) => {
         btn.addEventListener('click', () => {
             logout();
-            window.location.href = 'login.html';
+            redirectToRoute('login');
         });
     });
 }
@@ -379,7 +380,7 @@ if (dom.form) {
             }
 
             await setActiveCharacter(res.character.id);
-            window.location.href = 'profil.html';
+            redirectToRoute('profile');
         } catch (error) {
             console.error(error);
             showCreateError('Impossible de cr\u00e9er le personnage.');

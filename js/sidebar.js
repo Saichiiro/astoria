@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   const body = document.body;
   if (!body) return;
 
@@ -21,7 +21,78 @@
     head.appendChild(link);
   }
 
+  const resolveModuleUrl = (relativePath) => {
+    const current = document.currentScript;
+    if (current?.src) {
+      return new URL(relativePath, current.src).href;
+    }
+    const fallback = document.querySelector('script[src*="js/sidebar.js"]');
+    if (fallback?.src) {
+      return new URL(relativePath, fallback.src).href;
+    }
+    return new URL(relativePath, window.location.href).href;
+  };
+
+  const fallbackRoutes = {
+    characterHub: "index.html",
+    login: "login.html",
+    admin: "admin/index.html",
+    codex: "codex.html",
+    skills: "competences.html",
+    market: "hdv.html",
+    inventory: "inventaire.html",
+    quests: "quetes.html",
+    magic: "magie.html",
+    craft: "craft.html",
+    nokorah: "nokorah.html",
+    characterSheet: "fiche.html",
+  };
+
+  const fallbackItems = [
+    { id: "adminShortcut", routeKey: "admin", label: "Admin", icon: "⚙", adminOnly: true },
+    { id: "codexShortcut", routeKey: "codex", label: "Codex", icon: "📖", adminOnly: true, panelId: "codex" },
+    { routeKey: "skills", label: "Compétences", icon: "⚔", panelId: "competences" },
+    { routeKey: "market", label: "Hôtel de vente", icon: "🏛", panelId: "hdv" },
+    { routeKey: "inventory", label: "Inventaire", icon: "🎒", panelId: "inventaire" },
+    { routeKey: "quests", label: "Quêtes", icon: "🔍", panelId: "quetes" },
+    { routeKey: "magic", label: "Magie", icon: "✨", panelId: "magie" },
+    { routeKey: "craft", label: "Craft", icon: "🔨" },
+    { routeKey: "nokorah", label: "Nokorah", icon: "👻", panelId: "nokorah" },
+    { routeKey: "characterSheet", label: "Personnage", icon: "👤", panelId: "fiche" },
+  ];
+
+  let routesModule = null;
+  try {
+    routesModule = await import(resolveModuleUrl("./config/routes.js"));
+  } catch (error) {
+    console.warn("Sidebar routes load failed:", error);
+  }
+
+  const getRouteHref = routesModule?.getRouteHref || ((key) => fallbackRoutes[key] || fallbackRoutes.characterHub);
+  const sidebarItems = routesModule?.APP_SIDEBAR_ITEMS || fallbackItems;
+
   if (document.getElementById("sidebarMenu")) return;
+
+  const sidebarItemsMarkup = sidebarItems
+    .map((item) => {
+      const itemId = item.id ? ` id="${item.id}"` : "";
+      const hiddenAttr = item.adminOnly ? " hidden" : "";
+      const openButton = item.panelId
+        ? `<button type="button" class="menu-open" data-panel="${item.panelId}" aria-label="Ouvrir le panneau ${item.label}">&#8599;</button>`
+        : "";
+
+      return `
+        <li class="menu-item"${itemId}${hiddenAttr}>
+          <div class="sidebar-row">
+            <a class="menu-link" href="${getRouteHref(item.routeKey)}">
+              <span class="menu-icon" aria-hidden="true">${item.icon}</span>
+              <span class="menu-text">${item.label}</span>
+            </a>
+            ${openButton}
+          </div>
+        </li>`;
+    })
+    .join("");
 
   const markup = `
     <input type="checkbox" class="openSidebarMenu" id="openSidebarMenu" aria-controls="sidebarMenu" aria-label="Ouvrir le menu">
@@ -33,7 +104,7 @@
 
     <nav id="sidebarMenu" aria-label="Raccourcis">
       <div class="sidebar-topbar">
-        <a class="menu-header menu-header-link" href="index.html" aria-label="Retour à l'accueil">
+        <a class="menu-header menu-header-link" href="${getRouteHref("characterHub")}" aria-label="Retour à l'accueil">
           <span class="menu-header-title" aria-hidden="true">&nbsp;</span>
           <span class="menu-header-sub">Astoria</span>
         </a>
@@ -47,94 +118,9 @@
         </button>
       </div>
       <ul class="sidebarMenuInner">
-        <li class="menu-item" id="adminShortcut" hidden>
-          <a class="menu-link" href="admin/index.html">
-            <span class="menu-icon" aria-hidden="true">&#9881;</span>
-            <span class="menu-text">Admin</span>
-          </a>
-        </li>
-        <li class="menu-item" id="codexShortcut" hidden>
-          <div class="sidebar-row">
-            <a class="menu-link" href="codex.html">
-              <span class="menu-icon" aria-hidden="true">&#128214;</span>
-              <span class="menu-text">Codex</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="codex" aria-label="Ouvrir le panneau Codex">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="competences.html">
-              <span class="menu-icon" aria-hidden="true">&#9876;</span>
-              <span class="menu-text">Comp&#233;tences</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="competences" aria-label="Ouvrir le panneau Comp&#233;tences">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="hdv.html">
-              <span class="menu-icon" aria-hidden="true">&#127963;</span>
-              <span class="menu-text">H&#244;tel de vente</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="hdv" aria-label="Ouvrir le panneau HDV">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="inventaire.html">
-              <span class="menu-icon" aria-hidden="true">&#127890;</span>
-              <span class="menu-text">Inventaire</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="inventaire" aria-label="Ouvrir le panneau Inventaire">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="quetes.html">
-              <span class="menu-icon" aria-hidden="true">&#128301;</span>
-              <span class="menu-text">Qu&#234;tes</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="quetes" aria-label="Ouvrir le panneau Qu&#234;tes">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="magie.html">
-              <span class="menu-icon" aria-hidden="true">&#10024;</span>
-              <span class="menu-text">Magie</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="magie" aria-label="Ouvrir le panneau Magie">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="craft.html">
-              <span class="menu-icon" aria-hidden="true">&#128296;</span>
-              <span class="menu-text">Craft</span>
-            </a>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="nokorah.html">
-              <span class="menu-icon" aria-hidden="true">&#128123;</span>
-              <span class="menu-text">Nokorah</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="nokorah" aria-label="Ouvrir le panneau Nokorah">&#8599;</button>
-          </div>
-        </li>
-        <li class="menu-item">
-          <div class="sidebar-row">
-            <a class="menu-link" href="fiche.html">
-              <span class="menu-icon" aria-hidden="true">&#128100;</span>
-              <span class="menu-text">Personnage</span>
-            </a>
-            <button type="button" class="menu-open" data-panel="fiche" aria-label="Ouvrir le panneau Personnage">&#8599;</button>
-          </div>
-        </li>
+        ${sidebarItemsMarkup}
         <li class="menu-item menu-footer">
-          <button type="button" class="character-select-logout" id="logoutButton" hidden>D&#233;connexion</button>
+          <button type="button" class="character-select-logout" id="logoutButton" hidden>Déconnexion</button>
           <button type="button" class="character-select-logout" id="loginButton" hidden>Connexion</button>
         </li>
       </ul>
@@ -151,18 +137,6 @@
     if (window.astoriaHeadroom && typeof window.astoriaHeadroom.init === "function") {
       window.astoriaHeadroom.init();
     }
-  };
-
-  const resolveModuleUrl = (relativePath) => {
-    const current = document.currentScript;
-    if (current && current.src) {
-      return new URL(relativePath, current.src).href;
-    }
-    const fallback = document.querySelector('script[src*="js/sidebar.js"]');
-    if (fallback && fallback.src) {
-      return new URL(relativePath, fallback.src).href;
-    }
-    return new URL(relativePath, window.location.href).href;
   };
 
   const themeScriptLoaded = () => {
@@ -192,7 +166,6 @@
     body.classList.toggle("sidebar-open", !!toggle.checked);
   };
 
-  // Always boot closed to avoid stale bfcache/checkbox state across pages.
   closeSidebar();
   refreshHeadroom();
 
@@ -215,7 +188,7 @@
     document.addEventListener("click", (event) => {
       if (!body.classList.contains("sidebar-open")) return;
       const target = event.target;
-      if (target && target.closest && target.closest(".panel-backdrop, .panel-drawer")) return;
+      if (target?.closest?.(".panel-backdrop, .panel-drawer")) return;
       if (document.documentElement.classList.contains("panel-open")) return;
       if (sidebar.contains(target) || iconToggle.contains(target)) return;
       closeSidebar();
@@ -230,14 +203,12 @@
     closeSidebar();
   });
 
-  // Close the drawer after navigation links are used.
   sidebar?.querySelectorAll('a[href]').forEach((link) => {
     link.addEventListener("click", () => {
       closeSidebar();
     });
   });
 
-  // Smart back links: prefer browser history, fallback to href target.
   document.querySelectorAll("a.page-back[href]").forEach((link) => {
     link.addEventListener("click", (event) => {
       const href = link.getAttribute("href");
@@ -256,7 +227,6 @@
     });
   });
 
-  // Normalize state when returning via history/bfcache.
   window.addEventListener("pageshow", (event) => {
     if (event.persisted) {
       closeSidebar();
@@ -266,6 +236,7 @@
     syncSidebarState();
     refreshHeadroom();
   });
+
   window.addEventListener("pagehide", () => {
     closeSidebar();
   });
@@ -295,7 +266,7 @@
             if (typeof auth.logout === "function") {
               auth.logout();
             }
-            window.location.href = "login.html";
+            window.location.href = getRouteHref("login");
           });
         });
       } else {
@@ -305,7 +276,7 @@
         if (codexShortcut) codexShortcut.hidden = true;
         loginBtns.forEach((btn) => {
           btn.addEventListener("click", () => {
-            window.location.href = "login.html";
+            window.location.href = getRouteHref("login");
           });
         });
       }
@@ -317,7 +288,7 @@
       if (codexShortcut) codexShortcut.hidden = true;
       loginBtns.forEach((btn) => {
         btn.addEventListener("click", () => {
-          window.location.href = "login.html";
+          window.location.href = getRouteHref("login");
         });
       });
     }

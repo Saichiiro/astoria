@@ -1,4 +1,5 @@
 import { el } from "./panel-utils.js";
+import { getRouteHref } from "../config/routes.js";
 
 function readJson(key, fallback = null) {
   if (!key) return fallback;
@@ -109,7 +110,7 @@ function ensureNokorahModals() {
 export const codexPanel = buildStubPanel({
   id: "codex",
   title: "Codex",
-  fullPageHref: "codex.html",
+  fullPageHref: getRouteHref("codex"),
   fullPageLabel: "Ouvrir le Codex",
   blurb: "Panel en preparation. Recap des objets et recherches a venir.",
   load: async (summary) => {
@@ -129,7 +130,7 @@ export const codexPanel = buildStubPanel({
 export const competencesPanel = buildStubPanel({
   id: "competences",
   title: "Competences",
-  fullPageHref: "competences.html",
+  fullPageHref: getRouteHref("skills"),
   fullPageLabel: "Ouvrir les competences",
   blurb: "Panel en preparation. Statistiques et validation seront centralisees ici.",
   load: async (summary, ctx) => {
@@ -299,7 +300,7 @@ export const hdvPanel = {
 export const quetesPanel = buildStubPanel({
   id: "quetes",
   title: "Quetes",
-  fullPageHref: "quetes.html",
+  fullPageHref: getRouteHref("quests"),
   fullPageLabel: "Ouvrir les quetes",
   blurb: "Panel en preparation. Apercu des quetes en cours.",
   load: async (summary) => {
@@ -327,7 +328,7 @@ export const quetesPanel = buildStubPanel({
 export const magiePanel = buildStubPanel({
   id: "magie",
   title: "Magie",
-  fullPageHref: "magie.html",
+  fullPageHref: getRouteHref("magic"),
   fullPageLabel: "Ouvrir la magie",
   blurb: "Panel en preparation. Acces rapide aux notes et validations.",
   load: async (summary, ctx) => {
@@ -372,7 +373,7 @@ function getNextRarityGate(level) {
 export const nokorahPanel = {
   id: "nokorah",
   title: "Nokorah",
-  fullPageHref: "nokorah.html",
+  fullPageHref: getRouteHref("nokorah"),
   fullPageLabel: "Ouvrir Nokorah",
   renderPanel(ctx) {
     ensureStyleLink("css/nokorah.css");

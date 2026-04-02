@@ -22,6 +22,7 @@ import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot
 import { getCategories } from './api/categories-service.js';
 import { initCharacterSummary } from './ui/character-summary.js';
 import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
+import { getRouteHref } from './config/routes.js';
 
 const dom = {
     kaelsBadge: document.getElementById('characterKaelsBadge'),
@@ -525,7 +526,7 @@ function formatCharacterLink(characterId, label = '') {
     if (!characterId) return '';
     const shortId = String(characterId).slice(0, 8);
     const text = label || shortId;
-    const url = `profil.html?character=${encodeURIComponent(characterId)}`;
+    const url = getRouteHref('profile', { query: { character: characterId } });
     return `<a class="hdv-link" href="${url}" target="_blank" rel="noopener">${text}</a>`;
 }
 

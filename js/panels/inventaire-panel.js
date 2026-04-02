@@ -1,9 +1,10 @@
 import { el, safeNumber } from "./panel-utils.js";
+import { getRouteHref } from "../config/routes.js";
 
 export const inventairePanel = {
   id: "inventaire",
   title: "Inventaire",
-  fullPageHref: "inventaire.html",
+  fullPageHref: getRouteHref("inventory"),
   fullPageLabel: "Ouvrir l'inventaire",
   renderPanel(ctx) {
     const wrapper = el("div", "panel-card");

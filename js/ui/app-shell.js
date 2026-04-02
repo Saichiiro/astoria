@@ -242,13 +242,18 @@ async function run() {
     window.location.reload();
   });
 
-  logoutBtn.addEventListener("click", () => {
+  logoutBtn.addEventListener("click", async () => {
     if (typeof logout === "function") {
       logout();
     } else {
       localStorage.removeItem("astoria_session");
     }
-    window.location.href = "login.html";
+    try {
+      const routes = await import("../config/routes.js");
+      window.location.href = routes.getRouteHref("login");
+    } catch {
+      window.location.href = "login.html";
+    }
   });
 
   primaryRow.append(selector, badge);

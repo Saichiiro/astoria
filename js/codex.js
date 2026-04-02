@@ -1563,16 +1563,22 @@ bindPageEvents();
 void (async () => {
     try {
         const auth = await import('./auth.js');
+        const routes = await import('./config/routes.js');
         const refreshed = await auth.refreshSessionUser?.();
         const isAdminUser = Boolean(auth.isAdmin?.());
         window.astoriaIsAdmin = isAdminUser;
         if (!refreshed?.success || !isAdminUser) {
-            window.location.href = 'inventaire.html';
+            window.location.href = routes.getRouteHref('inventory');
             return;
         }
     } catch (error) {
         console.warn('[Codex] Admin gate failed:', error);
-        window.location.href = 'inventaire.html';
+        try {
+            const routes = await import('./config/routes.js');
+            window.location.href = routes.getRouteHref('inventory');
+        } catch {
+            window.location.href = 'inventaire.html';
+        }
         return;
     }
 

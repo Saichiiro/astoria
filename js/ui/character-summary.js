@@ -1,4 +1,5 @@
 import { initScrollUI } from './scroll-ui.js';
+import { getRouteHref } from '../config/routes.js';
 
 const CHARACTER_STORAGE_KEY = "astoria_active_character";
 const LEGACY_SUMMARY_KEY = "astoria_character_summary";
@@ -178,7 +179,9 @@ export function applySummaryToElements(elements, summary) {
     if (linkTarget) {
         linkTarget.setAttribute(
             "href",
-            summary?.id ? `profil.html?character=${encodeURIComponent(summary.id)}` : "profil.html"
+            summary?.id
+                ? getRouteHref("profile", { query: { character: summary.id } })
+                : getRouteHref("profile")
         );
     }
 
@@ -465,7 +468,7 @@ async function buildCharacterDropdown(dropdownEl, currentCharacterId) {
 
             createItem.addEventListener("click", (e) => {
                 e.stopPropagation();
-                window.location.href = "index.html";
+                window.location.href = getRouteHref("characterHub");
             });
 
             dropdownEl.appendChild(createItem);

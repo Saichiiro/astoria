@@ -10,6 +10,7 @@ import {
   getCurrentUser,
   setUserRoleByUsername,
 } from "../auth.js";
+import { getRouteHref } from "../config/routes.js";
 
 export const adminPanel = {
   id: "admin",
@@ -32,7 +33,7 @@ export const adminPanel = {
 
     // Link to full admin panel
     const adminLink = document.createElement("a");
-    adminLink.href = "admin/index.html";
+    adminLink.href = getRouteHref("admin");
     adminLink.className = "panel-admin-full-link";
     adminLink.innerHTML = `<span class="panel-admin-full-link-icon">⚙️</span> Ouvrir le panneau admin complet`;
     wrapper.appendChild(adminLink);
