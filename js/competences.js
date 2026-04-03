@@ -865,6 +865,50 @@
         };
     }
 
+    async function resolveActiveCharacterContext(auth, user) {
+        let character = auth?.getActiveCharacter?.() || null;
+        if (character?.id) return { character, source: "session" };
+
+        try {
+            const { resolveCharacterContext } = await import("./ui/character-summary.js");
+            const fallbackContext = resolveCharacterContext({ includeQueryParam: true });
+            const fallbackId = fallbackContext?.character?.id
+                || (fallbackContext?.key && fallbackContext.key !== "default" ? fallbackContext.key : null);
+
+            if (!fallbackId) {
+                return { character: null, source: "missing" };
+            }
+
+            if (typeof auth?.getCharacterById === "function") {
+                const fresh = await auth.getCharacterById(fallbackId);
+                if (fresh?.id) {
+                    const isAllowed = auth?.isAdmin?.() || !user?.id || !fresh.user_id || fresh.user_id === user.id;
+                    if (!isAllowed) {
+                        return { character: null, source: "forbidden" };
+                    }
+
+                    if (typeof auth?.setActiveCharacter === "function") {
+                        try {
+                            await auth.setActiveCharacter(fresh.id);
+                            character = auth.getActiveCharacter?.() || fresh;
+                        } catch {
+                            character = fresh;
+                        }
+                    } else {
+                        character = fresh;
+                    }
+
+                    return { character, source: "recovered" };
+                }
+            }
+
+            return { character: { id: fallbackId }, source: "storage-key" };
+        } catch (error) {
+            console.warn("[Competences] Impossible de resoudre le personnage actif depuis le contexte resume:", error);
+            return { character: null, source: "error" };
+        }
+    }
+
     async function initPersistence() {
         persistState.mode = "local";
         persistState.characterId = null;
@@ -879,7 +923,7 @@
                 await persistState.auth.refreshSessionUser();
             }
             const user = persistState.auth.getCurrentUser?.();
-            const character = persistState.auth.getActiveCharacter?.();
+            const { character, source: characterSource } = await resolveActiveCharacterContext(persistState.auth, user);
 
             if (user && character && character.id) {
                 persistState.mode = "character";
@@ -977,6 +1021,11 @@
                 if ((persistedSource === "legacy" || (!persisted && fetchedFromServer)) && !persistState.readOnlyFallback) {
                     await flushProfileSave();
                 }
+            } else if (user && !character?.id) {
+                persistState.readOnlyFallback = true;
+                persistState.readOnlyReason = characterSource === "forbidden"
+                    ? "Le personnage actif detecte ne correspond pas a cette session. Rechargez la selection de personnage."
+                    : "Impossible de determiner le personnage actif. Rechargez la page ou re-selectionnez votre personnage avant de modifier les competences.";
             }
         } catch (error) {
             // Keep local mode fallback.
