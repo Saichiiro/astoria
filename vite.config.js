@@ -12,6 +12,12 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 index:       resolve(root, 'index.html'),
+                univers:     resolve(root, 'univers.html'),
+                royaumes:    resolve(root, 'royaumes.html'),
+                gameplay:    resolve(root, 'gameplay.html'),
+                prochainement: resolve(root, 'prochainement.html'),
+                rejoindre:   resolve(root, 'rejoindre.html'),
+                personnages: resolve(root, 'personnages.html'),
                 login:       resolve(root, 'login.html'),
                 profil:      resolve(root, 'profil.html'),
                 fiche:       resolve(root, 'fiche.html'),

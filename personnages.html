@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&#233;lection des personnages - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/character-select.css">
+    <style>
+        body.perf-lite .character-select-page.fade-in {
+            opacity: 1;
+            transform: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <main class="character-select-page fade-in" aria-labelledby="characterSelectTitle">
+        <header class="character-select-header">
+            <div class="character-select-hero">
+                <span class="character-select-kicker">Alice Academia</span>
+                <h1 class="character-select-title" id="characterSelectTitle">S&#233;lectionner un personnage</h1>
+                <p class="character-select-subtitle" id="characterSelectSubtitle">Selection rapide, sans friction.</p>
+                <div class="character-select-overview" aria-label="Apercu rapide">
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Slots utilises</span>
+                        <strong class="character-select-stat-value" id="characterSlotsUsed">0/5</strong>
+                    </div>
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Actif</span>
+                        <strong class="character-select-stat-value" id="characterActiveName">Aucun</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="character-summary" aria-label="Resume du personnage">
+                <div class="character-avatar-wrapper">
+                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                    </div>
+                    <div class="character-dropdown" hidden aria-label="Selectionner un personnage"></div>
+                </div>
+                <div class="character-summary-text">
+                    <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                    <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                    <div class="character-summary-meta">
+                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        <div class="character-souls" id="characterSouls" hidden>
+                            <span class="soul-count" title="Ames consommation"><span class="soul-icon">&#128293;</span><span id="soulConsoValue">0</span></span>
+                            <span class="soul-count" title="Ames progression"><span class="soul-icon">&#11088;</span><span id="soulProgValue">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="character-select-actions">
+                <span class="character-select-user" id="currentUserName"></span>
+                <span class="character-select-badge tw-pill" id="currentUserRole"></span>
+                <button type="button" class="character-select-logout tw-press" id="logoutButton">D&#233;connexion</button>
+            </div>
+        </header>
+        <section class="character-select-board" aria-labelledby="characterSelectBoardTitle">
+            <div class="character-select-board-head">
+                <div>
+                    <h2 class="character-select-board-kicker" id="characterSelectBoardTitle">Roster</h2>
+                    <p class="character-select-board-copy">Ton roster en un coup d'oeil.</p>
+                </div>
+            </div>
+            <section class="character-select-grid" id="characterGrid" role="list"></section>
+            <p class="character-select-status" id="characterSelectStatus" role="status" aria-live="polite"></p>
+        </section>
+    </main>
+    <div class="select-modal-backdrop" id="createCharacterBackdrop" aria-hidden="true">
+        <div class="select-modal" role="dialog" aria-modal="true" aria-labelledby="createCharacterTitle">
+            <div class="select-modal-title" id="createCharacterTitle">Cr&#233;er un personnage</div>
+            <p class="select-modal-copy">Remplis l'essentiel maintenant. Tu pourras completer la fiche et l'avatar ensuite.</p>
+            <div class="select-modal-error" id="createCharacterError" role="alert"></div>
+            <form id="createCharacterForm">
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterNameInput">Nom</label>
+                    <input class="select-modal-input tw-input" id="characterNameInput" name="name" required autocomplete="off">
+                </div>
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterRaceInput">Race (optionnel)</label>
+                    <input class="select-modal-input tw-input" id="characterRaceInput" name="race" autocomplete="off">
+                </div>
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterClassInput">Classe (optionnel)</label>
+                    <input class="select-modal-input tw-input" id="characterClassInput" name="class" autocomplete="off">
+                </div>
+                <div class="select-modal-actions">
+                    <button type="button" class="select-modal-button secondary tw-press" id="createCharacterCancel">Annuler</button>
+                    <button type="submit" class="select-modal-button tw-press" id="createCharacterSubmit">Cr&#233;er</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script src="js/ui/performance-mode.js"></script>
+    <script type="module" src="js/character-select.js"></script>
+    <script type="module">
+        import { initCharacterSummary } from "./js/ui/character-summary.js";
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+        });
+    </script>
+    <script>
+        (function () {
+            if (window.location.protocol !== "file:") return;
+            const status = document.getElementById("characterSelectStatus");
+            if (status) {
+                status.textContent = "Ouvre cette page via un serveur local (Live Server) ou GitHub Pages pour charger les personnages.";
+            }
+        })();
+    </script>
+    <script src="js/sidebar.js"></script>
+</body>
+</html>

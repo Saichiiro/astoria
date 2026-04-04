@@ -296,6 +296,7 @@
     </script>
     <script type="module">
         import { login, register, resetUserPasswordPublic, isAuthenticated, logout, getCurrentUser } from './js/auth.js';
+        import { getRouteHref } from './js/config/routes.js';
         const errorMessage = document.getElementById('errorMessage');
         const sessionNotice = document.getElementById('sessionNotice');
         const sessionNoticeText = document.getElementById('sessionNoticeText');
@@ -316,7 +317,7 @@
                 : 'Déjà connecté.';
             sessionNotice.hidden = false;
             sessionContinue.addEventListener('click', () => {
-                window.location.href = 'index.html';
+                window.location.href = getRouteHref('characterHub');
             });
             sessionLogout.addEventListener('click', () => {
                 logout();
@@ -362,7 +363,7 @@
             try {
                 const result = await login(username, password);
                 if (result.success) {
-                    window.location.href = 'index.html';
+                    window.location.href = getRouteHref('characterHub');
                 } else {
                     showError(result.error || 'Nom d\'utilisateur ou mot de passe incorrect');
                 }
@@ -393,7 +394,7 @@
             try {
                 const result = await register(username, password);
                 if (result.success) {
-                    window.location.href = 'index.html';
+                    window.location.href = getRouteHref('characterHub');
                 } else {
                     showError(result.error || 'Impossible de créer le compte');
                 }

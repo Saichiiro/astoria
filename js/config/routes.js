@@ -3,10 +3,10 @@ const ROUTE_DEFINITIONS = Object.freeze({
     path: "index.html",
     area: "public",
     label: "Accueil",
-    note: "Alias temporaire vers le hub personnages tant que le site public dedie n'est pas en ligne.",
+    note: "Page d'accueil publique du site Astoria.",
   },
   login: { path: "login.html", area: "public", label: "Connexion" },
-  characterHub: { path: "index.html", area: "app", label: "Selection personnage" },
+  characterHub: { path: "personnages.html", area: "app", label: "Selection personnage" },
   profile: { path: "profil.html", area: "app", label: "Profil" },
   characterSheet: { path: "fiche.html", area: "app", label: "Personnage" },
   inventory: { path: "inventaire.html", area: "app", label: "Inventaire" },
@@ -24,6 +24,20 @@ const ROUTE_DEFINITIONS = Object.freeze({
   publicRoadmap: { path: "prochainement.html", area: "public", label: "Prochainement" },
   publicJoin: { path: "rejoindre.html", area: "public", label: "Rejoindre" },
 });
+
+export const PUBLIC_SITE_NAV_KEYS = Object.freeze([
+  "publicHome",
+  "publicUniverse",
+  "publicKingdoms",
+  "publicGameplay",
+  "publicRoadmap",
+  "publicJoin",
+]);
+
+export const PUBLIC_SITE_CTA_KEYS = Object.freeze([
+  "login",
+  "characterHub",
+]);
 
 export const ROUTES = Object.freeze(
   Object.fromEntries(

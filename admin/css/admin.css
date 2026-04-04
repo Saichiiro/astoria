@@ -1537,3 +1537,58 @@ body.perf-lite .btn::before {
 [data-page="quetes"] th.sortable:hover {
     color: #ff77b4;
 }
+
+.nav-section-label {
+    padding: 16px 14px 8px;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.nav-section-label--footer {
+    margin-top: 12px;
+}
+
+.admin-context-bar {
+    border-bottom: 1px solid rgba(244, 143, 177, 0.14);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+.admin-context-links {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 10px;
+    overflow-x: auto;
+}
+
+.admin-quicklink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(244, 143, 177, 0.16);
+    color: var(--admin-text-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.admin-quicklink:hover,
+.admin-quicklink.active {
+    color: #fff;
+    border-color: rgba(244, 143, 177, 0.28);
+    background: rgba(210, 75, 143, 0.14);
+}
+
+@media (max-width: 767.98px) {
+    .admin-context-links {
+        padding-right: 2px;
+    }
+}

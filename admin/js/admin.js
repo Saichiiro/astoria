@@ -75,6 +75,9 @@ import { adminItemsModal } from './admin-items-modal.js';
         document.querySelectorAll('.nav-link[data-page]').forEach(link => {
             link.classList.toggle('active', link.dataset.page === pageName);
         });
+        document.querySelectorAll('.admin-quicklink[data-page]').forEach(link => {
+            link.classList.toggle('active', link.dataset.page === pageName);
+        });
 
         // Update header
         const info = PAGE_TITLES[pageName] || { title: pageName, subtitle: '' };
@@ -110,6 +113,14 @@ import { adminItemsModal } from './admin-items-modal.js';
         }
 
         console.log('[Admin] Navigated to:', pageName);
+    }
+
+    function initRouteLinks() {
+        document.querySelectorAll('[data-admin-link]').forEach((link) => {
+            const routeKey = link.dataset.adminLink;
+            if (!routeKey) return;
+            link.setAttribute('href', getRouteHref(routeKey));
+        });
     }
 
     /**
@@ -2809,6 +2820,7 @@ import { adminItemsModal } from './admin-items-modal.js';
 
         // Initialize navigation
         initNavigation();
+        initRouteLinks();
 
         // Load initial data
         await loadDashboardStats();
