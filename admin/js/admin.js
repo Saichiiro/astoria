@@ -2627,7 +2627,8 @@ import { adminItemsModal } from './admin-items-modal.js';
                 });
 
                 const totalRemaining = cats.reduce((s, c) => s + c.remaining, 0);
-                return { name: char.name, cats, totalRemaining, source };
+                const totalSpent = cats.reduce((s, c) => s + c.spent, 0);
+                return { name: char.name, cats, totalRemaining, totalSpent, source };
             });
 
             const summary = rows.reduce((acc, row) => {
@@ -2649,7 +2650,8 @@ import { adminItemsModal } from './admin-items-modal.js';
                         <tr>
                             <th>Personnage</th>
                             ${COMP_CATEGORIES.map(c => `<th class="text-center" style="width:72px;">${c.label}</th>`).join('')}
-                            <th class="text-center" style="width:72px;">Total</th>
+                            <th class="text-center" style="width:92px;">Alloué</th>
+                            <th class="text-center" style="width:92px;">Restant</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2666,21 +2668,32 @@ import { adminItemsModal } from './admin-items-modal.js';
                                         <div class="competences-health-name">${row.name}</div>
                                         ${sourceLabel}
                                     </td>
-                                    <td colspan="${COMP_CATEGORIES.length + 1}" class="text-muted small fst-italic">Aucune donnée détectée dans la table dédiée ni dans le profil hérité.</td>
+                                    <td colspan="${COMP_CATEGORIES.length + 2}" class="text-muted small fst-italic">Aucune donnée détectée dans la table dédiée ni dans le profil hérité.</td>
                                 </tr>`;
 
                             return `<tr>
                                 <td title="${row.name}">
                                     <div class="competences-health-name">${row.name}</div>
                                     ${sourceLabel}
+                                    <div class="competences-health-meta">
+                                        <span>Alloué ${row.totalSpent}</span>
+                                        <span>Reste ${row.totalRemaining}</span>
+                                    </div>
                                 </td>
                                 ${row.cats.map(cat => {
-                                    const r = cat.remaining;
-                                    const color = r === 0 ? '#2fb344' : r <= 10 ? '#f59f00' : '#d63939';
-                                    return `<td class="text-center" title="${cat.id} — Dépensé: ${cat.spent} | Restant: ${r}">
-                                        <span style="color:${color};font-weight:700;">${r}</span>
+                                    const remaining = cat.remaining;
+                                    const remainingColor = remaining === 0 ? '#2fb344' : remaining <= 10 ? '#f59f00' : '#d63939';
+                                    const spentColor = cat.spent > 0 ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.45)';
+                                    return `<td class="text-center" title="${cat.id} — Alloué: ${cat.spent} | Restant: ${remaining}">
+                                        <div class="competences-health-metric">
+                                            <span class="competences-health-metric-main" style="color:${spentColor};">${cat.spent}</span>
+                                            <span class="competences-health-metric-sub" style="color:${remainingColor};">r ${remaining}</span>
+                                        </div>
                                     </td>`;
                                 }).join('')}
+                                <td class="text-center">
+                                    <strong style="color:${row.totalSpent > 0 ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.45)'};">${row.totalSpent}</strong>
+                                </td>
                                 <td class="text-center">
                                     <strong style="color:${row.totalRemaining === 0 ? '#2fb344' : row.totalRemaining <= 30 ? '#f59f00' : '#d63939'};">${row.totalRemaining}</strong>
                                 </td>
@@ -2690,10 +2703,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                 </table>
             </div>
             <div class="px-3 pb-2 text-muted small">
-                <span style="color:#2fb344;font-weight:700;">0</span> tout alloué &nbsp;·&nbsp;
-                <span style="color:#f59f00;font-weight:700;">≤10</span> quelques pts restants &nbsp;·&nbsp;
-                <span style="color:#d63939;font-weight:700;">&gt;10</span> à distribuer &nbsp;·&nbsp;
-                <span class="text-muted">Table prioritaire, profil hérité utilisé seulement en secours.</span>
+                Les cellules affichent <strong>alloué</strong> puis <strong>reste</strong>. La table dédiée reste prioritaire; le profil hérité n'est utilisé qu'en secours.
             </div>`;
 
             container.innerHTML = html;

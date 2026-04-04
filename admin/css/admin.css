@@ -989,6 +989,35 @@
     font-weight: 700;
 }
 
+.competences-health-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.7rem;
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.competences-health-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.competences-health-metric-main {
+    font-size: 0.98rem;
+    font-weight: 800;
+}
+
+.competences-health-metric-sub {
+    margin-top: 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 /* Better contrast for all table rows - remove white backgrounds */
 .theme-dark [data-page="users"] .table tbody tr,
 .theme-dark [data-page="characters"] .table tbody tr,
