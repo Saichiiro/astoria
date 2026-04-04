@@ -1303,24 +1303,41 @@
             </div>
         </div>
     </main>
-    <script src="js/ui/performance-mode.js"></script>
+    <script>
+        (function () {
+            const RUNTIME_VERSION = '2026-04-04-competences-visibility-1';
+            const STORAGE_KEY = 'astoria_runtime_version:competences';
+            try {
+                const current = localStorage.getItem(STORAGE_KEY);
+                if (current === RUNTIME_VERSION) return;
+                localStorage.setItem(STORAGE_KEY, RUNTIME_VERSION);
+                const url = new URL(window.location.href);
+                if (url.searchParams.get('_rv') === RUNTIME_VERSION) return;
+                url.searchParams.set('_rv', RUNTIME_VERSION);
+                window.location.replace(url.toString());
+            } catch {
+                // Ignore storage/navigation failures and continue with normal load.
+            }
+        })();
+    </script>
+    <script src="js/ui/performance-mode.js?v=2026-04-04-competences-visibility-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
-    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/toast-manager.js?v=2026-04-04-competences-visibility-1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
-    <script type="module" src="js/ui/app-shell.js"></script>
+    <script type="module" src="js/ui/app-shell.js?v=2026-04-04-competences-visibility-1"></script>
     <script type="module">
-        import { initCharacterSummary } from './js/ui/character-summary.js';
+        import { initCharacterSummary } from './js/ui/character-summary.js?v=2026-04-04-competences-visibility-1';
         // Initialize character summary with kaels and dropdown
         document.addEventListener('DOMContentLoaded', async () => {
             await initCharacterSummary({ enableDropdown: true, showKaels: true });
         });
     </script>
-    <script src="js/data.js" defer></script>
-    <script src="js/skills-catalog.js" defer></script>
-    <script src="js/item-modifiers.js" defer></script>
-    <script src="js/competences.js" defer></script>
-    <script src="js/sidebar.js"></script>
-    <script src="js/ui/headroom.js"></script>
+    <script src="js/data.js?v=2026-04-04-competences-visibility-1" defer></script>
+    <script src="js/skills-catalog.js?v=2026-04-04-competences-visibility-1" defer></script>
+    <script src="js/item-modifiers.js?v=2026-04-04-competences-visibility-1" defer></script>
+    <script src="js/competences.js?v=2026-04-04-competences-visibility-1" defer></script>
+    <script src="js/sidebar.js?v=2026-04-04-competences-visibility-1"></script>
+    <script src="js/ui/headroom.js?v=2026-04-04-competences-visibility-1"></script>
 </body>
 </html>

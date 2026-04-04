@@ -870,7 +870,7 @@
         if (character?.id) return { character, source: "session" };
 
         try {
-            const { resolveCharacterContext } = await import("./ui/character-summary.js");
+            const { resolveCharacterContext } = await import("./ui/character-summary.js?v=2026-04-04-competences-visibility-1");
             const fallbackContext = resolveCharacterContext({ includeQueryParam: true });
             const fallbackId = fallbackContext?.character?.id
                 || (fallbackContext?.key && fallbackContext.key !== "default" ? fallbackContext.key : null);
