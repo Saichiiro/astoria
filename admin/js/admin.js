@@ -2570,6 +2570,59 @@ import { adminItemsModal } from './admin-items-modal.js';
         { id: 'artisanat',     label: 'Artisanat' },
         { id: 'reputation',    label: 'Réputation' },
     ];
+    let competencesHealthRowsCache = [];
+
+    async function syncCompetencesSources(characterId) {
+        if (!characterId) return { ok: false, reason: 'missing-character' };
+        if (!supabase) supabase = await getSupabaseClient();
+
+        const { data: characterRow, error: characterError } = await supabase
+            .from('characters')
+            .select('id, name, profile_data')
+            .eq('id', characterId)
+            .maybeSingle();
+        if (characterError || !characterRow) {
+            throw characterError || new Error('Personnage introuvable');
+        }
+
+        const { data: competencesRow, error: competencesError } = await supabase
+            .from('character_competences')
+            .select('data')
+            .eq('character_id', characterId)
+            .maybeSingle();
+        if (competencesError) throw competencesError;
+
+        const tableData = competencesRow?.data || null;
+        const legacyData = characterRow.profile_data?.competences || null;
+        const snapshot = tableData || legacyData || null;
+
+        if (!snapshot || typeof snapshot !== 'object') {
+            return { ok: false, reason: 'missing-data' };
+        }
+
+        const nextProfileData = {
+            ...(characterRow.profile_data || {}),
+            competences: snapshot
+        };
+
+        const { error: upsertError } = await supabase
+            .from('character_competences')
+            .upsert({ character_id: characterId, data: snapshot });
+        if (upsertError) throw upsertError;
+
+        const { error: updateError } = await supabase
+            .from('characters')
+            .update({ profile_data: nextProfileData })
+            .eq('id', characterId);
+        if (updateError) throw updateError;
+
+        await logActivity(ActionTypes.CHARACTER_UPDATE, `Resynchronisation des competences pour ${characterRow.name}`, {
+            character_id: characterId,
+            source: tableData ? 'table' : 'legacy'
+        });
+
+        return { ok: true, name: characterRow.name };
+    }
 
     async function loadCompetencesHealth() {
         const container = document.getElementById('competencesHealthTable');
@@ -2614,7 +2667,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                 const legacyCompetences = char.profile_data?.competences || null;
                 const competences = dbCompetences || legacyCompetences || null;
                 const source = dbCompetences ? 'table' : (legacyCompetences ? 'legacy' : 'missing');
-                if (!competences) return { name: char.name, source, noData: true };
+                if (!competences) return { characterId: char.id, name: char.name, source, noData: true };
 
                 const points = competences.pointsByCategory || {};
                 const base = competences.baseValuesByCategory || {};
@@ -2628,8 +2681,9 @@ import { adminItemsModal } from './admin-items-modal.js';
 
                 const totalRemaining = cats.reduce((s, c) => s + c.remaining, 0);
                 const totalSpent = cats.reduce((s, c) => s + c.spent, 0);
-                return { name: char.name, cats, totalRemaining, totalSpent, source };
+                return { characterId: char.id, name: char.name, cats, totalRemaining, totalSpent, source };
             });
+            competencesHealthRowsCache = rows;
 
             const summary = rows.reduce((acc, row) => {
                 if (row.source === 'table') acc.table += 1;
@@ -2652,6 +2706,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                             ${COMP_CATEGORIES.map(c => `<th class="text-center" style="width:72px;">${c.label}</th>`).join('')}
                             <th class="text-center" style="width:92px;">Alloué</th>
                             <th class="text-center" style="width:92px;">Restant</th>
+                            <th class="text-center" style="width:164px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2668,7 +2723,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                                         <div class="competences-health-name">${row.name}</div>
                                         ${sourceLabel}
                                     </td>
-                                    <td colspan="${COMP_CATEGORIES.length + 2}" class="text-muted small fst-italic">Aucune donnée détectée dans la table dédiée ni dans le profil hérité.</td>
+                                    <td colspan="${COMP_CATEGORIES.length + 3}" class="text-muted small fst-italic">Aucune donnée détectée dans la table dédiée ni dans le profil hérité.</td>
                                 </tr>`;
 
                             return `<tr>
@@ -2697,6 +2752,12 @@ import { adminItemsModal } from './admin-items-modal.js';
                                 <td class="text-center">
                                     <strong style="color:${row.totalRemaining === 0 ? '#2fb344' : row.totalRemaining <= 30 ? '#f59f00' : '#d63939'};">${row.totalRemaining}</strong>
                                 </td>
+                                <td class="text-center">
+                                    <div class="competences-health-actions">
+                                        <a class="btn btn-sm btn-outline-secondary" href="${getRouteHref('skills', { query: { character: row.characterId } })}">Ouvrir</a>
+                                        <button type="button" class="btn btn-sm btn-outline-info competences-health-sync" data-character-id="${row.characterId}">Resync</button>
+                                    </div>
+                                </td>
                             </tr>`;
                         }).join('')}
                     </tbody>
@@ -2707,6 +2768,30 @@ import { adminItemsModal } from './admin-items-modal.js';
             </div>`;
 
             container.innerHTML = html;
+            container.querySelectorAll('.competences-health-sync').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const characterId = button.dataset.characterId;
+                    if (!characterId) return;
+                    const previousLabel = button.textContent;
+                    button.disabled = true;
+                    button.textContent = 'Sync...';
+                    try {
+                        const result = await syncCompetencesSources(characterId);
+                        if (!result.ok) {
+                            window.toastManager?.error('Aucune source de competences a resynchroniser.');
+                            return;
+                        }
+                        window.toastManager?.success(`Compétences resynchronisées pour ${result.name}.`);
+                        await loadCompetencesHealth();
+                    } catch (syncError) {
+                        console.error('[Admin] competences sync failed:', syncError);
+                        window.toastManager?.error(`Resync impossible: ${syncError.message || 'erreur inconnue'}`);
+                    } finally {
+                        button.disabled = false;
+                        button.textContent = previousLabel;
+                    }
+                });
+            });
         } catch (err) {
             container.innerHTML = `<div class="text-center p-4 text-danger"><i class="ti ti-alert-circle me-2"></i>Erreur : ${err.message}</div>`;
         }

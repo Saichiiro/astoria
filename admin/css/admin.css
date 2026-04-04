@@ -1018,6 +1018,14 @@
     text-transform: uppercase;
 }
 
+.competences-health-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
 /* Better contrast for all table rows - remove white backgrounds */
 .theme-dark [data-page="users"] .table tbody tr,
 .theme-dark [data-page="characters"] .table tbody tr,
