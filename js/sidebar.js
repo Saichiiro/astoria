@@ -34,7 +34,7 @@
   };
 
   const fallbackRoutes = {
-    characterHub: "personnages.html",
+    characterHub: "index.html",
     login: "login.html",
     admin: "admin/index.html",
     codex: "codex.html",
@@ -104,7 +104,7 @@
 
     <nav id="sidebarMenu" aria-label="Raccourcis">
       <div class="sidebar-topbar">
-        <a class="menu-header menu-header-link" href="${getRouteHref("characterHub")}" aria-label="Retour au hub personnages">
+        <a class="menu-header menu-header-link" href="${getRouteHref("characterHub")}" aria-label="Retour à l'accueil">
           <span class="menu-header-title" aria-hidden="true">&nbsp;</span>
           <span class="menu-header-sub">Astoria</span>
         </a>

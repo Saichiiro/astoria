@@ -3,174 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Astoria - Royaumes, pactes et destinées</title>
+    <title>S&#233;lection des personnages - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/public-site.css">
+    <link rel="stylesheet" href="css/character-select.css">
+    <style>
+        body.perf-lite .character-select-page.fade-in {
+            opacity: 1;
+            transform: none;
+        }
+    </style>
 </head>
-<body class="public-site min-h-screen" data-public-page="publicHome">
-    <header class="public-site-header" data-public-header></header>
-
-    <main class="public-main">
-        <div class="public-shell">
-            <section class="public-hero" aria-labelledby="publicHeroTitle">
-                <article class="public-hero-main">
-                    <span class="public-kicker">Monde RP en mouvement</span>
-                    <h1 class="public-title" id="publicHeroTitle">Astoria est un monde de royaumes contrastes, de pactes dangereux et de trones jamais totalement stables.</h1>
-                    <p class="public-copy">
-                        A la surface, les royaumes tiennent par leurs couronnes, leurs lignages et leurs croyances.
-                        En dessous, tout repose sur des ames, des ambitions, des promesses et des failles que les personnages peuvent vraiment saisir.
-                    </p>
-                    <div class="public-chip-row">
-                        <span class="public-chip">Luminara</span>
-                        <span class="public-chip">Sancturia</span>
-                        <span class="public-chip">Ombresyl</span>
+<body class="min-h-screen">
+    <main class="character-select-page fade-in" aria-labelledby="characterSelectTitle">
+        <header class="character-select-header">
+            <div class="character-select-hero">
+                <span class="character-select-kicker">Alice Academia</span>
+                <h1 class="character-select-title" id="characterSelectTitle">S&#233;lectionner un personnage</h1>
+                <p class="character-select-subtitle" id="characterSelectSubtitle">Selection rapide, sans friction.</p>
+                <div class="character-select-overview" aria-label="Apercu rapide">
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Slots utilises</span>
+                        <strong class="character-select-stat-value" id="characterSlotsUsed">0/5</strong>
                     </div>
-                    <div class="public-actions">
-                        <a class="public-button" href="royaumes.html">Explorer les royaumes</a>
-                        <a class="public-button public-button--ghost" href="gameplay.html">Voir les systemes jouables</a>
+                    <div class="character-select-stat-card">
+                        <span class="character-select-stat-label">Actif</span>
+                        <strong class="character-select-stat-value" id="characterActiveName">Aucun</strong>
                     </div>
-                </article>
-
-                <aside class="public-hero-side">
-                    <div class="public-mini-scene" aria-hidden="true">
-                        <div class="public-mini-scene-badge">Astoria</div>
-                        <div class="public-mini-scene-orb public-mini-scene-orb--one"></div>
-                        <div class="public-mini-scene-orb public-mini-scene-orb--two"></div>
-                        <div class="public-mini-scene-orb public-mini-scene-orb--three"></div>
+                </div>
+            </div>
+            <div class="character-summary" aria-label="Résumé du personnage">
+                <div class="character-avatar-wrapper">
+                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
                     </div>
-                    <div class="public-feature-panel">
-                        <span class="public-mini-kicker">Premiere impression</span>
-                        <h2>Il faut d'abord avoir envie d'y vivre.</h2>
-                        <p class="public-mini-scene-copy">
-                            Luminara attire par son eclat et sa violence sociale. Sancturia par sa grace et son souffle ancien.
-                            Ombresyl par son obscurite, ses pactes et ses prises de pouvoir. Le site doit faire sentir cela avant tout.
-                        </p>
-                        <div class="public-actions">
-                            <a class="public-button public-button--ghost" href="univers.html">Comprendre le monde</a>
-                            <a class="public-button" href="rejoindre.html">Entrer dans Astoria</a>
-                        </div>
-                    </div>
-                </aside>
-            </section>
-
-            <section class="public-section" aria-labelledby="homeGateTitle">
-                <div class="public-panel">
-                    <span class="public-kicker">Trois lectures</span>
-                    <h2 class="public-section-title" id="homeGateTitle">Astoria doit parler autant a l'imagination qu'au joueur deja pret a entrer.</h2>
-                    <p class="public-copy">
-                        Certaines personnes veulent d'abord sentir l'ambiance. D'autres veulent verifier ce qui se joue deja.
-                        D'autres encore veulent juste ouvrir leur personnage et repartir immediatement en jeu.
-                    </p>
-
-                    <div class="public-actions">
-                        <div class="public-switcher" data-public-switcher="home-journeys">
-                            <button type="button" class="public-switch-button is-active" data-switch-target="discover">Sentir le monde</button>
-                            <button type="button" class="public-switch-button" data-switch-target="live">Voir le jouable</button>
-                            <button type="button" class="public-switch-button" data-switch-target="enter">Entrer</button>
-                        </div>
-                    </div>
-
-                    <div class="public-switch-panel" data-switch-group="home-journeys" data-switch-panel="discover">
-                        <div class="public-grid-3">
-                            <article class="public-card">
-                                <span class="public-card-kicker">Luminara</span>
-                                <h2>Empire de lumiere, de castes et de regards</h2>
-                                <p>Un royaume vaste, fastueux et dur, ou l'eclat, la naissance, la foi et le rang pesent autant que la force brute.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Sancturia</span>
-                                <h2>Royaume ancien, noble et mystique</h2>
-                                <p>Une terre plus retenue, plus ceremonielle, ou la grace, la nature et l'heritage donnent une autre couleur au roleplay.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Ombresyl</span>
-                                <h2>Terres maudites, pactes et trone disputable</h2>
-                                <p>Un royaume sombre qui ne doit plus enfermer les concepts de personnages, mais ouvrir le jeu, la progression et le conflit.</p>
-                            </article>
-                        </div>
-                    </div>
-
-                    <div class="public-switch-panel" data-switch-group="home-journeys" data-switch-panel="live" hidden>
-                        <div class="public-grid-3">
-                            <article class="public-card">
-                                <span class="public-card-kicker">Progression</span>
-                                <h2>Competences, magie et fiche</h2>
-                                <p>Le coeur personnage existe deja avec de vraies donnees, des pages de progression et des lectures utiles pour jouer.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Action</span>
-                                <h2>Quetes, inventaire, craft</h2>
-                                <p>Le jeu vit deja par les ressources, les objets, les listes d'actions, les quetes et les consequences de gestion.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Collection</span>
-                                <h2>HDV, codex, Nokorah</h2>
-                                <p>Le monde ne se limite pas au lore : il y a aussi de la rarete, des echanges, de la collection et des variantes de progression.</p>
-                            </article>
-                        </div>
-                    </div>
-
-                    <div class="public-switch-panel" data-switch-group="home-journeys" data-switch-panel="enter" hidden>
-                        <div class="public-grid-3">
-                            <article class="public-card">
-                                <span class="public-card-kicker">Connexion</span>
-                                <h2>Entrer sans friction</h2>
-                                <p>La partie publique laisse respirer le monde. La connexion ouvre ensuite la partie jouable sans confusion.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Hub</span>
-                                <h2>Choisir sa trajectoire</h2>
-                                <p>Le hub personnages sert a creer, reprendre, choisir et repartir jouer sans devoir retraverser toute la presentation du monde.</p>
-                            </article>
-                            <article class="public-card">
-                                <span class="public-card-kicker">Suite</span>
-                                <h2>Basculer dans l'execution</h2>
-                                <p>Une fois dedans, les pages de jeu reprennent la main sur la fiche, la magie, les competences, les quetes et le reste.</p>
-                            </article>
+                    <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                </div>
+                <div class="character-summary-text">
+                    <a class="character-name" id="characterSummaryName" href="profil.html">Nom du personnage</a>
+                    <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                    <div class="character-summary-meta">
+                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        <div class="character-souls" id="characterSouls" hidden>
+                            <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                            <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <section class="public-section" aria-labelledby="homeFocusTitle">
-                <div class="public-grid-2">
-                    <article class="public-story-panel">
-                        <span class="public-card-kicker">Ce qu'on peut y jouer</span>
-                        <h2 id="homeFocusTitle">Des personnages pris entre statut, croyance, dette, faim et ambition.</h2>
-                        <p>
-                            Astoria fonctionne parce que ses royaumes ne proposent pas la meme vie.
-                            On n'y cherche pas la meme place selon qu'on veut survivre a une cour, servir une lignee,
-                            pactiser, grimper ou simplement arracher un avenir a un ordre qui vous etait refuse.
-                        </p>
-                    </article>
-                    <article class="public-story-panel">
-                        <span class="public-card-kicker">Ce qui rend le monde vivant</span>
-                        <h2>Les dieux, les ames et les royaumes laissent des traces tres concretes.</h2>
-                        <p>
-                            Les maledictions, les pactes, les lignages, les regions et meme certains plans inferieurs
-                            comme Erebo changent vraiment la maniere de concevoir un personnage et son arc.
-                        </p>
-                    </article>
+            </div>
+            <div class="character-select-actions">
+                <span class="character-select-user" id="currentUserName"></span>
+                <span class="character-select-badge tw-pill" id="currentUserRole"></span>
+                <button type="button" class="character-select-logout tw-press" id="logoutButton">D&#233;connexion</button>
+            </div>
+        </header>
+        <section class="character-select-board" aria-labelledby="characterSelectBoardTitle">
+            <div class="character-select-board-head">
+                <div>
+                    <h2 class="character-select-board-kicker" id="characterSelectBoardTitle">Roster</h2>
+                    <p class="character-select-board-copy">Ton roster en un coup d'oeil.</p>
                 </div>
-            </section>
-
-            <section class="public-section">
-                <div class="public-cta-banner">
-                    <div>
-                        <span class="public-card-kicker">A suivre</span>
-                        <h2>Les royaumes doivent devenir la vraie porte d'entree du site.</h2>
-                        <p>Le prochain grand morceau consiste a faire vivre leur identite, leurs races, leurs regions et leurs tensions sans les entasser dans une masse illisible.</p>
-                    </div>
-                    <div class="public-actions">
-                        <a class="public-button" href="royaumes.html">Ouvrir les royaumes</a>
-                    </div>
-                </div>
-            </section>
-        </div>
+            </div>
+            <section class="character-select-grid" id="characterGrid" role="list"></section>
+            <p class="character-select-status" id="characterSelectStatus" role="status" aria-live="polite"></p>
+        </section>
     </main>
-
-    <footer class="public-footer" data-public-footer></footer>
-    <script type="module" src="js/public-site.js"></script>
+    <div class="select-modal-backdrop" id="createCharacterBackdrop" aria-hidden="true">
+        <div class="select-modal" role="dialog" aria-modal="true" aria-labelledby="createCharacterTitle">
+            <div class="select-modal-title" id="createCharacterTitle">Cr&#233;er un personnage</div>
+            <p class="select-modal-copy">Remplis l'essentiel maintenant. Tu pourras completer la fiche et l'avatar ensuite.</p>
+            <div class="select-modal-error" id="createCharacterError" role="alert"></div>
+            <form id="createCharacterForm">
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterNameInput">Nom</label>
+                    <input class="select-modal-input tw-input" id="characterNameInput" name="name" required autocomplete="off">
+                </div>
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterRaceInput">Race (optionnel)</label>
+                    <input class="select-modal-input tw-input" id="characterRaceInput" name="race" autocomplete="off">
+                </div>
+                <div class="select-modal-group">
+                    <label class="select-modal-label" for="characterClassInput">Classe (optionnel)</label>
+                    <input class="select-modal-input tw-input" id="characterClassInput" name="class" autocomplete="off">
+                </div>
+                <div class="select-modal-actions">
+                    <button type="button" class="select-modal-button secondary tw-press" id="createCharacterCancel">Annuler</button>
+                    <button type="submit" class="select-modal-button tw-press" id="createCharacterSubmit">Cr&#233;er</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script src="js/ui/performance-mode.js"></script>
+    <script type="module" src="js/character-select.js"></script>
+    <script type="module">
+        import { initCharacterSummary } from './js/ui/character-summary.js';
+        // Initialize character summary with kaels and dropdown
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+        });
+    </script>
+    <script>
+        // ES modules (imports) do not work over file:// in most browsers.
+        (function () {
+            if (window.location.protocol !== 'file:') return;
+            const status = document.getElementById('characterSelectStatus');
+            if (status) {
+                status.textContent = 'Ouvre cette page via un serveur local (Live Server) ou GitHub Pages pour charger les personnages.';
+            }
+        })();
+    </script>
+    <script src="js/sidebar.js"></script>
 </body>
 </html>
