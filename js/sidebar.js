@@ -78,7 +78,7 @@
       const itemId = item.id ? ` id="${item.id}"` : "";
       const hiddenAttr = item.adminOnly ? " hidden" : "";
       const openButton = item.panelId
-        ? `<button type="button" class="menu-open" data-panel="${item.panelId}" aria-label="Ouvrir le panneau ${item.label}">&#8599;</button>`
+        ? `<button type="button" class="menu-open" data-panel="${item.panelId}" aria-label="Ouvrir le panneau ${item.label}" title="Ouvrir en panneau, sans quitter la page">&#8599;</button>`
         : "";
 
       return `
@@ -96,7 +96,7 @@
 
   const markup = `
     <input type="checkbox" class="openSidebarMenu" id="openSidebarMenu" aria-controls="sidebarMenu" aria-label="Ouvrir le menu">
-    <label for="openSidebarMenu" class="sidebarIconToggle">
+    <label for="openSidebarMenu" class="sidebarIconToggle" role="button" tabindex="0" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Ouvrir le menu">
       <div class="spinner diagonal part-1"></div>
       <div class="spinner horizontal"></div>
       <div class="spinner diagonal part-2"></div>
@@ -157,14 +157,42 @@
   const toggle = document.getElementById("openSidebarMenu");
   const sidebar = document.getElementById("sidebarMenu");
   const iconToggle = document.querySelector(".sidebarIconToggle");
+  // Keep the burger's label/expanded state and the off-screen menu's focusability in sync.
+  const syncA11y = () => {
+    const open = body.classList.contains("sidebar-open");
+    if (iconToggle) {
+      iconToggle.setAttribute("aria-expanded", String(open));
+      iconToggle.setAttribute("aria-label", open ? "Fermer le menu" : "Ouvrir le menu");
+    }
+    if (sidebar) sidebar.inert = !open;
+  };
   const closeSidebar = () => {
     body.classList.remove("sidebar-open");
     if (toggle) toggle.checked = false;
+    syncA11y();
   };
   const syncSidebarState = () => {
     if (!toggle) return;
     body.classList.toggle("sidebar-open", !!toggle.checked);
+    syncA11y();
   };
+  const setSidebarOpen = (open, { focus = false } = {}) => {
+    body.classList.toggle("sidebar-open", open);
+    if (toggle) toggle.checked = open;
+    syncA11y();
+    if (open && focus) {
+      const current = sidebar?.querySelector('.menu-link[aria-current="page"]');
+      const first = sidebar?.querySelector(".menu-item:not([hidden]) .menu-link");
+      (current || first)?.focus({ preventScroll: true });
+    }
+  };
+
+  // Highlight the page being shown in the menu.
+  sidebar?.querySelectorAll("a.menu-link[href]").forEach((link) => {
+    if (new URL(link.href, window.location.href).pathname === window.location.pathname) {
+      link.setAttribute("aria-current", "page");
+    }
+  });
 
   closeSidebar();
   refreshHeadroom();
@@ -178,9 +206,12 @@
   if (toggle && iconToggle) {
     iconToggle.addEventListener("click", (event) => {
       event.preventDefault();
-      const nextOpen = !body.classList.contains("sidebar-open");
-      body.classList.toggle("sidebar-open", nextOpen);
-      toggle.checked = nextOpen;
+      setSidebarOpen(!body.classList.contains("sidebar-open"));
+    });
+    iconToggle.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      setSidebarOpen(!body.classList.contains("sidebar-open"), { focus: true });
     });
   }
 
@@ -200,7 +231,9 @@
     if (event.defaultPrevented) return;
     if (document.documentElement.classList.contains("panel-open")) return;
     if (!body.classList.contains("sidebar-open")) return;
+    const hadFocus = sidebar?.contains(document.activeElement);
     closeSidebar();
+    if (hadFocus) iconToggle?.focus();
   });
 
   sidebar?.querySelectorAll('a[href]').forEach((link) => {

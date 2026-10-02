@@ -74,6 +74,12 @@
     background: var(--color-primary-lighter);
 }
 
+.home-topnav a[aria-current] {
+    background: var(--color-primary-lighter);
+    color: var(--color-primary);
+    box-shadow: inset 0 -2px 0 var(--color-primary);
+}
+
 .home-menu-btn {
     display: none;
     width: var(--touch-target-min);
@@ -340,6 +346,12 @@
     background:
         linear-gradient(180deg, color-mix(in srgb, var(--kingdom-color) 12%, var(--color-white)), var(--color-white) 45%);
     overflow: hidden;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.home-kingdom:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px color-mix(in srgb, var(--kingdom-color) 22%, transparent);
 }
 
 .home-kingdom::before {
@@ -476,9 +488,29 @@
     cursor: pointer;
 }
 
+.home-chip:hover {
+    border-color: var(--color-primary-pale);
+    background: var(--color-surface-blush);
+}
+
 .home-chip[aria-pressed="true"] {
     background: var(--color-primary);
     border-color: var(--color-primary);
+    color: var(--color-white);
+}
+
+.home-chip-count {
+    margin-left: 6px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+    font-size: var(--text-xs);
+    font-weight: var(--font-bold);
+}
+
+.home-chip[aria-pressed="true"] .home-chip-count {
+    background: rgba(255, 255, 255, 0.25);
     color: var(--color-white);
 }
 
@@ -510,6 +542,10 @@
 }
 
 .home-count {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
     margin: 0 0 12px;
     font-size: var(--text-sm-plus);
     color: var(--color-gray-700);
@@ -590,6 +626,126 @@
     padding: 24px;
     text-align: center;
     color: var(--color-gray-700);
+}
+
+.home-empty p {
+    margin: 0 0 8px;
+}
+
+.home-reset {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px dashed var(--color-primary-pale);
+    background: var(--color-white);
+    color: var(--color-primary);
+    font: inherit;
+    font-size: var(--text-sm-plus);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+}
+
+.home-reset:hover {
+    border-style: solid;
+    background: var(--color-primary-lighter);
+}
+
+.home-mark {
+    padding: 0 1px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--color-accent-gold) 35%, var(--color-white));
+    color: inherit;
+}
+
+.home-term-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.home-term-head .home-term-name {
+    flex: 1;
+}
+
+.home-term-share {
+    flex: none;
+    min-width: 32px;
+    height: 32px;
+    margin: -6px -8px 0 0;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: var(--text-sm);
+    color: var(--color-primary-dark);
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.home-term:hover .home-term-share,
+.home-term-share:focus-visible,
+.home-term-share.is-done {
+    opacity: 1;
+}
+
+.home-term-share:hover,
+.home-term-share.is-done {
+    background: var(--color-primary-lighter);
+}
+
+/* ---------- Retour en haut ---------- */
+.home-totop {
+    /* !important: style.css forces position:relative on every direct body child. */
+    position: fixed !important;
+    right: 16px;
+    bottom: 16px;
+    z-index: 140 !important;
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--color-primary-glow), var(--color-primary));
+    color: var(--color-white);
+    font-size: 1.2rem;
+    font-weight: var(--font-bold);
+    text-decoration: none;
+    box-shadow: var(--shadow-primary);
+    transition: transform var(--transition-fast);
+}
+
+.home-totop[hidden] {
+    display: none;
+}
+
+.home-totop:hover {
+    transform: translateY(-2px);
+}
+
+.home-totop:focus-visible,
+.home-reset:focus-visible,
+.home-term-share:focus-visible,
+.home-kingdom .home-btn:focus-visible {
+    outline: 3px solid rgba(216, 27, 96, 0.45);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-kingdom,
+    .home-quick-card,
+    .home-btn,
+    .home-totop {
+        transition: none;
+    }
+
+    .home-kingdom:hover,
+    .home-quick-card:hover,
+    .home-btn:hover,
+    .home-totop:hover {
+        transform: none;
+    }
 }
 
 /* ---------- Pied de page ---------- */
@@ -752,6 +908,42 @@
 /* Page introuvable (404.html) */
 .home-notfound {
     min-height: 100vh;
+    min-height: 100dvh;
+    box-sizing: border-box;
+    padding-top: 24px;
+    padding-bottom: 24px;
     max-width: 560px;
     justify-content: center;
+}
+
+.home-notfound-logo {
+    display: block;
+    width: 88px;
+    height: auto;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 8px 18px rgba(136, 14, 79, 0.22));
+}
+
+.home-notfound .home-section {
+    text-align: center;
+}
+
+.home-notfound .home-notfound-logo {
+    margin-inline: auto;
+}
+
+.home-notfound .home-section-title {
+    justify-content: center;
+}
+
+.home-notfound .home-section-title::after {
+    display: none;
+}
+
+.home-notfound .home-actions {
+    justify-content: center;
+}
+
+.home-chip--empty:not([aria-pressed="true"]) {
+    opacity: 0.6;
 }

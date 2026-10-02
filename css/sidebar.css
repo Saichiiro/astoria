@@ -63,7 +63,8 @@ body.sidebar-layout {
   align-items: flex-end;
   justify-content: space-between;
   gap: 8px;
-  padding: 10px 14px 2px;
+  /* Left room for the fixed burger/close button so it never sits on "Astoria". */
+  padding: 10px 14px 2px 56px;
 }
 
 .sidebar-layout .sidebar-topbar .menu-header {
@@ -164,6 +165,20 @@ body.sidebar-layout {
 .sidebar-layout .menu-link:focus-visible {
   background: rgba(216, 27, 96, 0.16);
   color: var(--sidebar-accent-dark);
+}
+
+.sidebar-layout .menu-link[aria-current="page"] {
+  background: rgba(216, 27, 96, 0.2);
+  border-color: rgba(216, 27, 96, 0.45);
+  color: var(--sidebar-accent-dark);
+  box-shadow: inset 3px 0 0 var(--sidebar-accent-dark);
+}
+
+.sidebar-layout .menu-link:focus-visible,
+.sidebar-layout .menu-open:focus-visible,
+.sidebar-layout .sidebarIconToggle:focus-visible {
+  outline: 3px solid rgba(216, 27, 96, 0.45);
+  outline-offset: 2px;
 }
 
 .sidebar-layout .menu-icon {
@@ -328,6 +343,13 @@ body.sidebar-layout {
 :root[data-theme="dark"] .sidebar-layout .menu-link:focus-visible {
   background: rgba(216, 27, 96, 0.22);
   color: #ffffff;
+}
+
+:root[data-theme="dark"] .sidebar-layout .menu-link[aria-current="page"] {
+  background: rgba(216, 27, 96, 0.3);
+  border-color: rgba(248, 187, 208, 0.5);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #f8bbd0;
 }
 
 :root[data-theme="dark"] .sidebar-layout .menu-icon {
