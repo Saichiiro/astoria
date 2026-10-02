@@ -20,6 +20,43 @@ function el(tag, className, text) {
     return node;
 }
 
+// Text with every occurrence of the (normalized) query wrapped in <mark>, built as nodes.
+function highlight(text, query) {
+    const value = String(text || '');
+    const fragment = document.createDocumentFragment();
+    if (!query) {
+        fragment.append(value);
+        return fragment;
+    }
+    // normalize() keeps one character per source character for Latin text (accents are
+    // dropped after NFD), so indexes found on the normalized copy map back to the original.
+    const folded = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (folded.length !== value.length) {
+        fragment.append(value);
+        return fragment;
+    }
+    const haystack = folded.toLowerCase();
+    let from = 0;
+    let index = haystack.indexOf(query);
+    while (index !== -1) {
+        fragment.append(value.slice(from, index));
+        fragment.appendChild(el('mark', 'home-mark', value.slice(index, index + query.length)));
+        from = index + query.length;
+        index = haystack.indexOf(query, from);
+    }
+    fragment.append(value.slice(from));
+    return fragment;
+}
+
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 function renderPresentation(data) {
     const p = data.presentation || {};
     const set = (id, value) => {
@@ -89,7 +126,7 @@ function createGlossary(data) {
         const bar = document.querySelector('.home-topbar');
         if (!section) return;
         const barBottom = bar ? bar.getBoundingClientRect().bottom : 0;
-        const top = results.getBoundingClientRect().top;
+        const top = count.getBoundingClientRect().top;
         if (top < barBottom || top > window.innerHeight) {
             window.scrollTo({ top: window.scrollY + top - barBottom - 12, behavior: 'auto' });
         }
@@ -97,19 +134,61 @@ function createGlossary(data) {
 
     function buildChips(container, options, key) {
         container.innerHTML = '';
-        options.forEach(({ value, label }) => {
+        options.forEach(({ value, label, total }) => {
             const chip = el('button', 'home-chip', label);
             chip.type = 'button';
+            if (total !== undefined) {
+                chip.appendChild(el('span', 'home-chip-count', String(total)));
+                if (!total) chip.classList.add('home-chip--empty');
+            }
             chip.dataset.value = value;
             chip.setAttribute('aria-pressed', String(state[key] === value));
             chip.addEventListener('click', () => {
                 state[key] = value;
-                container.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === value)));
+                syncChips();
                 render();
                 keepResultsInView();
             });
             container.appendChild(chip);
         });
+    }
+
+    function syncChips() {
+        kingdomChips.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === state.kingdom)));
+        categoryChips.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === state.category)));
+    }
+
+    const isFiltered = () => Boolean(state.query.trim()) || state.kingdom !== 'all' || state.category !== 'all';
+
+    function reset() {
+        state.query = '';
+        state.kingdom = 'all';
+        state.category = 'all';
+        search.value = '';
+        syncChips();
+        render();
+        keepResultsInView();
+        search.focus();
+    }
+
+    function resetButton() {
+        const btn = el('button', 'home-reset', 'Réinitialiser les filtres');
+        btn.type = 'button';
+        btn.addEventListener('click', reset);
+        return btn;
+    }
+
+    async function shareTerm(t, button) {
+        const url = new URL(window.location.href);
+        url.hash = t.slug;
+        history.replaceState(null, '', `#${t.slug}`);
+        const done = await copyText(url.href);
+        button.textContent = done ? 'Lien copié ✓' : 'Lien dans la barre d\'adresse';
+        button.classList.add('is-done');
+        setTimeout(() => {
+            button.textContent = '🔗';
+            button.classList.remove('is-done');
+        }, 1800);
     }
 
     function render() {
@@ -120,11 +199,16 @@ function createGlossary(data) {
             && (!query || t.haystack.includes(query)));
 
         count.textContent = `${visible.length} terme${visible.length > 1 ? 's' : ''}`;
+        if (visible.length !== terms.length) count.append(` sur ${terms.length}`);
+        if (isFiltered()) count.appendChild(resetButton());
         results.innerHTML = '';
         letters.innerHTML = '';
 
         if (!visible.length) {
-            results.appendChild(el('p', 'home-empty', 'Aucun terme ne correspond à cette recherche.'));
+            const empty = el('div', 'home-empty');
+            empty.appendChild(el('p', null, 'Aucun terme ne correspond à cette recherche.'));
+            empty.appendChild(resetButton());
+            results.appendChild(empty);
             return;
         }
 
@@ -149,13 +233,26 @@ function createGlossary(data) {
             items.forEach((t) => {
                 const card = el('article', 'home-term');
                 card.id = t.slug;
-                const name = el('h4', 'home-term-name', t.terme);
+                const head = el('div', 'home-term-head');
+                const name = el('h4', 'home-term-name');
+                name.appendChild(highlight(t.terme, query));
                 if (Array.isArray(t.alias) && t.alias.length) {
-                    name.appendChild(el('span', 'home-term-alias', ` (${t.alias.join(', ')})`));
+                    const alias = el('span', 'home-term-alias');
+                    alias.append(' (', highlight(t.alias.join(', '), query), ')');
+                    name.appendChild(alias);
                 }
-                card.appendChild(name);
+                head.appendChild(name);
+                const share = el('button', 'home-term-share', '🔗');
+                share.type = 'button';
+                share.setAttribute('aria-label', `Copier le lien vers « ${t.terme} »`);
+                share.title = 'Copier le lien vers ce terme';
+                share.addEventListener('click', () => shareTerm(t, share));
+                head.appendChild(share);
+                card.appendChild(head);
                 const hasDef = Boolean(String(t.definition || '').trim());
-                card.appendChild(el('p', hasDef ? 'home-term-def' : 'home-term-def home-term-def--empty', hasDef ? t.definition : 'Définition à venir.'));
+                const def = el('p', hasDef ? 'home-term-def' : 'home-term-def home-term-def--empty');
+                def.appendChild(hasDef ? highlight(t.definition, query) : document.createTextNode('Définition à venir.'));
+                card.appendChild(def);
                 const tags = el('div', 'home-tags');
                 tags.appendChild(el('span', 'home-tag', kingdomName(t.royaume)));
                 if (t.categorie) tags.appendChild(el('span', 'home-tag', categoryName(t.categorie)));
@@ -167,15 +264,25 @@ function createGlossary(data) {
         });
     }
 
+    const totalBy = (key, value) => terms.filter((t) => t[key] === value).length;
     buildChips(kingdomChips, [
         { value: 'all', label: 'Tous les royaumes' },
-        { value: GENERAL, label: 'Général' },
-        ...kingdoms.map((k) => ({ value: k.id, label: k.nom }))
+        { value: GENERAL, label: 'Général', total: totalBy('royaume', GENERAL) },
+        ...kingdoms.map((k) => ({ value: k.id, label: k.nom, total: totalBy('royaume', k.id) }))
     ], 'kingdom');
     buildChips(categoryChips, [
         { value: 'all', label: 'Toutes les catégories' },
-        ...categories.map((c) => ({ value: c.id, label: c.libelle }))
+        ...categories.map((c) => ({ value: c.id, label: c.libelle, total: totalBy('categorie', c.id) }))
     ], 'category');
+
+    // "/" jumps to the search field, like most sites with a search box.
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+        const target = event.target;
+        if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+        event.preventDefault();
+        search.focus();
+    });
 
     let timer = null;
     search.addEventListener('input', () => {
@@ -192,11 +299,50 @@ function createGlossary(data) {
     return {
         selectKingdom(id) {
             state.kingdom = id;
-            kingdomChips.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === id)));
+            syncChips();
             render();
             document.getElementById('glossaire')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     };
+}
+
+// Top bar: mark the section being read; floating "back to top" once past the hero.
+function initScrollUi() {
+    const links = [...document.querySelectorAll('.home-topnav a[href^="#"]')];
+    const sections = links
+        .map((link) => document.getElementById(link.getAttribute('href').slice(1)))
+        .filter(Boolean);
+    const hero = document.querySelector('.home-hero');
+    const footer = document.querySelector('.home-footer');
+
+    const toTop = el('a', 'home-totop', '↑');
+    toTop.href = '#haut';
+    toTop.setAttribute('aria-label', 'Revenir en haut de la page');
+    toTop.hidden = true;
+    document.body.appendChild(toTop);
+
+    let ticking = false;
+    const update = () => {
+        ticking = false;
+        const probe = window.innerHeight * 0.35;
+        let current = null;
+        sections.forEach((section) => {
+            if (section.getBoundingClientRect().top <= probe) current = section.id;
+        });
+        links.forEach((link) => {
+            if (link.getAttribute('href') === `#${current}`) link.setAttribute('aria-current', 'location');
+            else link.removeAttribute('aria-current');
+        });
+        // Hidden over the hero, and once the footer (with its own "Haut de page" link) shows.
+        toTop.hidden = !hero || hero.getBoundingClientRect().bottom > 0
+            || Boolean(footer && footer.getBoundingClientRect().top < window.innerHeight);
+    };
+    window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(update);
+    }, { passive: true });
+    update();
 }
 
 async function initHome() {
@@ -219,4 +365,5 @@ async function initHome() {
     }
 }
 
+initScrollUi();
 initHome();

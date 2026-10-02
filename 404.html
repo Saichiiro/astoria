@@ -23,10 +23,12 @@
 <body class="home-body">
     <main class="home-page home-notfound">
         <section class="home-section">
+            <img class="home-notfound-logo" id="notFoundLogo" src="" alt="" width="88" height="88" hidden>
             <h1 class="home-section-title">Page introuvable</h1>
             <p class="home-text">Cette page n'existe pas ou a déménagé.</p>
             <div class="home-actions">
                 <a class="home-btn" id="notFoundHome" href="./">Retour à l'accueil</a>
+                <a class="home-btn home-btn--ghost" id="notFoundGlossary" href="./#glossaire">Explorer le glossaire</a>
             </div>
         </section>
     </main>
@@ -35,6 +37,10 @@
         // (every route stored under html/), keeping ?query and #hash.
         const root = window.astoriaSiteRoot;
         document.getElementById('notFoundHome').href = root;
+        document.getElementById('notFoundGlossary').href = `${root}#glossaire`;
+        const logo = document.getElementById('notFoundLogo');
+        logo.src = `${root}assets/images/alice_academia_logo.png`;
+        logo.hidden = false;
         try {
             const { ROUTES } = await import(`${root}js/config/routes.js`);
             const requested = window.location.pathname.slice(root.length);
