@@ -1,11 +1,12 @@
 {
   "_lisezMoi": [
     "Contenu de la page d'accueil (index.html) : modifie ce fichier, pas le code.",
+    "parcours : étapes de la visite « Je découvre Astoria », dans l'ordre. type = texte | royaumes | rejoindre ; titre ; texte (court : une idée par écran).",
     "royaumes : id unique (minuscules, sans espace), couleur (facultative), nom, position, accroche, description, tags.",
-    "categories : id + libelle, utilisées pour filtrer les termes.",
+    "categories : id + libelle, utilisées pour filtrer les termes du glossaire.",
     "termes : terme, definition, royaume (id d'un royaume ou 'general'), categorie (id), alias (facultatif).",
     "Une definition vide s'affiche comme 'Définition à venir'.",
-    "brouillon: true = texte repris de l'essai d'avril (royaumes.html / univers.html), à valider."
+    "brouillon: true = texte provisoire, à valider ou remplacer."
   ],
   "presentation": {
     "surtitre": "Alice Academia",
@@ -14,6 +15,29 @@
     "texte": "",
     "brouillon": true
   },
+  "parcours": [
+    {
+      "id": "univers",
+      "type": "texte",
+      "titre": "Bienvenue à Astoria",
+      "texte": "Astoria est l'univers de jeu de rôle d'Alice Academia. Chaque joueur y incarne un personnage qui vit, progresse et écrit son histoire avec les autres.",
+      "brouillon": true
+    },
+    {
+      "id": "royaumes",
+      "type": "royaumes",
+      "titre": "Où commencer ?",
+      "texte": "Trois royaumes, trois façons de vivre. Touche un royaume pour en savoir plus.",
+      "brouillon": true
+    },
+    {
+      "id": "rejoindre",
+      "type": "rejoindre",
+      "titre": "Prêt à jouer ?",
+      "texte": "Crée ton compte, puis ton personnage. Si un mot t'échappe, le glossaire reste à portée de main.",
+      "brouillon": true
+    }
+  ],
   "royaumes": [
     {
       "id": "luminara",
@@ -22,7 +46,11 @@
       "position": "Centre",
       "accroche": "Empire central, faste éblouissant et hiérarchies visibles",
       "description": "Le grand royaume humain : immense, riche, structuré, cerné par ses castes, son clergé, son armée et sa noblesse. On y joue le regard des autres, le prestige, la foi, l'image publique et les écarts de statut.",
-      "tags": ["Puissance impériale", "Clergé et noblesse", "Pression sociale"],
+      "tags": [
+        "Puissance impériale",
+        "Clergé et noblesse",
+        "Pression sociale"
+      ],
       "brouillon": true
     },
     {
@@ -32,7 +60,11 @@
       "position": "Ouest",
       "accroche": "Royaume noble, ancien et plus cérémoniel",
       "description": "Une élégance plus retenue : la force de Sancturia est dans l'atmosphère, l'héritage, la finesse et la sensation d'un royaume où tout semble plus ancien, plus raffiné et plus mystique.",
-      "tags": ["Lignée royale", "Héritage", "Ambiance cérémonielle"],
+      "tags": [
+        "Lignée royale",
+        "Héritage",
+        "Ambiance cérémonielle"
+      ],
       "brouillon": true
     },
     {
@@ -42,16 +74,35 @@
       "position": "Sud",
       "accroche": "Royaume maudit où le trône doit pouvoir se prendre",
       "description": "Le souverain tient parce qu'il a vaincu, et n'importe qui peut lancer un défi. Les races y sont de vraies trajectoires de personnage. Drahven est le cœur politique ; sous le royaume, Erebo ouvre un autre plan de jeu.",
-      "tags": ["Arène du Trône Noir", "Races rejouables", "Pactes"],
+      "tags": [
+        "Arène du Trône Noir",
+        "Races rejouables",
+        "Pactes"
+      ],
       "brouillon": true
     }
   ],
   "categories": [
-    { "id": "systeme", "libelle": "Systèmes de jeu" },
-    { "id": "lieu", "libelle": "Lieux" },
-    { "id": "objet", "libelle": "Objets" },
-    { "id": "race", "libelle": "Races" },
-    { "id": "pouvoir", "libelle": "Pouvoirs" }
+    {
+      "id": "systeme",
+      "libelle": "Systèmes de jeu"
+    },
+    {
+      "id": "lieu",
+      "libelle": "Lieux"
+    },
+    {
+      "id": "objet",
+      "libelle": "Objets"
+    },
+    {
+      "id": "race",
+      "libelle": "Races"
+    },
+    {
+      "id": "pouvoir",
+      "libelle": "Pouvoirs"
+    }
   ],
   "termes": [
     {
@@ -62,7 +113,9 @@
     },
     {
       "terme": "Hôtel de vente",
-      "alias": ["HDV"],
+      "alias": [
+        "HDV"
+      ],
       "definition": "Marché entre joueurs : chaque personnage peut mettre en vente des objets de son inventaire et acheter ceux des autres contre des kaels.",
       "royaume": "general",
       "categorie": "systeme"
