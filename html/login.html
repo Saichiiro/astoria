@@ -7,6 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion - Astoria</title>
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}, {"urls": ["html/personnages.html"], "eagerness": "eager"}]}
+    </script>
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* Same language as the home page (css/home.css): pills, 24px cards, logo. */
@@ -261,7 +269,7 @@
             <span>Astoria</span>
         </a>
         <nav class="home-topnav" aria-label="Sections de l'accueil">
-            <a href="./" data-route="publicHome" data-route-hash="decouvrir">Découvrir</a>
+            <a href="./" data-route="publicHome" data-route-hash="royaumes">Royaumes</a>
             <a href="./" data-route="publicHome" data-route-hash="glossaire">Glossaire</a>
         </nav>
         <button type="button" class="home-menu-btn" id="publicNavToggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav">☰</button>
@@ -391,7 +399,12 @@
         })();
     </script>
     <script type="module">
-        import { login, register, resetUserPasswordPublic, isAuthenticated, logout, getCurrentUser } from './js/auth.js';
+        import { login, register, resetUserPasswordPublic, isAuthenticated, logout, getCurrentUser, getSupabaseClient } from './js/auth.js';
+        // Load supabase-js and create the client while the visitor types: the submit then
+        // only waits for the login queries, not for the library download.
+        const warmUp = () => getSupabaseClient().catch(() => {});
+        if ('requestIdleCallback' in window) requestIdleCallback(warmUp, { timeout: 1500 });
+        else setTimeout(warmUp, 300);
         const errorMessage = document.getElementById('errorMessage');
         const sessionNotice = document.getElementById('sessionNotice');
         const sessionNoticeText = document.getElementById('sessionNoticeText');

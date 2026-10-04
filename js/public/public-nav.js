@@ -1,4 +1,4 @@
-// Public hamburger menu (login and other public pages): home, guided tour,
+// Public hamburger menu (login and other public pages): home, kingdoms,
 // glossary and the way in. Links resolve through routes.js.
 import { initAccountLinks, isLoggedIn, getRouteHref } from './account-links.js';
 
@@ -7,10 +7,10 @@ export function initPublicNav() {
     const loggedIn = isLoggedIn();
     initAccountLinks();
 
-    // Home, its viewer screens (#decouvrir, #glossaire) and the way in, through routes.js.
+    // Home, its viewer screens (#royaumes, #glossaire) and the way in, through routes.js.
     const links = [
         { href: getRouteHref('publicHome'), label: 'Accueil' },
-        { href: getRouteHref('publicHome', { hash: 'decouvrir' }), label: 'Découvrir Astoria' },
+        { href: getRouteHref('publicHome', { hash: 'royaumes' }), label: 'Royaumes' },
         { href: getRouteHref('publicHome', { hash: 'glossaire' }), label: 'Glossaire' }
     ];
     const primary = loggedIn

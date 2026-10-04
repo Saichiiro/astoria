@@ -1,7 +1,8 @@
 {
   "_lisezMoi": [
     "Contenu de la page d'accueil (index.html) : modifie ce fichier, pas le code.",
-    "parcours : étapes de la visite « Je découvre Astoria », dans l'ordre. type = texte | royaumes | rejoindre ; titre ; texte (court : une idée par écran).",
+    "liens : boutons de l'accueil, dans l'ordre. titre, texte (une ligne), icone (un emoji), url (lien https du site, ouvert dans un nouvel onglet).",
+    "Sans url : vue = royaumes ou glossaire ouvre la fiche intégrée en attendant le site ; sinon le bouton affiche « Lien à venir ».",
     "royaumes : id unique (minuscules, sans espace), couleur (facultative), nom, position, accroche, description, tags.",
     "categories : id + libelle, utilisées pour filtrer les termes du glossaire.",
     "termes : terme, definition, royaume (id d'un royaume ou 'general'), categorie (id), alias (facultatif).",
@@ -15,26 +16,36 @@
     "texte": "",
     "brouillon": true
   },
-  "parcours": [
-    {
-      "id": "univers",
-      "type": "texte",
-      "titre": "Bienvenue à Astoria",
-      "texte": "Astoria est l'univers de jeu de rôle d'Alice Academia. Chaque joueur y incarne un personnage qui vit, progresse et écrit son histoire avec les autres.",
-      "brouillon": true
-    },
+  "liens": [
     {
       "id": "royaumes",
-      "type": "royaumes",
-      "titre": "Où commencer ?",
-      "texte": "Trois royaumes, trois façons de vivre. Touche un royaume pour en savoir plus.",
-      "brouillon": true
+      "titre": "Royaumes",
+      "texte": "Les royaumes d'Astoria et leur façon de vivre.",
+      "icone": "🏰",
+      "url": "",
+      "vue": "royaumes"
     },
     {
-      "id": "rejoindre",
-      "type": "rejoindre",
-      "titre": "Prêt à jouer ?",
-      "texte": "Crée ton compte, puis ton personnage. Si un mot t'échappe, le glossaire reste à portée de main.",
+      "id": "glossaire",
+      "titre": "Glossaire",
+      "texte": "Les mots de l'univers, expliqués simplement.",
+      "icone": "📖",
+      "url": "",
+      "vue": "glossaire"
+    },
+    {
+      "id": "informations",
+      "titre": "Informations générales",
+      "texte": "Règles, fonctionnement et infos utiles.",
+      "icone": "🧭",
+      "url": ""
+    },
+    {
+      "id": "house",
+      "titre": "House",
+      "texte": "Texte à compléter.",
+      "icone": "🏠",
+      "url": "",
       "brouillon": true
     }
   ],

@@ -1,14 +1,15 @@
-// Public home page: a minimal welcome with two choices, and a built-in viewer
-// (guided tour "Je découvre Astoria" + glossary) that never leaves the page.
-// Content comes from data/glossaire.json; everything is built with textContent.
+// Public home page: one button per Astoria site (data/glossaire.json > liens),
+// opened in a new tab. Until a site has its link, Royaumes and Glossaire open a
+// built-in viewer instead. Everything is built with textContent.
 import { initAccountLinks, getRouteHref } from './account-links.js';
 
 // Single place for the content file location (edited by the team, see _lisezMoi inside).
 const CONTENT_URL = 'data/glossaire.json';
 const GENERAL = 'general';
-// Viewer screens in the URL: #decouvrir, #decouvrir-2…, #glossaire, #terme-<mot>
-const VIEW_TOUR = 'decouvrir';
+// Viewer screens in the URL: #royaumes, #glossaire, #terme-<mot>
+const VIEW_KINGDOMS = 'royaumes';
 const VIEW_GLOSSARY = 'glossaire';
+const VIEWS = [VIEW_KINGDOMS, VIEW_GLOSSARY];
 const TERM_PREFIX = 'terme-';
 
 const normalize = (value) => String(value || '')
@@ -89,6 +90,56 @@ function renderPresentation(data) {
     set('homeTagline', p.accroche);
 }
 
+// Only absolute http(s) links from the content file become buttons.
+function safeUrl(value) {
+    try {
+        const url = new URL(String(value || '').trim());
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function renderLinks(data) {
+    const container = document.getElementById('homeLinks');
+    if (!container) return;
+    container.innerHTML = '';
+    (Array.isArray(data.liens) ? data.liens : []).forEach((item) => {
+        if (!item || !item.titre) return;
+        const url = safeUrl(item.url);
+        const view = VIEWS.includes(item.vue) ? item.vue : null;
+        let tile;
+        let hint;
+        if (url) {
+            tile = link('', 'home-link-tile', url);
+            tile.target = '_blank';
+            tile.rel = 'noopener noreferrer';
+            hint = 'Nouvel onglet ↗';
+        } else if (view) {
+            tile = el('button', 'home-link-tile');
+            tile.type = 'button';
+            tile.dataset.openView = view;
+            hint = 'Ouvrir';
+        } else {
+            tile = el('div', 'home-link-tile is-soon');
+            tile.setAttribute('aria-disabled', 'true');
+            hint = 'Lien à venir';
+        }
+        if (item.icone) {
+            const icon = el('span', 'home-link-icon', item.icone);
+            icon.setAttribute('aria-hidden', 'true');
+            tile.appendChild(icon);
+        }
+        const body = el('span', 'home-link-body');
+        body.appendChild(el('span', 'home-link-title', item.titre));
+        if (item.texte) body.appendChild(el('span', 'home-link-text', item.texte));
+        tile.appendChild(body);
+        // Visible text, so everyone knows before clicking that a new tab opens.
+        tile.appendChild(el('span', 'home-link-hint', hint));
+        container.appendChild(tile);
+    });
+}
+
 function createViewer(data) {
     const viewer = document.getElementById('homeViewer');
     const panelBody = document.getElementById('viewerBody');
@@ -96,57 +147,30 @@ function createViewer(data) {
     const titleEl = document.getElementById('viewerTitle');
     const content = document.getElementById('viewerContent');
     const foot = document.getElementById('viewerFoot');
-    const steps = Array.isArray(data.parcours) ? data.parcours : [];
     const kingdoms = data.royaumes || [];
     const categories = data.categories || [];
     let lastFocus = null;
 
-    // ---------- Visite guidée ----------
-    function renderStepBody(step) {
-        if (step.texte) content.appendChild(el('p', 'viewer-text', step.texte));
-
-        if (step.type === 'royaumes') {
-            const list = el('div', 'viewer-kingdom-list');
-            kingdoms.forEach((kingdom) => {
-                const item = el('details', 'viewer-kingdom');
-                if (kingdom.couleur) item.style.setProperty('--kingdom-color', kingdom.couleur);
-                const summary = el('summary', 'viewer-kingdom-summary');
-                summary.appendChild(el('span', 'viewer-kingdom-name', kingdom.nom));
-                if (kingdom.accroche) summary.appendChild(el('span', 'viewer-kingdom-tagline', kingdom.accroche));
-                item.appendChild(summary);
-                if (kingdom.description) item.appendChild(el('p', 'viewer-kingdom-text', kingdom.description));
-                list.appendChild(item);
-            });
-            content.appendChild(list);
-        }
-
-        if (step.type === 'rejoindre') {
-            const actions = el('div', 'viewer-actions');
-            actions.appendChild(link('Créer un compte', 'home-btn', getRouteHref('login', { hash: 'register' })));
-            actions.appendChild(link('Se connecter', 'home-btn home-btn--ghost', getRouteHref('login')));
-            content.appendChild(actions);
-            content.appendChild(button('Ouvrir le glossaire', 'home-link', () => show(VIEW_GLOSSARY)));
-        }
-    }
-
-    function renderTour(index) {
-        const i = Math.min(Math.max(index, 0), Math.max(steps.length - 1, 0));
-        const step = steps[i];
-        if (!step) return;
-        labelEl.textContent = `Découvrir · ${i + 1} / ${steps.length}`;
-        titleEl.textContent = step.titre || '';
-        renderStepBody(step);
-
-        const prev = button('Précédent', 'home-btn home-btn--ghost', () => show(VIEW_TOUR, i - 1));
-        prev.disabled = i === 0;
-        const dots = el('div', 'viewer-dots');
-        dots.setAttribute('aria-hidden', 'true');
-        steps.forEach((_, index2) => dots.appendChild(el('span', index2 === i ? 'viewer-dot is-active' : 'viewer-dot')));
-        const isLast = i === steps.length - 1;
-        const next = isLast
-            ? button('Terminer', 'home-btn', close)
-            : button('Suivant', 'home-btn', () => show(VIEW_TOUR, i + 1));
-        foot.append(prev, dots, next);
+    // ---------- Royaumes : une ligne chacun, on touche pour déplier ----------
+    function renderKingdoms() {
+        labelEl.textContent = 'Royaumes';
+        titleEl.textContent = 'Royaumes';
+        const list = el('div', 'viewer-kingdom-list');
+        kingdoms.forEach((kingdom) => {
+            const item = el('details', 'viewer-kingdom');
+            if (kingdom.couleur) item.style.setProperty('--kingdom-color', kingdom.couleur);
+            const summary = el('summary', 'viewer-kingdom-summary');
+            summary.appendChild(el('span', 'viewer-kingdom-name', kingdom.nom));
+            if (kingdom.accroche) summary.appendChild(el('span', 'viewer-kingdom-tagline', kingdom.accroche));
+            item.appendChild(summary);
+            if (kingdom.description) item.appendChild(el('p', 'viewer-kingdom-text', kingdom.description));
+            list.appendChild(item);
+        });
+        content.appendChild(list);
+        foot.append(
+            button('Voir le glossaire', 'home-btn home-btn--ghost', () => show(VIEW_GLOSSARY)),
+            button('Revenir à l\'accueil', 'home-btn', close)
+        );
     }
 
     // ---------- Glossaire ----------
@@ -300,15 +324,10 @@ function createViewer(data) {
         const hash = decodeURIComponent(window.location.hash.slice(1));
         if (hash === VIEW_GLOSSARY) return { view: VIEW_GLOSSARY };
         if (hash.startsWith(TERM_PREFIX)) return { view: VIEW_GLOSSARY, term: hash };
-        const match = hash.match(/^decouvrir(?:-(\d+))?$/);
-        if (match) return { view: VIEW_TOUR, step: match[1] ? Number(match[1]) - 1 : 0 };
+        if (hash === VIEW_KINGDOMS) return { view: VIEW_KINGDOMS };
         return null;
     }
 
-    function hashFor(view, step) {
-        if (view === VIEW_TOUR) return step > 0 ? `#${VIEW_TOUR}-${step + 1}` : `#${VIEW_TOUR}`;
-        return `#${view}`;
-    }
 
     function lockScroll(locked) {
         const lock = window.bodyScrollLock;
@@ -339,7 +358,7 @@ function createViewer(data) {
         searchInput = null;
         panelBody.scrollTop = 0;
         if (state.view === VIEW_GLOSSARY) renderGlossary(state.term || null);
-        else renderTour(state.step || 0);
+        else renderKingdoms();
         panelBody.focus({ preventScroll: true });
     }
 
@@ -347,8 +366,8 @@ function createViewer(data) {
     // back to the home page in one step, the back button goes back one screen.
     let depth = 0;
 
-    function show(view, step = 0) {
-        const hash = hashFor(view, step);
+    function show(view) {
+        const hash = `#${view}`;
         if (window.location.hash === hash) return;
         history.pushState(null, '', window.location.pathname + window.location.search + hash);
         depth += 1;
@@ -392,7 +411,7 @@ function createViewer(data) {
         render(state);
     });
 
-    // Direct link (shared on Discord: index.html#decouvrir, #glossaire, #terme-kaels…)
+    // Direct link (shared on Discord: index.html#royaumes, #glossaire, #terme-kaels…)
     render(parseHash());
 }
 
@@ -403,6 +422,7 @@ async function initHome() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         renderPresentation(data);
+        renderLinks(data);
         createViewer(data);
     } catch (error) {
         console.error('[Home] content load failed:', error);

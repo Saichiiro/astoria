@@ -3730,3 +3730,16 @@ table[aria-busy="true"] tbody:has(.table-skeleton-row) {
 .table-state-retry {
     margin-left: var(--space-3);
 }
+
+/* Smooth fade between pages of the site (Chrome/Edge 126+, Safari 18.2+; other
+   browsers simply change page as before). Both pages opt in through this file. */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition {
+        navigation: auto;
+    }
+
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 180ms;
+    }
+}

@@ -1,7 +1,7 @@
 /* Accueil épuré + lecteur intégré (index.html). Complète css/home.css
    (boutons, puces, cartes de mots) avec les tokens du thème. */
 
-/* ---------- Accueil : deux choix ---------- */
+/* ---------- Accueil : boutons vers les sites ---------- */
 .home-welcome {
     min-height: 100vh;
     min-height: 100dvh;
@@ -31,53 +31,103 @@
     font-size: clamp(2.6rem, 9vw, 4rem);
 }
 
-.home-choices {
+/* Un bouton par site : icône, titre, une ligne, et ce qui se passe au clic. */
+.home-links {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 12px;
     margin-top: 28px;
 }
 
-.home-choice {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.home-link-tile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: "icon body" "icon hint";
     align-items: center;
-    justify-content: center;
-    min-height: 92px;
-    padding: 16px;
+    column-gap: 14px;
+    row-gap: 6px;
+    min-height: 96px;
+    padding: 16px 18px;
     box-sizing: border-box;
-    border-radius: 22px;
+    border-radius: 20px;
     border: 1px solid var(--color-primary-light);
     background: rgba(255, 255, 255, 0.94);
-    color: var(--color-primary-dark);
+    color: var(--color-gray-900);
     font: inherit;
+    text-align: left;
     text-decoration: none;
     cursor: pointer;
     box-shadow: var(--shadow-xl);
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
-.home-choice:hover {
+.home-link-tile:hover {
     transform: translateY(-2px);
+    border-color: var(--color-primary);
     box-shadow: 0 14px 28px rgba(216, 27, 96, 0.18);
 }
 
-.home-choice--primary {
-    border-color: var(--color-primary);
-    background: linear-gradient(135deg, var(--color-primary-glow), var(--color-primary));
-    color: var(--color-white);
+.home-link-tile.is-soon {
+    cursor: default;
+    opacity: 0.7;
+    box-shadow: none;
 }
 
-.home-choice-title {
+.home-link-tile.is-soon:hover {
+    transform: none;
+    border-color: var(--color-primary-light);
+    box-shadow: none;
+}
+
+.home-link-icon {
+    grid-area: icon;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--color-primary-lighter);
+    font-size: 1.5rem;
+}
+
+.home-link-body {
+    grid-area: body;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.home-link-title {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
+    color: var(--color-primary-dark);
 }
 
-.home-choice-text {
+.home-link-text {
     font-size: var(--text-sm-plus);
-    opacity: 0.9;
+    color: var(--color-gray-700);
+    line-height: var(--line-height-normal);
+}
+
+.home-link-hint {
+    grid-area: hint;
+    justify-self: start;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--color-primary-lighter);
+    color: var(--color-primary-dark);
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+}
+
+.home-link-tile.is-soon .home-link-hint {
+    background: var(--color-gray-100);
+    color: var(--color-gray-600);
+}
+
+.home-account {
+    margin-top: 20px;
 }
 
 .home-link {
@@ -100,7 +150,7 @@
     transform: none;
 }
 
-.home-choice:focus-visible,
+.home-link-tile:focus-visible,
 .home-link:focus-visible,
 .viewer-close:focus-visible,
 .viewer-kingdom-summary:focus-visible {
@@ -208,23 +258,6 @@
     gap: 10px;
 }
 
-.viewer-dots {
-    display: flex;
-    gap: 6px;
-}
-
-.viewer-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-primary-light);
-}
-
-.viewer-dot.is-active {
-    width: 22px;
-    background: var(--color-primary);
-}
-
 /* Royaumes : une ligne chacun, on touche pour déplier */
 .viewer-kingdom-list {
     display: flex;
@@ -301,10 +334,6 @@
 
 /* ---------- Téléphones : lecteur plein écran ---------- */
 @media (max-width: 560px) {
-    .home-choices {
-        grid-template-columns: 1fr;
-    }
-
     .home-viewer {
         padding: 0;
         place-items: stretch;
@@ -319,7 +348,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .home-choice {
+    .home-link-tile {
         transition: none;
+    }
+
+    .home-link-tile:hover {
+        transform: none;
     }
 }

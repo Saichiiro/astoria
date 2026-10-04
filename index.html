@@ -9,6 +9,10 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/home.css">
     <link rel="stylesheet" href="css/home-viewer.css">
+    <!-- Prefetch same-site pages on hover so the next page opens instantly (HTML only, no script runs). -->
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
 </head>
 <body class="home-body">
     <main class="home-welcome" id="haut">
@@ -17,21 +21,13 @@
         <h1 class="home-title" id="homeTitle">Astoria</h1>
         <p class="home-tagline" id="homeTagline"></p>
 
-        <div class="home-choices">
-            <button type="button" class="home-choice home-choice--primary" data-open-view="decouvrir">
-                <span class="home-choice-title">Je découvre Astoria</span>
-                <span class="home-choice-text">Une courte visite guidée</span>
-            </button>
-            <a class="home-choice" href="#" data-route="login" data-account-link data-account-card>
-                <span class="home-choice-title" data-account-title>Je joue déjà</span>
-                <span class="home-choice-text" data-account-text>Se connecter</span>
-            </a>
-        </div>
+        <!-- Boutons vers les sites (data/glossaire.json > liens) -->
+        <nav class="home-links" id="homeLinks" aria-label="Sites d'Astoria"></nav>
 
-        <button type="button" class="home-link" data-open-view="glossaire">Ouvrir le glossaire</button>
+        <a class="home-btn home-account" href="#" data-route="login" data-account-link>Se connecter</a>
     </main>
 
-    <!-- Lecteur intégré : visite guidée et glossaire, sans quitter la page -->
+    <!-- Lecteur intégré (royaumes, glossaire) tant que leur site n'a pas de lien -->
     <div class="home-viewer" id="homeViewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle" hidden>
         <div class="home-viewer-panel">
             <header class="home-viewer-head">
