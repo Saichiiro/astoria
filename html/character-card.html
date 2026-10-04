@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astoria Character Card Templates</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/character-card.css">
+</head>
+<body class="cc-body min-h-screen">
+    <main class="cc-gallery fade-in" data-card-gallery>
+        <header class="cc-header">
+            <p class="cc-kicker">Astoria templates</p>
+            <h1>Character stat cards</h1>
+            <p>Pick a design below. Each template is a separate layout with its own stat logic.</p>
+        </header>
+        <nav class="cc-tabs" role="tablist" aria-label="Card templates">
+            <button class="cc-tab is-active tw-press" data-card-tab="crest" aria-selected="true" type="button">
+                <span class="cc-tab-avatar">A</span>
+                Crest Panel
+            </button>
+            <button class="cc-tab tw-press" data-card-tab="skyline" aria-selected="false" type="button">
+                <span class="cc-tab-avatar cc-tab-avatar--rune">S</span>
+                Skyline Relay
+            </button>
+            <button class="cc-tab tw-press" data-card-tab="sigil" aria-selected="false" type="button">
+                <span class="cc-tab-avatar cc-tab-avatar--ledger">G</span>
+                Sigil Stack
+            </button>
+            <button class="cc-tab tw-press" data-card-tab="matrix" aria-selected="false" type="button">
+                <span class="cc-tab-avatar cc-tab-avatar--relic">M</span>
+                Flux Matrix
+            </button>
+            <button class="cc-tab tw-press" data-card-tab="echo" aria-selected="false" type="button">
+                <span class="cc-tab-avatar cc-tab-avatar--companion">E</span>
+                Echo Pulse
+            </button>
+        </nav>
+        <section class="cc-stage">
+            <article class="cc-card cc-card--crest tw-surface tw-hover" data-card-panel="crest">
+                <div class="cc-crest-header">
+                <div class="cc-crest-emblem" data-cc-emblem>A</div>
+                <div>
+                        <p class="cc-kicker-line" data-cc-role>Sentinel / Vanguard</p>
+                        <h2 class="cc-name" data-cc-name>Kael</h2>
+                        <p class="cc-tagline" data-cc-tagline>Shield of the Northern Ward</p>
+                </div>
+                    <div class="cc-rank">
+                        <span>Rank</span>
+                        <strong>VII</strong>
+                    </div>
+                </div>
+                <div class="cc-bars">
+                    <div class="cc-bar-row">
+                        <span>Style</span>
+                        <div class="cc-bar-track"><span class="cc-bar-fill" style="--value: 0.7"></span></div>
+                        <span>70</span>
+                    </div>
+                    <div class="cc-bar-row">
+                        <span>Dico</span>
+                        <div class="cc-bar-track"><span class="cc-bar-fill" style="--value: 0.56"></span></div>
+                        <span>56</span>
+                    </div>
+                    <div class="cc-bar-row">
+                        <span>Presence</span>
+                        <div class="cc-bar-track"><span class="cc-bar-fill" style="--value: 0.82"></span></div>
+                        <span>82</span>
+                    </div>
+                    <div class="cc-bar-row">
+                        <span>Resolve</span>
+                        <div class="cc-bar-track"><span class="cc-bar-fill" style="--value: 0.66"></span></div>
+                        <span>66</span>
+                    </div>
+                </div>
+                <div class="cc-crest-footer">
+                    <span class="cc-chip">Ward</span>
+                    <span class="cc-chip">Oathbound</span>
+                    <span class="cc-chip">Frontline</span>
+                </div>
+            </article>
+            <article class="cc-card cc-card--skyline is-hidden tw-surface tw-hover" data-card-panel="skyline" hidden>
+                <div class="cc-skyline-header">
+                    <div class="cc-skyline-avatar">S</div>
+                    <div>
+                        <p class="cc-kicker-line">Skyline Relay</p>
+                        <h2 class="cc-name">Mira Sol</h2>
+                        <p class="cc-tagline">Courier of the Glass Spires</p>
+                    </div>
+                </div>
+                <div class="cc-skyline-track">
+                    <div class="cc-skyline-node is-on">
+                        <span>01</span>
+                        <strong>Velocity</strong>
+                    </div>
+                    <div class="cc-skyline-node">
+                        <span>02</span>
+                        <strong>Focus</strong>
+                    </div>
+                    <div class="cc-skyline-node">
+                        <span>03</span>
+                        <strong>Range</strong>
+                    </div>
+                </div>
+                <div class="cc-skyline-meter">
+                    <span style="--value: 0.78"></span>
+                </div>
+                <p class="cc-skyline-note">Relay streak active. Bonus to route memory and sprint recovery.</p>
+            </article>
+            <article class="cc-card cc-card--sigil is-hidden tw-surface tw-hover" data-card-panel="sigil" hidden>
+                <p class="cc-kicker-line">Sigil Stack</p>
+                <h2 class="cc-name">Alix Rune</h2>
+                <p class="cc-tagline">Glyph weaver, third circle</p>
+                <div class="cc-sigil-stack">
+                    <div class="cc-sigil-card tw-surface tw-hover">
+                        <span>Rune Focus</span>
+                        <strong>82</strong>
+                    </div>
+                    <div class="cc-sigil-card tw-surface tw-hover">
+                        <span>Flow Control</span>
+                        <strong>67</strong>
+                    </div>
+                    <div class="cc-sigil-card tw-surface tw-hover">
+                        <span>Mana Tension</span>
+                        <strong>54</strong>
+                    </div>
+                </div>
+                <div class="cc-crest-footer">
+                    <span class="cc-chip">Weaver</span>
+                    <span class="cc-chip">Circle III</span>
+                    <span class="cc-chip">Arc</span>
+                </div>
+            </article>
+            <article class="cc-card cc-card--matrix is-hidden tw-surface tw-hover" data-card-panel="matrix" hidden>
+                <div class="cc-matrix-header">
+                    <p class="cc-kicker-line">Flux Matrix</p>
+                    <h2 class="cc-name">Cass Nox</h2>
+                    <p class="cc-tagline">Tactical analyst</p>
+                </div>
+                <div class="cc-matrix-grid">
+                    <div class="cc-matrix-cell">
+                        <span>Resolve</span>
+                        <div class="cc-matrix-bar"><i style="--value: 0.62"></i></div>
+                    </div>
+                    <div class="cc-matrix-cell">
+                        <span>Insight</span>
+                        <div class="cc-matrix-bar"><i style="--value: 0.84"></i></div>
+                    </div>
+                    <div class="cc-matrix-cell">
+                        <span>Charm</span>
+                        <div class="cc-matrix-bar"><i style="--value: 0.46"></i></div>
+                    </div>
+                    <div class="cc-matrix-cell">
+                        <span>Reflex</span>
+                        <div class="cc-matrix-bar"><i style="--value: 0.73"></i></div>
+                    </div>
+                </div>
+            </article>
+            <article class="cc-card cc-card--echo is-hidden tw-surface tw-hover" data-card-panel="echo" hidden>
+                <div class="cc-echo-header">
+                    <div class="cc-echo-ring" style="--value: 0.68">
+                        <strong>68</strong>
+                        <span>Pulse</span>
+                    </div>
+                    <div>
+                        <p class="cc-kicker-line">Echo Pulse</p>
+                        <h2 class="cc-name">Isen Vale</h2>
+                        <p class="cc-tagline">Signal keeper</p>
+                    </div>
+                </div>
+                <div class="cc-echo-list">
+                    <div><span>Signal</span><strong>71</strong></div>
+                    <div><span>Clarity</span><strong>64</strong></div>
+                    <div><span>Reach</span><strong>89</strong></div>
+                </div>
+            </article>
+        </section>
+    </main>
+    <script src="js/ui/character-card.js"></script>
+    <script src="js/sidebar.js"></script>
+</body>
+</html>

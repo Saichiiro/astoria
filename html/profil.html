@@ -1,0 +1,2308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="css/profil.css">
+        <link rel="stylesheet" href="css/cropper-controls.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+<style>
+        .profile-not-logged-in {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .profile-not-logged-in h2 {
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        .profile-not-logged-in p {
+            color: var(--color-gray-600);
+            margin-bottom: 2rem;
+        }
+        .profile-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            z-index: 2000;
+        }
+        .profile-modal-backdrop.open {
+            display: flex;
+        }
+        .profile-modal {
+            width: 100%;
+            max-width: 520px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+            padding: 1.25rem;
+            border: 2px solid var(--color-primary-lighter);
+            box-sizing: border-box;
+            overflow-x: hidden;
+        }
+        .profile-modal-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--color-primary);
+            margin-bottom: 1rem;
+        }
+        .profile-modal-label {
+            display: block;
+            font-weight: 700;
+            color: var(--color-gray-700);
+            margin-bottom: 0.5rem;
+        }
+        .profile-modal-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--color-gray-300);
+            border-radius: 10px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .profile-modal-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        .profile-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .profile-modal-button {
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 2px solid var(--color-primary);
+            background: var(--color-primary);
+            color: white;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            max-width: 100%;
+        }
+        .profile-modal-button:hover {
+            background: var(--color-primary-dark);
+            border-color: var(--color-primary-dark);
+        }
+        .profile-modal-button.secondary {
+            background: white;
+            color: var(--color-primary);
+        }
+        .profile-modal-button.secondary:hover {
+            background: var(--color-primary-lighter);
+            border-color: var(--color-primary);
+        }
+        .profile-modal-error {
+            display: none;
+            background: #fee;
+            color: #c33;
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .profile-modal-error.visible {
+            display: block;
+        }
+    
+        </style>
+</head>
+<body class="min-h-screen">
+    <!-- Auth Controls (always visible) -->
+    <div class="auth-controls" id="authControls"></div>
+    <main class="profile-page" aria-labelledby="profileTitle" id="profileContent">
+        <header class="page-header">
+            <a href="html/personnages.html" class="page-back" title="Retour à l'accueil">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="profileTitle">Mon look</h1>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                            <button type="button" id="shareProfileBtn" class="share-profile-btn tw-press" title="Partager le profil" hidden style="background: none; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 700; opacity: 0.7; transition: opacity 0.2s;">Partager</button>
+                        </div>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <section class="profile-layout">
+            <!-- Colonne gauche : look, liens rapides -->
+            <aside class="profile-sidebar" aria-label="Navigation du profil">
+                <section class="profile-panel tw-surface tw-panel">
+                    <h2 class="profile-panel-title">Mon look</h2>
+                    <div class="profile-look-card tw-surface tw-panel tw-hover">
+                        <div class="profile-summary-card profile-summary-card--compact tw-surface tw-panel tw-hover" aria-label="Résumé du joueur">
+                            <div class="profile-summary-header">
+                                <span class="profile-summary-title">Résumé</span>
+                            </div>
+                            <button type="button" class="profile-avatar-large tw-press" id="avatarUploadTrigger" aria-label="Mettre a jour l'avatar">
+                                <img class="profile-avatar-img" id="characterAvatarImg" alt="Avatar" hidden>
+                                <span class="profile-avatar-placeholder" id="characterInitial">Avatar</span>
+                            </button>
+                            <div class="profile-summary-infos">
+                                <a class="profile-username" id="characterName" href="html/profil.html">Nom du personnage</a>
+                                <span class="profile-role" id="characterRole">Rôle / Classe</span>
+                                <div class="profile-summary-stats">
+                                    <span class="profile-stat">Style : <strong id="statStyle">0</strong></span>
+                                    <span class="profile-stat">Dico : <strong id="statDico">0</strong></span>
+                                    <span class="profile-stat">Popularité : <strong id="statPopularity">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                        <input class="profile-avatar-input" id="avatarUploadInput" type="file" accept="image/*">
+                    </div>
+                    <div class="profile-tags" id="profileTags" aria-label="Tags de profil">
+                        <div class="profile-tags-header">
+                            <span class="profile-tags-title">Tags</span>
+                            <button type="button" class="profile-tags-toggle tw-press" id="tagToggle" aria-expanded="false" aria-haspopup="true">+</button>
+                        </div>
+                        <div class="profile-tags-selected" id="selectedTags" aria-label="Tags sélectionnés"></div>
+                        <div class="profile-tags-dropdown" id="tagDropdown" hidden></div>
+                    </div>
+                </section>
+                
+            </aside>
+            <!-- Colonne droite : contenu principal -->
+            <section class="profile-main" aria-label="Contenu du profil">
+                <section class="profile-section profile-section--presentation tw-panel">
+                    <header class="profile-section-header">
+                        <div class="profile-section-title-wrap">
+                            <h2 class="profile-section-title">Presentation</h2>
+                        </div>
+                        <div class="profile-section-actions">
+                            <button type="button" class="profile-edit-btn tw-press" id="presentationEditBtn" hidden>Modifier</button>
+                        </div>
+                    </header>
+                    <div class="profile-presentation-shell tw-panel">
+                        <div class="profile-presentation-view tw-panel" id="presentationView">
+                            <div class="profile-presentation-hero" id="presentationHero" hidden>
+                                <div class="profile-presentation-hero-media" id="presentationHeroMedia" hidden>
+                                    <img id="presentationHeroImage" alt="">
+                                </div>
+                                <div class="profile-presentation-hero-text">
+                                    <h3 id="presentationHeroTitle"></h3>
+                                    <p id="presentationHeroSubtitle"></p>
+                                </div>
+                            </div>
+                            <p class="profile-placeholder-text" id="presentationPlaceholder">
+                                Zone de presentation du joueur et de son personnage. Ajoute du texte, des images et des blocs HTML personnalises.
+                            </p>
+                            <div class="profile-presentation-content" id="presentationContent" hidden></div>
+                        </div>
+                        <div class="profile-presentation-editor tw-panel" id="presentationEditor" hidden>
+                            <div class="profile-editor-layout">
+                                <div class="profile-editor-main">
+                                    <div class="profile-editor-toolbar" id="presentationToolbar" role="toolbar" aria-label="Barre d'outils">
+                                        <div class="profile-toolbar-group">
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="bold" aria-label="Gras"><strong>B</strong></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="italic" aria-label="Italique"><em>I</em></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="underline" aria-label="Souligne"><span class="profile-toolbar-underline">U</span></button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="strike" aria-label="Barre"><span class="profile-toolbar-strike">S</span></button>
+                                        </div>
+                                        <div class="profile-toolbar-group">
+                                            <select class="profile-toolbar-select tw-input" data-action="align" aria-label="Alignement">
+                                                <option value="">Alignement</option>
+                                                <option value="left">Gauche</option>
+                                                <option value="center">Centre</option>
+                                                <option value="right">Droite</option>
+                                                <option value="justify">Justifie</option>
+                                            </select>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="list-bullet" aria-label="Liste a puces">•</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="list-ordered" aria-label="Liste numerotee">1.</button>
+                                        </div>
+                                        <div class="profile-toolbar-group">
+                                            <label class="profile-toolbar-color">
+                                                <span class="profile-toolbar-label">Texte</span>
+                                                <input type="color" data-action="color" aria-label="Couleur du texte" value="#333333">
+                                            </label>
+                                            <label class="profile-toolbar-color">
+                                                <span class="profile-toolbar-label">Fond</span>
+                                                <input type="color" data-action="background" aria-label="Couleur de fond" value="#ffffff">
+                                            </label>
+                                        </div>
+                                        <div class="profile-toolbar-group">
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="image" aria-label="Inserer une image">IMG</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="link" aria-label="Inserer un lien">Lien</button>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="emoji" aria-label="Inserer un emoji">:-)</button>
+                                        </div>
+                                        <div class="profile-toolbar-group">
+                                            <select class="profile-toolbar-select tw-input" data-action="header" aria-label="Styles de texte">
+                                                <option value="">Paragraphe</option>
+                                                <option value="1">Titre 1</option>
+                                                <option value="2">Titre 2</option>
+                                                <option value="3">Titre 3</option>
+                                                <option value="blockquote">Citation</option>
+                                            </select>
+                                            <button type="button" class="profile-toolbar-button tw-press" data-action="html" aria-label="Basculer HTML source">&lt;&gt;</button>
+                                        </div>
+                                    </div>
+                                    <div class="profile-editor-surface">
+                                        <div class="profile-editor-quill" id="presentationQuill"></div>
+                                        <textarea class="profile-editor-html" id="presentationHtmlSource" rows="12" hidden></textarea>
+                                    </div>
+                                    <div class="profile-editor-actions">
+                                        <button type="button" class="profile-editor-cancel tw-press" id="presentationCancel">Annuler</button>
+                                        <button type="button" class="profile-editor-save tw-press" id="presentationSave">Enregistrer</button>
+                                    </div>
+                                </div>
+                                <aside class="profile-presentations-sidebar" id="presentationSidebar" aria-label="Liste des presentations">
+                                    <div class="profile-sidebar-header">
+                                        <h3 class="profile-sidebar-title">Presentations</h3>
+                                        <span class="profile-sidebar-count" id="presentationCount">0/10</span>
+                                    </div>
+                                    <div class="profile-presentations-list" id="presentationList"></div>
+                                    <button type="button" class="profile-new-presentation tw-press" id="presentationCreateBtn">+ Nouvelle presentation</button>
+                                    <div class="profile-presentation-custom">
+                                        <h4 class="profile-sidebar-title">Personnalisation</h4>
+                                        <label class="profile-custom-label" for="presentationHeroTitleInput">Titre</label>
+                                        <input class="profile-custom-input" id="presentationHeroTitleInput" maxlength="80" placeholder="Titre du header">
+                                        <label class="profile-custom-label" for="presentationHeroSubtitleInput">Sous-titre</label>
+                                        <input class="profile-custom-input" id="presentationHeroSubtitleInput" maxlength="160" placeholder="Sous-titre ou tagline">
+                                        <label class="profile-custom-label" for="presentationHeroImageInput">Image (URL)</label>
+                                        <input class="profile-custom-input" id="presentationHeroImageInput" placeholder="https://...">
+                                        <label class="profile-custom-label" for="presentationAccentInput">Couleur accent</label>
+                                        <input type="color" class="profile-custom-input profile-custom-color" id="presentationAccentInput" value="#e91e63">
+                                        <label class="profile-custom-label" for="presentationLayoutSelect">Disposition</label>
+                                        <select class="profile-custom-input" id="presentationLayoutSelect">
+                                            <option value="center">Centré</option>
+                                            <option value="split">Image + texte</option>
+                                        </select>
+                                        <button type="button" class="profile-custom-reset tw-press" id="presentationHeroReset">Réinitialiser l'en-tête</button>
+                                    </div>
+                                </aside>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </section>
+    </main>
+    <div class="profile-modal-backdrop" id="createCharacterBackdrop" aria-hidden="true">
+        <div class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="createCharacterTitle">
+            <div class="profile-modal-title" id="createCharacterTitle">Créer un personnage</div>
+            <div class="profile-modal-error" id="createCharacterError" role="alert"></div>
+            <form id="createCharacterForm">
+                <div style="margin-bottom:0.75rem;">
+                    <label class="profile-modal-label" for="characterNameInput">Nom</label>
+                    <input class="profile-modal-input tw-input" id="characterNameInput" name="name" required autocomplete="off">
+                </div>
+                <div style="margin-bottom:0.75rem;">
+                    <label class="profile-modal-label" for="characterRaceInput">Race (optionnel)</label>
+                    <input class="profile-modal-input tw-input" id="characterRaceInput" name="race" autocomplete="off">
+                </div>
+                <div>
+                    <label class="profile-modal-label" for="characterClassInput">Classe (optionnel)</label>
+                    <input class="profile-modal-input tw-input" id="characterClassInput" name="class" autocomplete="off">
+                </div>
+                <div class="profile-modal-actions">
+                    <button type="button" class="profile-modal-button secondary tw-press" id="createCharacterCancel">Annuler</button>
+                    <button type="submit" class="profile-modal-button tw-press" id="createCharacterSubmit">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Cropper Modal with Backdrop (like items modal) -->
+    <div class="profile-cropper-backdrop" id="avatarCropperBackdrop" hidden aria-hidden="true">
+        <div class="profile-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="avatarCropperTitle">
+            <div class="profile-cropper-header">
+                <h2 class="profile-cropper-title" id="avatarCropperTitle">Recadrer l'avatar</h2>
+                <button type="button" class="profile-cropper-close tw-press" id="avatarCropperClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="profile-cropper-body">
+                <div class="profile-cropper-stage">
+                    <img id="avatarCropperImage" alt="Image to crop">
+                </div>
+
+                <div class="profile-cropper-controls">
+                    <div class="profile-cropper-toolbar">
+                        <button class="profile-tool-btn" id="avatarCropperRotateLeft" title="Rotation -90°">↺</button>
+                        <button class="profile-tool-btn" id="avatarCropperRotateRight" title="Rotation +90°">↻</button>
+                        <button class="profile-tool-btn" id="avatarCropperFlipX" title="Miroir horizontal">↔</button>
+                        <button class="profile-tool-btn" id="avatarCropperFlipY" title="Miroir vertical">↕</button>
+
+                        <div class="profile-toolbar-divider"></div>
+
+                        <button class="profile-tool-btn" id="avatarCropperReset" title="Réinitialiser">↺</button>
+                    </div>
+
+                    <div class="profile-cropper-zoom-controls">
+                        <button class="profile-tool-btn" id="avatarCropperZoomOut" title="Zoom -">−</button>
+                        <span class="profile-zoom-display" id="avatarCropperZoomDisplay">100%</span>
+                        <input type="range" id="avatarZoomRange" aria-label="Zoom de l'avatar" min="10" max="300" value="100" step="1">
+                        <button class="profile-tool-btn" id="avatarCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-cropper-actions">
+                <button class="profile-modal-button secondary tw-press" id="avatarCropperCancel">Cancel</button>
+                <button class="profile-modal-button tw-press" id="avatarCropperConfirm">✓ Apply</button>
+            </div>
+        </div>
+    </div>
+    <div class="profile-modal-backdrop" id="imageInsertBackdrop" aria-hidden="true">
+        <div class="profile-modal profile-image-modal" role="dialog" aria-modal="true" aria-labelledby="imageInsertTitle">
+            <div class="profile-modal-title" id="imageInsertTitle">Inserer une image</div>
+            <div class="profile-modal-error" id="imageInsertError" role="alert"></div>
+            <div class="profile-modal-form">
+                <div class="profile-modal-field">
+                    <label class="profile-modal-label" for="imageUrlInput">URL de l'image</label>
+                    <input class="profile-modal-input tw-input" id="imageUrlInput" placeholder="https://exemple.com/image.jpg" autocomplete="off">
+                </div>
+                <div class="profile-modal-field">
+                    <label class="profile-modal-label" for="imageAltInput">Texte alternatif (alt)</label>
+                    <input class="profile-modal-input tw-input" id="imageAltInput" placeholder="Description de l'image" autocomplete="off">
+                </div>
+                <div class="profile-modal-grid">
+                    <div>
+                        <label class="profile-modal-label" for="imageWidthInput">Largeur</label>
+                        <input class="profile-modal-input tw-input" id="imageWidthInput" placeholder="300px">
+                    </div>
+                    <div>
+                        <label class="profile-modal-label" for="imageHeightInput">Hauteur</label>
+                        <input class="profile-modal-input tw-input" id="imageHeightInput" placeholder="200px">
+                    </div>
+                </div>
+                <div class="profile-image-preview" id="imagePreview">
+                    <span class="profile-image-preview-text">Apercu</span>
+                </div>
+                <div class="profile-modal-actions">
+                    <button type="button" class="profile-modal-button secondary tw-press" id="imageInsertCancel">Annuler</button>
+                    <button type="button" class="profile-modal-button tw-press" id="imageInsertConfirm">Inserer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- External Libraries (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+
+    <!-- Floating UI for tooltips/popovers (~5KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+
+    <!-- Notyf for toast notifications (~6KB) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+
+    <!-- body-scroll-lock for modal scroll prevention (~2KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+
+    <!-- localForage for IndexedDB/localStorage abstraction (~17KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    
+    
+    
+
+    <!-- Library Wrappers (Astoria) -->
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/storage-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/utils/sanitize.js"></script>
+    <script type="module">
+        import {
+            getCurrentUser,
+            getUserCharacters,
+            getAllCharacters,
+            getActiveCharacter,
+            getCharacterById,
+            setActiveCharacter,
+            createCharacter,
+            getSupabaseClient,
+            updateCharacter,
+            logout,
+            isAdmin
+        } from './js/auth.js';
+        import { initProfileTagSelector } from './js/profile-tags.js';
+        import { initCharacterSummary } from './js/ui/character-summary.js';
+        const authControls = document.getElementById('authControls');
+        const profileContent = document.getElementById('profileContent');
+        const avatarTrigger = document.getElementById('avatarUploadTrigger');
+        const avatarInput = document.getElementById('avatarUploadInput');
+        const avatarImg = document.getElementById('characterAvatarImg');
+        const avatarPlaceholder = document.getElementById('characterInitial');
+        const cropperBackdrop = document.getElementById('avatarCropperBackdrop');
+        const cropperClose = document.getElementById('avatarCropperClose');
+        const cropperImage = document.getElementById('avatarCropperImage');
+        const cropperZoom = document.getElementById('avatarZoomRange');
+        const cropperZoomDisplay = document.getElementById('avatarCropperZoomDisplay');
+        const cropperZoomIn = document.getElementById('avatarCropperZoomIn');
+        const cropperZoomOut = document.getElementById('avatarCropperZoomOut');
+        const cropperRotateLeft = document.getElementById('avatarCropperRotateLeft');
+        const cropperRotateRight = document.getElementById('avatarCropperRotateRight');
+        const cropperFlipX = document.getElementById('avatarCropperFlipX');
+        const cropperFlipY = document.getElementById('avatarCropperFlipY');
+        const cropperReset = document.getElementById('avatarCropperReset');
+        const cropperCancel = document.getElementById('avatarCropperCancel');
+        const cropperConfirm = document.getElementById('avatarCropperConfirm');
+        let currentUser = null;
+        let currentCharacter = null;
+        let userCharacters = [];
+        let userLinkButton = null;
+        let dockPrimaryRow = null;
+        let dockAdminRow = null;
+        let dockMetaRow = null;
+        let adminSelectorEl = null;
+        let dockSouls = null;
+        let soulConsoValue = null;
+        let soulProgValue = null;
+        let avatarCropper = null; // Direct Cropper.js instance
+        let cropperScaleX = 1;
+        let cropperScaleY = 1;
+        let cropperBaseZoom = 1;
+        let presentations = [];
+        let activePresentationId = null;
+        let editingPresentationId = null;
+        let presentationNameTimers = {};
+        let isPresentationDirty = false;
+        let isHtmlSourceMode = false;
+        let isQuillAvailable = false;
+        let quill = null;
+        const APP_DOCK_DISABLED = true;
+        const AVATAR_BUCKET = 'avatars';
+        const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+        const PRESENTATION_LIMIT = 10;
+        const PRESENTATION_MAX_SIZE = 50 * 1024;
+        const PRESENTATION_COLORS = ['#E91E63', '#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#00BCD4'];
+        if (avatarImg) {
+            avatarImg.addEventListener('error', () => {
+                avatarImg.hidden = true;
+                avatarImg.removeAttribute('src');
+                if (avatarPlaceholder) avatarPlaceholder.hidden = false;
+            });
+            avatarImg.addEventListener('load', () => {
+                if (!avatarImg.src) return;
+                if (avatarPlaceholder) avatarPlaceholder.hidden = true;
+            });
+        }
+        const CHARACTER_SUMMARY_KEY = 'astoria_character_summary';
+        const createBackdrop = document.getElementById('createCharacterBackdrop');
+        const createForm = document.getElementById('createCharacterForm');
+        const createError = document.getElementById('createCharacterError');
+        const createName = document.getElementById('characterNameInput');
+        const createRace = document.getElementById('characterRaceInput');
+        const createClass = document.getElementById('characterClassInput');
+        const createCancel = document.getElementById('createCharacterCancel');
+        const createSubmit = document.getElementById('createCharacterSubmit');
+        const presentationEditBtn = document.getElementById('presentationEditBtn');
+        const presentationPlaceholder = document.getElementById('presentationPlaceholder');
+        const presentationContent = document.getElementById('presentationContent');
+        const presentationEditor = document.getElementById('presentationEditor');
+        const presentationToolbar = document.getElementById('presentationToolbar');
+        const presentationHtmlSource = document.getElementById('presentationHtmlSource');
+        const presentationList = document.getElementById('presentationList');
+        const presentationCreateBtn = document.getElementById('presentationCreateBtn');
+        const presentationCount = document.getElementById('presentationCount');
+        const presentationQuill = document.getElementById('presentationQuill');
+        const presentationSave = document.getElementById('presentationSave');
+        const presentationCancel = document.getElementById('presentationCancel');
+        const presentationHero = document.getElementById('presentationHero');
+        const presentationHeroMedia = document.getElementById('presentationHeroMedia');
+        const presentationHeroImage = document.getElementById('presentationHeroImage');
+        const presentationHeroTitle = document.getElementById('presentationHeroTitle');
+        const presentationHeroSubtitle = document.getElementById('presentationHeroSubtitle');
+        const presentationHeroTitleInput = document.getElementById('presentationHeroTitleInput');
+        const presentationHeroSubtitleInput = document.getElementById('presentationHeroSubtitleInput');
+        const presentationHeroImageInput = document.getElementById('presentationHeroImageInput');
+        const presentationAccentInput = document.getElementById('presentationAccentInput');
+        const presentationLayoutSelect = document.getElementById('presentationLayoutSelect');
+        const presentationHeroReset = document.getElementById('presentationHeroReset');
+        const imageInsertBackdrop = document.getElementById('imageInsertBackdrop');
+        const imageInsertError = document.getElementById('imageInsertError');
+        const imageUrlInput = document.getElementById('imageUrlInput');
+        const imageAltInput = document.getElementById('imageAltInput');
+        const imageWidthInput = document.getElementById('imageWidthInput');
+        const imageHeightInput = document.getElementById('imageHeightInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const imageInsertCancel = document.getElementById('imageInsertCancel');
+        const imageInsertConfirm = document.getElementById('imageInsertConfirm');
+        function showCreateCharacterModal() {
+            if (!currentUser) return;
+            if (Array.isArray(userCharacters) && userCharacters.length >= 5) {
+                alert('Limite de 5 personnages atteinte.');
+                return;
+            }
+            createError.classList.remove('visible');
+            createError.textContent = '';
+            createForm.reset();
+            createBackdrop.classList.add('open');
+            createBackdrop.setAttribute('aria-hidden', 'false');
+            createName.focus();
+        }
+        function hideCreateCharacterModal() {
+            createBackdrop.classList.remove('open');
+            createBackdrop.setAttribute('aria-hidden', 'true');
+        }
+        function showCreateError(message) {
+            createError.textContent = message;
+            createError.classList.add('visible');
+        }
+        function getPanelContext() {
+            return {
+                user: currentUser,
+                character: currentCharacter,
+                isAdmin: isAdmin(),
+            };
+        }
+        function canEditProfile() {
+            if (!currentUser || !currentCharacter) return false;
+            // Admins can always edit
+            if (isAdmin()) return true;
+            const ownerId = currentCharacter.user_id || null;
+            if (ownerId && ownerId === currentUser.id) return true;
+            if (Array.isArray(userCharacters)) {
+                return userCharacters.some((char) => char.id === currentCharacter.id);
+            }
+            return false;
+        }
+        function updateAvatarUI(url) {
+            if (avatarImg) {
+                if (url) {
+                    avatarImg.src = url;
+                    avatarImg.hidden = false;
+                } else {
+                    avatarImg.hidden = true;
+                    avatarImg.removeAttribute('src');
+                }
+            }
+            if (avatarPlaceholder) {
+                avatarPlaceholder.hidden = !!url;
+            }
+        }
+        function buildCharacterSummary(character) {
+            if (!character) return null;
+            const profileData = character.profile_data || {};
+            const race = character.race || '';
+            const charClass = character.class || '';
+            const roleText = [race, charClass].filter(Boolean).join(' - ');
+            return {
+                id: character.id || null,
+                name: character.name || '',
+                role: roleText,
+                avatar_url: profileData.avatar_url || '',
+                user_id: character.user_id || null,
+                updated_at: Date.now()
+            };
+        }
+        function persistCharacterSummary(character) {
+            try {
+                if (!character) {
+                    localStorage.removeItem(CHARACTER_SUMMARY_KEY);
+                    return;
+                }
+                localStorage.setItem(CHARACTER_SUMMARY_KEY, JSON.stringify(character));
+            } catch (error) {
+                console.warn('Impossible de sauvegarder le resume du personnage.', error);
+            }
+        }
+        function updateAvatarControls() {
+            if (!avatarTrigger || !avatarInput) return;
+            const editable = canEditProfile();
+            avatarTrigger.classList.toggle('is-editable', editable);
+            avatarTrigger.disabled = !editable;
+            avatarInput.disabled = !editable;
+        }
+        function escapePresentationHtml(raw) {
+            return String(raw || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+        function formatPresentationInline(raw) {
+            const codeSnippets = [];
+            let html = raw.replace(/`([^`]+)`/g, (match, code) => {
+                const token = `__CODE_${codeSnippets.length}__`;
+                codeSnippets.push(code);
+                return token;
+            });
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            html = html.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+            codeSnippets.forEach((code, index) => {
+                html = html.replace(`__CODE_${index}__`, `<code>${code}</code>`);
+            });
+            return html;
+        }
+        function renderPresentationMarkdown(raw) {
+            const escaped = escapePresentationHtml(raw);
+            const lines = escaped.split(/\n/);
+            let html = '';
+            let inUl = false;
+            let inOl = false;
+            let inCode = false;
+            let codeBuffer = [];
+            const closeLists = () => {
+                if (inUl) {
+                    html += '</ul>';
+                    inUl = false;
+                }
+                if (inOl) {
+                    html += '</ol>';
+                    inOl = false;
+                }
+            };
+            lines.forEach((line) => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('```')) {
+                    if (!inCode) {
+                        closeLists();
+                        inCode = true;
+                        codeBuffer = [];
+                    } else {
+                        html += `<pre><code>${codeBuffer.join('\n')}</code></pre>`;
+                        inCode = false;
+                        codeBuffer = [];
+                    }
+                    return;
+                }
+                if (inCode) {
+                    codeBuffer.push(line);
+                    return;
+                }
+                if (!trimmed) {
+                    closeLists();
+                    html += '<br>';
+                    return;
+                }
+                const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+                if (headingMatch) {
+                    closeLists();
+                    const level = headingMatch[1].length;
+                    html += `<h${level}>${formatPresentationInline(headingMatch[2])}</h${level}>`;
+                    return;
+                }
+                const quoteMatch = line.match(/^>\s?(.*)$/);
+                if (quoteMatch) {
+                    closeLists();
+                    html += `<blockquote>${formatPresentationInline(quoteMatch[1])}</blockquote>`;
+                    return;
+                }
+                const olMatch = line.match(/^\d+\.\s+(.+)$/);
+                if (olMatch) {
+                    if (!inOl) {
+                        closeLists();
+                        html += '<ol>';
+                        inOl = true;
+                    }
+                    html += `<li>${formatPresentationInline(olMatch[1])}</li>`;
+                    return;
+                }
+                const ulMatch = line.match(/^[-*]\s+(.+)$/);
+                if (ulMatch) {
+                    if (!inUl) {
+                        closeLists();
+                        html += '<ul>';
+                        inUl = true;
+                    }
+                    html += `<li>${formatPresentationInline(ulMatch[1])}</li>`;
+                    return;
+                }
+                closeLists();
+                html += `<p>${formatPresentationInline(line)}</p>`;
+            });
+            closeLists();
+            if (inCode) {
+                html += `<pre><code>${codeBuffer.join('\n')}</code></pre>`;
+            }
+            return html;
+        }
+        function generatePresentationId() {
+            return `pres_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+        }
+        function getPresentationColor(index) {
+            return PRESENTATION_COLORS[index % PRESENTATION_COLORS.length];
+        }
+        function normalizePresentationName(name, fallback = 'Presentation') {
+            const trimmed = String(name || '').trim();
+            if (!trimmed) return fallback;
+            return trimmed.slice(0, 30);
+        }
+        function sanitizeHexColor(value) {
+            const raw = String(value || '').trim();
+            return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw) ? raw : '';
+        }
+        function normalizePresentationLayout(layout) {
+            const data = layout && typeof layout === 'object' ? layout : {};
+            return {
+                title: String(data.title || '').trim().slice(0, 80),
+                subtitle: String(data.subtitle || '').trim().slice(0, 160),
+                imageUrl: String(data.imageUrl || '').trim().slice(0, 300),
+                accentColor: sanitizeHexColor(data.accentColor || ''),
+                layout: data.layout === 'split' ? 'split' : 'center'
+            };
+        }
+        function isSafeImageUrl(value) {
+            if (!value) return false;
+            const raw = String(value).trim();
+            return /^https?:\/\//i.test(raw) || /^data:image\//i.test(raw);
+        }
+        function sanitizePresentationHtml(raw) {
+            if (!raw) return '';
+            if (window.DOMPurify) {
+                return window.DOMPurify.sanitize(String(raw), {
+                    ALLOWED_TAGS: [
+                        'div', 'span', 'p', 'br', 'hr',
+                        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                        'strong', 'em', 'u', 's', 'strike',
+                        'ul', 'ol', 'li',
+                        'a', 'img',
+                        'blockquote', 'code', 'pre',
+                        'table', 'thead', 'tbody', 'tr', 'th', 'td'
+                    ],
+                    ALLOWED_ATTR: [
+                        'href', 'target', 'src', 'alt', 'title',
+                        'width', 'height', 'style', 'class'
+                    ]
+                });
+            }
+            const template = document.createElement('template');
+            template.innerHTML = String(raw);
+            const forbiddenTags = new Set(['script', 'iframe', 'object', 'embed', 'link', 'style', 'meta']);
+            const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT);
+            const nodes = [];
+            while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+            }
+            nodes.forEach((node) => {
+                const tag = node.tagName.toLowerCase();
+                if (forbiddenTags.has(tag)) {
+                    node.remove();
+                    return;
+                }
+                [...node.attributes].forEach((attr) => {
+                    const name = attr.name.toLowerCase();
+                    const value = String(attr.value || '');
+                    if (name.startsWith('on')) {
+                        node.removeAttribute(attr.name);
+                    }
+                    if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(value)) {
+                        node.removeAttribute(attr.name);
+                    }
+                });
+            });
+            return template.innerHTML;
+        }
+        function getHtmlSize(html) {
+            return new Blob([html || '']).size;
+        }
+        function escapeAttribute(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+        function getPresentationState(profileData) {
+            const data = profileData || {};
+            let list = Array.isArray(data.presentations) ? data.presentations.slice() : [];
+            let activeId = data.presentation_active_id || null;
+            if (!list.length && data.presentation_md) {
+                const legacyRaw = data.presentation_mode === 'html'
+                    ? String(data.presentation_md)
+                    : renderPresentationMarkdown(String(data.presentation_md));
+                list = [{
+                    id: generatePresentationId(),
+                    name: 'Presentation',
+                    htmlContent: sanitizePresentationHtml(legacyRaw),
+                    isActive: true,
+                    order: 1,
+                    color: getPresentationColor(0),
+                    layout: normalizePresentationLayout({})
+                }];
+                activeId = list[0].id;
+            }
+            list = list
+                .filter((item) => item)
+                .slice(0, PRESENTATION_LIMIT)
+                .map((item, index) => {
+                    const id = item.id || generatePresentationId();
+                    return {
+                        id,
+                        name: normalizePresentationName(item.name, `Presentation ${index + 1}`),
+                        htmlContent: String(item.htmlContent || ''),
+                        isActive: id === activeId || item.isActive,
+                        order: Number.isFinite(item.order) ? item.order : index + 1,
+                        color: item.color || getPresentationColor(index),
+                        layout: normalizePresentationLayout(item.layout)
+                    };
+                })
+                .sort((a, b) => a.order - b.order);
+            if (!activeId && list.length) {
+                activeId = list.find((item) => item.isActive)?.id || list[0].id;
+            }
+            list = list.map((item, index) => ({
+                ...item,
+                isActive: item.id === activeId,
+                order: index + 1
+            }));
+            return { list, activeId };
+        }
+        function setPresentationState(list, activeId) {
+            presentations = Array.isArray(list) ? list.slice() : [];
+            activePresentationId = activeId || (presentations[0] && presentations[0].id) || null;
+            editingPresentationId = activePresentationId;
+        }
+        function getActivePresentation() {
+            return presentations.find((item) => item.id === activePresentationId) || null;
+        }
+        function getEditingPresentation() {
+            return presentations.find((item) => item.id === editingPresentationId) || null;
+        }
+        function updatePresentationCount() {
+            if (presentationCount) {
+                presentationCount.textContent = `${presentations.length}/${PRESENTATION_LIMIT}`;
+            }
+        }
+        function applyPresentationHero(layout) {
+            if (!presentationHero) return false;
+            const normalized = normalizePresentationLayout(layout);
+            const hasContent = !!(normalized.title || normalized.subtitle || normalized.imageUrl);
+            if (!hasContent) {
+                presentationHero.hidden = true;
+                return false;
+            }
+            presentationHero.hidden = false;
+            presentationHero.classList.toggle('is-split', normalized.layout === 'split');
+            presentationHero.style.setProperty(
+                '--presentation-accent',
+                normalized.accentColor || 'rgba(216, 27, 96, 0.35)'
+            );
+            if (presentationHeroTitle) {
+                presentationHeroTitle.textContent = normalized.title || '';
+                presentationHeroTitle.hidden = !normalized.title;
+            }
+            if (presentationHeroSubtitle) {
+                presentationHeroSubtitle.textContent = normalized.subtitle || '';
+                presentationHeroSubtitle.hidden = !normalized.subtitle;
+            }
+            if (presentationHeroMedia && presentationHeroImage) {
+                if (isSafeImageUrl(normalized.imageUrl)) {
+                    presentationHeroImage.src = normalized.imageUrl;
+                    presentationHeroImage.alt = normalized.title || 'Illustration';
+                    presentationHeroMedia.hidden = false;
+                } else {
+                    presentationHeroImage.removeAttribute('src');
+                    presentationHeroMedia.hidden = true;
+                }
+            }
+            return true;
+        }
+        function renderPresentationView() {
+            if (!presentationPlaceholder || !presentationContent) return;
+            if (!currentCharacter) {
+                if (presentationHero) presentationHero.hidden = true;
+                const placeholderText = presentationPlaceholder ? presentationPlaceholder.textContent.trim() : 'Aucune presentation.';
+                presentationPlaceholder.hidden = true;
+                presentationContent.hidden = false;
+                presentationContent.innerHTML = `<p class="profile-placeholder-text">${escapeAttribute(placeholderText)}</p>`;
+                return;
+            }
+            const active = getActivePresentation();
+            const hasHero = applyPresentationHero(active?.layout || {});
+            const html = active ? sanitizePresentationHtml(active.htmlContent) : '';
+            if (!html.trim()) {
+                const placeholderText = presentationPlaceholder ? presentationPlaceholder.textContent.trim() : 'Aucune presentation.';
+                presentationPlaceholder.hidden = true;
+                presentationContent.hidden = false;
+                presentationContent.innerHTML = hasHero ? '' : `<p class="profile-placeholder-text">${escapeAttribute(placeholderText)}</p>`;
+                return;
+            }
+            presentationPlaceholder.hidden = true;
+            presentationContent.hidden = false;
+            presentationContent.innerHTML = html;
+        }
+        function renderPresentationList() {
+            if (!presentationList) return;
+            presentationList.innerHTML = '';
+            if (!presentations.length) {
+                const empty = document.createElement('div');
+                empty.className = 'profile-placeholder-text';
+                empty.textContent = 'Aucune presentation. Cree la premiere.';
+                presentationList.appendChild(empty);
+                updatePresentationCount();
+                return;
+            }
+            presentations.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'profile-presentation-card';
+                if (item.isActive) card.classList.add('is-active');
+                if (item.id === editingPresentationId) card.classList.add('is-selected');
+                card.dataset.presentationId = item.id;
+                card.innerHTML = `
+                    <span class="profile-presentation-indicator" style="background:${escapeAttribute(item.color)}"></span>
+                    <div class="profile-presentation-info">
+                        <input class="profile-presentation-name" value="${escapeAttribute(item.name)}" maxlength="30" placeholder="Nommer..." aria-label="Nom de la presentation">
+                        ${item.isActive ? '<span class="profile-presentation-badge">ACTIVE</span>' : ''}
+                    </div>
+                    <div class="profile-presentation-actions">
+                        <button type="button" class="profile-presentation-choose tw-press" data-action="choose">Choisir</button>
+                        <button type="button" class="profile-presentation-delete tw-press" data-action="delete" aria-label="Supprimer">x</button>
+                    </div>
+                `;
+                presentationList.appendChild(card);
+            });
+            updatePresentationCount();
+        }
+        function updatePresentationControls() {
+            if (presentationEditBtn) {
+                presentationEditBtn.hidden = !canEditProfile();
+            }
+            if (!canEditProfile() && presentationEditor) {
+                presentationEditor.hidden = true;
+            }
+        }
+        function ensureQuill() {
+            if (quill || !presentationQuill) return;
+            if (!window.Quill) {
+                isQuillAvailable = false;
+                return;
+            }
+            quill = new Quill(presentationQuill, {
+                theme: 'snow',
+                modules: {
+                    toolbar: false
+                }
+            });
+            isQuillAvailable = true;
+            quill.on('text-change', () => {
+                if (isHtmlSourceMode) return;
+                isPresentationDirty = true;
+                updateSaveButtonState();
+            });
+        }
+        function updateSaveButtonState() {
+            if (!presentationSave) return;
+            presentationSave.disabled = !isPresentationDirty;
+        }
+        function updateLayoutFromInputs() {
+            const target = getEditingPresentation();
+            if (!target) return;
+            const nextLayout = normalizePresentationLayout({
+                title: presentationHeroTitleInput?.value || '',
+                subtitle: presentationHeroSubtitleInput?.value || '',
+                imageUrl: presentationHeroImageInput?.value || '',
+                accentColor: presentationAccentInput?.value || '',
+                layout: presentationLayoutSelect?.value || 'center'
+            });
+            target.layout = nextLayout;
+            applyPresentationHero(nextLayout);
+            isPresentationDirty = true;
+            updateSaveButtonState();
+        }
+        function setEditorPresentation(presentationId) {
+            ensureQuill();
+            const target = presentations.find((item) => item.id === presentationId);
+            if (!target) return;
+            editingPresentationId = target.id;
+            isPresentationDirty = false;
+            isHtmlSourceMode = !isQuillAvailable;
+            updateSaveButtonState();
+            if (presentationHtmlSource) {
+                presentationHtmlSource.hidden = !isHtmlSourceMode;
+            }
+            if (presentationQuill) {
+                presentationQuill.hidden = isHtmlSourceMode;
+            }
+            const safeHtml = sanitizePresentationHtml(target.htmlContent);
+            if (quill) {
+                quill.clipboard.dangerouslyPasteHTML(safeHtml || '<p></p>');
+            }
+            if (presentationHtmlSource) {
+                presentationHtmlSource.value = safeHtml;
+            }
+            const layout = normalizePresentationLayout(target.layout);
+            if (presentationHeroTitleInput) presentationHeroTitleInput.value = layout.title;
+            if (presentationHeroSubtitleInput) presentationHeroSubtitleInput.value = layout.subtitle;
+            if (presentationHeroImageInput) presentationHeroImageInput.value = layout.imageUrl;
+            if (presentationAccentInput) {
+                presentationAccentInput.value = layout.accentColor || '#e91e63';
+            }
+            if (presentationLayoutSelect) {
+                presentationLayoutSelect.value = layout.layout;
+            }
+            renderPresentationList();
+        }
+        function openPresentationEditor() {
+            if (!presentationEditor || !canEditProfile()) return;
+            if (presentationPlaceholder) presentationPlaceholder.hidden = true;
+            if (presentationContent) presentationContent.hidden = true;
+            presentationEditor.hidden = false;
+            if (!presentations.length) {
+                createPresentation();
+                return;
+            }
+            if (!editingPresentationId && presentations.length) {
+                editingPresentationId = presentations[0].id;
+            }
+            setEditorPresentation(editingPresentationId);
+        }
+        function closePresentationEditor() {
+            if (!presentationEditor) return;
+            presentationEditor.hidden = true;
+            renderPresentationView();
+        }
+        function cancelPresentationEdit() {
+            if (!canEditProfile()) return;
+            const confirmCancel = confirm('Voulez-vous annuler vos modifications ?');
+            if (!confirmCancel) return;
+            setEditorPresentation(editingPresentationId);
+            closePresentationEditor();
+        }
+        async function persistPresentations({ showError = true } = {}) {
+            if (!currentCharacter || !canEditProfile()) return false;
+            // Fetch full profile_data before write (session-store strips competences, inventory, etc.)
+            let freshProfile = null;
+            const cached = window.astoriaActiveCharacter;
+            if (cached?.id === currentCharacter.id && cached.profile_data) {
+                freshProfile = cached.profile_data;
+            } else {
+                try {
+                    const fresh = await getCharacterById(currentCharacter.id);
+                    if (fresh?.profile_data) {
+                        freshProfile = fresh.profile_data;
+                        try { window.astoriaActiveCharacter = fresh; } catch {}
+                    }
+                } catch (e) { console.warn('[Profil] fetch fresh profile failed:', e); }
+            }
+            const profileData = freshProfile || currentCharacter.profile_data || {};
+            const payload = presentations.map((item, index) => ({
+                id: item.id,
+                name: normalizePresentationName(item.name, `Presentation ${index + 1}`),
+                htmlContent: String(item.htmlContent || ''),
+                isActive: item.id === activePresentationId,
+                order: index + 1,
+                color: item.color,
+                layout: normalizePresentationLayout(item.layout)
+            }));
+            const nextProfileData = {
+                ...profileData,
+                presentations: payload,
+                presentation_active_id: activePresentationId
+            };
+            const res = await updateCharacter(currentCharacter.id, { profile_data: nextProfileData });
+            if (!res || !res.success) {
+                if (showError) alert('Impossible de sauvegarder la presentation.');
+                return false;
+            }
+            currentCharacter = res.character;
+            return true;
+        }
+        async function savePresentation() {
+            if (!currentCharacter || !canEditProfile()) return;
+            const target = getEditingPresentation();
+            if (!target) return;
+            let html = '';
+            if (isHtmlSourceMode && presentationHtmlSource) {
+                html = presentationHtmlSource.value || '';
+            } else if (quill) {
+                html = quill.root.innerHTML || '';
+            }
+            if (!html && presentationHtmlSource) {
+                html = presentationHtmlSource.value || '';
+            }
+            const cleanHtml = sanitizePresentationHtml(html);
+            if (getHtmlSize(cleanHtml) > PRESENTATION_MAX_SIZE) {
+                alert('Le contenu HTML depasse 50KB.');
+                return;
+            }
+            target.htmlContent = cleanHtml;
+            isPresentationDirty = false;
+            updateSaveButtonState();
+            const success = await persistPresentations();
+            if (!success) return;
+            renderPresentationView();
+            closePresentationEditor();
+        }
+        function scheduleNameSave(presentationId) {
+            if (presentationNameTimers[presentationId]) {
+                clearTimeout(presentationNameTimers[presentationId]);
+            }
+            presentationNameTimers[presentationId] = setTimeout(async () => {
+                await persistPresentations({ showError: false });
+            }, 1000);
+        }
+        function setEditingPresentationId(presentationId) {
+            if (!presentationId) return;
+            if (presentationId === editingPresentationId) return;
+            if (isPresentationDirty) {
+                const proceed = confirm('Modifier la presentation sans sauvegarder ?');
+                if (!proceed) return;
+            }
+            setEditorPresentation(presentationId);
+        }
+        async function activatePresentation(presentationId) {
+            if (!presentationId) return;
+            activePresentationId = presentationId;
+            presentations = presentations.map((item) => ({
+                ...item,
+                isActive: item.id === presentationId
+            }));
+            renderPresentationList();
+            renderPresentationView();
+            await persistPresentations();
+        }
+        async function deletePresentation(presentationId) {
+            if (!presentationId) return;
+            const target = presentations.find((item) => item.id === presentationId);
+            if (!target) return;
+            const ok = confirm(`Supprimer "${target.name}" ?`);
+            if (!ok) return;
+            presentations = presentations.filter((item) => item.id !== presentationId);
+            if (!presentations.length) {
+                activePresentationId = null;
+                editingPresentationId = null;
+            } else if (presentationId === activePresentationId) {
+                activePresentationId = presentations[0].id;
+            }
+            if (presentationId === editingPresentationId) {
+                editingPresentationId = activePresentationId;
+            }
+            renderPresentationList();
+            renderPresentationView();
+            await persistPresentations();
+            if (presentationEditor && !presentationEditor.hidden) {
+                setEditorPresentation(editingPresentationId);
+            }
+        }
+        async function createPresentation() {
+            if (!canEditProfile()) return;
+            if (presentations.length >= PRESENTATION_LIMIT) {
+                alert('Limite de 10 presentations atteinte.');
+                return;
+            }
+            const newItem = {
+                id: generatePresentationId(),
+                name: 'Sans nom',
+                htmlContent: '<div></div>',
+                isActive: false,
+                order: presentations.length + 1,
+                color: getPresentationColor(presentations.length),
+                layout: normalizePresentationLayout({})
+            };
+            presentations = [newItem, ...presentations].map((item, index) => ({
+                ...item,
+                order: index + 1
+            }));
+            editingPresentationId = newItem.id;
+            isPresentationDirty = true;
+            renderPresentationList();
+            setEditorPresentation(newItem.id);
+            await persistPresentations({ showError: false });
+            const input = presentationList?.querySelector(`[data-presentation-id="${newItem.id}"] .profile-presentation-name`);
+            if (input) input.focus();
+        }
+        function toggleHtmlSourceMode() {
+            if (!presentationHtmlSource) return;
+            isHtmlSourceMode = !isHtmlSourceMode;
+            if (presentationQuill) {
+                presentationQuill.hidden = isHtmlSourceMode;
+            }
+            presentationHtmlSource.hidden = !isHtmlSourceMode;
+            if (isHtmlSourceMode) {
+                if (quill) {
+                    presentationHtmlSource.value = quill.root.innerHTML || '';
+                }
+                presentationHtmlSource.focus();
+            } else {
+                if (quill) {
+                    const clean = sanitizePresentationHtml(presentationHtmlSource.value || '');
+                    quill.clipboard.dangerouslyPasteHTML(clean || '<p></p>');
+                }
+            }
+            if (quill) {
+                quill.enable(!isHtmlSourceMode);
+            }
+            isPresentationDirty = true;
+            updateSaveButtonState();
+        }
+        function applyToolbarAction(action, value) {
+            if (!quill) {
+                if (action === 'html') {
+                    toggleHtmlSourceMode();
+                } else {
+                    alert('Editeur WYSIWYG indisponible. Utilisez le mode HTML.');
+                }
+                return;
+            }
+            switch (action) {
+                case 'bold':
+                    quill.format('bold', true);
+                    break;
+                case 'italic':
+                    quill.format('italic', true);
+                    break;
+                case 'underline':
+                    quill.format('underline', true);
+                    break;
+                case 'strike':
+                    quill.format('strike', true);
+                    break;
+                case 'list-bullet':
+                    quill.format('list', 'bullet');
+                    break;
+                case 'list-ordered':
+                    quill.format('list', 'ordered');
+                    break;
+                case 'align':
+                    if (!value || value === 'left') {
+                        quill.format('align', false);
+                    } else {
+                        quill.format('align', value);
+                    }
+                    break;
+                case 'header':
+                    if (value === 'blockquote') {
+                        quill.format('header', false);
+                        quill.format('blockquote', true);
+                    } else if (value) {
+                        quill.format('blockquote', false);
+                        quill.format('header', Number(value));
+                    } else {
+                        quill.format('header', false);
+                        quill.format('blockquote', false);
+                    }
+                    break;
+                case 'color':
+                    quill.format('color', value || false);
+                    break;
+                case 'background':
+                    quill.format('background', value || false);
+                    break;
+                case 'link': {
+                    const href = prompt('URL du lien :', 'https://');
+                    if (href) {
+                        quill.format('link', href);
+                    }
+                    break;
+                }
+                case 'emoji': {
+                    const emoji = prompt('Emoji ou caractere a inserer :', ':-)');
+                    if (emoji) {
+                        const range = quill.getSelection(true);
+                        quill.insertText(range ? range.index : quill.getLength(), emoji);
+                    }
+                    break;
+                }
+                case 'image':
+                    openImageModal();
+                    break;
+                case 'html':
+                    toggleHtmlSourceMode();
+                    break;
+                default:
+                    break;
+            }
+        }
+        function openImageModal() {
+            if (!imageInsertBackdrop) return;
+            if (imageInsertError) {
+                imageInsertError.classList.remove('visible');
+                imageInsertError.textContent = '';
+            }
+            if (imageUrlInput) imageUrlInput.value = '';
+            if (imageAltInput) imageAltInput.value = '';
+            if (imageWidthInput) imageWidthInput.value = '';
+            if (imageHeightInput) imageHeightInput.value = '';
+            if (imagePreview) {
+                imagePreview.innerHTML = '<span class="profile-image-preview-text">Apercu</span>';
+            }
+            imageInsertBackdrop.classList.add('open');
+            imageInsertBackdrop.setAttribute('aria-hidden', 'false');
+            imageUrlInput?.focus();
+        }
+        function closeImageModal() {
+            if (!imageInsertBackdrop) return;
+            imageInsertBackdrop.classList.remove('open');
+            imageInsertBackdrop.setAttribute('aria-hidden', 'true');
+        }
+        function updateImagePreview() {
+            if (!imagePreview) return;
+            const url = (imageUrlInput?.value || '').trim();
+            if (!url) {
+                imagePreview.innerHTML = '<span class="profile-image-preview-text">Apercu</span>';
+                return;
+            }
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Apercu';
+            img.onerror = () => {
+                imagePreview.innerHTML = '<span class="profile-image-preview-text">URL invalide.</span>';
+            };
+            imagePreview.innerHTML = '';
+            imagePreview.appendChild(img);
+        }
+        function insertImageIntoEditor() {
+            if (!quill) return;
+            const url = (imageUrlInput?.value || '').trim();
+            if (!url) {
+                if (imageInsertError) {
+                    imageInsertError.textContent = 'URL requise.';
+                    imageInsertError.classList.add('visible');
+                }
+                return;
+            }
+            if (!/^https?:\/\//i.test(url) && !/^data:image\//i.test(url)) {
+                if (imageInsertError) {
+                    imageInsertError.textContent = 'URL invalide. Utilise http, https ou data.';
+                    imageInsertError.classList.add('visible');
+                }
+                return;
+            }
+            const alt = (imageAltInput?.value || '').trim();
+            const width = (imageWidthInput?.value || '').trim();
+            const height = (imageHeightInput?.value || '').trim();
+            let attrs = `src="${escapeAttribute(url)}"`;
+            if (width) attrs += ` width="${escapeAttribute(width)}"`;
+            if (height) attrs += ` height="${escapeAttribute(height)}"`;
+            if (alt) attrs += ` alt="${escapeAttribute(alt)}"`;
+            const html = `<img ${attrs} />`;
+            const range = quill.getSelection(true);
+            const index = range ? range.index : quill.getLength();
+            quill.clipboard.dangerouslyPasteHTML(index, html);
+            closeImageModal();
+            isPresentationDirty = true;
+            updateSaveButtonState();
+        }
+        function updateCropInfo() {
+            if (!avatarCropper) return;
+            const imageData = avatarCropper.getImageData();
+            const currentZoom = imageData.width / imageData.naturalWidth;
+            const zoomPercent = Math.round((currentZoom / cropperBaseZoom) * 100);
+            if (cropperZoomDisplay) {
+                cropperZoomDisplay.textContent = zoomPercent + '%';
+            }
+            if (cropperZoom) {
+                cropperZoom.value = zoomPercent;
+            }
+        }
+        function destroyAvatarCropper() {
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+            }
+        }
+        function closeAvatarCropper(resetInput = true) {
+            if (cropperBackdrop) {
+                modalManager.close(cropperBackdrop);
+            }
+            destroyAvatarCropper();
+            if (cropperImage) {
+                cropperImage.src = '';
+                cropperImage.removeAttribute('src');
+            }
+            if (resetInput && avatarInput) {
+                avatarInput.value = '';
+            }
+        }
+        function openAvatarCropper(file) {
+            if (!cropperBackdrop || !cropperImage || !window.Cropper) {
+                toastManager.warning('Recadrage indisponible, upload direct');
+                uploadAvatar(file);
+                return;
+            }
+
+            // Destroy existing cropper
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+            }
+
+            // Load image
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                cropperImage.src = event.target.result;
+
+                // Wait for image to load before initializing cropper
+                cropperImage.onload = () => {
+                    // Open modal with modalManager (like items modal)
+                    modalManager.open(cropperBackdrop, {
+                        closeOnBackdropClick: false,
+                        closeOnEsc: true
+                    });
+
+                    // Initialize Cropper.js
+                    avatarCropper = new Cropper(cropperImage, {
+                        viewMode: 1,
+                        dragMode: 'move',
+                        aspectRatio: NaN, // FREE aspect ratio
+                        autoCropArea: 1.0, // Full image by default
+                        restore: true,
+                        guides: true,
+                        center: true,
+                        highlight: true,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        background: true,
+                        responsive: true,
+                        checkOrientation: true,
+                        modal: true,
+                        minCropBoxWidth: 50,
+                        minCropBoxHeight: 50,
+                        wheelZoomRatio: 0.1,
+                        movable: true,
+                        zoomable: true,
+                        rotatable: true,
+                        scalable: true,
+                        ready() {
+                            const imageData = avatarCropper.getImageData();
+                            cropperBaseZoom = imageData.width / imageData.naturalWidth;
+                            updateCropInfo();
+                        },
+                        crop() {
+                            updateCropInfo();
+                        },
+                        zoom() {
+                            updateCropInfo();
+                        }
+                    });
+
+                    cropperScaleX = 1;
+                    cropperScaleY = 1;
+                };
+            };
+            reader.readAsDataURL(file);
+
+            // Wire up controls
+            if (cropperZoom) {
+                cropperZoom.oninput = () => {
+                    if (!avatarCropper) return;
+                    const targetPercent = parseInt(cropperZoom.value) / 100;
+                    const targetZoom = cropperBaseZoom * targetPercent;
+                    avatarCropper.zoomTo(targetZoom);
+                };
+            }
+
+            if (cropperZoomIn) {
+                cropperZoomIn.onclick = () => {
+                    if (avatarCropper) avatarCropper.zoom(0.1);
+                };
+            }
+
+            if (cropperZoomOut) {
+                cropperZoomOut.onclick = () => {
+                    if (avatarCropper) avatarCropper.zoom(-0.1);
+                };
+            }
+
+            if (cropperRotateLeft) {
+                cropperRotateLeft.onclick = () => {
+                    if (avatarCropper) avatarCropper.rotate(-90);
+                };
+            }
+
+            if (cropperRotateRight) {
+                cropperRotateRight.onclick = () => {
+                    if (avatarCropper) avatarCropper.rotate(90);
+                };
+            }
+
+            if (cropperFlipX) {
+                cropperFlipX.onclick = () => {
+                    if (avatarCropper) {
+                        cropperScaleX = -cropperScaleX;
+                        avatarCropper.scaleX(cropperScaleX);
+                    }
+                };
+            }
+
+            if (cropperFlipY) {
+                cropperFlipY.onclick = () => {
+                    if (avatarCropper) {
+                        cropperScaleY = -cropperScaleY;
+                        avatarCropper.scaleY(cropperScaleY);
+                    }
+                };
+            }
+
+            if (cropperReset) {
+                cropperReset.onclick = () => {
+                    if (avatarCropper) {
+                        avatarCropper.reset();
+                        cropperScaleX = 1;
+                        cropperScaleY = 1;
+                    }
+                };
+            }
+        }
+        // Initialize page
+        async function init() {
+            currentUser = getCurrentUser();
+            // Check for shared profile URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedCharacterId = urlParams.get('character');
+            const shouldOpenCreateModal = urlParams.get('create') === '1';
+            if (sharedCharacterId) {
+                // Viewing a shared profile - load that character
+                const sharedCharacter = await getCharacterById(sharedCharacterId);
+                if (!sharedCharacter) {
+                    // Character not found
+                    profileContent.innerHTML = `
+                        <div class="profile-not-logged-in">
+                            <h2>Personnage introuvable</h2>
+                            <p>Ce personnage n'existe pas ou n'est pas accessible.</p>
+                            <a href="html/profil.html" class="auth-button">Retour au profil</a>
+                        </div>
+                    `;
+                    return;
+                }
+                currentCharacter = sharedCharacter;
+                if (!currentUser) {
+                    // Not logged in - render auth controls anyway
+                    await renderAuthControls();
+                }
+                if (currentUser) {
+                    // Load user's characters for context
+                    await loadCharacters();
+                }
+                // Display the shared character
+                displayCharacter(currentCharacter);
+                initProfileTagSelector({ characterId: currentCharacter.id, isAdmin: isAdmin() });
+                updateAuthUserLabel();
+                syncAdminSelector();
+                renderSoulCounts(currentCharacter);
+                updateAvatarControls();
+                updatePresentationControls();
+                // Initialize character summary widget with kaels
+                await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
+                setInterval(() => {
+                    renderSoulCounts(getActiveCharacter());
+                }, 1200);
+                return;
+            }
+            // Normal flow - not viewing a shared profile
+            if (!currentUser) {
+                // Not logged in - show login prompt
+                showNotLoggedIn();
+                return;
+            }
+            // Logged in - render auth controls
+            await renderAuthControls();
+            // Load user's characters
+            await loadCharacters();
+            // Load active character or prompt to select/create one
+            await loadActiveCharacter();
+            if (shouldOpenCreateModal) {
+                showCreateCharacterModal();
+            }
+            // Initialize character summary widget with kaels
+            await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
+            setInterval(() => {
+                renderSoulCounts(getActiveCharacter());
+            }, 1200);
+        }
+        function showNotLoggedIn() {
+            authControls.innerHTML = `
+                <a href="html/login.html" class="auth-button">Se connecter</a>
+            `;
+            profileContent.innerHTML = `
+                <div class="profile-not-logged-in">
+                    <h2>Connexion requise</h2>
+                    <p>Vous devez vous connecter pour accéder à votre profil et gérer vos personnages.</p>
+                    <a href="html/login.html" class="auth-button">Se connecter</a>
+                </div>
+            `;
+        }
+        async function renderAuthControls() {
+            if (APP_DOCK_DISABLED) {
+                if (authControls) {
+                    authControls.innerHTML = '';
+                    authControls.hidden = true;
+                }
+                return;
+            }
+            const roleBadge = isAdmin() ? 'ADMIN' : 'JOUEUR';
+            authControls.replaceChildren();
+            dockPrimaryRow = document.createElement('div');
+            dockPrimaryRow.className = 'app-dock-row app-dock-row--primary';
+            dockMetaRow = document.createElement('div');
+            dockMetaRow.className = 'app-dock-row app-dock-row--meta';
+            const badge = document.createElement('span');
+            badge.className = 'user-badge';
+            badge.textContent = roleBadge;
+            userLinkButton = document.createElement('button');
+            userLinkButton.type = 'button';
+            userLinkButton.className = 'auth-user-link';
+            userLinkButton.id = 'profileUserBtn';
+            userLinkButton.textContent = currentUser.username;
+            userLinkButton.title = 'Changer de personnage';
+            userLinkButton.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                const selector = document.getElementById('characterSelector');
+                if (selector) {
+                    selector.focus();
+                    try { selector.click(); } catch {}
+                }
+            });
+            dockSouls = document.createElement('div');
+            dockSouls.className = 'app-dock-souls';
+            const soulConso = document.createElement('div');
+            soulConso.className = 'app-dock-soul';
+            const soulConsoLabel = document.createElement('span');
+            soulConsoLabel.className = 'app-dock-soul-label';
+            soulConsoLabel.textContent = 'Ames conso';
+            soulConsoValue = document.createElement('span');
+            soulConsoValue.className = 'app-dock-soul-value';
+            soulConsoValue.textContent = '0';
+            soulConso.append(soulConsoLabel, soulConsoValue);
+            const soulProg = document.createElement('div');
+            soulProg.className = 'app-dock-soul';
+            const soulProgLabel = document.createElement('span');
+            soulProgLabel.className = 'app-dock-soul-label';
+            soulProgLabel.textContent = 'Ames prog';
+            soulProgValue = document.createElement('span');
+            soulProgValue.className = 'app-dock-soul-value';
+            soulProgValue.textContent = '0';
+            soulProg.append(soulProgLabel, soulProgValue);
+            dockSouls.append(soulConso, soulProg);
+            const logoutButton = document.createElement('button');
+            logoutButton.className = 'auth-button secondary';
+            logoutButton.id = 'logoutBtn';
+            logoutButton.textContent = 'Deconnexion';
+            logoutButton.addEventListener('click', () => {
+                logout();
+                window.location.reload();
+            });
+            dockPrimaryRow.append(badge);
+            dockMetaRow.append(userLinkButton, dockSouls, logoutButton);
+            authControls.append(dockPrimaryRow);
+            dockAdminRow = null;
+            adminSelectorEl = null;
+            if (isAdmin()) {
+                dockAdminRow = document.createElement('div');
+                dockAdminRow.className = 'app-dock-row app-dock-row--admin';
+                adminSelectorEl = await buildAdminSelector();
+                if (adminSelectorEl) {
+                    dockAdminRow.append(adminSelectorEl);
+                }
+                authControls.append(dockAdminRow);
+            }
+            authControls.append(dockMetaRow);
+        }
+        async function buildAdminSelector() {
+            if (!isAdmin()) return null;
+            const adminSelect = document.createElement('select');
+            adminSelect.className = 'character-selector character-selector--admin';
+            adminSelect.setAttribute('aria-label', 'MJ : selectionner un personnage');
+            const adminPlaceholder = document.createElement('option');
+            adminPlaceholder.value = '';
+            adminPlaceholder.textContent = 'MJ: choisir un personnage...';
+            adminSelect.appendChild(adminPlaceholder);
+            try {
+                const allCharacters = await getAllCharacters();
+                allCharacters.forEach((character) => {
+                    const option = document.createElement('option');
+                    option.value = character.id;
+                    const shortId = character.user_id ? String(character.user_id).slice(0, 8) : '????';
+                    option.textContent = `${character.name || 'Sans nom'} - ${shortId}`;
+                    adminSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading admin characters:', error);
+            }
+            adminSelect.addEventListener('change', async () => {
+                const nextId = adminSelect.value;
+                if (!nextId) return;
+                if (typeof window.astoriaBeforeCharacterChange === 'function') {
+                    try {
+                        await window.astoriaBeforeCharacterChange();
+                    } catch {}
+                }
+                const res = await setActiveCharacter(nextId);
+                if (!res || !res.success) return;
+                window.location.reload();
+            });
+            return adminSelect;
+        }
+        function syncAdminSelector() {
+            if (!adminSelectorEl) return;
+            if (currentCharacter && currentCharacter.id) {
+                adminSelectorEl.value = currentCharacter.id;
+            } else {
+                adminSelectorEl.value = '';
+            }
+        }
+        function readSoulCounts(active) {
+            if (!active || !active.id) return { conso: 0, prog: 0 };
+            const key = `fiche-${active.id}-eater`;
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return { conso: 0, prog: 0 };
+                const data = JSON.parse(raw);
+                const conso = Number.parseInt(data?.eaterAmesConso ?? 0, 10);
+                const prog = Number.parseInt(data?.eaterAmesProgression ?? 0, 10);
+                return {
+                    conso: Number.isNaN(conso) ? 0 : conso,
+                    prog: Number.isNaN(prog) ? 0 : prog
+                };
+            } catch {
+                return { conso: 0, prog: 0 };
+            }
+        }
+        function renderSoulCounts(active) {
+            if (!soulConsoValue || !soulProgValue || !dockSouls) return;
+            const counts = readSoulCounts(active);
+            soulConsoValue.textContent = String(counts.conso);
+            soulProgValue.textContent = String(counts.prog);
+            dockSouls.title = "Compteur d'ames (stub, base sur la fiche)";
+        }
+        function updateAuthUserLabel() {
+            if (APP_DOCK_DISABLED) return;
+            if (!userLinkButton) return;
+            const label = (currentCharacter && currentCharacter.name) ? currentCharacter.name : currentUser.username;
+            userLinkButton.textContent = label;
+        }
+        async function loadCharacters() {
+            try {
+                userCharacters = await getUserCharacters(currentUser.id);
+            } catch (error) {
+                console.error('Error loading characters:', error);
+                userCharacters = [];
+            }
+        }
+        async function handleCharacterSelection(characterId) {
+            if (!characterId) return;
+            const res = await setActiveCharacter(characterId);
+            if (!res || !res.success) return;
+            currentCharacter = getActiveCharacter();
+            if (currentCharacter) {
+                displayCharacter(currentCharacter);
+                initProfileTagSelector({ characterId: currentCharacter.id, isAdmin: isAdmin() });
+            } else {
+                showNoCharacterSelected();
+                initProfileTagSelector({ characterId: null, isAdmin: isAdmin() });
+            }
+            updateAuthUserLabel();
+            syncAdminSelector();
+            renderSoulCounts(currentCharacter);
+            await initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true });
+            rerenderOpenPanelIfAny();
+            updateAvatarControls();
+        }
+        async function loadActiveCharacter() {
+            currentCharacter = getActiveCharacter();
+            // Render character selector
+            renderCharacterSelector();
+            if (!currentCharacter) {
+                // No active character - show placeholder
+                showNoCharacterSelected();
+                initProfileTagSelector({ characterId: null, isAdmin: isAdmin() });
+                updateAuthUserLabel();
+            } else {
+                // Display character data
+                displayCharacter(currentCharacter);
+                initProfileTagSelector({ characterId: currentCharacter.id, isAdmin: isAdmin() });
+                updateAuthUserLabel();
+            }
+            syncAdminSelector();
+            renderSoulCounts(currentCharacter);
+            updateAvatarControls();
+        }
+        function renderCharacterSelector() {
+            if (APP_DOCK_DISABLED) return;
+            // New selector renderer (updates in place, no full page reload)
+            let selectorEl = document.getElementById('characterSelector');
+            const isNewSelector = !selectorEl;
+            if (isNewSelector) {
+                selectorEl = document.createElement('select');
+                selectorEl.className = 'character-selector';
+                selectorEl.id = 'characterSelector';
+                selectorEl.setAttribute('aria-label', 'Selectionner un personnage');
+                const mount = dockPrimaryRow || authControls;
+                mount.insertBefore(selectorEl, mount.firstChild);
+                selectorEl.addEventListener('change', async (e) => {
+                    const value = e.target.value;
+                    if (value === '__create__') {
+                        selectorEl.value = '';
+                        showCreateCharacterModal();
+                        return;
+                    }
+                    await handleCharacterSelection(value);
+                });
+            } else {
+                selectorEl.replaceChildren();
+            }
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = 'Selectionner un personnage...';
+            placeholderOption.selected = !currentCharacter;
+            selectorEl.appendChild(placeholderOption);
+            const hasCurrent =
+                !!currentCharacter &&
+                userCharacters.some((char) => char.id === currentCharacter.id);
+            if (currentCharacter && !hasCurrent) {
+                const adminOption = document.createElement('option');
+                adminOption.value = currentCharacter.id;
+                adminOption.textContent = `Admin: ${currentCharacter.name}`;
+                adminOption.selected = true;
+                selectorEl.appendChild(adminOption);
+            }
+            userCharacters.forEach((char) => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = char.name;
+                if (currentCharacter && char.id === currentCharacter.id) option.selected = true;
+                selectorEl.appendChild(option);
+            });
+            if (userCharacters.length < 5) {
+                const createOption = document.createElement('option');
+                createOption.value = '__create__';
+                createOption.textContent = '+ Creer un personnage';
+                selectorEl.appendChild(createOption);
+            }
+            return; /*
+            const selectorHTML = document.createElement('select');
+            selectorHTML.className = 'character-selector';
+            selectorHTML.id = 'characterSelector';
+            // Add placeholder option
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = 'Sélectionner un personnage...';
+            // Keep the placeholder selectable so we can reset after "Créer un personnage"
+            placeholderOption.selected = !currentCharacter;
+            selectorHTML.appendChild(placeholderOption);
+            // Add existing characters
+            userCharacters.forEach(char => {
+                const option = document.createElement('option');
+                option.value = char.id;
+                option.textContent = char.name;
+                if (currentCharacter && char.id === currentCharacter.id) {
+                    option.selected = true;
+                }
+                selectorHTML.appendChild(option);
+            });
+            // Add "Create new character" option if under 5 characters
+            if (userCharacters.length < 5) {
+                const createOption = document.createElement('option');
+                createOption.value = '__create__';
+                createOption.textContent = '+ Créer un personnage';
+                selectorHTML.appendChild(createOption);
+            }
+            // Insert at the beginning of auth controls
+            authControls.insertBefore(selectorHTML, authControls.firstChild);
+            // Handle character change
+            selectorHTML.addEventListener('change', async (e) => {
+                const value = e.target.value;
+                if (value === '__create__') {
+                    // TODO: Open character creation modal
+                    selectorHTML.value = '';
+                    showCreateCharacterModal();
+                    return;
+                }
+                if (!value) return;
+                // Switch to selected character
+                await setActiveCharacter(value);
+                window.location.reload();
+            });
+        */
+        }
+        function showNoCharacterSelected() {
+            document.getElementById('characterInitial').textContent = '?';
+            const nameEl = document.getElementById('characterName');
+            if (nameEl) {
+                nameEl.textContent = 'Aucun personnage sélectionné';
+                nameEl.setAttribute('href', 'html/profil.html');
+            }
+            document.getElementById('characterRole').textContent = 'Sélectionnez un personnage ci-dessus';
+            updateAvatarUI('');
+            setPresentationState([], null);
+            renderPresentationView();
+            renderPresentationList();
+            updatePresentationControls();
+            persistCharacterSummary(null);
+        }
+        function displayCharacter(character) {
+            // Update header with character info
+            const initial = character.name ? character.name.charAt(0).toUpperCase() : '?';
+            document.getElementById('characterInitial').textContent = initial;
+            const nameEl = document.getElementById('characterName');
+            if (nameEl) {
+                nameEl.textContent = character.name || 'Sans nom';
+                nameEl.setAttribute('href', `html/profil.html?character=${encodeURIComponent(character.id)}`);
+            }
+            // Display race and class
+            const race = character.race || 'Race inconnue';
+            const charClass = character.class || 'Classe inconnue';
+            document.getElementById('characterRole').textContent = `${race} - ${charClass}`;
+            // Display stats (from profile_data if available)
+            const profileData = character.profile_data || {};
+            document.getElementById('statStyle').textContent = profileData.style || 0;
+            document.getElementById('statDico').textContent = profileData.dico || 0;
+            document.getElementById('statPopularity').textContent = profileData.popularity || 0;
+            updateAvatarUI(profileData.avatar_url || '');
+            const presentationState = getPresentationState(profileData);
+            setPresentationState(presentationState.list, presentationState.activeId);
+            renderPresentationView();
+            renderPresentationList();
+            updatePresentationControls();
+            persistCharacterSummary(buildCharacterSummary(character));
+            // TODO: Populate rest of profile sections based on issue #9 requirements
+            // - House, Rank, Alice types, etc.
+        }
+        async function uploadAvatar(file) {
+            if (!currentCharacter || !canEditProfile()) return;
+            if (!file || !file.type.startsWith('image/')) {
+                toastManager.error('Image invalide');
+                return;
+            }
+            if (file.size > MAX_AVATAR_SIZE) {
+                toastManager.error('Image trop lourde (max 2 Mo)');
+                return;
+            }
+            avatarTrigger.classList.add('is-uploading');
+            try {
+                const supabase = await getSupabaseClient();
+                const safeName = String(file.name || 'avatar')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9_.-]/g, '_');
+                const filePath = `characters/${currentCharacter.id}/${Date.now()}_${safeName}`;
+                const { error: uploadError } = await supabase.storage
+                    .from(AVATAR_BUCKET)
+                    .upload(filePath, file, {
+                        cacheControl: '31536000',
+                        upsert: true,
+                        contentType: file.type
+                    });
+                if (uploadError) {
+                    console.error(uploadError);
+                    toastManager.error('Upload impossible. Vérifiez le bucket avatars');
+                    return;
+                }
+                const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(filePath);
+                const publicUrl = publicData?.publicUrl;
+                if (!publicUrl) {
+                    toastManager.error('URL avatar introuvable');
+                    return;
+                }
+                // Fetch full profile_data before write (session-store strips other fields)
+                let freshProfile = null;
+                const cachedForAvatar = window.astoriaActiveCharacter;
+                if (cachedForAvatar?.id === currentCharacter.id && cachedForAvatar.profile_data) {
+                    freshProfile = cachedForAvatar.profile_data;
+                } else {
+                    try {
+                        const freshChar = await getCharacterById(currentCharacter.id);
+                        if (freshChar?.profile_data) {
+                            freshProfile = freshChar.profile_data;
+                            try { window.astoriaActiveCharacter = freshChar; } catch {}
+                        }
+                    } catch (e) { console.warn('[Profil] fetch fresh profile failed:', e); }
+                }
+                const profileData = freshProfile || currentCharacter.profile_data || {};
+                const res = await updateCharacter(currentCharacter.id, {
+                    profile_data: {
+                        ...profileData,
+                        avatar_url: publicUrl,
+                        avatar_path: filePath
+                    }
+                });
+                if (!res || !res.success) {
+                    toastManager.error('Enregistrement avatar impossible');
+                    return;
+                }
+                currentCharacter = res.character;
+                updateAvatarUI(publicUrl);
+                persistCharacterSummary(buildCharacterSummary(currentCharacter));
+                toastManager.success('Avatar mis à jour');
+            } catch (error) {
+                console.error(error);
+                toastManager.error('Erreur lors de l\'upload');
+            } finally {
+                avatarTrigger.classList.remove('is-uploading');
+                avatarInput.value = '';
+            }
+        }
+        // Character create modal wiring
+        createCancel.addEventListener('click', hideCreateCharacterModal);
+        createBackdrop.addEventListener('pointerdown', (e) => {
+            if (e.target === createBackdrop) hideCreateCharacterModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && createBackdrop.classList.contains('open')) {
+                e.preventDefault();
+                hideCreateCharacterModal();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && cropperBackdrop && cropperBackdrop.classList.contains('open')) {
+                e.preventDefault();
+                closeAvatarCropper();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageInsertBackdrop && imageInsertBackdrop.classList.contains('open')) {
+                e.preventDefault();
+                closeImageModal();
+            }
+        });
+        if (presentationEditBtn) {
+            presentationEditBtn.addEventListener('click', () => {
+                if (!canEditProfile()) return;
+                openPresentationEditor();
+            });
+        }
+        if (presentationCancel) {
+            presentationCancel.addEventListener('click', cancelPresentationEdit);
+        }
+        if (presentationSave) {
+            presentationSave.addEventListener('click', savePresentation);
+        }
+        if (presentationToolbar) {
+            presentationToolbar.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-action]');
+                if (!button) return;
+                applyToolbarAction(button.getAttribute('data-action'));
+            });
+            presentationToolbar.addEventListener('change', (event) => {
+                const control = event.target;
+                if (!control || !control.getAttribute) return;
+                const action = control.getAttribute('data-action');
+                if (!action) return;
+                applyToolbarAction(action, control.value);
+            });
+            presentationToolbar.addEventListener('input', (event) => {
+                const control = event.target;
+                if (!control || !control.getAttribute) return;
+                const action = control.getAttribute('data-action');
+                if (action === 'color' || action === 'background') {
+                    applyToolbarAction(action, control.value);
+                }
+            });
+        }
+        [presentationHeroTitleInput, presentationHeroSubtitleInput, presentationHeroImageInput, presentationAccentInput, presentationLayoutSelect].forEach((input) => {
+            if (!input) return;
+            input.addEventListener('input', updateLayoutFromInputs);
+            input.addEventListener('change', updateLayoutFromInputs);
+        });
+        if (presentationHeroReset) {
+            presentationHeroReset.addEventListener('click', () => {
+                if (presentationHeroTitleInput) presentationHeroTitleInput.value = '';
+                if (presentationHeroSubtitleInput) presentationHeroSubtitleInput.value = '';
+                if (presentationHeroImageInput) presentationHeroImageInput.value = '';
+                if (presentationAccentInput) presentationAccentInput.value = '#e91e63';
+                if (presentationLayoutSelect) presentationLayoutSelect.value = 'center';
+                updateLayoutFromInputs();
+            });
+        }
+        if (presentationHtmlSource) {
+            presentationHtmlSource.addEventListener('input', () => {
+                isPresentationDirty = true;
+                updateSaveButtonState();
+            });
+        }
+        if (presentationList) {
+            presentationList.addEventListener('click', (event) => {
+                const card = event.target.closest('[data-presentation-id]');
+                if (!card) return;
+                const presentationId = card.getAttribute('data-presentation-id');
+                if (event.target.closest('[data-action="choose"]')) {
+                    activatePresentation(presentationId);
+                    return;
+                }
+                if (event.target.closest('[data-action="delete"]')) {
+                    deletePresentation(presentationId);
+                    return;
+                }
+                if (!event.target.classList.contains('profile-presentation-name')) {
+                    setEditingPresentationId(presentationId);
+                }
+            });
+            presentationList.addEventListener('focusin', (event) => {
+                const input = event.target;
+                if (!input.classList.contains('profile-presentation-name')) return;
+                const card = input.closest('[data-presentation-id]');
+                if (!card) return;
+                setEditingPresentationId(card.getAttribute('data-presentation-id'));
+            });
+            presentationList.addEventListener('input', (event) => {
+                const input = event.target;
+                if (!input.classList.contains('profile-presentation-name')) return;
+                const card = input.closest('[data-presentation-id]');
+                if (!card) return;
+                const presentationId = card.getAttribute('data-presentation-id');
+                const item = presentations.find((entry) => entry.id === presentationId);
+                if (!item) return;
+                const nextName = normalizePresentationName(input.value, item.name);
+                item.name = nextName;
+                if (input.value !== nextName) input.value = nextName;
+                scheduleNameSave(presentationId);
+            });
+        }
+        if (presentationCreateBtn) {
+            presentationCreateBtn.addEventListener('click', createPresentation);
+        }
+        if (imageUrlInput) {
+            imageUrlInput.addEventListener('input', updateImagePreview);
+        }
+        if (imageInsertCancel) {
+            imageInsertCancel.addEventListener('click', closeImageModal);
+        }
+        if (imageInsertConfirm) {
+            imageInsertConfirm.addEventListener('click', insertImageIntoEditor);
+        }
+        if (imageInsertBackdrop) {
+            imageInsertBackdrop.addEventListener('pointerdown', (event) => {
+                if (event.target === imageInsertBackdrop) closeImageModal();
+            });
+        }
+        if (avatarTrigger && avatarInput) {
+            avatarTrigger.addEventListener('click', () => {
+                if (!canEditProfile()) return;
+                avatarInput.click();
+            });
+            avatarTrigger.addEventListener('keydown', (event) => {
+                if (!canEditProfile()) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    avatarInput.click();
+                }
+            });
+            avatarInput.addEventListener('change', () => {
+                const file = avatarInput.files && avatarInput.files[0];
+                if (file) openAvatarCropper(file);
+            });
+        }
+        if (cropperClose) {
+            cropperClose.addEventListener('click', () => closeAvatarCropper());
+        }
+        if (cropperCancel) {
+            cropperCancel.addEventListener('click', () => closeAvatarCropper());
+        }
+        if (cropperConfirm) {
+            cropperConfirm.addEventListener('click', async () => {
+                if (!avatarCropper) return;
+
+                const canvas = avatarCropper.getCroppedCanvas({
+                    maxWidth: 4096,
+                    maxHeight: 4096,
+                    fillColor: '#fff',
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+
+                if (!canvas) {
+                    toastManager.error('Recadrage impossible');
+                    return;
+                }
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) {
+                        toastManager.error('Recadrage impossible');
+                        return;
+                    }
+
+                    const uploadFile = new File([blob], 'avatar.png', { type: 'image/png' });
+                    closeAvatarCropper(false);
+                    await uploadAvatar(uploadFile);
+                }, 'image/png', 0.95);
+            });
+        }
+        createForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            createError.classList.remove('visible');
+            createError.textContent = '';
+            if (Array.isArray(userCharacters) && userCharacters.length >= 5) {
+                showCreateError('Limite de 5 personnages atteinte.');
+                return;
+            }
+            const name = createName.value.trim();
+            const race = createRace.value.trim();
+            const charClass = createClass.value.trim();
+            if (!name) {
+                showCreateError('Le nom est requis.');
+                createName.focus();
+                return;
+            }
+            createSubmit.disabled = true;
+            createSubmit.textContent = 'Création...';
+            try {
+                const res = await createCharacter(currentUser.id, { name, race, class: charClass });
+                if (!res.success) {
+                    showCreateError(res.error || 'Impossible de créer le personnage.');
+                    return;
+                }
+                await setActiveCharacter(res.character.id);
+                hideCreateCharacterModal();
+                userCharacters = await getUserCharacters(currentUser.id);
+                currentCharacter = getActiveCharacter();
+                renderCharacterSelector();
+                if (currentCharacter) {
+                    displayCharacter(currentCharacter);
+                    initProfileTagSelector({ characterId: currentCharacter.id, isAdmin: isAdmin() });
+                } else {
+                    showNoCharacterSelected();
+                    initProfileTagSelector({ characterId: null, isAdmin: isAdmin() });
+                }
+                updateAuthUserLabel();
+                rerenderOpenPanelIfAny();
+            } catch (err) {
+                console.error(err);
+                showCreateError('Impossible de créer le personnage.');
+            } finally {
+                createSubmit.disabled = false;
+                createSubmit.textContent = 'Créer';
+            }
+        });
+        // Initialize on page load
+        init();
+    </script>
+    <script>
+        // ES modules (imports) do not work over file:// in most browsers.
+        // Show a clear hint instead of a silent broken UI.
+        (function () {
+            if (window.location.protocol !== 'file:') return;
+            const toggle = document.getElementById('tagToggle');
+            const selected = document.getElementById('selectedTags');
+            if (toggle) {
+                toggle.disabled = true;
+                toggle.title = 'Ouvre la page via un serveur local (Live Server) pour activer les tags.';
+            }
+            if (selected) {
+                selected.textContent = 'Ouvre la page via Live Server pour activer les tags.';
+            }
+        })();
+    </script>
+    <script src="js/ui/performance-mode.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+</body>
+</html>

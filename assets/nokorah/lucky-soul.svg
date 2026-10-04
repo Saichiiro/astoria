@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180">
+    <defs>
+        <radialGradient id="soulGlow" cx="50%" cy="40%" r="60%">
+            <stop offset="0" stop-color="#fff7d6"/>
+            <stop offset="1" stop-color="#ffd07a"/>
+        </radialGradient>
+    </defs>
+    <rect width="180" height="180" rx="28" fill="#fff6e0"/>
+    <path d="M90 30c20 20 30 45 30 65 0 27-13 45-30 45s-30-18-30-45c0-20 10-45 30-65z" fill="url(#soulGlow)"/>
+    <circle cx="78" cy="85" r="10" fill="#f5a84a"/>
+    <circle cx="108" cy="85" r="10" fill="#f5a84a"/>
+    <path d="M75 112c10 10 20 10 30 0" fill="none" stroke="#f5a84a" stroke-width="6" stroke-linecap="round"/>
+</svg>

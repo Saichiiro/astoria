@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau des qu&#234;tes - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Yeseva+One&display=swap">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/quetes.css">
+    <link rel="stylesheet" href="css/quetes-items-modal.css">
+    <link rel="stylesheet" href="css/components-ui.css">
+    <link rel="stylesheet" href="css/item-details-popover.css">
+    <link rel="stylesheet" href="css/cropper-controls.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+</head>
+<body class="quest-board min-h-screen">
+    <main class="quest-page">
+        <header class="page-header quest-header">
+            <a class="quest-back tw-back tw-press" href="html/profil.html" title="Retour au profil">&#8592; Retour</a>
+            <div class="quest-title-wrap">
+                <span class="quest-title-kicker">Astoria</span>
+                <h1 class="quest-title">Tableau des qu&#234;tes</h1>
+            </div>
+            <div class="quest-header-right">
+                <div class="character-summary" aria-label="Resume du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Selectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="&#194;mes consommation"><span class="soul-icon">&#128293;</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="&#194;mes progression"><span class="soul-icon">&#11088;</span><span id="soulProgValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button class="quest-add-btn tw-press" id="questAddBtn" type="button" data-admin-only hidden>+ Ajouter</button>
+            </div>
+        </header>
+        <section class="quest-search" aria-label="Recherche de qu&#234;tes">
+            <div class="quest-search-panel tw-panel tw-surface">
+                <div class="quest-search-controls" data-mobile-filters="Filtres">
+                    <div class="quest-search-field">
+                        <div class="inventory-search is-open" id="questSearch" data-search-priority="page">
+                            <button type="button" class="inventory-search-toggle tw-press" id="questSearchToggle" aria-label="Rechercher" aria-expanded="true">
+                                <span class="inventory-search-icon">&#128269;</span>
+                            </button>
+                            <input id="questSearchInput" type="search" class="inventory-search-input" placeholder="Rechercher une qu&#234;te..." aria-label="Rechercher une qu&#234;te">
+                            <button type="button" class="inventory-search-clear tw-press" id="questSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <div class="recent-searches-dropdown inventory-search-history" id="questSearchHistory"></div>
+                        </div>
+                    </div>
+                    <label class="quest-filter" data-filter-item>
+                        <span class="quest-filter-label">Type</span>
+                        <select id="questTypeFilter" class="quest-filter-select">
+                            <option value="all">Toutes cat&#233;gories</option>
+                        </select>
+                    </label>
+                    <label class="quest-filter" data-filter-item>
+                        <span class="quest-filter-label">Rang</span>
+                        <select id="questRankFilter" class="quest-filter-select">
+                            <option value="all">Tous les rangs</option>
+                        </select>
+                    </label>
+                    <label class="quest-filter" data-filter-item>
+                        <span class="quest-filter-label">Statut</span>
+                        <select id="questStatusFilter" class="quest-filter-select">
+                            <option value="all">Tous les statuts</option>
+                            <option value="available">Disponible</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="locked">Accès restreint</option>
+                        </select>
+                    </label>
+                    <label class="quest-filter" data-filter-item>
+                        <span class="quest-filter-label">Trier par</span>
+                        <select id="questSortFilter" class="quest-filter-select">
+                            <option value="default">Par défaut</option>
+                            <option value="name">Nom (A→Z)</option>
+                            <option value="inprogress">En cours d'abord</option>
+                        </select>
+                    </label>
+                    <div class="quest-filter quest-filter--toggle" data-filter-item>
+                        <span class="quest-filter-label">Mes quêtes</span>
+                        <button type="button" class="quest-my-quests-btn tw-press" id="questMyQuestsBtn" aria-pressed="false">Toutes</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="quest-quickbar">
+            <a class="quest-quick-btn" href="html/quetes.html#questHistory">Historique</a>
+            <div id="questSyncBadge" class="quest-sync-badge" hidden aria-live="polite">Synced</div>
+        </div>
+        <section class="quest-carousel" aria-label="Liste des qu&#234;tes">
+            <div class="quest-view-toggle" role="group" aria-label="Affichage des qu&#234;tes">
+                <button class="quest-view-toggle-btn is-active tw-press" id="questCarouselViewBtn" type="button" data-view="carousel" aria-pressed="true">Carrousel</button>
+                <button class="quest-view-toggle-btn tw-press" id="questGridViewBtn" type="button" data-view="grid" aria-pressed="false">Grille</button>
+            </div>
+            <button class="quest-arrow quest-arrow--left tw-press" id="questPrevBtn" type="button" aria-label="Qu&#234;tes pr&#233;c&#233;dentes">&#10094;</button>
+            <div class="quest-carousel-viewport" id="questViewport">
+                <div class="quest-track" id="questTrack" aria-live="polite" tabindex="0"></div>
+            </div>
+            <button class="quest-arrow quest-arrow--right tw-press" id="questNextBtn" type="button" aria-label="Qu&#234;tes suivantes">&#10095;</button>
+        </section>
+        <section class="quest-history" id="questHistory" aria-label="Historique des qu&#234;tes">
+            <div class="quest-history-tabs" role="tablist" aria-label="Navigation qu&#234;tes">
+                <button class="quest-history-tab tw-press" type="button" role="tab" aria-selected="false">Qu&#234;tes</button>
+                <button class="quest-history-tab active tw-press" type="button" role="tab" aria-selected="true">Historique</button>
+            </div>
+            <div class="quest-history-header">
+                <h2>Historique</h2>
+                <div class="quest-history-subtitle">Les qu&#234;tes valid&#233;es apparaissent ici.</div>
+            </div>
+            <div class="quest-history-body">
+                <aside class="quest-history-filters tw-panel" aria-label="Categories">
+                    <div class="quest-history-filters-title">Cat&#233;gories</div>
+                    <div class="quest-history-filter-list" id="questHistoryFilters"></div>
+                </aside>
+                <div class="quest-history-table">
+                    <div class="quest-history-meta" id="questHistoryMeta">0 Qu&#234;tes ex&#233;cut&#233;es</div>
+                    <div class="quest-history-title">Mes transactions</div>
+                    <div class="quest-history-table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Rang</th>
+                                    <th>Nom</th>
+                                    <th>Gains</th>
+                                </tr>
+                            </thead>
+                            <tbody id="questHistoryBody"></tbody>
+                        </table>
+                    </div>
+                    <button id="questHistoryLoadMore" class="quest-history-load-more tw-press" type="button" hidden>Charger plus</button>
+                </div>
+            </div>
+        </section>
+    </main>
+    <div class="quest-modal" id="questDetailModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
+        <div class="quest-modal-card" role="dialog" aria-modal="true" aria-labelledby="questDetailTitle">
+            <button class="quest-modal-close tw-press" type="button" data-close="true" aria-label="Fermer">&times;</button>
+            <div class="quest-modal-nav">
+                <button class="quest-modal-arrow tw-press" id="questDetailPrev" type="button" aria-label="Qu&#234;te pr&#233;c&#233;dente">&#10094;</button>
+                <button class="quest-modal-arrow tw-press" id="questDetailNext" type="button" aria-label="Qu&#234;te suivante">&#10095;</button>
+            </div>
+            <div class="quest-modal-content">
+                <aside class="quest-modal-panel quest-modal-panel--rewards">
+                    <h4>R&#233;compenses :</h4>
+                    <ul id="questDetailRewards"></ul>
+                </aside>
+                <div class="quest-modal-center">
+                    <div class="quest-modal-top">
+                        <span class="quest-modal-type" id="questDetailType"></span>
+                        <h3 class="quest-modal-title" id="questDetailTitle">Qu&#234;te</h3>
+                        <span class="quest-rank-badge" id="questDetailRank">F</span>
+                        <span class="quest-status-badge" id="questDetailStatus">Disponible</span>
+                    </div>
+                    <div class="quest-modal-media">
+                        <div class="quest-media-frame">
+                            <button class="quest-media-arrow tw-press" id="questMediaPrev" type="button" aria-label="Image precedente">&#10094;</button>
+                            <img id="questMediaImage" alt="Illustration de qu&#234;te">
+                            <button class="quest-media-arrow tw-press" id="questMediaNext" type="button" aria-label="Image suivante">&#10095;</button>
+                        </div>
+                        <div class="quest-media-dots" id="questMediaDots"></div>
+                    </div>
+                    <div class="quest-info-block">
+                        <h4>Description :</h4>
+                        <p id="questDetailDescription"></p>
+                    </div>
+                </div>
+                <aside class="quest-modal-panel quest-modal-panel--side">
+                    <div class="quest-info-block">
+                        <h4>Lieu(x) :</h4>
+                        <ul id="questDetailLocations"></ul>
+                    </div>
+                    <div class="quest-modal-participants">
+                        <div class="quest-participants-header">
+                            <h4>Participants :</h4>
+                            <span id="questDetailParticipantsCount">(0/0)</span>
+                        </div>
+                        <ul id="questDetailParticipants"></ul>
+                        <div class="quest-admin-participants" data-admin-only hidden>
+                            <label class="quest-admin-participants-label" for="questAdminParticipantSelect">Ajout admin</label>
+                            <div class="quest-admin-participants-row">
+                                <select id="questAdminParticipantSelect" class="quest-admin-participant-select">
+                                    <option value="">Selectionner un personnage...</option>
+                                </select>
+                                <button class="quest-admin-participant-add tw-press" id="questAdminParticipantAddBtn" type="button">
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div class="quest-participants-note quest-participants-note--admin">
+                                Permet d'ajouter un joueur meme s'il n'a pas rejoint la quete lui-meme.
+                            </div>
+                        </div>
+                        <div class="quest-participants-note" id="questDetailNote"></div>
+                    </div>
+                </aside>
+            </div>
+            <div class="quest-modal-actions">
+                <button class="quest-action-btn tw-press" id="questJoinBtn" type="button">Participer</button>
+                <button class="quest-action-btn quest-action-btn--ghost tw-press" id="questEditBtn" type="button" data-admin-only hidden>Modifier</button>
+            </div>
+        </div>
+    </div>
+    <div class="quest-modal quest-modal--editor" id="questEditorModal" aria-hidden="true">
+        <div class="quest-modal-scrim" data-close="true"></div>
+        <div class="quest-modal-card quest-editor-card" role="dialog" aria-modal="true" aria-labelledby="questEditorTitle">
+            <button class="quest-modal-close tw-press" type="button" data-close="true" aria-label="Fermer">&times;</button>
+            <h3 class="quest-modal-title" id="questEditorTitle">Cr&#233;ation de Qu&#234;tes</h3>
+            <form id="questEditorForm" class="quest-editor-form">
+                <div class="quest-editor-layout">
+                    <div class="quest-editor-column quest-editor-column--left">
+                        <label class="quest-editor-field">
+                            <span>Nom de qu&#234;te</span>
+                            <input id="questNameInput" type="text" required>
+                        </label>
+                        <label class="quest-editor-field">
+                            <span>Rang de difficult&#233;</span>
+                            <select id="questRankInput" required></select>
+                        </label>
+                        <label class="quest-editor-field quest-editor-field--hidden">
+                            <span>Acc&#232;s</span>
+                            <select id="questStatusInput">
+                                <option value="available">Disponible</option>
+                                <option value="in_progress">En cours</option>
+                                <option value="locked">Acces restreint</option>
+                            </select>
+                        </label>
+                        <div class="quest-editor-block quest-editor-block--rewards tw-panel tw-surface">
+    <h4>R&#233;compenses</h4>
+    <div class="quest-editor-row quest-rewards-actions">
+        <button id="questOpenItemsModalBtn" type="button" class="tw-press tw-press--primary quest-editor-quick-btn">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des objets
+        </button>
+        <button id="questOpenSkillsModalBtn" type="button" class="tw-press tw-press--primary quest-editor-quick-btn">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des comp&#233;tences
+        </button>
+    </div>
+    <div class="quest-editor-list" id="questRewardsList"></div>
+    <div class="quest-editor-hint">Relier &#224; l'inventaire au moment de l'int&#233;gration.</div>
+</div>
+                        <div class="quest-editor-block quest-editor-block--prerequisites tw-panel tw-surface">
+    <h4>Pr&#233;requis</h4>
+    <div class="quest-editor-row quest-prerequisites-actions">
+        <button id="questOpenPrerequisitesModalBtn" type="button" class="tw-press tw-press--primary quest-editor-quick-btn">
+            <span class="tw-press-icon">+</span>
+            S&#233;lectionner des qu&#234;tes
+        </button>
+    </div>
+    <div class="quest-editor-list" id="questPrerequisitesList"></div>
+    <label class="quest-editor-field">
+        <span>Comp&#233;tences requises (niveau minimum)</span>
+        <input id="questSkillRequirementInput" type="number" min="0" placeholder="Ex: 5">
+    </label>
+</div>
+                        <label class="quest-editor-field">
+                            <span>Participation (1-5)</span>
+                            <input id="questMaxParticipantsInput" type="number" min="1" max="5" value="5">
+                        </label>
+                        <label class="quest-editor-field quest-editor-field--inline">
+                            <span>R&#233;p&#233;tition</span>
+                            <input id="questRepeatableInput" type="checkbox">
+                        </label>
+                    </div>
+                    <div class="quest-editor-column quest-editor-column--right">
+                        <div class="quest-editor-block quest-editor-block--images tw-panel">
+                            <h4>Image</h4>
+                            <div class="quest-editor-image-row">
+                                <button type="button" class="quest-editor-image-preview tw-press" id="questImagePreviewBtn" aria-label="Cliquer pour importer une image">
+                                    <span class="quest-editor-image-placeholder">
+                                        <span class="quest-editor-image-plus">+</span>
+                                        <span class="quest-editor-image-label">Image</span>
+                                    </span>
+                                </button>
+                                <div class="quest-editor-image-controls">
+                                    <button id="questAddImageBtn" type="button" class="quest-editor-upload-btn tw-press">
+                                        <span class="quest-editor-upload-icon">📁</span>
+                                        Importer l'image
+                                    </button>
+                                    <div class="quest-editor-image-note">Recadre en carr&#233; pour garder la taille.</div>
+                                </div>
+                            </div>
+                            <input id="questImageFileInput" type="file" accept="image/*">
+                            <div class="quest-editor-list" id="questImagesList"></div>
+                        </div>
+                        <div class="quest-editor-block tw-panel">
+                            <h4>Type de qu&#234;te</h4>
+                            <select id="questTypeInput" class="quest-editor-select" required>
+                                <option value="">S&#233;lectionner un type</option>
+                                <option value="Exp&#233;dition">Exp&#233;dition</option>
+                                <option value="Chasse">Chasse</option>
+                                <option value="Assistance">Assistance</option>
+                                <option value="Investigation">Investigation</option>
+                                <option value="Evenementiel">Evenementiel</option>
+                            </select>
+                        </div>
+                        <label class="quest-editor-field quest-editor-field--wide">
+                            <span>Description</span>
+                            <textarea id="questDescriptionInput" rows="4"></textarea>
+                        </label>
+                        <label class="quest-editor-field quest-editor-field--wide">
+                            <span>Lieu(x) (s&#233;par&#233;s par des virgules)</span>
+                            <input id="questLocationsInput" type="text" placeholder="For&#234;t d'Aeris, Ruines de Nox">
+                        </label>
+                    </div>
+                </div>
+                <div class="quest-editor-actions">
+                    <button class="quest-action-btn quest-action-btn--ghost tw-press" type="button" data-close="true">Annuler</button>
+                    <button class="quest-action-btn tw-press" type="submit">Enregistrer</button>
+                </div>
+            </form>
+            <div class="quest-editor-side" aria-label="Contr&#244;le d'&#233;tat de qu&#234;te">
+                <div class="quest-editor-status">
+                    <button class="quest-editor-status-dot tw-press" type="button" data-status="available" aria-label="Disponible"></button>
+                    <button class="quest-editor-status-dot tw-press" type="button" data-status="in_progress" aria-label="En cours"></button>
+                    <button class="quest-editor-status-dot tw-press" type="button" data-status="locked" aria-label="Acces restreint"></button>
+                </div>
+                <button class="quest-editor-action quest-editor-action--confirm tw-press" type="submit" form="questEditorForm" aria-label="Enregistrer">&#10003;</button>
+                <button class="quest-editor-action quest-editor-action--cancel tw-press" type="button" data-close="true" aria-label="Annuler">&#10005;</button>
+                <button class="quest-editor-validate tw-press" id="questValidateBtn" type="button" data-admin-only hidden>Validation des participations</button>
+            </div>
+        </div>
+    </div>
+    <!-- Cropper Modal with Backdrop (like items modal) -->
+    <div class="quest-cropper-backdrop" id="questCropperBackdrop" hidden aria-hidden="true">
+        <div class="quest-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="questCropperTitle">
+            <div class="quest-cropper-header">
+                <h2 class="quest-cropper-title" id="questCropperTitle">Recadrer l'image</h2>
+                <button type="button" class="quest-cropper-close tw-press" id="questCropperClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-cropper-body">
+                <div class="quest-cropper-stage">
+                    <img id="questCropperImage" alt="Image to crop">
+                </div>
+
+                <div class="quest-cropper-controls">
+                    <div class="quest-cropper-toolbar">
+                        <button class="quest-tool-btn" id="questCropperRotateLeft" title="Rotation -90°">↺</button>
+                        <button class="quest-tool-btn" id="questCropperRotateRight" title="Rotation +90°">↻</button>
+                        <button class="quest-tool-btn" id="questCropperFlipX" title="Miroir horizontal">↔</button>
+                        <button class="quest-tool-btn" id="questCropperFlipY" title="Miroir vertical">↕</button>
+
+                        <div class="quest-toolbar-divider"></div>
+
+                        <button class="quest-tool-btn" id="questCropperReset" title="Réinitialiser">↺</button>
+                    </div>
+
+                    <div class="quest-cropper-zoom-controls">
+                        <button class="quest-tool-btn" id="questCropperZoomOut" title="Zoom -">−</button>
+                        <span class="quest-zoom-display" id="questCropperZoomDisplay">100%</span>
+                        <input type="range" id="questCropperZoom" aria-label="Zoom de l'image" min="10" max="300" value="100" step="1">
+                        <button class="quest-tool-btn" id="questCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quest-cropper-actions">
+                <button class="quest-action-btn quest-action-btn--ghost tw-press" id="questCropperCancel">Cancel</button>
+                <button class="quest-action-btn tw-press" id="questCropperConfirm">✓ Apply</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de sélection des récompenses -->
+    <div class="quest-items-modal-backdrop" id="questItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Sélectionner des récompenses</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-categories">
+                <button class="quest-items-category-btn active tw-press" data-category="all">
+                    <span class="quest-items-category-icon">📦</span>
+                    <span class="quest-items-category-label">Tous</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="agricole">
+                    <span class="quest-items-category-icon">🌾</span>
+                    <span class="quest-items-category-label">Agricole</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="consommable">
+                    <span class="quest-items-category-icon">🧪</span>
+                    <span class="quest-items-category-label">Consommables</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="equipement">
+                    <span class="quest-items-category-icon">⚔️</span>
+                    <span class="quest-items-category-label">Équipements</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="materiau">
+                    <span class="quest-items-category-icon">⚒️</span>
+                    <span class="quest-items-category-label">Matériaux</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="quete">
+                    <span class="quest-items-category-icon">✨</span>
+                    <span class="quest-items-category-label">Quêtes</span>
+                </button>
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items générés dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Ajouter les récompenses</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de selection des recompenses de competences -->
+    <div class="quest-items-modal-backdrop" id="questSkillsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questSkillsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questSkillsModalTitle">S&#233;lectionner des comp&#233;tences</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questSkillsModalClose" aria-label="Fermer">&times;</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questSkillsSearch" class="quest-items-search-input" placeholder="Rechercher une comp&#233;tence..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-body" id="questSkillsModalBody">
+                <!-- Categories generees dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questSkillsSelectedCount">0 cat&#233;gorie(s) s&#233;lectionn&#233;e(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questSkillsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questSkillsModalConfirm">Ajouter les r&#233;compenses</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="js/ui/performance-mode.js"></script>
+    <!-- External Libraries (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+
+    <!-- Floating UI for tooltips/popovers (~5KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+
+    <!-- Notyf for toast notifications (~6KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+
+    <!-- body-scroll-lock for modal scroll prevention (~2KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+
+    <!-- localForage for IndexedDB/localStorage abstraction (~17KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+
+
+    <!-- Library Wrappers (Astoria) -->
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/storage-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/utils/sanitize.js"></script>
+
+    <script src="js/data.js"></script>
+    <script src="js/scroll-store.js"></script>
+    <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
+    <script type="module" src="js/quetes.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+    <script type="module" src="js/ui/mobile-filters.js"></script>
+    <script type="module" src="js/ui/table-labels.js"></script>
+</body>
+</html>

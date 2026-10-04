@@ -1,0 +1,553 @@
+import { getSupabaseClient } from "./supabase-client.js";
+import {
+    clearActiveCharacter,
+    clearSession,
+    readSession,
+    refreshSessionTimestamp,
+    writeSession
+} from "./session-store.js";
+import { ActionTypes, logActivity } from "./activity-logger.js";
+
+const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isExpired(session) {
+    if (!session || !session.timestamp) return true;
+    return Date.now() - session.timestamp > SESSION_MAX_AGE_MS;
+}
+
+function normalizeUsername(username) {
+    return String(username || "").trim();
+}
+
+async function simpleHash(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(String(str || ""));
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function readPublicUserByUsername(supabase, username) {
+    const { data, error } = await supabase
+        .from("users")
+        .select("id, username, role, is_active, password_hash, auth_user_id")
+        .eq("username", username)
+        .limit(1);
+
+    if (error) return { user: null, error };
+    return { user: Array.isArray(data) && data.length ? data[0] : null, error: null };
+}
+
+async function readPublicUserByAuthId(supabase, authUserId) {
+    const { data, error } = await supabase
+        .from("users")
+        .select("id, username, role, is_active, password_hash, auth_user_id")
+        .eq("auth_user_id", authUserId)
+        .limit(1);
+
+    if (error) return { user: null, error };
+    return { user: Array.isArray(data) && data.length ? data[0] : null, error: null };
+}
+
+// Concurrent callers share one anonymous sign-in: each signInAnonymously()
+// creates a new Supabase auth user (counted in usage), so parallel calls on
+// page load must not each create their own.
+let anonSignInPromise = null;
+
+async function ensureAnonAuthSession(supabase) {
+    const current = await supabase.auth.getSession();
+    const sessionUser = current?.data?.session?.user || null;
+    if (sessionUser) return { user: sessionUser, created: false };
+
+    if (!anonSignInPromise) {
+        anonSignInPromise = supabase.auth.signInAnonymously().finally(() => {
+            anonSignInPromise = null;
+        });
+    }
+    const signed = await anonSignInPromise;
+    if (signed.error || !signed.data?.user) {
+        return { user: null, error: signed.error || new Error("anonymous-auth-failed") };
+    }
+    return { user: signed.data.user, created: true };
+}
+
+async function hasAuthSession(supabase) {
+    try {
+        const current = await supabase.auth.getSession();
+        return Boolean(current?.data?.session?.user);
+    } catch {
+        return false;
+    }
+}
+
+async function getWritableAuthSession(supabase) {
+    try {
+        const current = await supabase.auth.getSession();
+        const session = current?.data?.session || null;
+        if (!session?.user?.id || !session?.access_token) {
+            return null;
+        }
+        return session;
+    } catch {
+        return null;
+    }
+}
+
+async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProvider = "anonymous", stampLogin = false) {
+    if (!publicUserId || !authUserId) return;
+    const payload = { auth_user_id: authUserId, auth_provider: authProvider };
+    if (stampLogin) payload.last_login = new Date().toISOString();
+    await supabase.from("users").update(payload).eq("id", publicUserId);
+}
+
+async function syncAuthProfileMetadata(supabase, { displayName } = {}) {
+    try {
+        const payload = { data: {} };
+        const cleanName = String(displayName || "").trim();
+
+        if (cleanName) {
+            payload.data.display_name = cleanName;
+            payload.data.username = cleanName;
+        }
+
+        if (Object.keys(payload.data).length === 0) {
+            return false;
+        }
+
+        const session = await getWritableAuthSession(supabase);
+        if (!session) {
+            return false;
+        }
+
+        const { error } = await supabase.auth.updateUser(payload);
+        if (error) {
+            const errorName = String(error?.name || "");
+            const errorMessage = String(error?.message || "");
+            if (errorName === "AuthSessionMissingError" || /auth session missing/i.test(errorMessage)) {
+                return false;
+            }
+            console.warn("[Auth] sync auth metadata failed:", error);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.warn("[Auth] sync auth metadata exception:", error);
+        return false;
+    }
+}
+
+function writeAppSession(user) {
+    const session = {
+        user: {
+            id: user.id,
+            username: user.username,
+            role: user.role,
+            auth_user_id: user.auth_user_id || null
+        },
+        timestamp: Date.now()
+    };
+    writeSession(session);
+    return session.user;
+}
+
+export async function login(username, password) {
+    try {
+        const cleanUsername = normalizeUsername(username);
+        if (!cleanUsername || !password) {
+            return { success: false, error: "Nom d'utilisateur et mot de passe requis" };
+        }
+
+        const supabase = await getSupabaseClient();
+        const { user: userRow, error: userError } = await readPublicUserByUsername(supabase, cleanUsername);
+        if (userError) {
+            console.error("[Auth] read user error:", userError);
+            return { success: false, error: "Erreur de connexion" };
+        }
+        if (!userRow) return { success: false, error: "Nom d'utilisateur incorrect" };
+        if (userRow.is_active === false) return { success: false, error: "Compte desactive" };
+
+        const passwordHash = await simpleHash(password);
+        if (passwordHash !== userRow.password_hash) {
+            return { success: false, error: "Mot de passe incorrect" };
+        }
+
+        const anon = await ensureAnonAuthSession(supabase);
+        if (anon.error || !anon.user?.id) {
+            console.error("[Auth] anonymous sign-in error:", anon.error);
+            return { success: false, error: "Session anonyme Supabase impossible" };
+        }
+
+        await linkPublicUserToAuth(supabase, userRow.id, anon.user.id, "anonymous", true);
+
+        const finalUser = {
+            ...userRow,
+            auth_user_id: anon.user.id
+        };
+        const sessionUser = writeAppSession(finalUser);
+
+        await logActivity({
+            actionType: ActionTypes.USER_LOGIN,
+            actionData: {
+                username: sessionUser.username,
+                role: sessionUser.role,
+                auth_mode: "anonymous"
+            },
+            userId: sessionUser.id
+        });
+
+        return { success: true, user: sessionUser };
+    } catch (error) {
+        console.error("[Auth] login error:", error);
+        return { success: false, error: "Erreur de connexion" };
+    }
+}
+
+export async function register(username, password) {
+    try {
+        const cleanUsername = normalizeUsername(username);
+        if (!cleanUsername || !password) {
+            return { success: false, error: "Nom d'utilisateur et mot de passe requis" };
+        }
+
+        const supabase = await getSupabaseClient();
+        const existing = await readPublicUserByUsername(supabase, cleanUsername);
+        if (existing.user) return { success: false, error: "Nom d'utilisateur deja utilise" };
+
+        const anon = await ensureAnonAuthSession(supabase);
+        if (anon.error || !anon.user?.id) {
+            console.error("[Auth] anonymous sign-in error during register:", anon.error);
+            return { success: false, error: "Session anonyme Supabase impossible" };
+        }
+
+        const passwordHash = await simpleHash(password);
+        const { data, error } = await supabase
+            .from("users")
+            .insert([
+                {
+                    username: cleanUsername,
+                    password_hash: passwordHash,
+                    role: "player",
+                    is_active: true,
+                    auth_user_id: anon.user.id,
+                    auth_provider: "anonymous"
+                }
+            ])
+            .select("id, username, role, is_active, auth_user_id")
+            .single();
+
+        if (error || !data) {
+            console.error("[Auth] register insert error:", error);
+            return { success: false, error: "Impossible de creer le compte" };
+        }
+
+        const sessionUser = writeAppSession(data);
+        clearActiveCharacter();
+
+        await logActivity({
+            actionType: ActionTypes.USER_REGISTER,
+            actionData: {
+                username: sessionUser.username,
+                role: sessionUser.role,
+                auth_mode: "anonymous"
+            },
+            userId: sessionUser.id
+        });
+
+        return { success: true, user: sessionUser };
+    } catch (error) {
+        console.error("[Auth] register error:", error);
+        return { success: false, error: "Impossible de creer le compte" };
+    }
+}
+
+export async function logout() {
+    const session = readSession();
+    const user = session?.user;
+
+    try {
+        const supabase = await getSupabaseClient();
+        await supabase.auth.signOut();
+    } catch (signOutErr) {
+        console.warn('[Auth] signOut failed (session locale déjà nettoyée):', signOutErr);
+    }
+
+    clearSession();
+    clearActiveCharacter();
+
+    if (user) {
+        await logActivity({
+            actionType: ActionTypes.USER_LOGOUT,
+            actionData: {
+                username: user.username,
+                role: user.role
+            },
+            userId: user.id
+        });
+    }
+}
+
+export function isAuthenticated() {
+    const session = readSession();
+    if (!session) return false;
+    if (isExpired(session)) return false;
+    refreshSessionTimestamp();
+    return true;
+}
+
+export function getCurrentUser() {
+    const session = readSession();
+    if (!session || isExpired(session)) return null;
+    return session.user || null;
+}
+
+export function isAdmin() {
+    const user = getCurrentUser();
+    return Boolean(user && user.role === "admin");
+}
+
+export async function refreshSessionUser() {
+    try {
+        const supabase = await getSupabaseClient();
+        const localSession = readSession();
+        const localUser = localSession?.user || null;
+
+        // Logged-out visitor with no auth session: a brand-new anonymous user
+        // could not map to any account (result would be the same "not logged
+        // in"), so don't create one.
+        if (!localUser?.id && !(await hasAuthSession(supabase))) {
+            return { success: false };
+        }
+
+        const anon = await ensureAnonAuthSession(supabase);
+        if (anon.error || !anon.user?.id) {
+            clearSession();
+            return { success: false };
+        }
+
+        // Priority 1: keep logged app user and relink auth uid.
+        if (localUser?.id) {
+            await linkPublicUserToAuth(supabase, localUser.id, anon.user.id, "anonymous");
+            const { data, error } = await supabase
+                .from("users")
+                .select("id, username, role, is_active, auth_user_id")
+                .eq("id", localUser.id)
+                .single();
+            if (!error && data) {
+                const sessionUser = writeAppSession(data);
+                return { success: true, user: sessionUser };
+            }
+        }
+
+        // Priority 2: resolve by auth_user_id.
+        const mapped = await readPublicUserByAuthId(supabase, anon.user.id);
+        if (mapped.error) {
+            console.error("[Auth] refresh by auth id error:", mapped.error);
+            clearSession();
+            return { success: false };
+        }
+
+        if (!mapped.user) {
+            return { success: false };
+        }
+
+        const sessionUser = writeAppSession(mapped.user);
+        return { success: true, user: sessionUser };
+    } catch (error) {
+        console.error("[Auth] refresh session error:", error);
+        return { success: false };
+    }
+}
+
+export async function setUserRoleByUsername(username, role) {
+    if (!isAdmin()) {
+        return { success: false, error: "Acces non autorise" };
+    }
+
+    const cleanUsername = normalizeUsername(username);
+    if (!cleanUsername) {
+        return { success: false, error: "Nom d'utilisateur requis" };
+    }
+
+    const nextRole = role === "admin" ? "admin" : "player";
+
+    try {
+        const supabase = await getSupabaseClient();
+        const { data, error } = await supabase
+            .from("users")
+            .update({ role: nextRole })
+            .eq("username", cleanUsername)
+            .select("id, username, role, auth_user_id")
+            .single();
+
+        if (error) {
+            console.error("Error updating user role:", error);
+            return { success: false, error: "Impossible de modifier le role" };
+        }
+
+        const current = getCurrentUser();
+        if (current && current.id === data.id) {
+            writeAppSession(data);
+        }
+
+        return { success: true, user: data };
+    } catch (error) {
+        console.error("Error in setUserRoleByUsername:", error);
+        return { success: false, error: "Impossible de modifier le role" };
+    }
+}
+
+export async function resetUserPassword(username, newPassword) {
+    if (!isAdmin()) {
+        return { success: false, error: "Acces non autorise" };
+    }
+
+    const cleanUsername = normalizeUsername(username);
+    const cleanPassword = String(newPassword || "").trim();
+    if (!cleanUsername || !cleanPassword) {
+        return { success: false, error: "Nom d'utilisateur et mot de passe requis" };
+    }
+
+    try {
+        const supabase = await getSupabaseClient();
+        const { user, error } = await readPublicUserByUsername(supabase, cleanUsername);
+        if (error || !user) {
+            return { success: false, error: "Utilisateur introuvable" };
+        }
+
+        const passwordHash = await simpleHash(cleanPassword);
+        const update = await supabase
+            .from("users")
+            .update({ password_hash: passwordHash })
+            .eq("id", user.id)
+            .select("id, username")
+            .single();
+
+        if (update.error) {
+            console.error("Error resetting password:", update.error);
+            return { success: false, error: "Impossible de reinitialiser le mot de passe" };
+        }
+
+        return { success: true, user: update.data };
+    } catch (error) {
+        console.error("Error in resetUserPassword:", error);
+        return { success: false, error: "Impossible de reinitialiser le mot de passe" };
+    }
+}
+
+export async function resetUserPasswordPublic(username, newPassword) {
+    const cleanUsername = normalizeUsername(username);
+    const cleanPassword = String(newPassword || "").trim();
+    if (!cleanUsername || !cleanPassword) {
+        return { success: false, error: "Nom d'utilisateur et mot de passe requis" };
+    }
+
+    try {
+        const supabase = await getSupabaseClient();
+        const { user, error } = await readPublicUserByUsername(supabase, cleanUsername);
+        if (error || !user) {
+            return { success: false, error: "Utilisateur introuvable" };
+        }
+
+        const authState = await supabase.auth.getUser();
+        const authUserId = authState?.data?.user?.id || null;
+
+        if (authUserId && user.auth_user_id && authUserId === user.auth_user_id) {
+            const authUpdate = await supabase.auth.updateUser({
+                password: cleanPassword,
+                data: {
+                    display_name: user.username,
+                    username: user.username
+                }
+            });
+
+            if (!authUpdate.error) {
+                return {
+                    success: true,
+                    mode: "auth-update",
+                    user: { id: user.id, username: user.username }
+                };
+            }
+        }
+
+        const passwordHash = await simpleHash(cleanPassword);
+        const update = await supabase
+            .from("users")
+            .update({ password_hash: passwordHash })
+            .eq("id", user.id)
+            .select("id, username")
+            .single();
+
+        if (update.error) {
+            console.error("Error resetting password (public):", update.error);
+            return { success: false, error: "Impossible de reinitialiser le mot de passe" };
+        }
+
+        return { success: true, mode: "legacy-hash", user: update.data };
+    } catch (error) {
+        console.error("Error in resetUserPasswordPublic:", error);
+        return { success: false, error: "Impossible de reinitialiser le mot de passe" };
+    }
+}
+
+export async function createAdminUser(username, password) {
+    try {
+        const cleanUsername = normalizeUsername(username);
+        const cleanPassword = String(password || "").trim();
+        if (!cleanUsername || !cleanPassword) {
+            return { success: false, error: "Nom d'utilisateur et mot de passe requis" };
+        }
+
+        const supabase = await getSupabaseClient();
+        const anon = await ensureAnonAuthSession(supabase);
+        const authUserId = anon?.user?.id || null;
+
+        const { user: existing } = await readPublicUserByUsername(supabase, cleanUsername);
+        const passwordHash = await simpleHash(cleanPassword);
+
+        if (existing) {
+            const updated = await supabase
+                .from("users")
+                .update({
+                    role: "admin",
+                    password_hash: passwordHash,
+                    auth_user_id: authUserId || existing.auth_user_id || null,
+                    auth_provider: "anonymous"
+                })
+                .eq("id", existing.id)
+                .select("id, username, role")
+                .single();
+
+            if (updated.error) {
+                console.error("Error updating admin role:", updated.error);
+                return { success: false };
+            }
+            return { success: true, user: updated.data };
+        }
+
+        const created = await supabase
+            .from("users")
+            .insert([
+                {
+                    username: cleanUsername,
+                    password_hash: passwordHash,
+                    role: "admin",
+                    is_active: true,
+                    auth_user_id: authUserId,
+                    auth_provider: "anonymous"
+                }
+            ])
+            .select("id, username, role")
+            .single();
+
+        if (created.error || !created.data) {
+            console.error("Error creating admin:", created.error);
+            return { success: false };
+        }
+
+        return { success: true, user: created.data };
+    } catch (error) {
+        console.error("Error in createAdminUser:", error);
+        return { success: false };
+    }
+}

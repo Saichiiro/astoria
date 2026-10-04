@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hôtel de vente - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/hdv.css">
+</head>
+<body class="min-h-screen">
+    <main class="hdv-page" aria-labelledby="hdvTitle">
+        <header class="page-header">
+            <a href="html/profil.html" class="page-back" title="Retour au profil">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="hdvTitle">Hôtel de vente</h1>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <nav class="hdv-tabs tw-panel" role="tablist" aria-label="Onglets Hôtel de vente">
+            <button class="hdv-tab active tw-press" type="button" role="tab" aria-selected="true" aria-controls="hdvTabSearch" data-tab="search">
+                Rechercher
+            </button>
+            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabMine" data-tab="mine">
+                Mes offres
+            </button>
+            <button class="hdv-tab tw-press" type="button" role="tab" aria-selected="false" aria-controls="hdvTabHistory" data-tab="history">
+                Historique
+            </button>
+        </nav>
+        <section class="hdv-layout" aria-label="Interface Hôtel de vente">
+            <aside class="hdv-sidebar tw-panel" aria-label="Catégories">
+                <h2 class="hdv-sidebar-title">Catégories</h2>
+                <div class="hdv-category-list" id="hdvCategories"></div>
+            </aside>
+            <section class="hdv-content">
+                <div class="hdv-panel active tw-surface tw-panel" id="hdvTabSearch" role="tabpanel" aria-label="Rechercher">
+                    <section class="hdv-filterbar" aria-label="Filtres" data-mobile-filters="Filtres">
+                        <div class="inventory-search" id="hdvSearch" data-search-priority="page">
+                            <button type="button" class="inventory-search-toggle tw-press" id="hdvSearchToggle" aria-label="Rechercher" aria-expanded="false">
+                                <span class="inventory-search-icon">&#x1F50D;</span>
+                            </button>
+                            <input
+                                id="hdvSearchInput"
+                                type="search"
+                                class="inventory-search-input tw-input"
+                                placeholder="Rechercher un item..."
+                                autocomplete="off"
+                                aria-label="Rechercher un item">
+                            <button type="button" class="inventory-search-clear tw-press" id="hdvSearchClear" aria-label="Effacer la recherche" hidden>x</button>
+                            <div class="recent-searches-dropdown inventory-search-history" id="hdvSearchHistory"></div>
+                        </div>
+                        <div class="hdv-filter-group" data-filter-item>
+                            <label class="hdv-filter-label" for="hdvMinLevel">Niv. min</label>
+                            <input class="field-input hdv-filter-input tw-input" id="hdvMinLevel" type="number" min="0" placeholder="0">
+                        </div>
+                        <div class="hdv-filter-group" data-filter-item>
+                            <label class="hdv-filter-label" for="hdvMaxLevel">Niv. max</label>
+                            <input class="field-input hdv-filter-input tw-input" id="hdvMaxLevel" type="number" min="0" placeholder="999">
+                        </div>
+                        <select class="category-dropdown tw-input" id="hdvRaritySelect" data-filter-item aria-label="Rareté">
+                            <option value="all">Toutes raretés</option>
+                            <option value="Inconnue">Inconnue</option>
+                            <option value="Commun">Commun</option>
+                            <option value="Rare">Rare</option>
+                            <option value="&Eacute;pique">&Eacute;pique</option>
+                            <option value="Légendaire">Légendaire</option>
+                        </select>
+                        <div class="hdv-scroll-filter">
+                            <div class="hdv-scroll-panel tw-surface tw-panel" id="hdvScrollTypesPanel" aria-hidden="true">
+                                <div class="hdv-scroll-panel-title">Types de parchemins</div>
+                                <div class="hdv-scroll-panel-list" id="hdvScrollTypesList"></div>
+                                <button class="hdv-scroll-clear tw-press" type="button" id="hdvScrollTypesClear">Tous les types</button>
+                            </div>
+                        </div>
+                        <select class="category-dropdown tw-input" id="hdvSortSelect" data-filter-item aria-label="Tri">
+                            <option value="price_asc">Les moins chers</option>
+                            <option value="price_desc">Les plus chers</option>
+                            <option value="level_desc">Niveau</option>
+                            <option value="recent_desc">Récents</option>
+                        </select>
+                        <label class="hdv-toggle" data-filter-item title="Nécessite d'être connecté">
+                            <input id="hdvAffordableToggle" type="checkbox" disabled>
+                            Je peux l'acheter
+                        </label>
+                    </section>
+                    <div class="filter-chips" id="hdvChips" aria-label="Filtres actifs"></div>
+                    <div class="hdv-status" id="hdvSearchStatus" aria-live="polite"></div>
+                    <div class="table-container tw-panel">
+                        <table aria-label="Résultats Hôtel de vente">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Objet</th>
+                                    <th style="width: 8%;">Niveau</th>
+                                    <th style="width: 13%;">Rareté</th>
+                                    <th style="width: 7%;">Lot</th>
+                                    <th class="hdv-th-price" style="width: 14%;">Prix</th>
+                                    <th style="width: 18%;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hdvListingsBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="hdv-pagination" id="hdvPagination" aria-label="Pagination"></div>
+                </div>
+                <div class="hdv-panel tw-surface tw-panel" id="hdvTabMine" role="tabpanel" aria-label="Mes offres">
+                    <div class="hdv-status" id="hdvMineStatus" aria-live="polite"></div>
+                    <section class="hdv-sell-card tw-surface tw-hover" aria-label="Créer une offre">
+                        <h2 class="hdv-section-title">Créer une offre</h2>
+                        <div class="hdv-sell-form">
+                        <div class="hdv-sell-field">
+                            <label class="hdv-filter-label" for="hdvSellItem">Objet</label>
+                            <select class="field-input tw-input" id="hdvSellItem"></select>
+                            <div class="hdv-help" id="hdvBasePriceHint"></div>
+                        </div>
+                        <div class="hdv-sell-field" id="hdvScrollTypeField" hidden>
+                            <label class="hdv-filter-label" for="hdvScrollTypeSelect">Type de parchemin</label>
+                            <select class="field-input tw-input" id="hdvScrollTypeSelect"></select>
+                        </div>
+                            <div class="hdv-sell-field">
+                                <label class="hdv-filter-label" for="hdvSellQty">Quantité</label>
+                                <input class="field-input tw-input" id="hdvSellQty" type="number" min="1" value="1">
+                            </div>
+                            <div class="hdv-sell-field">
+                                <label class="hdv-filter-label" for="hdvSellUnitPrice">Prix/unité</label>
+                                <input class="field-input tw-input" id="hdvSellUnitPrice" type="number" min="0" value="0">
+                            </div>
+                            <div class="hdv-sell-actions">
+                                <button class="btn-primary hdv-action-btn tw-press" id="hdvCreateListing" type="button">Mettre en vente</button>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="hdv-section" aria-label="Mes ventes actives">
+                        <h2 class="hdv-section-title">Mes offres actives</h2>
+                        <div class="table-container tw-panel">
+                            <table aria-label="Mes offres">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%;">Objet</th>
+                                        <th style="width: 14%;">Lot</th>
+                                        <th style="width: 22%;">Prix</th>
+                                        <th style="width: 14%;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hdvMyListingsBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+                <div class="hdv-panel tw-surface tw-panel" id="hdvTabHistory" role="tabpanel" aria-label="Historique">
+                    <div class="hdv-status" id="hdvHistoryStatus" aria-live="polite"></div>
+                    <section class="hdv-section" aria-label="Transactions">
+                        <h2 class="hdv-section-title">Mes transactions</h2>
+                        <div class="table-container tw-panel">
+                            <table aria-label="Historique des transactions">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 22%;">Date</th>
+                                        <th style="width: 14%;">Type</th>
+                                        <th style="width: 28%;">Objet</th>
+                                        <th style="width: 10%;">Lot</th>
+                                        <th style="width: 20%;">Prix</th>
+                                        <th style="width: 16%;">Profil</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hdvHistoryBody"></tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </section>
+    </main>
+    <script src="js/image-helpers.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/scroll-store.js"></script>
+    <script src="js/item-display-meta.js"></script>
+    <script src="js/ui/list-helpers.js"></script>
+    <script src="js/ui/search-history.js"></script>
+    <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script type="module" src="js/ui/app-shell.js"></script>
+    <script type="module" src="js/hdv.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+    <script type="module" src="js/ui/mobile-filters.js"></script>
+    <script type="module" src="js/ui/table-labels.js"></script>
+</body>
+</html>

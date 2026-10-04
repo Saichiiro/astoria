@@ -1,0 +1,232 @@
+{
+  "_lisezMoi": [
+    "Contenu de la page d'accueil (index.html) : modifie ce fichier, pas le code.",
+    "liens : boutons de l'accueil, dans l'ordre. titre, texte (une ligne), icone (un emoji), url (lien https du site, ouvert dans un nouvel onglet).",
+    "Sans url : vue = royaumes ou glossaire ouvre la fiche intégrée en attendant le site ; sinon le bouton affiche « Lien à venir ».",
+    "royaumes : id unique (minuscules, sans espace), couleur (facultative), nom, position, accroche, description, tags.",
+    "categories : id + libelle, utilisées pour filtrer les termes du glossaire.",
+    "termes : terme, definition, royaume (id d'un royaume ou 'general'), categorie (id), alias (facultatif).",
+    "Une definition vide s'affiche comme 'Définition à venir'.",
+    "brouillon: true = texte provisoire, à valider ou remplacer."
+  ],
+  "presentation": {
+    "surtitre": "Alice Academia",
+    "titre": "Astoria",
+    "accroche": "Un univers de jeu de rôle où chaque royaume propose une vie différente.",
+    "texte": "",
+    "brouillon": true
+  },
+  "liens": [
+    {
+      "id": "royaumes",
+      "titre": "Royaumes",
+      "texte": "Les royaumes d'Astoria et leur façon de vivre.",
+      "icone": "🏰",
+      "url": "https://sites.google.com/view/astoria-royaumes-rp-fr/royaumes",
+      "vue": "royaumes"
+    },
+    {
+      "id": "glossaire",
+      "titre": "Glossaire",
+      "texte": "Les mots de l'univers, expliqués simplement.",
+      "icone": "📖",
+      "url": "",
+      "vue": "glossaire"
+    },
+    {
+      "id": "informations",
+      "titre": "Informations générales",
+      "texte": "Règles, fonctionnement et infos utiles.",
+      "icone": "🧭",
+      "url": ""
+    },
+    {
+      "id": "house",
+      "titre": "House",
+      "texte": "Texte à compléter.",
+      "icone": "🏠",
+      "url": "",
+      "brouillon": true
+    }
+  ],
+  "royaumes": [
+    {
+      "id": "luminara",
+      "couleur": "#c9a227",
+      "nom": "Luminara",
+      "position": "Centre",
+      "accroche": "Empire central, faste éblouissant et hiérarchies visibles",
+      "description": "Le grand royaume humain : immense, riche, structuré, cerné par ses castes, son clergé, son armée et sa noblesse. On y joue le regard des autres, le prestige, la foi, l'image publique et les écarts de statut.",
+      "tags": [
+        "Puissance impériale",
+        "Clergé et noblesse",
+        "Pression sociale"
+      ],
+      "brouillon": true
+    },
+    {
+      "id": "sancturia",
+      "couleur": "#8e5bd6",
+      "nom": "Sancturia",
+      "position": "Ouest",
+      "accroche": "Royaume noble, ancien et plus cérémoniel",
+      "description": "Une élégance plus retenue : la force de Sancturia est dans l'atmosphère, l'héritage, la finesse et la sensation d'un royaume où tout semble plus ancien, plus raffiné et plus mystique.",
+      "tags": [
+        "Lignée royale",
+        "Héritage",
+        "Ambiance cérémonielle"
+      ],
+      "brouillon": true
+    },
+    {
+      "id": "ombresyl",
+      "couleur": "#5b2a6e",
+      "nom": "Ombresyl",
+      "position": "Sud",
+      "accroche": "Royaume maudit où le trône doit pouvoir se prendre",
+      "description": "Le souverain tient parce qu'il a vaincu, et n'importe qui peut lancer un défi. Les races y sont de vraies trajectoires de personnage. Drahven est le cœur politique ; sous le royaume, Erebo ouvre un autre plan de jeu.",
+      "tags": [
+        "Arène du Trône Noir",
+        "Races rejouables",
+        "Pactes"
+      ],
+      "brouillon": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "systeme",
+      "libelle": "Systèmes de jeu"
+    },
+    {
+      "id": "lieu",
+      "libelle": "Lieux"
+    },
+    {
+      "id": "objet",
+      "libelle": "Objets"
+    },
+    {
+      "id": "race",
+      "libelle": "Races"
+    },
+    {
+      "id": "pouvoir",
+      "libelle": "Pouvoirs"
+    }
+  ],
+  "termes": [
+    {
+      "terme": "Kaels",
+      "definition": "Monnaie principale du royaume d'Astoria. Utilisée pour les échanges commerciaux et les transactions.",
+      "royaume": "general",
+      "categorie": "systeme"
+    },
+    {
+      "terme": "Hôtel de vente",
+      "alias": [
+        "HDV"
+      ],
+      "definition": "Marché entre joueurs : chaque personnage peut mettre en vente des objets de son inventaire et acheter ceux des autres contre des kaels.",
+      "royaume": "general",
+      "categorie": "systeme"
+    },
+    {
+      "terme": "Parchemin d'Éveil",
+      "definition": "Parchemin lié à un type de magie, dépensé pour éveiller une affinité magique d'un personnage.",
+      "royaume": "general",
+      "categorie": "objet"
+    },
+    {
+      "terme": "Parchemin d'Ascension",
+      "definition": "Parchemin lié à un type de magie, dépensé pour faire progresser le niveau d'ascension d'une affinité magique.",
+      "royaume": "general",
+      "categorie": "objet"
+    },
+    {
+      "terme": "Nokorah",
+      "definition": "Compagnon d'un personnage, avec une rareté, une apparence et des bonus qui progressent.",
+      "royaume": "general",
+      "categorie": "systeme"
+    },
+    {
+      "terme": "Âmes",
+      "definition": "Ressources d'un personnage, de consommation et de progression.",
+      "royaume": "general",
+      "categorie": "systeme"
+    },
+    {
+      "terme": "Rang",
+      "definition": "Niveau d'un personnage, calculé à partir de ses compétences.",
+      "royaume": "general",
+      "categorie": "systeme"
+    },
+    {
+      "terme": "Alice",
+      "definition": "",
+      "royaume": "general",
+      "categorie": "pouvoir"
+    },
+    {
+      "terme": "Sorcellerie",
+      "definition": "",
+      "royaume": "general",
+      "categorie": "pouvoir"
+    },
+    {
+      "terme": "Eater",
+      "definition": "",
+      "royaume": "general",
+      "categorie": "pouvoir"
+    },
+    {
+      "terme": "Drahven",
+      "definition": "Cœur politique d'Ombresyl.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Velmorah",
+      "definition": "Région d'Ombresyl associée aux momies.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Noctyra",
+      "definition": "Région d'Ombresyl associée aux banshees et aux fantômes.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Volthran",
+      "definition": "Région d'Ombresyl associée aux gargouilles et aux démons.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Namaris",
+      "definition": "Région d'Ombresyl associée aux zombies éveillés.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Erebo",
+      "definition": "Plan situé sous Ombresyl, lié aux âmes damnées, aux pactes et aux retours impossibles.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    },
+    {
+      "terme": "Arène du Trône Noir",
+      "definition": "Lieu où l'on peut défier le souverain d'Ombresyl pour prendre le trône.",
+      "royaume": "ombresyl",
+      "categorie": "lieu",
+      "brouillon": true
+    }
+  ]
+}

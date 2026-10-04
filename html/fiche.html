@@ -1,0 +1,2942 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche de personnage</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/fiche.css">
+    <link rel="stylesheet" href="css/cropper-controls.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+</head>
+<body class="min-h-screen">
+    <main class="fiche-page" aria-labelledby="fichePageTitle">
+        <header class="page-header">
+            <a href="html/personnages.html" class="page-back" title="Retour à l'accueil">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="fichePageTitle">Fiche de personnage</h1>
+                    <div class="fiche-import">
+                        <input id="ficheImportInput" type="file" accept=".txt,.md" hidden>
+                        <button type="button" class="btn-secondary tw-press" id="ficheImportBtn">Importer fiche</button>
+                        <span class="fiche-import-status" id="ficheImportStatus" aria-live="polite"></span>
+                    </div>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial"></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Rôle / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="Âmes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="Âmes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <section class="fiche-container">
+            <!-- Navigation (onglets) -->
+            <nav class="fiche-sidebar" aria-label="Sections de la fiche">
+                <button type="button" class="tab-button active tw-press" data-tab="identite">Identité</button>
+                <button type="button" class="tab-button tw-press" data-tab="appartenance">Appartenance</button>
+                <button type="button" class="tab-button tw-press" data-tab="combat">Combat</button>
+                <button type="button" class="tab-button tw-press" data-tab="alice">Alice</button>
+                <button type="button" class="tab-button tw-press" data-tab="sorcellerie">Sorcellerie</button>
+                <button type="button" class="tab-button tw-press" data-tab="eater">Eater</button>
+                <button type="button" class="tab-button tw-press" data-tab="religion">Religion</button>
+                <button type="button" class="tab-button tw-press" data-tab="mental">Mental</button>
+                <button type="button" class="tab-button tw-press" data-tab="physique">Physique</button>
+                <button type="button" class="tab-button tw-press" data-tab="background">Background</button>
+            </nav>
+            <!-- Contenu -->
+            <section class="fiche-content" aria-live="polite">
+                <form class="fiche-form">
+                    <!-- Identité -->
+                    <section id="tab-identite" class="tab-panel active tw-surface" aria-label="Identité">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Identité</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="identite">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="identiteNomPrenom">Nom &amp; prénom</label>
+                            <input
+                                id="identiteNomPrenom"
+                                class="field-input"
+                                type="text"
+                                placeholder="Nom complet, titres éventuels et patronymes (la noblesse peut avoir un nom long)."
+                            >
+                        </div>
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="identiteAge">&Acirc;ge</label>
+                                <input id="identiteAge" class="field-input" type="text" placeholder="Ex : 17 ans">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="identiteSexe">Sexe</label>
+                                <select id="identiteSexe" class="field-input">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="Féminin">Féminin</option>
+                                    <option value="Masculin">Masculin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="identiteRace">Race</label>
+                                <input id="identiteRace" class="field-input" type="text" placeholder="Race ou espèce (humaine, hybride, etc.)">
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="identiteHierarchieSociale">Hiérarchie sociale</label>
+                                <select id="identiteHierarchieSociale" class="field-input">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="Lignée régente">Lignée régente</option>
+                                    <option value="Clergé">Clergé</option>
+                                    <option value="Haute-Noblesse">Haute-Noblesse</option>
+                                    <option value="Petite-Noblesse">Petite-Noblesse</option>
+                                    <option value="Force Armée">Force Armée</option>
+                                    <option value="Bourgeoisie">Bourgeoisie</option>
+                                    <option value="Paysannerie">Paysannerie</option>
+                                    <option value="Bas Peuple">Bas Peuple</option>
+                                    <option value="Esclaves & Hybrides">Esclaves & Hybrides</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="identitePaysOrigine">Pays d'origine</label>
+                            <select id="identitePaysOrigine" class="field-input">
+                                <option value="">-- Sélectionner --</option>
+                                <option value="Evercrest">Evercrest</option>
+                                <option value="Ombresyl">Ombresyl</option>
+                                <option value="Sancturia">Sancturia</option>
+                                <option value="Luminara">Luminara</option>
+                                <option value="Celestheon">Celestheon</option>
+                                <option value="Avalon">Avalon</option>
+                            </select>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="identitePaysOrigineUrl">URL du Pays d'origine</label>
+                            <input id="identitePaysOrigineUrl" class="field-input" type="url" placeholder="https://...">
+                        </div>
+                        <div class="field-group">
+                            <div class="relations-header">
+                                <label class="field-label">Liens &amp; relations</label>
+                                <button type="button" class="relation-add-btn tw-press" id="addBackgroundRelation">+ Ajouter un lien</button>
+                            </div>
+                            <div class="relations-list" id="backgroundRelations"></div>
+                            <p class="relations-hint">
+                                Ajoute un ID de personnage pour créer un lien direct vers son profil (optionnel).
+                            </p>
+                        </div>
+                    </section>
+                    <!-- Appartenance -->
+                    <section id="tab-appartenance" class="tab-panel tw-surface" aria-label="Appartenance">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Appartenance</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="appartenance">Sauvegarder</button>
+                        </div>
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="appRole">Rôle</label>
+                                <select id="appRole" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="eleve">&Eacute;l&egrave;ve</option>
+                                    <option value="adulte">Adulte</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="appNiveauScolaire">Niveau scolaire</label>
+                                <select id="appNiveauScolaire" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="universite-onyx">Université Onyx</option>
+                                    <option value="universite-diamant">Université Diamant</option>
+                                    <option value="universite-rubis">Université Rubis</option>
+                                    <option value="lycee-emeraude">Lycée Emeraude</option>
+                                    <option value="college-saphir">Collège Saphir</option>
+                                    <option value="primaire-amethyste">Primaire Améthyste</option>
+                                    <option value="maternelle-opale">Maternelle Opale</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="appAffection">Affection</label>
+                                <select id="appAffection" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="civil">Civil</option>
+                                    <option value="sorcier">Sorcier</option>
+                                    <option value="weapon">Weapon</option>
+                                    <option value="meister">Meister</option>
+                                    <option value="alice">Alice</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="appRangEtoile">Rang étoilé</label>
+                                <select id="appRangEtoile" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="sans-etoile">┃├〈⭐》❱→ Sans étoile</option>
+                                    <option value="simple">┃├〈⭐》❱→ Simple</option>
+                                    <option value="double">┃├〈⭐》❱→ Double</option>
+                                    <option value="triple">┃├〈⭐》❱→ Triple</option>
+                                    <option value="major">┃├〈🌟》❱→ Major</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field-group field-group--inline">
+                            <div class="field-group">
+                                <label class="field-label" for="appHouse">House</label>
+                                <select id="appHouse" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="red-spider">┃├〈🕷️》❱→ Red Spider House</option>
+                                    <option value="blue-bear">┃├〈🐻》❱→ Blue Bear House</option>
+                                    <option value="violet-goat">┃├〈🐐》❱→ Violet Goat House</option>
+                                    <option value="green-turtle">┃├〈🐢》❱→ Green Turtle House</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="appHierarchie">Hiérarchie</label>
+                                <input
+                                    id="appHierarchie"
+                                    class="field-input"
+                                    type="text"
+                                    placeholder="Intendant, préfet, étudiant, membre du staff, etc."
+                                >
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Combat -->
+                    <section id="tab-combat" class="tab-panel tw-surface" aria-label="Combat">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Combat</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="combat">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="combatStyle">Style de combat</label>
+                            <textarea
+                                id="combatStyle"
+                                class="field-input field-textarea"
+                                rows="5"
+                                placeholder="Décrivez le style de combat global : posture, philosophie, forces et faiblesses."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="combatArme">Type d'arme</label>
+                            <input
+                                id="combatArme"
+                                class="field-input"
+                                type="text"
+                                placeholder="Type d'arme principale : épée, faux, arme improvisée, etc."
+                            >
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="combatArmeDescription">Description de l'arme</label>
+                            <textarea
+                                id="combatArmeDescription"
+                                class="field-input field-textarea"
+                                rows="4"
+                                placeholder="Décrivez l'apparence, les caractéristiques et les particularités de votre arme..."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Image de l'arme</label>
+                            <input id="combatArmeImage" type="hidden">
+                            <input id="combatArmeImageFile" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="combatArmeImageImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="combatArmeImageClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="combatArmeImagePreviewWrap" hidden>
+                                <img id="combatArmeImagePreview" alt="Aperçu de l'arme">
+                            </div>
+                        </div>
+                        <!-- Combat Techniques Section -->
+                        <div class="combat-techniques-section">
+                            <div class="combat-techniques-header">
+                                <div>
+                                    <h3 class="combat-techniques-title">Techniques de combat</h3>
+                                    <p class="combat-techniques-help">Ajoutez vos techniques de combat (max 3 techniques non-magiques)</p>
+                                </div>
+                                <div class="combat-techniques-actions">
+                                    <select id="combatTechniqueFilter" class="combat-filter" aria-label="Filtrer les techniques">
+                                        <option value="">Toutes les catégories</option>
+                                        <option value="offensif">Offensif</option>
+                                        <option value="defensif">Défensif</option>
+                                        <option value="mobilite">Mobilité</option>
+                                        <option value="controle">Contrôle</option>
+                                    </select>
+                                    <button type="button" class="combat-btn combat-btn-primary tw-press" id="combatAddTechniqueBtn">
+                                        + Ajouter une technique
+                                    </button>
+                                </div>
+                            </div>
+                            <ul class="combat-technique-list" id="combatTechniqueList" aria-label="Liste des techniques">
+                                <!-- Dynamically populated -->
+                            </ul>
+                        </div>
+                    </section>
+<!-- Alice -->
+                    <section id="tab-alice" class="tab-panel tw-surface" aria-label="Alice">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Alice</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="alice">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="aliceStatus">Status Alice</label>
+                            <select id="aliceStatus" class="field-input">
+                                <option value="">Aucune</option>
+                                <option value="simple">Simple Alice</option>
+                                <option value="double">Double Alice</option>
+                            </select>
+                        </div>
+                        <div id="alice-container" class="alice-grid">
+                            <div id="alice-fields" class="conditional-block tw-surface">
+                                <h3 class="alice-subtitle">Alice principale</h3>
+                                <div class="field-group">
+                                    <label class="field-label" for="aliceNom">Nom de l'Alice</label>
+                                    <input id="aliceNom" class="field-input" type="text" placeholder="Nom ou titre de l'Alice.">
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="aliceType">Type</label>
+                                    <select id="aliceType" class="field-input">
+                                        <option value="">-- Sélectionner --</option>
+                                        <option value="Physiques">Physiques</option>
+                                        <option value="Psychiques">Psychiques</option>
+                                        <option value="Technologiques">Technologiques</option>
+                                        <option value="Spéciaux">Spéciaux</option>
+                                        <option value="Dangereux">Dangereux</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="aliceForme">Forme</label>
+                                    <select id="aliceForme" class="field-input">
+                                        <option value="">-- Sélectionner --</option>
+                                        <option value="Enfance">Enfance</option>
+                                        <option value="Diffuse">Diffuse</option>
+                                        <option value="Indéterminée">Indéterminée</option>
+                                        <option value="Limitée">Limitée</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="aliceFiche">Fiche complète (URL)</label>
+                                    <input
+                                        id="aliceFiche"
+                                        class="field-input"
+                                        type="url"
+                                        placeholder="Lien vers la fiche détaillée de l'Alice (si séparée)."
+                                    >
+                                </div>
+                            </div>
+                            <div id="alice2-fields" class="conditional-block alice-secondary-fields tw-surface">
+                                <h3 class="alice-subtitle">Double Alice</h3>
+                                <div class="field-group">
+                                    <label class="field-label" for="alice2Nom">Nom de l'Alice</label>
+                                    <input id="alice2Nom" class="field-input" type="text" placeholder="Nom ou titre de l'Alice.">
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="alice2Type">Type</label>
+                                    <select id="alice2Type" class="field-input">
+                                        <option value="">Sélectionner...</option>
+                                        <option value="Physiques">Physiques</option>
+                                        <option value="Psychiques">Psychiques</option>
+                                        <option value="Technologiques">Technologiques</option>
+                                        <option value="Spéciaux">Spéciaux</option>
+                                        <option value="Dangereux">Dangereux</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="alice2Forme">Forme</label>
+                                    <select id="alice2Forme" class="field-input">
+                                        <option value="">Sélectionner...</option>
+                                        <option value="Enfance">Enfance</option>
+                                        <option value="Diffuse">Diffuse</option>
+                                        <option value="Indéterminée">Indéterminée</option>
+                                        <option value="Limitée">Limitée</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label class="field-label" for="alice2Fiche">Fiche complète (URL)</label>
+                                    <input
+                                        id="alice2Fiche"
+                                        class="field-input"
+                                        type="url"
+                                        placeholder="Lien vers la fiche détaillée de l'Alice (si séparée)."
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Sorcellerie -->
+                    <section id="tab-sorcellerie" class="tab-panel tw-surface" aria-label="Sorcellerie">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Sorcellerie</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="sorcellerie">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">
+                                <input id="hasMagic" type="checkbox">
+                                Possède de la magie
+                            </label>
+                        </div>
+                        <div id="sorcellerie-fields" class="conditional-block tw-surface" hidden>
+                            <p class="fiche-hint">Déblocage par parchemins d'éveil et tags Sorcier.</p>
+                            <div class="field-group">
+                                <label class="field-label" for="sorcelleriePrincipale">Magie principale</label>
+                                <select id="sorcelleriePrincipale" class="field-input">
+                                    <option value="">-- S&eacute;lectionner --</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="sorcellerieSecondaire">Magie secondaire</label>
+                                <select id="sorcellerieSecondaire" class="field-input">
+                                    <option value="">-- S&eacute;lectionner --</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="sorcellerieCachee">Magie cachée</label>
+                                <select id="sorcellerieCachee" class="field-input">
+                                    <option value="">-- S&eacute;lectionner --</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="sorcelleriePotentiel">Potentiel magique</label>
+                                <input
+                                    id="sorcelleriePotentiel"
+                                    class="field-input"
+                                    type="number"
+                                    min="0"
+                                    inputmode="numeric"
+                                    placeholder="Score de potentiel magique."
+                                >
+                            </div>
+                            <div class="magie-sup-actions">
+                                <button type="button" id="addMagieSupplementaire" class="btn-secondary tw-press">+ Ajouter une magie supplémentaire</button>
+                            </div>
+                            <div id="magie-supplementaire-container"></div>
+                            <div class="magie-scroll-panel tw-surface">
+                                <div class="magie-scroll-header">
+                                    <h3 class="magie-scroll-title">Parchemins & affinités</h3>
+                                    <p class="magie-scroll-subtitle">Éveil pour débloquer. L'ascension se gère dans la page magie.</p>
+                                </div>
+                                <div class="magie-scroll-status" id="magieScrollStatus"></div>
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Eater -->
+                    <section id="tab-eater" class="tab-panel tw-surface" aria-label="Eater">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Eater</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="eater">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">
+                                <input id="hasEater" type="checkbox">
+                                Possède une capacité d'âme
+                            </label>
+                        </div>
+                        <div id="eater-fields" class="conditional-block tw-surface" hidden>
+                            <!-- Soul Counter Panel -->
+                            <div class="eater-counter">
+                                <h3 class="eater-counter-title">Compteur d'âmes</h3>
+                                <p class="fiche-hint">Lien automatique avec l'inventaire (ames) : stub.</p>
+                                <div class="field-group field-group--inline">
+                                    <div class="field-group">
+                                        <label class="field-label" for="eaterAmesConso">&Acirc;mes de Consommation</label>
+                                        <input
+                                            id="eaterAmesConso"
+                                            class="field-input"
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
+                                        >
+                                    </div>
+                                    <div class="field-group">
+                                        <label class="field-label" for="eaterAmesProgression">&Acirc;mes de Progression</label>
+                                        <input
+                                            id="eaterAmesProgression"
+                                            class="field-input"
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="eaterRole">Rôle</label>
+                                <select id="eaterRole" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="meister">Meister</option>
+                                    <option value="weapon">Weapon</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="eaterTypeArme">Type d'arme</label>
+                                <select id="eaterTypeArme" class="field-input">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="classique">Simple</option>
+                                    <option value="multi-formes">Multi-formes</option>
+                                    <option value="jumelees">Jumelées</option>
+                                </select>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="eaterDescriptionArme">Description de l'arme</label>
+                                <textarea
+                                    id="eaterDescriptionArme"
+                                    class="field-input field-textarea"
+                                    rows="4"
+                                    placeholder="Description détaillée de l'arme, de ses formes et particularités."
+                                ></textarea>
+                            </div>
+                            <div class="field-group">
+                                <label class="field-label" for="eaterImageArme">Image de l'arme (URL)</label>
+                                <input
+                                    id="eaterImageArme"
+                                    class="field-input"
+                                    type="url"
+                                    placeholder="Lien vers une illustration de l'arme (optionnel)."
+                                >
+                            </div>
+                        </div>
+                    </section>
+                    <!-- Religion -->
+                    <section id="tab-religion" class="tab-panel tw-surface" aria-label="Religion">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Religion</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="religion">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="religionCroyance">Croyance</label>
+                            <textarea
+                                id="religionCroyance"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Religion, panthéon ou croyance principale du personnage."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="religionProphetie">Prophétie</label>
+                            <textarea
+                                id="religionProphetie"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Prophétie, présage ou destinée annoncée (le cas échéant)."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="religionBenediction">Bénédiction</label>
+                            <textarea
+                                id="religionBenediction"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Bénédictions divines, protections, dons particuliers."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="religionMalediction">Malédiction</label>
+                            <textarea
+                                id="religionMalediction"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Malédictions, pactes, contreparties, stigmates."
+                            ></textarea>
+                        </div>
+                    </section>
+                    <!-- Mental -->
+                    <section id="tab-mental" class="tab-panel tw-surface" aria-label="Mental">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Mental</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="mental">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="mentalCaractere">Caractère</label>
+                            <textarea
+                                id="mentalCaractere"
+                                class="field-input field-textarea"
+                                rows="5"
+                                placeholder="5 lignes minimum : tempérament, réactions, qualités, défauts, évolution possible."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="mentalButsReves">But(s) &amp; rêve(s)</label>
+                            <textarea
+                                id="mentalButsReves"
+                                class="field-input field-textarea"
+                                rows="4"
+                                placeholder="Au moins un but et un rêve obligatoires (objectifs de vie, aspirations profondes)."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="mentalAutre">Autre</label>
+                            <textarea
+                                id="mentalAutre"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Particularités du comportement, phobies, TOC, habitudes, etc."
+                            ></textarea>
+                        </div>
+                    </section>
+                    <!-- Physique -->
+                    <section id="tab-physique" class="tab-panel tw-surface" aria-label="Physique">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Physique</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="physique">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="physiqueDescription">Description physique</label>
+                            <textarea
+                                id="physiqueDescription"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="3 lignes minimum : allure, tenues, détails marquants (cicatrices, bijoux, etc.)."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="physiqueSante">Santé</label>
+                            <textarea
+                                id="physiqueSante"
+                                class="field-input field-textarea"
+                                rows="3"
+                                placeholder="Précisez les éventuels problèmes de santé, limitations ou particularités."
+                            ></textarea>
+                        </div>
+                    </section>
+                    <!-- Background -->
+                    <section id="tab-background" class="tab-panel tw-surface" aria-label="Background">
+                        <div class="tab-panel-header">
+                            <h2 class="section-title section-title--inline">Background</h2>
+                            <button type="button" class="save-tab-button tw-press" data-tab="background">Sauvegarder</button>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundFamille">Parents / famille</label>
+                            <textarea
+                                id="backgroundFamille"
+                                class="field-input field-textarea"
+                                rows="4"
+                                placeholder="Famille proche, liens importants, éventuels liens nobles ou religieux."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label" for="backgroundHistoire">Histoire</label>
+                            <textarea
+                                id="backgroundHistoire"
+                                class="field-input field-textarea"
+                                rows="10"
+                                placeholder="Minimum ~2000 caractères (avec espaces). Racontez le parcours complet du personnage, les événements marquants, sa place dans le monde."
+                            ></textarea>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Image 1</label>
+                            <input id="backgroundImage1" type="hidden">
+                            <input id="backgroundImage1File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage1ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage1ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage1PreviewWrap" hidden>
+                                <img id="backgroundImage1Preview" alt="Aperçu image 1">
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Image 2</label>
+                            <input id="backgroundImage2" type="hidden">
+                            <input id="backgroundImage2File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage2ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage2ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage2PreviewWrap" hidden>
+                                <img id="backgroundImage2Preview" alt="Aperçu image 2">
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label class="field-label">Image 3</label>
+                            <input id="backgroundImage3" type="hidden">
+                            <input id="backgroundImage3File" type="file" accept="image/*" hidden>
+                            <div class="weapon-image-row">
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage3ImportBtn">Importer l'image</button>
+                                <button type="button" class="btn-secondary tw-press" id="backgroundImage3ClearBtn">Retirer</button>
+                            </div>
+                            <div class="weapon-image-preview" id="backgroundImage3PreviewWrap" hidden>
+                                <img id="backgroundImage3Preview" alt="Aperçu image 3">
+                            </div>
+                        </div>
+                    </section>
+                </form>
+            </section>
+        </section>
+    </main>
+    <script src="js/data.js"></script>
+    <script src="js/scroll-store.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="js/components/toast-manager.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script type="module" src="js/ui/app-shell.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script>
+        (async function () {
+            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+            const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+            const saveButtons = Array.from(document.querySelectorAll('.save-tab-button'));
+            const dirtyTabs = new Set();
+            const CHARACTER_STORAGE_KEY = 'astoria_active_character';
+            const LEGACY_SUMMARY_KEY = 'astoria_character_summary';
+            const STORAGE_PREFIX = 'fiche';
+            const FICHE_LOCKS_STORAGE_PREFIX = 'fiche-locks';
+            const allTabs = ['identite', 'appartenance', 'combat', 'alice', 'sorcellerie', 'eater', 'religion', 'mental', 'physique', 'background'];
+            let currentCharacterKey = 'default';
+            let currentFicheLocks = {};
+            let summaryModule = null;
+            let summaryElements = null;
+            const relationsContainer = document.getElementById('backgroundRelations');
+            const addRelationBtn = document.getElementById('addBackgroundRelation');
+            const RELATION_TYPES = [
+                { value: 'family', label: 'Famille' },
+                { value: 'friend', label: 'Ami' },
+                { value: 'enemy', label: 'Ennemi' },
+                { value: 'rival', label: 'Rival' },
+                { value: 'romance', label: 'Romantique' },
+                { value: 'mentor', label: 'Mentor' },
+                { value: 'ally', label: 'Allie' }
+            ];
+            const RELATION_ICONS = {
+                friend: '\uD83E\uDD1D'
+            };
+            let authApi = null;
+            try {
+                authApi = await import('./js/auth.js');
+            } catch (error) {
+                authApi = null;
+            }
+            try {
+                summaryModule = await import('./js/ui/character-summary.js');
+            } catch (error) {
+                summaryModule = null;
+            }
+            const summaryState = await summaryModule?.initCharacterSummary({ includeQueryParam: true, enableDropdown: true, showKaels: true }) || null;
+            summaryElements = summaryState?.elements || null;
+            currentCharacterKey = summaryState?.context?.key || currentCharacterKey;
+
+            const combatWeaponImageInput = document.getElementById('combatArmeImage');
+            const combatWeaponFileInput = document.getElementById('combatArmeImageFile');
+            const combatWeaponImportBtn = document.getElementById('combatArmeImageImportBtn');
+            const combatWeaponClearBtn = document.getElementById('combatArmeImageClearBtn');
+            const combatWeaponPreviewWrap = document.getElementById('combatArmeImagePreviewWrap');
+            const combatWeaponPreview = document.getElementById('combatArmeImagePreview');
+            const backgroundImageFields = [
+                {
+                    tabName: 'background',
+                    label: 'Image 1',
+                    input: document.getElementById('backgroundImage1'),
+                    fileInput: document.getElementById('backgroundImage1File'),
+                    importBtn: document.getElementById('backgroundImage1ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage1ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage1PreviewWrap'),
+                    preview: document.getElementById('backgroundImage1Preview')
+                },
+                {
+                    tabName: 'background',
+                    label: 'Image 2',
+                    input: document.getElementById('backgroundImage2'),
+                    fileInput: document.getElementById('backgroundImage2File'),
+                    importBtn: document.getElementById('backgroundImage2ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage2ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage2PreviewWrap'),
+                    preview: document.getElementById('backgroundImage2Preview')
+                },
+                {
+                    tabName: 'background',
+                    label: 'Image 3',
+                    input: document.getElementById('backgroundImage3'),
+                    fileInput: document.getElementById('backgroundImage3File'),
+                    importBtn: document.getElementById('backgroundImage3ImportBtn'),
+                    clearBtn: document.getElementById('backgroundImage3ClearBtn'),
+                    previewWrap: document.getElementById('backgroundImage3PreviewWrap'),
+                    preview: document.getElementById('backgroundImage3Preview')
+                }
+            ];
+            const imageFieldRegistry = [
+                {
+                    tabName: 'combat',
+                    label: "Image de l'arme",
+                    input: combatWeaponImageInput,
+                    fileInput: combatWeaponFileInput,
+                    importBtn: combatWeaponImportBtn,
+                    clearBtn: combatWeaponClearBtn,
+                    previewWrap: combatWeaponPreviewWrap,
+                    preview: combatWeaponPreview
+                },
+                ...backgroundImageFields
+            ];
+
+            const combatWeaponCropperBackdrop = document.getElementById('combatWeaponCropperBackdrop');
+            const combatWeaponCropperImage = document.getElementById('combatWeaponCropperImage');
+            const combatWeaponCropperClose = document.getElementById('combatWeaponCropperClose');
+            const combatWeaponCropperCancel = document.getElementById('combatWeaponCropperCancel');
+            const combatWeaponCropperConfirm = document.getElementById('combatWeaponCropperConfirm');
+            const combatWeaponCropperRotateLeft = document.getElementById('combatWeaponCropperRotateLeft');
+            const combatWeaponCropperRotateRight = document.getElementById('combatWeaponCropperRotateRight');
+            const combatWeaponCropperReset = document.getElementById('combatWeaponCropperReset');
+            const combatWeaponCropperZoomIn = document.getElementById('combatWeaponCropperZoomIn');
+            const combatWeaponCropperZoomOut = document.getElementById('combatWeaponCropperZoomOut');
+            const combatWeaponCropperZoomDisplay = document.getElementById('combatWeaponCropperZoomDisplay');
+
+            let activeImageField = null;
+
+            function updateImagePreview(field) {
+                if (!field?.input || !field?.previewWrap || !field?.preview) return;
+                const value = String(field.input.value || '').trim();
+                if (!value) {
+                    field.previewWrap.hidden = true;
+                    field.preview.removeAttribute('src');
+                    return;
+                }
+                field.preview.src = value;
+                field.previewWrap.hidden = false;
+            }
+
+            function updateAllImagePreviews() {
+                imageFieldRegistry.forEach(updateImagePreview);
+            }
+
+            function blobToDataUrl(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.onerror = () => reject(new Error('read_failed'));
+                    reader.readAsDataURL(blob);
+                });
+            }
+
+            function closeImageCropper() {
+                if (combatWeaponCropperBackdrop?.contains(document.activeElement)) {
+                    document.activeElement?.blur?.();
+                    activeImageField?.importBtn?.focus?.();
+                }
+                window.uploaderCropper?.destroy?.();
+                if (combatWeaponCropperBackdrop) {
+                    if (window.modalManager?.isOpen?.(combatWeaponCropperBackdrop)) {
+                        window.modalManager.close(combatWeaponCropperBackdrop);
+                    } else {
+                        combatWeaponCropperBackdrop.hidden = true;
+                        combatWeaponCropperBackdrop.classList.remove('open');
+                        combatWeaponCropperBackdrop.setAttribute('aria-hidden', 'true');
+                    }
+                }
+                if (combatWeaponCropperImage) {
+                    combatWeaponCropperImage.removeAttribute('src');
+                }
+                activeImageField = null;
+            }
+
+            function updateCropperZoomLabel() {
+                if (!window.uploaderCropper || !combatWeaponCropperZoomDisplay) return;
+                const zoomPercent = window.uploaderCropper.getZoomPercent?.() || 100;
+                combatWeaponCropperZoomDisplay.textContent = `${zoomPercent}%`;
+            }
+
+            function openImageCropper(file, field) {
+                if (!file || !field || !combatWeaponCropperImage || !window.uploaderCropper) return;
+                activeImageField = field;
+                const title = document.getElementById('combatWeaponCropperTitle');
+                if (title) {
+                    title.textContent = `Recadrer ${field.label.toLowerCase()}`;
+                }
+                if (combatWeaponCropperBackdrop) {
+                    if (window.modalManager?.open) {
+                        window.modalManager.open(combatWeaponCropperBackdrop, {
+                            closeOnBackdropClick: true,
+                            closeOnEsc: true,
+                            openClass: 'open',
+                            focusElement: combatWeaponCropperConfirm
+                        });
+                    } else {
+                        combatWeaponCropperBackdrop.hidden = false;
+                        combatWeaponCropperBackdrop.classList.add('open');
+                        combatWeaponCropperBackdrop.setAttribute('aria-hidden', 'false');
+                    }
+                }
+                const opened = window.uploaderCropper.open(file, {
+                    imageElement: combatWeaponCropperImage,
+                    aspectRatio: NaN,
+                    outputWidth: 700,
+                    outputHeight: 700,
+                    quality: 0.9,
+                    outputFormat: 'image/jpeg',
+                    enableRotate: true,
+                    enableZoom: true,
+                    onZoomChange: () => updateCropperZoomLabel()
+                });
+                if (!opened) {
+                    closeImageCropper();
+                } else {
+                    updateCropperZoomLabel();
+                }
+            }
+            function updateRelationLink(row) {
+                const input = row.querySelector('.relation-character');
+                const link = row.querySelector('.relation-link-btn');
+                if (!input || !link) return;
+                const value = input.value.trim();
+                if (!value) {
+                    link.hidden = true;
+                    link.removeAttribute('href');
+                    return;
+                }
+                link.hidden = false;
+                link.href = `html/profil.html?character=${encodeURIComponent(value)}`;
+            }
+            function updateRelationIcon(row) {
+                const iconEl = row.querySelector('.relation-icon');
+                const typeSelect = row.querySelector('.relation-type');
+                if (!iconEl || !typeSelect) return;
+                const icon = RELATION_ICONS[typeSelect.value] || '';
+                iconEl.textContent = icon;
+                iconEl.hidden = !icon;
+                if (icon) {
+                    iconEl.title = 'Amitie';
+                } else {
+                    iconEl.removeAttribute('title');
+                }
+            }
+            function createRelationRow(data) {
+                const row = document.createElement('div');
+                row.className = 'relation-row';
+                const nameInput = document.createElement('input');
+                nameInput.className = 'field-input relation-name';
+                nameInput.type = 'text';
+                nameInput.placeholder = 'Nom du lien';
+                const typeSelect = document.createElement('select');
+                typeSelect.className = 'field-input relation-type';
+                RELATION_TYPES.forEach((optionData) => {
+                    const option = document.createElement('option');
+                    option.value = optionData.value;
+                    option.textContent = optionData.label;
+                    typeSelect.appendChild(option);
+                });
+                const charInput = document.createElement('input');
+                charInput.className = 'field-input relation-character';
+                charInput.type = 'text';
+                charInput.placeholder = 'ID personnage (optionnel)';
+                const link = document.createElement('a');
+                link.className = 'relation-link-btn';
+                link.textContent = 'Voir profil';
+                link.target = '_blank';
+                link.rel = 'noopener';
+                link.hidden = true;
+                const icon = document.createElement('span');
+                icon.className = 'relation-icon';
+                icon.hidden = true;
+                icon.setAttribute('aria-hidden', 'true');
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'relation-remove-btn';
+                removeBtn.textContent = 'Retirer';
+                row.append(nameInput, typeSelect, charInput, icon, link, removeBtn);
+                if (data) {
+                    if (data.name) nameInput.value = data.name;
+                    if (data.type) typeSelect.value = data.type;
+                    if (data.characterId) charInput.value = data.characterId;
+                }
+                updateRelationLink(row);
+                updateRelationIcon(row);
+                const markDirty = () => markTabDirty('background');
+                nameInput.addEventListener('input', markDirty);
+                typeSelect.addEventListener('change', () => {
+                    updateRelationIcon(row);
+                    markDirty();
+                });
+                charInput.addEventListener('input', () => {
+                    updateRelationLink(row);
+                    markDirty();
+                });
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                    markDirty();
+                });
+                return row;
+            }
+            function collectRelations() {
+                if (!relationsContainer) return [];
+                const rows = Array.from(relationsContainer.querySelectorAll('.relation-row'));
+                return rows
+                    .map((row) => {
+                        const name = row.querySelector('.relation-name')?.value.trim() || '';
+                        const type = row.querySelector('.relation-type')?.value || '';
+                        const characterId = row.querySelector('.relation-character')?.value.trim() || '';
+                        if (!name && !type && !characterId) return null;
+                        return { name, type, characterId };
+                    })
+                    .filter(Boolean);
+            }
+            function restoreRelations(relations) {
+                if (!relationsContainer) return;
+                relationsContainer.innerHTML = '';
+                (relations || []).forEach((relation) => {
+                    relationsContainer.appendChild(createRelationRow(relation));
+                });
+            }
+            function getInputValue(id) {
+                const input = document.getElementById(id);
+                return input ? input.value.trim() : '';
+            }
+            function getSelectLabel(id) {
+                const select = document.getElementById(id);
+                if (!select) return '';
+                if (!select.value) return '';
+                const option = select.options[select.selectedIndex];
+                return option ? option.textContent.trim() : '';
+            }
+            function syncProfileFromFiche() {
+                const active = summaryModule?.getActiveCharacterFromStorage
+                    ? summaryModule.getActiveCharacterFromStorage()
+                    : null;
+                const name = getInputValue('identiteNomPrenom');
+                const race = getInputValue('identiteRace');
+                const roleLabel = getSelectLabel('appRole');
+                const profileData = active?.profile_data || {};
+                const avatarUrl = profileData.avatar_url || '';
+                const roleText = [race, roleLabel].filter(Boolean).join(' - ');
+                const summary = {
+                    id: active?.id || null,
+                    name: name || active?.name || 'Personnage',
+                    role: roleText || 'Classe / Role / Surnom',
+                    avatar_url: avatarUrl
+                };
+                if (summary.id) {
+                    try {
+                        localStorage.setItem(LEGACY_SUMMARY_KEY, JSON.stringify(summary));
+                    } catch {}
+                }
+                if (active && active.id) {
+                    const next = { ...active };
+                    if (name) next.name = name;
+                    if (race) next.race = race;
+                    if (roleLabel) next.class = roleLabel;
+                    next.profile_data = { ...profileData, fiche_summary: summary };
+                    try {
+                        localStorage.setItem(CHARACTER_STORAGE_KEY, JSON.stringify(next));
+                    } catch {}
+                }
+                if (summaryModule?.applySummaryToElements) {
+                    summaryModule.applySummaryToElements(summaryElements, summary);
+                }
+                if (authApi?.updateCharacter && active?.id) {
+                    // Async IIFE: fetch full profile_data before write to avoid wiping
+                    // fields (competences, inventory, etc.) stripped by session-store.
+                    (async () => {
+                        let freshProfile = null;
+                        const cached = window.astoriaActiveCharacter;
+                        if (cached?.id === active.id && cached.profile_data) {
+                            freshProfile = cached.profile_data;
+                        } else {
+                            try {
+                                const fresh = await authApi.getCharacterById?.(active.id);
+                                if (fresh?.profile_data) {
+                                    freshProfile = fresh.profile_data;
+                                    try { window.astoriaActiveCharacter = fresh; } catch {}
+                                }
+                            } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                        }
+                        const safeProfile = freshProfile || profileData;
+                        const updates = {
+                            profile_data: {
+                                ...safeProfile,
+                                fiche_summary: summary,
+                                fiche_locks: {
+                                    ...(safeProfile.fiche_locks || {}),
+                                    ...currentFicheLocks
+                                }
+                            }
+                        };
+                        if (name) updates.name = name;
+                        if (race) updates.race = race;
+                        if (roleLabel) updates.class = roleLabel;
+                        authApi.updateCharacter(active.id, updates).catch(() => {});
+                    })();
+                }
+            }
+            /**
+             * Synchronise les sélections de la fiche avec les tags du profil
+             * Les tags sont automatiquement activés en fonction des choix de l'utilisateur
+             */
+            function syncProfileTags() {
+                if (!currentCharacterKey) return;
+                const profileTagsKey = `profile-tags-${currentCharacterKey}`;
+                const metadataKey = `profile-tags-${currentCharacterKey}-metadata`;
+                let selectedTagIds = JSON.parse(localStorage.getItem(profileTagsKey) || '[]');
+                let metadata = JSON.parse(localStorage.getItem(metadataKey) || '{"autoSynced": []}');
+                // S'assurer que c'est un tableau
+                if (!Array.isArray(selectedTagIds)) {
+                    selectedTagIds = [];
+                }
+                if (!metadata.autoSynced || !Array.isArray(metadata.autoSynced)) {
+                    metadata.autoSynced = [];
+                }
+                // Table de mapping complète: 10 champs → tags
+                const fieldToTagMapping = {
+                    'identiteSexe': {
+                        'Féminin': 'gender_f',
+                        'Masculin': 'gender_m'
+                    },
+                    'identiteHierarchieSociale': {
+                        'Lignée régente': 'hierarchy_regent',
+                        'Clergé': 'hierarchy_clergy',
+                        'Haute-Noblesse': 'hierarchy_high_nobility',
+                        'Petite-Noblesse': 'hierarchy_low_nobility',
+                        'Force Armée': 'hierarchy_army',
+                        'Bourgeoisie': 'hierarchy_bourgeoisie',
+                        'Paysannerie': 'hierarchy_peasantry',
+                        'Bas Peuple': 'hierarchy_low_people',
+                        'Esclaves & Hybrides': 'hierarchy_slaves'
+                    },
+                    'identitePaysOrigine': {
+                        'Evercrest': 'kingdom_evercrest',
+                        'Ombresyl': 'kingdom_ombresyl',
+                        'Sancturia': 'kingdom_sancturia',
+                        'Luminara': 'kingdom_luminara',
+                        'Celestheon': 'kingdom_celestheon',
+                        'Avalon': 'kingdom_avalon'
+                    },
+                    'appAffection': {
+                        'meister': 'identity_meister',
+                        'weapon': 'identity_weapon',
+                        'alice': 'identity_alice',
+                        'sorcier': 'identity_witch',
+                        'civil': 'identity_none'
+                    },
+                    'appNiveauScolaire': {
+                        'universite-onyx': 'school_onyx',
+                        'universite-diamant': 'school_diamond',
+                        'universite-rubis': 'school_ruby',
+                        'lycee-emeraude': 'school_emerald',
+                        'college-saphir': 'school_sapphire',
+                        'primaire-amethyste': 'school_amethyst',
+                        'maternelle-opale': 'school_opal'
+                    },
+                    'appRangEtoile': {
+                        'sans-etoile': 'rank_0',
+                        'simple': 'rank_1',
+                        'double': 'rank_2',
+                        'triple': 'rank_3',
+                        'major': 'rank_major'
+                    },
+                    'appHouse': {
+                        'red-spider': 'house_red_spider',
+                        'blue-bear': 'house_blue_bear',
+                        'violet-goat': 'house_violet_goat',
+                        'green-turtle': 'house_green_turtle'
+                    },
+                    'eaterTypeArme': {
+                        'classique': 'weapon_simple',
+                        'multi-formes': 'weapon_multi',
+                        'jumelees': 'weapon_twins'
+                    },
+                    'aliceStatus': {
+                        'simple': 'alice_simple',
+                        'double': 'alice_double'
+                    },
+                    'aliceType': {
+                        'Physiques': 'alice_physical',
+                        'Psychiques': 'alice_psychic',
+                        'Technologiques': 'alice_tech',
+                        'Spéciaux': 'alice_special',
+                        'Dangereux': 'alice_danger'
+                    },
+                    'aliceForme': {
+                        'Enfance': 'alice_child',
+                        'Diffuse': 'alice_diffuse',
+                        'Indéterminée': 'alice_unknown',
+                        'Limitée': 'alice_limited'
+                    },
+                    'alice2Type': {
+                        'Physiques': 'alice_physical',
+                        'Psychiques': 'alice_psychic',
+                        'Technologiques': 'alice_tech',
+                        'Spéciaux': 'alice_special',
+                        'Dangereux': 'alice_danger'
+                    },
+                    'alice2Forme': {
+                        'Enfance': 'alice_child',
+                        'Diffuse': 'alice_diffuse',
+                        'Indéterminée': 'alice_unknown',
+                        'Limitée': 'alice_limited'
+                    }
+                };
+                // Collecter tous les tags à auto-synchroniser selon les valeurs actuelles du formulaire
+                const newAutoSyncedTags = [];
+                Object.keys(fieldToTagMapping).forEach(fieldId => {
+                    const element = document.getElementById(fieldId);
+                    if (!element) return;
+                    const value = element.value;
+                    if (!value) return;
+                    const tagId = fieldToTagMapping[fieldId][value];
+                    if (tagId) {
+                        newAutoSyncedTags.push(tagId);
+                        if (!selectedTagIds.includes(tagId)) {
+                            selectedTagIds.push(tagId);
+                        }
+                    }
+                });
+                // Retirer les anciens tags auto-synchronisés qui ne sont plus sélectionnés
+                const oldAutoSyncedTags = metadata.autoSynced || [];
+                const tagsToRemove = oldAutoSyncedTags.filter(tag => !newAutoSyncedTags.includes(tag));
+                tagsToRemove.forEach(tagId => {
+                    const index = selectedTagIds.indexOf(tagId);
+                    if (index > -1) {
+                        selectedTagIds.splice(index, 1);
+                    }
+                });
+                // Mettre à jour les métadonnées
+                metadata.autoSynced = newAutoSyncedTags;
+                // Sauvegarder
+                localStorage.setItem(profileTagsKey, JSON.stringify(selectedTagIds));
+                localStorage.setItem(metadataKey, JSON.stringify(metadata));
+            }
+            function getTabStorageKey(tabName) {
+                return `${STORAGE_PREFIX}-${currentCharacterKey}-${tabName}`;
+            }
+            function getLegacyTabStorageKey(tabName) {
+                return `${STORAGE_PREFIX}-${tabName}`;
+            }
+            function isAdminMode() {
+                return Boolean(authApi?.isAdmin?.());
+            }
+            function getFicheLocksStorageKey() {
+                return `${FICHE_LOCKS_STORAGE_PREFIX}-${currentCharacterKey}`;
+            }
+            function normalizeFicheLocks(rawLocks) {
+                const locks = {};
+                allTabs.forEach((tabName) => {
+                    locks[tabName] = Boolean(rawLocks?.[tabName]);
+                });
+                return locks;
+            }
+            function readFicheLocksFromStorage() {
+                try {
+                    const raw = localStorage.getItem(getFicheLocksStorageKey());
+                    return raw ? normalizeFicheLocks(JSON.parse(raw)) : normalizeFicheLocks({});
+                } catch {
+                    return normalizeFicheLocks({});
+                }
+            }
+            function readFicheLocksFromProfile() {
+                const character = authApi?.getActiveCharacter?.();
+                return normalizeFicheLocks(character?.profile_data?.fiche_locks || {});
+            }
+            function persistFicheLocksToStorage() {
+                try {
+                    localStorage.setItem(getFicheLocksStorageKey(), JSON.stringify(currentFicheLocks));
+                } catch {}
+            }
+            function loadFicheLocks() {
+                const localLocks = readFicheLocksFromStorage();
+                const profileLocks = readFicheLocksFromProfile();
+                currentFicheLocks = normalizeFicheLocks(
+                    allTabs.reduce((acc, tabName) => {
+                        acc[tabName] = Boolean(localLocks[tabName] || profileLocks[tabName]);
+                        return acc;
+                    }, {})
+                );
+                persistFicheLocksToStorage();
+            }
+            function isPlayerTabLocked(tabName) {
+                return !isAdminMode() && Boolean(currentFicheLocks?.[tabName]);
+            }
+            function hasMeaningfulValue(key, value) {
+                if (key && String(key).endsWith('File')) return false;
+                if (value === null || value === undefined) return false;
+                if (typeof value === 'boolean') return value;
+                if (Array.isArray(value)) return value.some((entry) => hasMeaningfulValue(key, entry));
+                if (typeof value === 'object') {
+                    return Object.entries(value).some(([childKey, childValue]) => hasMeaningfulValue(childKey, childValue));
+                }
+                return String(value).trim() !== '';
+            }
+            function hasMeaningfulTabData(data) {
+                return Object.entries(data || {}).some(([key, value]) => hasMeaningfulValue(key, value));
+            }
+            function updateSaveButtonLockState(tabName) {
+                const saveBtn = document.querySelector(`.save-tab-button[data-tab="${tabName}"]`);
+                if (!saveBtn) return;
+                const locked = isPlayerTabLocked(tabName);
+                saveBtn.classList.toggle('save-tab-button--locked', locked);
+                saveBtn.classList.remove('save-button--highlight');
+                saveBtn.disabled = locked;
+                saveBtn.textContent = locked ? 'Verrouille' : 'Sauvegarder';
+                saveBtn.title = locked ? 'Ce volet est verrouille pour le joueur. Un admin peut encore le modifier.' : '';
+            }
+            function applyTabLockState(tabName) {
+                const panel = document.getElementById('tab-' + tabName);
+                if (!panel) return;
+                const locked = isPlayerTabLocked(tabName);
+                panel.classList.toggle('tab-panel--locked', locked);
+                panel.setAttribute('aria-readonly', locked ? 'true' : 'false');
+                panel.querySelectorAll('input, select, textarea, button').forEach((element) => {
+                    if (element.classList.contains('save-tab-button')) return;
+                    if (element.matches('input[type="text"], input[type="url"], input[type="number"], textarea')) {
+                        element.readOnly = locked;
+                    } else if ('disabled' in element) {
+                        element.disabled = locked;
+                    }
+                });
+                panel.querySelectorAll('.relation-link-btn').forEach((link) => {
+                    link.classList.toggle('relation-link-btn--readonly', locked);
+                });
+                updateSaveButtonLockState(tabName);
+            }
+            function applyAllTabLockStates() {
+                allTabs.forEach(applyTabLockState);
+            }
+            async function syncFicheLocksToProfile() {
+                if (isAdminMode()) return;
+                const character = authApi?.getActiveCharacter?.();
+                if (!character?.id || !authApi?.updateCharacter) return;
+
+                let freshProfile = null;
+                const cached = window.astoriaActiveCharacter;
+                if (cached?.id === character.id && cached.profile_data) {
+                    freshProfile = cached.profile_data;
+                } else {
+                    try {
+                        const fresh = await authApi.getCharacterById?.(character.id);
+                        if (fresh?.profile_data) {
+                            freshProfile = fresh.profile_data;
+                            try { window.astoriaActiveCharacter = fresh; } catch {}
+                        }
+                    } catch (error) {
+                        console.warn('[Fiche] fetch fresh profile for locks failed:', error);
+                    }
+                }
+
+                const profileData = freshProfile || character.profile_data || {};
+                const nextProfileData = {
+                    ...profileData,
+                    fiche_locks: {
+                        ...(profileData.fiche_locks || {}),
+                        ...currentFicheLocks
+                    }
+                };
+
+                try {
+                    await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
+                } catch (error) {
+                    console.warn('[Fiche] failed to sync fiche locks:', error);
+                }
+            }
+            function finalizePlayerTabLock(tabName, data) {
+                if (isAdminMode() || isPlayerTabLocked(tabName) || !hasMeaningfulTabData(data)) return;
+                currentFicheLocks[tabName] = true;
+                persistFicheLocksToStorage();
+                applyTabLockState(tabName);
+                void syncFicheLocksToProfile();
+                if (window.toastManager?.info) {
+                    window.toastManager.info(`Le volet ${tabName} est maintenant verrouille pour le joueur.`);
+                }
+            }
+            function clearAllDirty() {
+                dirtyTabs.clear();
+                saveButtons.forEach((btn) => btn.classList.remove('save-button--highlight'));
+            }
+            // Combat Techniques Variables
+            let combatTechniques = [];
+            let editingTechniqueId = null;
+            let techniqueNextId = 1;
+            // Tab switching
+            tabButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                    const target = button.dataset.tab;
+                    if (!target) return;
+                    tabButtons.forEach((btn) => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    tabPanels.forEach((panel) => {
+                        const isActive = panel.id === 'tab-' + target;
+                        panel.classList.toggle('active', isActive);
+                        panel.hidden = !isActive;
+                    });
+                });
+            });
+            // Alice status dropdown visibility
+            const aliceContainer = document.getElementById('alice-container');
+            const aliceFields = document.getElementById('alice-fields');
+            const alice2Fields = document.getElementById('alice2-fields');
+            const updateAliceVisibility = () => {
+                const aliceStatusSelect = document.getElementById('aliceStatus');
+                if (!aliceStatusSelect) return;
+                const status = aliceStatusSelect.value;
+                if (!aliceContainer || !alice2Fields) return;
+                // Logique de visibilité basée sur le menu déroulant
+                if (status === '') {
+                    // Aucune Alice sélectionnée
+                    aliceContainer.style.display = 'none';
+                } else if (status === 'simple') {
+                    // Simple Alice : afficher uniquement alice-fields en mode block
+                    aliceContainer.style.display = 'block';
+                    if (aliceFields) aliceFields.style.display = 'block';
+                    alice2Fields.style.display = 'none';
+                } else if (status === 'double') {
+                    // Double Alice : afficher les deux colonnes en mode grid
+                    aliceContainer.style.display = 'grid';
+                    if (aliceFields) aliceFields.style.display = 'block';
+                    alice2Fields.style.display = 'block';
+                }
+            };
+            const aliceStatusSelect = document.getElementById('aliceStatus');
+            const hasEaterToggle = document.getElementById('hasEater');
+
+            function syncAliceEaterExclusion() {
+                if (hasEaterToggle?.checked) {
+                    if (aliceStatusSelect && aliceStatusSelect.value) {
+                        aliceStatusSelect.value = '';
+                        updateAliceVisibility();
+                    }
+                }
+                if (aliceStatusSelect?.value) {
+                    if (hasEaterToggle && hasEaterToggle.checked) {
+                        hasEaterToggle.checked = false;
+                        updateConditionalVisibility();
+                    }
+                }
+            }
+
+            if (aliceStatusSelect) {
+                aliceStatusSelect.addEventListener('change', () => {
+                    updateAliceVisibility();
+                    syncAliceEaterExclusion();
+                });
+            }
+            if (hasEaterToggle) {
+                hasEaterToggle.addEventListener('change', () => {
+                    syncAliceEaterExclusion();
+                });
+            }
+            // Other conditional visibility
+            const conditionalConfigs = [
+                { checkboxId: 'hasMagic', panelId: 'sorcellerie-fields' },
+                { checkboxId: 'hasEater', panelId: 'eater-fields' }
+            ];
+            conditionalConfigs.forEach(({ checkboxId, panelId }) => {
+                const checkbox = document.getElementById(checkboxId);
+                const panel = document.getElementById(panelId);
+                if (!checkbox || !panel) return;
+                checkbox.addEventListener('change', updateConditionalVisibility);
+            });
+            function updateConditionalVisibility() {
+                conditionalConfigs.forEach(({ checkboxId, panelId }) => {
+                    const checkbox = document.getElementById(checkboxId);
+                    const panel = document.getElementById(panelId);
+                    if (!checkbox || !panel) return;
+                    panel.hidden = !checkbox.checked;
+                });
+            }
+            updateConditionalVisibility();
+            // Magic options - used for all magic dropdowns
+            const FALLBACK_SCROLL_EMOJI = String.fromCodePoint(0x2728);
+            const FALLBACK_MAGIC_AFFINITIES = [
+                { key: 'feu', label: 'Feu', emoji: String.fromCodePoint(0x1F525) },
+                { key: 'eau', label: 'Eau', emoji: String.fromCodePoint(0x1F4A7) },
+                { key: 'vent', label: 'Vent', emoji: String.fromCodePoint(0x1F32C) },
+                { key: 'terre', label: 'Terre', emoji: String.fromCodePoint(0x1FAA8) },
+                { key: 'nature', label: 'Nature', emoji: String.fromCodePoint(0x1F331) },
+                { key: 'tenebres', label: 'T\u00e9n\u00e8bres', emoji: String.fromCodePoint(0x1F319) }
+            ];
+
+            const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || '')
+                .normalize('NFD')
+                .replace(/[̀-ͯ]/g, '')
+                .toLowerCase());
+
+            function getMagicAffinities() {
+                const base = Array.isArray(window.astoriaScrollTypes) && window.astoriaScrollTypes.length
+                    ? window.astoriaScrollTypes
+                    : FALLBACK_MAGIC_AFFINITIES;
+                return base.map((entry) => ({
+                    key: String(entry.key || '').trim(),
+                    label: entry.label ? String(entry.label) : String(entry.key || ''),
+                    emoji: entry.emoji ? String(entry.emoji) : FALLBACK_SCROLL_EMOJI
+                })).filter((entry) => entry.key);
+            }
+
+            function buildMagicOptionsHtml() {
+                const affinities = getMagicAffinities();
+                const options = affinities.map((entry) => (
+                    `<option value="${entry.key}">${entry.emoji} ${entry.label}</option>`
+                ));
+                return ['<option value="">-- S&eacute;lectionner --</option>', ...options].join('');
+            }
+
+            function applyMagicOptions(select, preferredValue = '') {
+                if (!select) return;
+                const currentValue = preferredValue || select.value;
+                select.innerHTML = buildMagicOptionsHtml();
+                if (!currentValue) return;
+                const normalized = normalizeText(currentValue);
+                const affinities = getMagicAffinities();
+                const match = affinities.find((entry) => {
+                    const key = normalizeText(entry.key);
+                    const label = normalizeText(entry.label);
+                    return normalized === key || normalized === label || normalized.includes(label);
+                });
+                if (match) {
+                    select.value = match.key;
+                }
+            }
+
+            const MAGIC_EVEIL_COSTS = {
+                primary: 5,
+                secondary: 10,
+                hidden: 20,
+                none: 40
+            };
+
+            const MAGIC_ASCENSION_COSTS = {
+                primary: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
+                secondary: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
+                hidden: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
+                none: [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
+            };
+
+            function getActiveCharacter() {
+                return summaryModule?.getActiveCharacterFromStorage
+                    ? summaryModule.getActiveCharacterFromStorage()
+                    : null;
+            }
+
+            function getMagicProgressKey() {
+                return currentCharacterKey ? `magic-progress-${currentCharacterKey}` : 'magic-progress-default';
+            }
+
+            function loadMagicProgress() {
+                const active = getActiveCharacter();
+                const profileProgress = active?.profile_data?.magic_progress;
+                if (profileProgress && typeof profileProgress === 'object') {
+                    return {
+                        affinities: { ...(profileProgress.affinities || {}) },
+                        enabledAffinities: Array.isArray(profileProgress.enabledAffinities)
+                            ? [...profileProgress.enabledAffinities]
+                            : []
+                    };
+                }
+                try {
+                    const raw = localStorage.getItem(getMagicProgressKey());
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object') {
+                            return {
+                                affinities: { ...(parsed.affinities || {}) },
+                                enabledAffinities: Array.isArray(parsed.enabledAffinities)
+                                    ? [...parsed.enabledAffinities]
+                                    : []
+                            };
+                        }
+                    }
+                } catch {}
+                return { affinities: {}, enabledAffinities: [] };
+            }
+
+            function persistMagicProgress(progress, { persistProfile = false } = {}) {
+                if (!progress) return;
+                try {
+                    localStorage.setItem(getMagicProgressKey(), JSON.stringify(progress));
+                } catch {}
+                if (!persistProfile) return;
+                const active = getActiveCharacter();
+                if (!active?.id || !authApi?.updateCharacter) return;
+                // Async IIFE: fetch full profile_data before DB write (session-store strips it).
+                // localStorage write keeps only the stripped snapshot + magic_progress (quota-safe).
+                (async () => {
+                    let freshProfile = null;
+                    const cached = window.astoriaActiveCharacter;
+                    if (cached?.id === active.id && cached.profile_data) {
+                        freshProfile = cached.profile_data;
+                    } else {
+                        try {
+                            const fresh = await authApi.getCharacterById?.(active.id);
+                            if (fresh?.profile_data) {
+                                freshProfile = fresh.profile_data;
+                                try { window.astoriaActiveCharacter = fresh; } catch {}
+                            }
+                        } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                    }
+                    const profileData = { ...(freshProfile || active.profile_data || {}), magic_progress: progress };
+                    authApi.updateCharacter(active.id, { profile_data: profileData }).catch(() => {});
+                })();
+                try {
+                    // Quota-safe local cache: only stripped snapshot + magic_progress
+                    const next = { ...active, profile_data: { ...(active.profile_data || {}), magic_progress: progress } };
+                    localStorage.setItem(CHARACTER_STORAGE_KEY, JSON.stringify(next));
+                } catch {}
+            }
+
+            function getSelectedAffinities() {
+                const selections = [];
+                const primary = sorcellerieSelects[0]?.value || '';
+                const secondary = sorcellerieSelects[1]?.value || '';
+                const hidden = sorcellerieSelects[2]?.value || '';
+                if (primary) selections.push({ key: primary, type: 'primary' });
+                if (secondary && secondary !== primary) selections.push({ key: secondary, type: 'secondary' });
+                if (hidden && hidden !== primary && hidden !== secondary) selections.push({ key: hidden, type: 'hidden' });
+                if (magieContainer) {
+                    const extra = Array.from(magieContainer.querySelectorAll('.magie-supplementaire'))
+                        .map((input) => input.value)
+                        .filter(Boolean);
+                    extra.forEach((value) => {
+                        if (!selections.some((entry) => entry.key === value)) {
+                            selections.push({ key: value, type: 'none' });
+                        }
+                    });
+                }
+                return selections;
+            }
+
+            function syncMagicSelections({ persistProfile = false } = {}) {
+                const progress = loadMagicProgress();
+                const hasMagic = document.getElementById('hasMagic')?.checked;
+                const selections = hasMagic ? getSelectedAffinities() : [];
+                progress.enabledAffinities = selections.map((entry) => entry.key);
+                selections.forEach((entry) => {
+                    const existing = progress.affinities[entry.key] || {};
+                    progress.affinities[entry.key] = {
+                        affinityType: entry.type,
+                        unlocked: Boolean(existing.unlocked),
+                        ascensionLevel: Number(existing.ascensionLevel) || 0,
+                        techniquesCount: Number(existing.techniquesCount) || 0
+                    };
+                });
+                persistMagicProgress(progress, { persistProfile });
+                renderMagicScrollStatus(progress);
+                return progress;
+            }
+
+            function applySorcellerieProgressFallback() {
+                const progress = loadMagicProgress();
+                const affinities = progress?.affinities || {};
+                const picks = { primary: '', secondary: '', hidden: '' };
+                Object.keys(affinities).forEach((key) => {
+                    const entry = affinities[key];
+                    const type = entry?.affinityType;
+                    if (type === 'primary' && !picks.primary) {
+                        picks.primary = key;
+                    } else if (type === 'secondary' && !picks.secondary && key !== picks.primary) {
+                        picks.secondary = key;
+                    } else if (type === 'hidden' && !picks.hidden && key !== picks.primary && key !== picks.secondary) {
+                        picks.hidden = key;
+                    }
+                });
+                const [primarySelect, secondarySelect, hiddenSelect] = sorcellerieSelects;
+                if (primarySelect && !primarySelect.value && picks.primary) {
+                    applyMagicOptions(primarySelect, picks.primary);
+                }
+                if (secondarySelect && !secondarySelect.value && picks.secondary) {
+                    applyMagicOptions(secondarySelect, picks.secondary);
+                }
+                if (hiddenSelect && !hiddenSelect.value && picks.hidden) {
+                    applyMagicOptions(hiddenSelect, picks.hidden);
+                }
+            }
+
+            function getScrollBaseItem(category) {
+                const items = Array.isArray(window.inventoryData) ? window.inventoryData : [];
+                const targets = category === 'eveil'
+                    ? ["Parchemin d'Éveil", "Parchemin d'Eveil"]
+                    : ["Parchemin d'Ascension"];
+                const normalizedTargets = targets.map((name) => normalizeText(name));
+                const index = items.findIndex((item) => normalizedTargets.includes(normalizeText(item?.name)));
+                if (index < 0) return null;
+                return { ...items[index], sourceIndex: index };
+            }
+
+            function getScrollCounts(profileData, category) {
+                const baseItem = getScrollBaseItem(category);
+                if (!baseItem) return {};
+                return window.astoriaScrollStore?.getCounts(profileData?.inventory?.scrollTypes, category, baseItem) || {};
+            }
+
+            async function applyScrollCost({ category, affinityKey, cost }) {
+                const active = getActiveCharacter();
+                if (!active?.id || !affinityKey || !Number.isFinite(cost)) {
+                    return { ok: false, reason: 'missing-data' };
+                }
+                const baseItem = getScrollBaseItem(category);
+                if (!baseItem) return { ok: false, reason: 'missing-scroll-item' };
+
+                // Read-modify-write on the fresh DB row (optimistic lock) so a cached
+                // profile_data never overwrites changes saved by another page.
+                const store = window.astoriaScrollStore;
+                if (!store || !authApi?.patchCharacterProfile) return { ok: false, reason: 'missing-data' };
+                let current = 0;
+                let next = 0;
+                const result = await authApi.patchCharacterProfile(active.id, (profileData) => {
+                    const inventory = { ...(profileData.inventory || {}) };
+                    const counts = store.getCounts(inventory.scrollTypes, category, baseItem) || {};
+                    current = Number(counts[affinityKey]) || 0;
+                    if (current < cost) return null;
+                    next = current - cost;
+                    counts[affinityKey] = next;
+                    inventory.scrollTypes = store.setCounts(inventory.scrollTypes, category, baseItem, counts);
+                    return { ...profileData, inventory };
+                });
+                if (!result.success) {
+                    return result.aborted
+                        ? { ok: false, reason: 'insufficient', current }
+                        : { ok: false, reason: 'save-failed' };
+                }
+                try { window.astoriaActiveCharacter = { ...active, profile_data: result.profileData }; } catch {}
+
+                try {
+                    const inventoryApi = await import('./js/api/inventory-service.js');
+                    const rows = await inventoryApi.getInventoryRows(active.id);
+                    const sourceIndex = Number(baseItem.sourceIndex);
+                    const targetRow = rows.find((row) =>
+                        Number(row?.item_index) === sourceIndex ||
+                        normalizeText(row?.item_key) === normalizeText(baseItem.name)
+                    );
+                    if (targetRow) {
+                        const nextQty = Math.max(0, Math.floor(Number(targetRow.qty) || 0) - cost);
+                        await inventoryApi.setInventoryItem(active.id, targetRow.item_key, targetRow.item_index, nextQty);
+                    }
+                } catch {}
+
+                return { ok: true, remaining: next };
+            }
+
+            function getEveilCost(type) {
+                return MAGIC_EVEIL_COSTS[type] ?? MAGIC_EVEIL_COSTS.none;
+            }
+
+            function getAscensionCost(type, level) {
+                const list = MAGIC_ASCENSION_COSTS[type] || MAGIC_ASCENSION_COSTS.none;
+                return list[level - 1] ?? null;
+            }
+
+            function formatAffinityLabel(key) {
+                const entry = getMagicAffinities().find((item) => item.key === key);
+                if (entry) return `${entry.emoji} ${entry.label}`;
+                return key;
+            }
+
+            function renderMagicScrollStatus(progress) {
+                if (!magieScrollStatus) return;
+                if (!progress || !Array.isArray(progress.enabledAffinities) || progress.enabledAffinities.length === 0) {
+                    magieScrollStatus.innerHTML = '<p class="fiche-hint">Sélectionnez une affinité pour voir les coûts.</p>';
+                    return;
+                }
+                const active = getActiveCharacter();
+                const profileData = active?.profile_data || {};
+                const eveilCounts = getScrollCounts(profileData, 'eveil');
+                const ascensionCounts = getScrollCounts(profileData, 'ascension');
+                const rows = progress.enabledAffinities.map((key) => {
+                    const entry = progress.affinities[key] || {};
+                    const affinityType = entry.affinityType || 'none';
+                    const unlocked = Boolean(entry.unlocked);
+                    const ascensionLevel = Number(entry.ascensionLevel) || 0;
+                    const nextCost = getAscensionCost(affinityType, ascensionLevel + 1);
+                    const nextCostLabel = nextCost ? nextCost : '—';
+                    const eveilCost = getEveilCost(affinityType);
+                    const eveilOwned = Number(eveilCounts[key]) || 0;
+                    const ascensionOwned = Number(ascensionCounts[key]) || 0;
+                    const unlockDisabled = unlocked || eveilOwned < eveilCost;
+                    return `
+                        <div class="magie-scroll-row" data-affinity="${key}">
+                            <div class="magie-scroll-meta">
+                                <strong>${formatAffinityLabel(key)}</strong>
+                                <span>Éveil: ${eveilOwned} / ${eveilCost}</span>
+                                <span>Ascension: ${ascensionOwned}</span>
+                            </div>
+                            <div class="magie-scroll-actions">
+                                <button type="button" class="magie-scroll-btn${unlockDisabled ? ' is-disabled' : ''}" data-action="unlock" data-affinity="${key}" ${unlockDisabled ? 'disabled' : ''}>Déverrouiller</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                magieScrollStatus.innerHTML = rows.join('');
+            }
+
+            // Dynamic Magie Supplémentaire
+            const addMagieBtn = document.getElementById('addMagieSupplementaire');
+            const magieContainer = document.getElementById('magie-supplementaire-container');
+            const magieScrollStatus = document.getElementById('magieScrollStatus');
+            const sorcellerieSelects = [
+                document.getElementById('sorcelleriePrincipale'),
+                document.getElementById('sorcellerieSecondaire'),
+                document.getElementById('sorcellerieCachee')
+            ];
+            sorcellerieSelects.forEach(applyMagicOptions);
+            function attachMagieSupplementaireListeners(select) {
+                if (!select) return;
+                select.addEventListener('input', () => markTabDirty('sorcellerie'));
+                select.addEventListener('change', () => {
+                    markTabDirty('sorcellerie');
+                    syncMagicSelections({ persistProfile: false });
+                });
+            }
+            let magieSupCount = 0;
+            addMagieBtn.addEventListener('click', () => {
+                magieSupCount++;
+                const fieldGroup = document.createElement('div');
+                fieldGroup.className = 'field-group';
+                fieldGroup.innerHTML = `
+                    <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
+                    <div class="magie-sup-row">
+                        <select
+                            id="magieSup${magieSupCount}"
+                            class="field-input magie-supplementaire"
+                        >
+                            ${buildMagicOptionsHtml()}
+                        </select>
+                        <button type="button" class="remove-magie-btn tw-press">×</button>
+                    </div>
+                `;
+                magieContainer.appendChild(fieldGroup);
+                const select = fieldGroup.querySelector('select');
+                applyMagicOptions(select);
+                attachMagieSupplementaireListeners(select);
+                // Remove button handler
+                fieldGroup.querySelector('.remove-magie-btn').addEventListener('click', () => {
+                    fieldGroup.remove();
+                    markTabDirty('sorcellerie');
+                    syncMagicSelections({ persistProfile: false });
+                });
+                markTabDirty('sorcellerie');
+                syncMagicSelections({ persistProfile: false });
+            });
+
+            if (magieScrollStatus) {
+                magieScrollStatus.addEventListener('click', async (event) => {
+                    const button = event.target.closest('button[data-action]');
+                    if (!button) return;
+                    const action = button.dataset.action;
+                    const affinityKey = button.dataset.affinity;
+                    if (!action || !affinityKey) return;
+                    const progress = loadMagicProgress();
+                    const entry = progress.affinities[affinityKey] || { affinityType: 'none', unlocked: false, ascensionLevel: 0, techniquesCount: 0 };
+                    const affinityType = entry.affinityType || 'none';
+
+                    if (action === 'unlock') {
+                        const cost = getEveilCost(affinityType);
+                        const result = await applyScrollCost({ category: 'eveil', affinityKey, cost });
+                        if (!result.ok) {
+                            const message = result.reason === 'insufficient'
+                                ? `Parchemins d'éveil insuffisants (${Number(result.current) || 0}/${cost} de cette affinité).`
+                                : result.reason === 'save-failed'
+                                    ? 'Sauvegarde impossible, réessaie dans un instant.'
+                                    : "Parchemin d'éveil indisponible.";
+                            window.toastManager?.error?.(message);
+                            return;
+                        }
+                        entry.unlocked = true;
+                    }
+
+                    progress.affinities[affinityKey] = entry;
+                    persistMagicProgress(progress, { persistProfile: true });
+                    renderMagicScrollStatus(progress);
+                });
+            }
+            if (addRelationBtn) {
+                addRelationBtn.addEventListener('click', () => {
+                    if (isPlayerTabLocked('background')) return;
+                    if (!relationsContainer) return;
+                    relationsContainer.appendChild(createRelationRow());
+                    markTabDirty('background');
+                });
+            }
+            // Mark tab as dirty when any input changes
+            function markTabDirty(tabName) {
+                if (isPlayerTabLocked(tabName)) return;
+                dirtyTabs.add(tabName);
+                const saveBtn = document.querySelector(`.save-tab-button[data-tab="${tabName}"]`);
+                if (saveBtn) {
+                    saveBtn.classList.add('save-button--highlight');
+                }
+            }
+            function clearTabDirty(tabName) {
+                dirtyTabs.delete(tabName);
+                const saveBtn = document.querySelector(`.save-tab-button[data-tab="${tabName}"]`);
+                if (saveBtn) {
+                    saveBtn.classList.remove('save-button--highlight');
+                }
+            }
+            function resetTab(tabName) {
+                const panel = document.getElementById('tab-' + tabName);
+                if (!panel) return;
+                const inputs = panel.querySelectorAll('input, select, textarea');
+                inputs.forEach((input) => {
+                    if (input.classList.contains('magie-supplementaire')) return;
+                    if (input.type === 'checkbox') {
+                        input.checked = false;
+                    } else if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0;
+                    } else {
+                        input.value = '';
+                    }
+                });
+                if (tabName === 'sorcellerie' && magieContainer) {
+                    const extraInputs = magieContainer.querySelectorAll('.magie-supplementaire');
+                    extraInputs.forEach((input) => {
+                        const group = input.closest('.field-group');
+                        if (group) group.remove();
+                    });
+                    magieSupCount = 0;
+                }
+                if (tabName === 'background' && relationsContainer) {
+                    relationsContainer.innerHTML = '';
+                }
+                if (tabName === 'combat' || tabName === 'background') {
+                    updateAllImagePreviews();
+                }
+            }
+
+            imageFieldRegistry.forEach((field) => {
+                field.importBtn?.addEventListener('click', () => {
+                    field.fileInput?.click();
+                });
+                field.fileInput?.addEventListener('change', () => {
+                    const file = field.fileInput?.files?.[0];
+                    if (!file) return;
+                    openImageCropper(file, field);
+                    field.fileInput.value = '';
+                });
+                field.clearBtn?.addEventListener('click', () => {
+                    if (field.input) field.input.value = '';
+                    updateImagePreview(field);
+                    markTabDirty(field.tabName);
+                });
+            });
+
+            combatWeaponCropperClose?.addEventListener('click', closeImageCropper);
+            combatWeaponCropperCancel?.addEventListener('click', closeImageCropper);
+            combatWeaponCropperBackdrop?.addEventListener('pointerdown', (event) => {
+                if (event.target === combatWeaponCropperBackdrop) {
+                    closeImageCropper();
+                }
+            });
+
+            combatWeaponCropperRotateLeft?.addEventListener('click', () => {
+                window.uploaderCropper?.rotate(-90);
+            });
+            combatWeaponCropperRotateRight?.addEventListener('click', () => {
+                window.uploaderCropper?.rotate(90);
+            });
+            combatWeaponCropperReset?.addEventListener('click', () => {
+                window.uploaderCropper?.reset();
+                updateCropperZoomLabel();
+            });
+            combatWeaponCropperZoomIn?.addEventListener('click', () => {
+                window.uploaderCropper?.zoomIn?.();
+            });
+            combatWeaponCropperZoomOut?.addEventListener('click', () => {
+                window.uploaderCropper?.zoomOut?.();
+            });
+
+            combatWeaponCropperConfirm?.addEventListener('click', async () => {
+                if (!window.uploaderCropper?.cropper || !activeImageField?.input) {
+                    closeImageCropper();
+                    return;
+                }
+                const targetField = activeImageField;
+                const result = await window.uploaderCropper.confirm();
+                if (!result?.blob) {
+                    closeImageCropper();
+                    return;
+                }
+                const dataUrl = await blobToDataUrl(result.blob).catch(() => '');
+                if (dataUrl && targetField?.input) {
+                    targetField.input.value = dataUrl;
+                    updateImagePreview(targetField);
+                    markTabDirty(targetField.tabName);
+                }
+                closeImageCropper();
+            });
+
+            // Add change listeners to all inputs
+            tabPanels.forEach((panel) => {
+                const tabName = panel.id.replace('tab-', '');
+                const inputs = panel.querySelectorAll('input, select, textarea');
+                    inputs.forEach((input) => {
+                        input.addEventListener('input', () => markTabDirty(tabName));
+                        input.addEventListener('change', () => {
+                            markTabDirty(tabName);
+                            if (tabName === 'sorcellerie') {
+                                syncMagicSelections({ persistProfile: false });
+                            }
+                        });
+                    });
+            });
+            // Save button functionality
+            saveButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.dataset.tab || '';
+                    if (!tabName) return;
+                    saveTab(tabName, btn);
+                });
+            });
+            // ====================================================================
+            // COMBAT TECHNIQUES FUNCTIONS
+            // ====================================================================
+            /**
+             * Render combat techniques list
+             */
+            function renderCombatTechniques(filterType = "") {
+                const list = document.getElementById("combatTechniqueList");
+                if (!list) return;
+                const locked = isPlayerTabLocked('combat');
+                const filtered = filterType
+                    ? combatTechniques.filter(t => t.type === filterType)
+                    : combatTechniques;
+                if (filtered.length === 0) {
+                    list.innerHTML = '<li class="combat-technique-empty">Aucune technique ajoutée.</li>';
+                    return;
+                }
+                list.innerHTML = "";
+                filtered.forEach(technique => {
+                    const li = document.createElement("li");
+                    li.className = "combat-technique-item";
+                    li.dataset.type = technique.type;
+                    li.dataset.id = technique.id;
+                    const typeLabels = {
+                        offensif: "Offensif",
+                        defensif: "Défensif",
+                        mobilite: "Mobilité",
+                        controle: "Contrôle"
+                    };
+                    li.innerHTML = `
+                        <button type="button" class="combat-technique-header tw-press" aria-expanded="false">
+                            <div class="combat-technique-main">
+                                <span class="combat-technique-name">${escapeHtml(technique.name)}</span>
+                                <span class="combat-technique-meta">${typeLabels[technique.type] || technique.type}</span>
+                            </div>
+                            <span class="combat-technique-toggle">▾</span>
+                        </button>
+                        <div class="combat-technique-body">
+                            ${technique.rp ? `
+                            <div>
+                                <div class="combat-technique-field-label">Description RP</div>
+                                <div class="combat-technique-field-value combat-technique-field-value--dim">${escapeHtml(technique.rp)}</div>
+                            </div>
+                            ` : ''}
+                            <div>
+                                <div class="combat-technique-field-label">Effet mécanique</div>
+                                <div class="combat-technique-field-value">${escapeHtml(technique.effect)}</div>
+                            </div>
+                            ${technique.limits ? `
+                            <div>
+                                <div class="combat-technique-field-label">Limites / Conditions</div>
+                                <div class="combat-technique-field-value combat-technique-field-value--dim">${escapeHtml(technique.limits)}</div>
+                            </div>
+                            ` : ''}
+                            <div class="combat-technique-actions">
+                                <button type="button" class="combat-btn-edit tw-press" data-id="${technique.id}" ${locked ? 'disabled' : ''}>Modifier</button>
+                                <button type="button" class="combat-btn-delete tw-press" data-id="${technique.id}" ${locked ? 'disabled' : ''}>Supprimer</button>
+                            </div>
+                        </div>
+                    `;
+                    // Toggle expand/collapse
+                    const header = li.querySelector(".combat-technique-header");
+                    header.addEventListener("click", () => {
+                        const isOpen = li.classList.toggle("combat-technique-item--open");
+                        header.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                        const toggle = header.querySelector(".combat-technique-toggle");
+                        if (toggle) toggle.textContent = isOpen ? "▴" : "▾";
+                    });
+                    list.appendChild(li);
+                });
+                // Attach edit/delete handlers
+                attachTechniqueActionHandlers();
+            }
+            /**
+             * Open technique modal for add/edit
+             */
+            function openTechniqueModal(techniqueId = null) {
+                if (isPlayerTabLocked('combat')) return;
+                const backdrop = document.getElementById("combatTechniqueBackdrop");
+                const form = document.getElementById("combatTechniqueForm");
+                const title = document.getElementById("combatModalTitle");
+                editingTechniqueId = techniqueId;
+                if (techniqueId) {
+                    // Edit mode
+                    const technique = combatTechniques.find(t => t.id === techniqueId);
+                    if (!technique) return;
+                    title.textContent = "Modifier la technique";
+                    form.name.value = technique.name;
+                    form.type.value = technique.type;
+                    form.rp.value = technique.rp || "";
+                    form.effect.value = technique.effect;
+                    form.limits.value = technique.limits || "";
+                } else {
+                    // Add mode
+                    title.textContent = "Ajouter une technique";
+                    form.reset();
+                }
+                backdrop.classList.add("open");
+                backdrop.setAttribute("aria-hidden", "false");
+            }
+            /**
+             * Close technique modal
+             */
+            function closeTechniqueModal() {
+                const backdrop = document.getElementById("combatTechniqueBackdrop");
+                const form = document.getElementById("combatTechniqueForm");
+                backdrop.classList.remove("open");
+                backdrop.setAttribute("aria-hidden", "true");
+                form.reset();
+                editingTechniqueId = null;
+            }
+            /**
+             * Save technique (add or update)
+             */
+            function saveTechnique(formData) {
+                if (isPlayerTabLocked('combat')) return;
+                const technique = {
+                    id: editingTechniqueId || `tech-${techniqueNextId++}`,
+                    name: formData.name,
+                    type: formData.type,
+                    rp: formData.rp || "",
+                    effect: formData.effect,
+                    limits: formData.limits || ""
+                };
+                if (editingTechniqueId) {
+                    // Update existing
+                    const index = combatTechniques.findIndex(t => t.id === editingTechniqueId);
+                    if (index !== -1) {
+                        combatTechniques[index] = technique;
+                    }
+                } else {
+                    // Add new
+                    combatTechniques.push(technique);
+                }
+                saveCombatData();
+                renderCombatTechniques();
+                closeTechniqueModal();
+                markTabDirty('combat');
+            }
+            /**
+             * Delete technique
+             */
+            function deleteTechnique(techniqueId) {
+                if (isPlayerTabLocked('combat')) return;
+                if (!confirm("Supprimer cette technique ?")) return;
+                combatTechniques = combatTechniques.filter(t => t.id !== techniqueId);
+                saveCombatData();
+                renderCombatTechniques();
+                markTabDirty('combat');
+            }
+            /**
+             * Save combat data (techniques + text fields) to localStorage
+             */
+            function saveCombatData() {
+                const data = {
+                    combatStyle: document.getElementById("combatStyle")?.value || "",
+                    combatArme: document.getElementById("combatArme")?.value || "",
+                    combatArmeImage: document.getElementById("combatArmeImage")?.value || "",
+                    techniques: combatTechniques
+                };
+                localStorage.setItem('fiche-combat', JSON.stringify(data));
+            }
+            /**
+             * Attach event listeners to edit/delete buttons
+             */
+            function attachTechniqueActionHandlers() {
+                document.querySelectorAll(".combat-btn-edit").forEach(btn => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        openTechniqueModal(btn.dataset.id);
+                    });
+                });
+                document.querySelectorAll(".combat-btn-delete").forEach(btn => {
+                    btn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        deleteTechnique(btn.dataset.id);
+                    });
+                });
+            }
+            /**
+             * Escape HTML to prevent XSS
+             */
+            function escapeHtml(str) {
+                if (!str) return '';
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+            // ====================================================================
+            // END COMBAT TECHNIQUES FUNCTIONS
+            // ====================================================================
+            function saveTab(tabName, saveButton = null) {
+                try {
+                    if (isPlayerTabLocked(tabName)) {
+                        updateSaveButtonLockState(tabName);
+                        return;
+                    }
+                    const panel = document.getElementById('tab-' + tabName);
+                    if (!panel) return;
+                    const data = {};
+                    const inputs = panel.querySelectorAll('input, select, textarea');
+                    inputs.forEach((input) => {
+                        if (input.type === 'checkbox') {
+                            data[input.id] = input.checked;
+                        } else {
+                            data[input.id] = input.value;
+                        }
+                    });
+                    // Save dynamic magie supplementaire
+                    if (tabName === 'sorcellerie') {
+                        const magieSupInputs = panel.querySelectorAll('.magie-supplementaire');
+                        data.magieSupplementaire = Array.from(magieSupInputs).map(input => input.value);
+                        syncMagicSelections({ persistProfile: true });
+                    }
+                    if (tabName === 'background') {
+                        data.backgroundRelations = collectRelations();
+                    }
+                    // Save combat techniques
+                    if (tabName === 'combat') {
+                        data.techniques = combatTechniques;
+                    }
+                    localStorage.setItem(getTabStorageKey(tabName), JSON.stringify(data));
+                    console.log('[Fiche] Saved tab to localStorage:', tabName, data);
+                    if (tabName === 'identite' || tabName === 'appartenance') {
+                        syncProfileFromFiche();
+                        syncProfileTags(); // Sync profile tags when saving identity or appartenance sections
+                    }
+                    // Sync core magic availability tabs to profile_data for backend persistence
+                    if (tabName === 'alice' || tabName === 'eater' || tabName === 'sorcellerie') {
+                        console.log(`[Fiche] Triggering sync for ${tabName}...`);
+                        syncTabToProfile(tabName, data);
+                    }
+                    // Visual feedback
+                    if (saveButton) {
+                        saveButton.textContent = 'Sauvegardé ✓';
+                        setTimeout(() => {
+                            updateSaveButtonLockState(tabName);
+                        }, 2000);
+                    }
+                    clearTabDirty(tabName);
+                    finalizePlayerTabLock(tabName, data);
+                } catch (error) {
+                    console.error(`[Fiche] Error saving tab ${tabName}:`, error);
+                    console.error(`[Fiche] Save error details:`, {
+                        message: error?.message,
+                        code: error?.code,
+                        hint: error?.hint,
+                        stack: error?.stack
+                    });
+                    if (saveButton) {
+                        saveButton.textContent = 'Erreur de sauvegarde';
+                        setTimeout(() => {
+                            updateSaveButtonLockState(tabName);
+                        }, 3000);
+                    }
+                }
+            }
+
+            function saveAllTabs(triggerButton = null) {
+                allTabs.forEach((tabName) => {
+                    saveTab(tabName, null);
+                    clearTabDirty(tabName);
+                });
+                if (triggerButton) {
+                    triggerButton.textContent = 'Tout sauvegardé ✓';
+                    setTimeout(() => {
+                        updateSaveButtonLockState(triggerButton.dataset.tab || '');
+                    }, 2000);
+                }
+            }
+
+            async function syncTabToProfile(tabName, tabData) {
+                console.log(`[Fiche] Syncing ${tabName} to profile_data...`);
+
+                if (!authApi) {
+                    console.warn(`[Fiche] authApi not available, skipping ${tabName} sync`);
+                    return;
+                }
+                if (!authApi.getActiveCharacter || !authApi.updateCharacter) {
+                    console.warn(`[Fiche] authApi methods not available, skipping ${tabName} sync`);
+                    return;
+                }
+
+                const character = authApi.getActiveCharacter();
+                if (!character) {
+                    console.warn(`[Fiche] No active character, skipping ${tabName} sync`);
+                    return;
+                }
+                if (!character.id) {
+                    console.warn(`[Fiche] Character has no id, skipping ${tabName} sync`);
+                    return;
+                }
+
+                // session-store strips profile_data — fetch full from DB to avoid wiping other fields
+                let freshProfile = null;
+                const cached = window.astoriaActiveCharacter;
+                if (cached?.id === character.id && cached.profile_data) {
+                    freshProfile = cached.profile_data;
+                } else {
+                    try {
+                        const fresh = await authApi.getCharacterById?.(character.id);
+                        if (fresh?.profile_data) {
+                            freshProfile = fresh.profile_data;
+                            try { window.astoriaActiveCharacter = fresh; } catch {}
+                        }
+                    } catch (e) { console.warn('[Fiche] fetch fresh profile failed:', e); }
+                }
+                const profileData = freshProfile || character.profile_data || {};
+                const nextProfileData = {
+                    ...profileData,
+                    [tabName]: tabData,
+                    fiche_locks: {
+                        ...(profileData.fiche_locks || {}),
+                        ...currentFicheLocks
+                    }
+                };
+
+                try {
+                    console.log(`[Fiche] Updating character ${character.id} with ${tabName}:`, tabData);
+                    await authApi.updateCharacter(character.id, { profile_data: nextProfileData });
+                    console.log(`[Fiche] Successfully synced ${tabName} to profile_data`);
+                } catch (error) {
+                    console.error(`[Fiche] Failed to sync ${tabName} to profile_data:`, error);
+                    console.error(`[Fiche] Sync error details:`, {
+                        message: error?.message,
+                        code: error?.code,
+                        status: error?.status,
+                        hint: error?.hint
+                    });
+                }
+            }
+            function loadTab(tabName) {
+                const panel = document.getElementById('tab-' + tabName);
+                if (!panel) return;
+
+                // For magic/eater gating tabs, prioritize profile_data from backend
+                let data = null;
+                if ((tabName === 'alice' || tabName === 'eater' || tabName === 'sorcellerie') && authApi?.getActiveCharacter) {
+                    const character = authApi.getActiveCharacter();
+                    if (character?.profile_data?.[tabName]) {
+                        data = character.profile_data[tabName];
+                        console.log(`Loaded ${tabName} from profile_data`);
+                    }
+                }
+
+                // Fallback to localStorage
+                if (!data) {
+                    const storageKey = getTabStorageKey(tabName);
+                    let savedData = localStorage.getItem(storageKey);
+                    if (!savedData) {
+                        const legacyKey = getLegacyTabStorageKey(tabName);
+                        const legacyData = localStorage.getItem(legacyKey);
+                        if (legacyData) {
+                            savedData = legacyData;
+                            localStorage.setItem(storageKey, legacyData);
+                        }
+                    }
+                    if (savedData) {
+                        data = JSON.parse(savedData);
+                    }
+                }
+
+                resetTab(tabName);
+                if (!data) return;
+                // Migrate old appNiveauScolaire values to new format
+                if (tabName === 'appartenance' && data.appNiveauScolaire) {
+                    const oldToNewMapping = {
+                        'maternelle': 'maternelle-opale',
+                        'college': 'college-saphir',
+                        'lycee': 'lycee-emeraude',
+                        'universite': 'universite-onyx'
+                    };
+                    if (oldToNewMapping[data.appNiveauScolaire]) {
+                        data.appNiveauScolaire = oldToNewMapping[data.appNiveauScolaire];
+                    }
+                }
+                // Migrate old Alice checkbox data to new dropdown format
+                if (tabName === 'alice') {
+                    if (data.hasAlice !== undefined || data.hasDoubleAlice !== undefined) {
+                        const hasAlice = data.hasAlice === true;
+                        const hasDoubleAlice = data.hasDoubleAlice === true;
+                        let aliceStatus = '';
+                        if (hasDoubleAlice) {
+                            aliceStatus = 'double';
+                        } else if (hasAlice) {
+                            aliceStatus = 'simple';
+                        }
+                        data.aliceStatus = aliceStatus;
+                        // Remove old checkbox values
+                        delete data.hasAlice;
+                        delete data.hasDoubleAlice;
+                    }
+                }
+                Object.keys(data).forEach((key) => {
+                    if (key === 'magieSupplementaire') return; // Handle separately
+                    if (key === 'techniques') return; // Handle separately
+                    if (key === 'backgroundRelations') return; // Handle separately
+                    const input = document.getElementById(key);
+                    if (!input) return;
+                    if (input.type === 'checkbox') {
+                        input.checked = data[key];
+                    } else {
+                        input.value = data[key];
+                    }
+                });
+                if (tabName === 'sorcellerie') {
+                    sorcellerieSelects.forEach((select) => {
+                        if (!select) return;
+                        const savedValue = data[select.id];
+                        applyMagicOptions(select, savedValue || select.value);
+                    });
+                    applySorcellerieProgressFallback();
+                }
+                // Restore dynamic magie supplementaire
+                if (tabName === 'sorcellerie' && data.magieSupplementaire) {
+                    data.magieSupplementaire.forEach((value) => {
+                        if (!value) return;
+                        magieSupCount++;
+                        const fieldGroup = document.createElement('div');
+                        fieldGroup.className = 'field-group';
+                        fieldGroup.innerHTML = `
+                            <label class="field-label" for="magieSup${magieSupCount}">Magie supplémentaire</label>
+                            <div class="magie-sup-row">
+                                <select
+                                    id="magieSup${magieSupCount}"
+                                    class="field-input magie-supplementaire"
+                                >
+                                    ${buildMagicOptionsHtml()}
+                                </select>
+                                <button type="button" class="remove-magie-btn tw-press">×</button>
+                            </div>
+                        `;
+                        magieContainer.appendChild(fieldGroup);
+                        // Set the saved value
+                        const select = fieldGroup.querySelector('select');
+                        applyMagicOptions(select, value);
+                        attachMagieSupplementaireListeners(select);
+                        fieldGroup.querySelector('.remove-magie-btn').addEventListener('click', () => {
+                            fieldGroup.remove();
+                            markTabDirty('sorcellerie');
+                        });
+                    });
+                }
+                // Restore combat techniques
+                if (tabName === 'combat' && Array.isArray(data.techniques)) {
+                    combatTechniques = data.techniques;
+                    techniqueNextId = Math.max(...combatTechniques.map(t => {
+                        const match = t.id.match(/tech-(\d+)/);
+                        return match ? parseInt(match[1]) : 0;
+                    }), 0) + 1;
+                    renderCombatTechniques();
+                }
+                // Trigger visibility updates
+                if (tabName === 'alice') {
+                    updateAliceVisibility();
+                }
+                if (tabName === 'background') {
+                    restoreRelations(data.backgroundRelations || []);
+                }
+                if (tabName === 'combat') {
+                    updateAllImagePreviews();
+                }
+                updateConditionalVisibility();
+            }
+            // Load all tabs on page load
+            function loadAllTabs() {
+                loadFicheLocks();
+                allTabs.forEach(loadTab);
+                updateAliceVisibility();
+                updateConditionalVisibility();
+                syncAliceEaterExclusion();
+                syncMagicSelections({ persistProfile: false });
+                updateAllImagePreviews();
+                applyAllTabLockStates();
+            }
+            const initialContext = summaryModule?.resolveCharacterContext
+                ? summaryModule.resolveCharacterContext({ includeQueryParam: true })
+                : { key: currentCharacterKey, character: null };
+            currentCharacterKey = initialContext.key || currentCharacterKey;
+            if (summaryModule?.applySummaryToElements && summaryModule?.buildSummary) {
+                summaryModule.applySummaryToElements(summaryElements, summaryModule.buildSummary(initialContext));
+            }
+            loadAllTabs();
+            setInterval(() => {
+                if (!summaryModule?.resolveCharacterContext || !summaryModule?.buildSummary) return;
+                const nextContext = summaryModule.resolveCharacterContext({ includeQueryParam: true });
+                summaryModule.applySummaryToElements(summaryElements, summaryModule.buildSummary(nextContext));
+                if (nextContext.key !== currentCharacterKey) {
+                    currentCharacterKey = nextContext.key;
+                    clearAllDirty();
+                    loadAllTabs();
+                }
+            }, 800);
+            // ====================================================================
+            // COMBAT TECHNIQUES EVENT LISTENERS
+            // ====================================================================
+            // Add technique button
+            const addTechniqueBtn = document.getElementById("combatAddTechniqueBtn");
+            if (addTechniqueBtn) {
+                addTechniqueBtn.addEventListener("click", () => {
+                    openTechniqueModal();
+                });
+            }
+            // Modal close buttons
+            const modalCloseBtn = document.getElementById("combatModalClose");
+            if (modalCloseBtn) {
+                modalCloseBtn.addEventListener("click", closeTechniqueModal);
+            }
+            const modalCancelBtn = document.getElementById("combatModalCancel");
+            if (modalCancelBtn) {
+                modalCancelBtn.addEventListener("click", closeTechniqueModal);
+            }
+            // Modal backdrop click (close on outside click)
+            const modalBackdrop = document.getElementById("combatTechniqueBackdrop");
+            if (modalBackdrop) {
+                modalBackdrop.addEventListener("click", (e) => {
+                    if (e.target.id === "combatTechniqueBackdrop") {
+                        closeTechniqueModal();
+                    }
+                });
+            }
+            // Form submission
+            const techniqueForm = document.getElementById("combatTechniqueForm");
+            if (techniqueForm) {
+                techniqueForm.addEventListener("submit", (e) => {
+                    e.preventDefault();
+                    const formData = {
+                        name: e.target.name.value,
+                        type: e.target.type.value,
+                        rp: e.target.rp.value,
+                        effect: e.target.effect.value,
+                        limits: e.target.limits.value
+                    };
+                    saveTechnique(formData);
+                });
+            }
+            // Filter change
+            const techniqueFilter = document.getElementById("combatTechniqueFilter");
+            if (techniqueFilter) {
+                techniqueFilter.addEventListener("change", (e) => {
+                    renderCombatTechniques(e.target.value);
+                });
+            }
+            // ====================================================================
+            // END COMBAT TECHNIQUES EVENT LISTENERS
+            // ====================================================================
+            // ====================================================================
+            // PROFILE TAGS SYNCHRONIZATION EVENT LISTENERS
+            // ====================================================================
+            // Synchroniser les tags quand les dropdowns de identité ou appartenance changent
+            const tagSyncFields = [
+                'identiteSexe',
+                'identiteHierarchieSociale',
+                'identitePaysOrigine',
+                'appAffection',
+                'appNiveauScolaire',
+                'appRangEtoile',
+                'appHouse',
+                'eaterTypeArme',
+                'aliceStatus',
+                'aliceType',
+                'aliceForme',
+                'alice2Type',
+                'alice2Forme'
+            ];
+            tagSyncFields.forEach(fieldId => {
+                const element = document.getElementById(fieldId);
+                if (element) {
+                    element.addEventListener('change', () => {
+                        syncProfileTags();
+                    });
+                }
+            });
+            // ====================================================================
+            // END PROFILE TAGS SYNCHRONIZATION EVENT LISTENERS
+            // ====================================================================
+            // ====================================================================
+            // FICHE IMPORTER (TXT / MD)
+            // ====================================================================
+            const ficheImportBtn = document.getElementById('ficheImportBtn');
+            const ficheImportInput = document.getElementById('ficheImportInput');
+            const ficheImportStatus = document.getElementById('ficheImportStatus');
+            let ficheImportStatusTimer = null;
+
+            function setImportStatus(message, type = '') {
+                if (!ficheImportStatus) return;
+                ficheImportStatus.textContent = message;
+                ficheImportStatus.classList.toggle('is-success', type === 'success');
+                ficheImportStatus.classList.toggle('is-error', type === 'error');
+                ficheImportStatus.classList.toggle('is-info', type === 'info');
+                if (ficheImportStatusTimer) {
+                    clearTimeout(ficheImportStatusTimer);
+                }
+                ficheImportStatusTimer = setTimeout(() => {
+                    ficheImportStatus.textContent = '';
+                    ficheImportStatus.classList.remove('is-success', 'is-error', 'is-info');
+                }, 6000);
+            }
+
+            function normalizeImportText(value) {
+                if (!value) return '';
+                return value
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, ' ')
+                    .trim();
+            }
+
+            function detectImportSection(line) {
+                const normalized = normalizeImportText(line);
+                if (!normalized) return null;
+                const sectionMap = {
+                    identite: ['identite'],
+                    appartenance: ['appartenance'],
+                    combat: ['combat'],
+                    alice: ['alice'],
+                    sorcellerie: ['sorcellerie'],
+                    eater: ['eater'],
+                    religion: ['religion'],
+                    mental: ['mental'],
+                    physique: ['physique'],
+                    background: ['background']
+                };
+                for (const [section, keys] of Object.entries(sectionMap)) {
+                    if (keys.some((key) => normalized.includes(key))) {
+                        return section;
+                    }
+                }
+                return null;
+            }
+
+            function setSelectByText(select, value) {
+                const normalized = normalizeImportText(value);
+                if (!normalized) return;
+                const options = Array.from(select.options || []);
+                const match = options.find((option) => normalizeImportText(option.value) === normalized)
+                    || options.find((option) => normalizeImportText(option.textContent) === normalized)
+                    || options.find((option) => normalizeImportText(option.textContent).includes(normalized));
+                if (match) {
+                    select.value = match.value;
+                } else {
+                    select.value = value;
+                }
+            }
+
+            function setFieldValue(id, value) {
+                const el = document.getElementById(id);
+                if (!el || value === undefined || value === null) return;
+                const tabName = el.closest('.tab-panel')?.id?.replace('tab-', '') || '';
+                if (tabName && isPlayerTabLocked(tabName)) return;
+                if (el.tagName === 'SELECT') {
+                    setSelectByText(el, value);
+                } else if (el.type === 'checkbox') {
+                    el.checked = Boolean(value);
+                } else {
+                    el.value = value;
+                }
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function setCheckboxValue(id, checked) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const tabName = el.closest('.tab-panel')?.id?.replace('tab-', '') || '';
+                if (tabName && isPlayerTabLocked(tabName)) return;
+                el.checked = checked;
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            function applyWeaponValue(value, typeId, descId, imageId) {
+                if (!value) return;
+                let remaining = value;
+                const urlMatch = value.match(/https?:\/\/\S+/i);
+                if (urlMatch && imageId) {
+                    setFieldValue(imageId, urlMatch[0]);
+                    remaining = remaining.replace(urlMatch[0], '').trim();
+                }
+                const parts = remaining.split('|').map((part) => part.trim()).filter(Boolean);
+                if (parts.length > 0 && typeId) {
+                    setFieldValue(typeId, parts[0]);
+                }
+                if (parts.length > 1 && descId) {
+                    setFieldValue(descId, parts.slice(1).join(' | '));
+                } else if (parts.length === 1 && descId) {
+                    setFieldValue(descId, parts[0]);
+                }
+            }
+
+            function applyImageList(value, ids) {
+                if (!value || !ids?.length) return;
+                const urls = value.match(/https?:\/\/\S+/gi) || [];
+                if (urls.length > 0) {
+                    ids.forEach((id, index) => {
+                        if (urls[index]) setFieldValue(id, urls[index]);
+                    });
+                    return;
+                }
+                setFieldValue(ids[0], value);
+            }
+
+            const importLabelEntries = [
+                { section: 'identite', match: /nom prenom/, apply: (value) => setFieldValue('identiteNomPrenom', value) },
+                { section: 'identite', match: /^age$/, apply: (value) => setFieldValue('identiteAge', value) },
+                { section: 'identite', match: /^sexe$/, apply: (value) => setFieldValue('identiteSexe', value) },
+                { section: 'identite', match: /^race$/, apply: (value) => setFieldValue('identiteRace', value) },
+                { section: 'identite', match: /hierarchie sociale/, apply: (value) => setFieldValue('identiteHierarchieSociale', value) },
+                { section: 'identite', match: /pays d origine/, apply: (value) => setFieldValue('identitePaysOrigine', value) },
+
+                { section: 'appartenance', match: /^role$/, apply: (value) => setFieldValue('appRole', value) },
+                { section: 'appartenance', match: /niveau scolaire/, apply: (value) => setFieldValue('appNiveauScolaire', value) },
+                { section: 'appartenance', match: /affection/, apply: (value) => setFieldValue('appAffection', value) },
+                { section: 'appartenance', match: /house/, apply: (value) => setFieldValue('appHouse', value) },
+                { section: 'appartenance', match: /hierarchie/, apply: (value) => setFieldValue('appHierarchie', value) },
+
+                { section: 'combat', match: /style de combat/, apply: (value) => setFieldValue('combatStyle', value) },
+                { section: 'combat', match: /type d arme/, apply: (value) => applyWeaponValue(value, 'combatArme', 'combatArmeDescription', 'combatArmeImage') },
+
+                { section: 'alice', match: /^nom$/, apply: (value) => setFieldValue('aliceNom', value) },
+                { section: 'alice', match: /^type$/, apply: (value) => setFieldValue('aliceType', value) },
+                { section: 'alice', match: /forme/, apply: (value) => setFieldValue('aliceForme', value) },
+                { section: 'alice', match: /fiche/, apply: (value) => setFieldValue('aliceFiche', value) },
+
+                { section: 'sorcellerie', match: /magie principale/, apply: (value) => setFieldValue('sorcelleriePrincipale', value) },
+                { section: 'sorcellerie', match: /magie secondaire/, apply: (value) => setFieldValue('sorcellerieSecondaire', value) },
+                { section: 'sorcellerie', match: /magie cachee/, apply: (value) => setFieldValue('sorcellerieCachee', value) },
+
+                { section: 'eater', match: /^role$/, apply: (value) => setFieldValue('eaterRole', value) },
+                { section: 'eater', match: /type d arme/, apply: (value) => setFieldValue('eaterTypeArme', value) },
+                { section: 'eater', match: /description de l arme/, apply: (value) => applyWeaponValue(value, null, 'eaterDescriptionArme', 'eaterImageArme') },
+
+                { section: 'religion', match: /croyance/, apply: (value) => setFieldValue('religionCroyance', value) },
+                { section: 'religion', match: /prophetie/, apply: (value) => setFieldValue('religionProphetie', value) },
+                { section: 'religion', match: /benediction/, apply: (value) => setFieldValue('religionBenediction', value) },
+                { section: 'religion', match: /malediction/, apply: (value) => setFieldValue('religionMalediction', value) },
+
+                { section: 'mental', match: /caractere/, apply: (value) => setFieldValue('mentalCaractere', value) },
+                { section: 'mental', match: /but/, apply: (value) => setFieldValue('mentalButsReves', value) },
+                { section: 'mental', match: /autre/, apply: (value) => setFieldValue('mentalAutre', value) },
+
+                { section: 'physique', match: /description physique/, apply: (value) => setFieldValue('physiqueDescription', value) },
+                { section: 'physique', match: /sante/, apply: (value) => setFieldValue('physiqueSante', value) },
+
+                { section: 'background', match: /parents|famille/, apply: (value) => setFieldValue('backgroundFamille', value) },
+                { section: 'background', match: /histoire/, apply: (value) => setFieldValue('backgroundHistoire', value) },
+                { section: 'background', match: /image/, apply: (value) => applyImageList(value, ['backgroundImage1', 'backgroundImage2', 'backgroundImage3']) }
+            ];
+
+            function parseFicheImport(text) {
+                const lines = text.split(/\r?\n/);
+                let currentSection = null;
+                let currentEntry = null;
+                let currentLines = [];
+                const matches = [];
+
+                function flushEntry() {
+                    if (!currentEntry) return;
+                    const value = currentLines.join('\n').trim();
+                    if (value) {
+                        matches.push({ entry: currentEntry, value });
+                    }
+                    currentEntry = null;
+                    currentLines = [];
+                }
+
+                for (const rawLine of lines) {
+                    const line = rawLine.trim();
+                    if (!line) {
+                        if (currentEntry) currentLines.push('');
+                        continue;
+                    }
+                    const section = detectImportSection(line);
+                    if (section) {
+                        flushEntry();
+                        currentSection = section;
+                        continue;
+                    }
+                    const labelMatch = line.match(/^([^:]{2,80}):\s*(.*)$/);
+                    if (labelMatch) {
+                        const labelText = labelMatch[1].trim();
+                        const labelNormalized = normalizeImportText(labelText);
+                        const entry = importLabelEntries.find((item) => {
+                            if (item.section && currentSection && item.section !== currentSection) return false;
+                            return item.match.test(labelNormalized);
+                        });
+                        if (entry) {
+                            flushEntry();
+                            currentEntry = entry;
+                            if (labelMatch[2]) {
+                                currentLines.push(labelMatch[2].trim());
+                            }
+                            continue;
+                        }
+                    }
+                    if (currentEntry) {
+                        currentLines.push(line);
+                    }
+                }
+                flushEntry();
+                return matches;
+            }
+
+            function applyFicheImport(items) {
+                if (!items.length) return { ok: false, message: 'Aucune info trouvee.' };
+                const touchedTabs = new Set();
+                const skippedTabs = new Set();
+                let hasMagic = false;
+                let hasEater = false;
+                let hasAlice = false;
+
+                items.forEach(({ entry, value }) => {
+                    if (isPlayerTabLocked(entry.section)) {
+                        skippedTabs.add(entry.section);
+                        return;
+                    }
+                    entry.apply(value);
+                    touchedTabs.add(entry.section);
+                    if (entry.section === 'sorcellerie') hasMagic = true;
+                    if (entry.section === 'eater') hasEater = true;
+                    if (entry.section === 'alice') hasAlice = true;
+                });
+
+                if (!touchedTabs.size && skippedTabs.size) {
+                    return { ok: false, message: 'Import bloque: tous les volets cibles sont deja verrouilles.' };
+                }
+
+                if (hasMagic) setCheckboxValue('hasMagic', true);
+                if (hasEater) setCheckboxValue('hasEater', true);
+                if (hasAlice) setFieldValue('aliceStatus', 'simple');
+
+                touchedTabs.forEach((tab) => markTabDirty(tab));
+                if (hasMagic) {
+                    syncMagicSelections({ persistProfile: false });
+                }
+
+                const skippedSuffix = skippedTabs.size
+                    ? ` ${skippedTabs.size} volet(s) verrouille(s) ignores.`
+                    : '';
+                return { ok: true, message: `Import ok: ${items.length} champ(s).${skippedSuffix}` };
+            }
+
+            if (ficheImportBtn && ficheImportInput) {
+                ficheImportBtn.addEventListener('click', () => {
+                    ficheImportInput.value = '';
+                    ficheImportInput.click();
+                });
+                ficheImportInput.addEventListener('change', () => {
+                    const file = ficheImportInput.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const content = event.target?.result;
+                        if (typeof content !== 'string') return;
+                        const items = parseFicheImport(content);
+                        const result = applyFicheImport(items);
+                        if (result.ok) {
+                            setImportStatus(`${result.message} (${file.name})`, 'success');
+                        } else {
+                            setImportStatus(result.message, 'error');
+                        }
+                    };
+                    reader.onerror = () => {
+                        setImportStatus('Import impossible.', 'error');
+                    };
+                    setImportStatus('Import en cours...', 'info');
+                    reader.readAsText(file);
+                });
+            }
+            // ====================================================================
+            // END FICHE IMPORTER
+            // ====================================================================
+        })();
+    </script>
+    <div class="profile-cropper-backdrop" id="combatWeaponCropperBackdrop" hidden aria-hidden="true">
+        <div class="profile-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="combatWeaponCropperTitle">
+            <div class="profile-cropper-header">
+                <h2 class="profile-cropper-title" id="combatWeaponCropperTitle">Recadrer l'image de l'arme</h2>
+                <button type="button" class="profile-cropper-close tw-press" id="combatWeaponCropperClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="profile-cropper-body">
+                <div class="profile-cropper-stage">
+                    <img id="combatWeaponCropperImage" alt="Image à recadrer">
+                </div>
+                <div class="profile-cropper-controls">
+                    <div class="profile-cropper-toolbar">
+                        <button class="profile-tool-btn" id="combatWeaponCropperRotateLeft" title="Rotation -90°">↺</button>
+                        <button class="profile-tool-btn" id="combatWeaponCropperRotateRight" title="Rotation +90°">↻</button>
+                        <button class="profile-tool-btn" id="combatWeaponCropperReset" title="Réinitialiser">↺</button>
+                    </div>
+                    <div class="profile-cropper-zoom-controls">
+                        <button class="profile-tool-btn" id="combatWeaponCropperZoomOut" title="Zoom -">−</button>
+                        <span class="profile-zoom-display" id="combatWeaponCropperZoomDisplay">100%</span>
+                        <button class="profile-tool-btn" id="combatWeaponCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-cropper-actions">
+                <button class="profile-modal-button secondary tw-press" id="combatWeaponCropperCancel">Annuler</button>
+                <button class="profile-modal-button tw-press" id="combatWeaponCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+    <!-- Combat Technique Modal -->
+    <div class="combat-modal-backdrop" id="combatTechniqueBackdrop" aria-hidden="true">
+        <div class="combat-modal" role="dialog" aria-modal="true">
+            <div class="combat-modal-header">
+                <h2 class="combat-modal-title" id="combatModalTitle">Ajouter une technique</h2>
+                <button type="button" class="combat-modal-close tw-press" id="combatModalClose" aria-label="Fermer">×</button>
+            </div>
+            <form id="combatTechniqueForm">
+                <div class="combat-modal-section">
+                    <div class="combat-modal-section-title">Informations de base</div>
+                    <div class="combat-modal-grid">
+                        <input name="name" id="techniqueName" aria-label="Nom de la technique" placeholder="Nom de la technique" required>
+                        <select name="type" id="techniqueType" aria-label="Type de technique" required>
+                            <option value="">-- Type --</option>
+                            <option value="offensif">Offensif</option>
+                            <option value="defensif">Défensif</option>
+                            <option value="mobilite">Mobilité</option>
+                            <option value="controle">Contrôle</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Description RP</label>
+                    <textarea name="rp" id="techniqueRp" placeholder="Description narrative de la technique..." rows="3"></textarea>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Effet mécanique</label>
+                    <textarea name="effect" id="techniqueEffect" placeholder="Effets mécaniques, dégâts, durée..." rows="3" required></textarea>
+                </div>
+                <div class="combat-modal-section">
+                    <label class="combat-modal-label">Limites / Conditions</label>
+                    <textarea name="limits" id="techniqueLimits" placeholder="Conditions d'utilisation, contraintes..." rows="2"></textarea>
+                </div>
+                <div class="combat-modal-footer">
+                    <button type="button" class="combat-btn-secondary tw-press" id="combatModalCancel">Annuler</button>
+                    <button type="submit" class="combat-btn-primary tw-press" id="combatModalSubmit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="max-age=604800, public">
+    <title>Liste d'objets</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/codex.css">
+    <link rel="stylesheet" href="css/cropper-controls.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+    <!-- Preload handled dynamically once data.js is available -->
+</head>
+<body class="min-h-screen">
+    <main class="wrapper codex-shell" aria-labelledby="pageTitle">
+        <header class="page-header">
+            <a href="html/inventaire.html" class="page-back" title="Retour à l'inventaire">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="pageTitle">Codex d'Astoria</h1>
+                    <p class="codex-subtitle">Atlas des objets, bonus et effets de jeu.</p>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                    <div class="character-avatar-wrapper">
+                        <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                            <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                            <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                        </div>
+                        <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                    </div>
+                    <div class="character-summary-text">
+                        <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                        <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+                        <div class="character-summary-meta">
+                            <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                            <div class="character-souls" id="characterSouls" hidden>
+                                <span class="soul-count" title="Âmes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                                <span class="soul-count" title="Âmes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="codex-control-panel" aria-label="Filtres du codex">
+            <div class="codex-toolbar">
+                <span class="stats-badge" id="statsBadge">0 objet</span>
+                <button type="button" class="admin-add-btn tw-press" id="adminAddItemBtn" hidden>+ Ajouter un objet</button>
+                <div class="codex-toolbar-spacer"></div>
+                <div class="inventory-search is-open" id="codexSearch" data-search-priority="page">
+                    <button type="button" class="inventory-search-toggle tw-press" id="codexSearchToggle" aria-label="Rechercher" aria-expanded="true">
+                        <span class="inventory-search-icon">&#x1F50D;</span>
+                    </button>
+                    <input
+                        type="search"
+                        id="searchInput"
+                        class="inventory-search-input tw-input"
+                        placeholder="Rechercher un objet..."
+                        aria-label="Rechercher un objet">
+                    <div class="recent-searches-dropdown inventory-search-history" id="recentSearchesDropdown"></div>
+                </div>
+            </div>
+            <!-- Category Pills -->
+            <nav class="codex-category-pills" id="categoryPills" aria-label="Filtrer par catégorie">
+                <button type="button" class="codex-category-pill active" data-category="">
+                    <span class="pill-icon">&#x1F4E6;</span>
+                    <span>Tous</span>
+                    <span class="pill-count" id="countAll">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="agricole">
+                    <span class="pill-icon">&#x1F33E;</span>
+                    <span>Agricole</span>
+                    <span class="pill-count" id="countAgricole">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="consommable">
+                    <span class="pill-icon">&#x1F9EA;</span>
+                    <span>Consommables</span>
+                    <span class="pill-count" id="countConsommable">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="equipement">
+                    <span class="pill-icon">&#x2694;&#xFE0F;</span>
+                    <span>Équipements</span>
+                    <span class="pill-count" id="countEquipement">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="materiau">
+                    <span class="pill-icon">&#x2692;&#xFE0F;</span>
+                    <span>Matériaux</span>
+                    <span class="pill-count" id="countMateriau">0</span>
+                </button>
+                <button type="button" class="codex-category-pill" data-category="quete">
+                    <span class="pill-icon">&#x2728;</span>
+                    <span>Quêtes</span>
+                    <span class="pill-count" id="countQuete">0</span>
+                </button>
+            </nav>
+            <!-- Hidden dropdown for backwards compatibility -->
+            <select id="categoryFilter" class="category-dropdown tw-input" hidden>
+                <option value="">Toutes catégories</option>
+                <option value="agricole">Agricole</option>
+                <option value="consommable">Consommables</option>
+                <option value="equipement">Équipements</option>
+                <option value="materiau">Matériaux</option>
+                <option value="quete">Quêtes</option>
+            </select>
+            <div class="codex-subfilters" id="codexSubfilters" hidden>
+                <label class="codex-subfilter" for="equipmentSlotFilter">
+                    <span>Type d'&eacute;quipement</span>
+                    <select id="equipmentSlotFilter" class="category-dropdown tw-input">
+                        <option value="">Tous les types</option>
+                    </select>
+                </label>
+            </div>
+            <div class="filter-chips" id="filterChips" aria-live="polite"></div>
+        </section>
+        <div class="codex-sort-bar">
+            <span class="codex-sort-label">Trier :</span>
+            <button type="button" class="codex-sort-btn sortable" data-sort="name" aria-sort="none">Nom <span class="sort-indicator"></span></button>
+            <button type="button" class="codex-sort-btn sortable" data-sort="price" aria-sort="none">Commerce <span class="sort-indicator"></span></button>
+        </div>
+        <div class="table-container tw-panel codex-table-shell">
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th scope="col">Illustration</th>
+                        <th scope="col" class="name-column">
+                            <button type="button" class="codex-table-sort sortable" data-sort="name" aria-sort="none">Nom <span class="sort-indicator"></span></button>
+                        </th>
+                        <th scope="col">Description</th>
+                        <th scope="col">
+                            <button type="button" class="codex-table-sort sortable" data-sort="price" aria-sort="none">Commerce <span class="sort-indicator"></span></button>
+                        </th>
+                        <th scope="col">Effets &amp; bonus</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </main>
+    <!-- Modal pour voir un item en grand / détails -->
+    <div
+        id="itemModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalName"
+        aria-describedby="modalDescription"
+    >
+        <div class="modal-inner">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalName"></h2>
+                <div class="modal-admin-actions" id="modalAdminActions" hidden>
+                    <button type="button" class="admin-edit-btn tw-press" id="adminEditBtn">Modifier</button>
+                </div>
+                <button class="modal-close tw-press" aria-label="Fermer la fenêtre">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-media">
+                    <div class="modal-carousel" id="modalCarousel">
+                        <button class="carousel-btn prev tw-press" id="carouselPrev" aria-label="Image précédente">‹</button>
+                        <img id="modalImage" alt="">
+                        <button class="carousel-btn next tw-press" id="carouselNext" aria-label="Image suivante">›</button>
+                    </div>
+                    <div class="carousel-dots" id="carouselDots"></div>
+                </div>
+                <div class="modal-text">
+                    <p id="modalCategory"></p>
+                    <p id="modalDescription"></p>
+                    <p id="modalPrice"></p>
+                    <p id="modalModifiers"></p>
+                    <p id="modalEffect"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="codex-admin-backdrop" id="adminItemBackdrop" aria-hidden="true">
+        <div class="codex-admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminItemTitle">
+            <div class="codex-admin-header">
+                <h2 class="codex-admin-title" id="adminItemTitle">Ajouter un objet</h2>
+                <button type="button" class="codex-admin-close tw-press" id="adminItemClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="codex-admin-error" id="adminItemError" role="alert"></div>
+            <div class="codex-admin-note" id="adminItemNote"></div>
+            <form id="adminItemForm">
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Infos</div>
+                    <div class="codex-admin-grid">
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemName">Nom</label>
+                            <input class="codex-admin-input tw-input" id="adminItemName" name="name" required>
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemCategory">Categorie</label>
+                            <select class="codex-admin-input tw-input" id="adminItemCategory" name="category">
+                                <option value="">Choisir une categorie</option>
+                            </select>
+                        </div>
+                        <div class="codex-admin-field" id="adminItemEquipmentSlotField" style="display: none;">
+                            <label class="codex-admin-label" for="adminItemEquipmentSlot">Emplacement d'&#233;quipement</label>
+                            <select class="codex-admin-input tw-input" id="adminItemEquipmentSlot" name="equipmentSlot">
+                                <option value="">Non sp&#233;cifi&#233;</option>
+                                <option value="casque">Casque</option>
+                                <option value="cape">Cape</option>
+                                <option value="epaulettes">&#201;paulettes</option>
+                                <option value="collier">Collier</option>
+                                <option value="plastron">Plastron</option>
+                                <option value="ceinture">Ceinture</option>
+                                <option value="gantelets">Gantelets</option>
+                                <option value="anneau">Anneau</option>
+                                <option value="bottes">Bottes</option>
+                                <option value="arme">Arme</option>
+                                <option value="arme-deux-mains">Arme &#224; deux mains</option>
+                                <option value="artefact">Artefact</option>
+                                <option value="familier">Familier</option>
+                                <option value="monture">Monture</option>
+                            </select>
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemRarity">Raret&#233;</label>
+                            <select class="codex-admin-input tw-input" id="adminItemRarity" name="rarity">
+                                <option value="">Aucune</option>
+                                <option value="commun">Commun</option>
+                                <option value="rare">Rare</option>
+                                <option value="epique">&#201;pique</option>
+                                <option value="mythique">Mythique</option>
+                                <option value="legendaire">L&#233;gendaire</option>
+                            </select>
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemRank">Modificateur (Rang)</label>
+                            <select class="codex-admin-input tw-input" id="adminItemRank" name="rank">
+                                <option value="">Aucun</option>
+                                <option value="F">F</option>
+                                <option value="E">E</option>
+                                <option value="D">D</option>
+                                <option value="C">C</option>
+                                <option value="B">B</option>
+                                <option value="A">A</option>
+                                <option value="S">S</option>
+                                <option value="S+">S+</option>
+                                <option value="SS">SS</option>
+                                <option value="SSS">SSS</option>
+                            </select>
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemBuy">Prix achat</label>
+                            <input class="codex-admin-input tw-input" id="adminItemBuy" name="buy" placeholder="ex: 5 po">
+                        </div>
+                        <div class="codex-admin-field">
+                            <label class="codex-admin-label" for="adminItemSell">Prix vente</label>
+                            <input class="codex-admin-input tw-input" id="adminItemSell" name="sell" placeholder="ex: 2 po">
+                        </div>
+                    </div>
+                </div>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Description</div>
+                    <textarea class="codex-admin-textarea tw-input" id="adminItemDescription" name="description" rows="3" placeholder="Description courte..."></textarea>
+                </div>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Effet</div>
+                    <textarea class="codex-admin-textarea tw-input" id="adminItemEffect" name="effect" rows="2" placeholder="Effet principal..."></textarea>
+                </div>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Modificateurs</div>
+                    <div class="codex-admin-modifiers-container">
+                        <div class="codex-admin-modifiers-list" id="adminItemModifiersList"></div>
+                        <div class="codex-admin-modifiers-form">
+                            <div class="codex-admin-modifiers-inputs">
+                                <input type="text" class="codex-admin-input tw-input codex-modifier-stat" id="modifierStatInput" list="modifierStatSuggestions" placeholder="Choisir une compétence..." readonly>
+                                <input type="number" class="codex-admin-input tw-input codex-modifier-value" id="modifierValueInput" placeholder="Valeur" step="1">
+                                <select class="codex-admin-input tw-input codex-modifier-type" id="modifierTypeInput">
+                                    <option value="flat">Points</option>
+                                    <option value="percent">Pourcentage</option>
+                                </select>
+                                <button type="button" class="codex-admin-button secondary tw-press codex-modifier-add" id="addModifierBtn">+ Ajouter</button>
+                            </div>
+                            <div class="codex-admin-modifier-tools">
+                                <button type="button" class="codex-admin-button secondary tw-press" id="openModifierSkillsPicker">Choisir depuis compétences</button>
+                            </div>
+                            <div class="codex-admin-modifier-quick" id="modifierQuickPicks"></div>
+                            <datalist id="modifierStatSuggestions"></datalist>
+                            <div class="codex-admin-modifiers-hint">Ajoutez des modificateurs de statistiques comme "+5 Force" ou "+10% Vitesse"</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="codex-admin-section">
+                    <div class="codex-admin-section-title">Image</div>
+                    <div class="codex-admin-image">
+                        <div class="codex-admin-image-preview" id="adminItemImagePreview">
+                            <span class="codex-admin-image-placeholder">Image</span>
+                            <img id="adminItemImage" alt="Apercu image" hidden>
+                        </div>
+                        <div class="codex-admin-image-actions">
+                            <button type="button" class="codex-admin-button secondary tw-press" id="adminItemImageBtn">Importer l'image</button>
+                            <span class="codex-admin-image-hint">Recadre en carre pour garder la taille.</span>
+                        </div>
+                        <div class="codex-admin-image-meta" id="adminItemImageMeta">Aucun fichier</div>
+                        <input type="file" id="adminItemImageInput" accept="image/*" hidden>
+                    </div>
+                </div>
+                <div class="codex-admin-actions">
+                    <button type="button" class="codex-admin-button danger tw-press" id="adminItemDelete" hidden>🗑️ Supprimer</button>
+                    <div class="codex-admin-actions-group">
+                        <button type="button" class="codex-admin-button secondary tw-press" id="adminItemCancel">Annuler</button>
+                        <button type="submit" class="codex-admin-button tw-press" id="adminItemSave">Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="codex-skills-picker-backdrop" id="codexSkillsPickerBackdrop" aria-hidden="true">
+        <div class="codex-skills-picker-modal" role="dialog" aria-modal="true" aria-labelledby="codexSkillsPickerTitle">
+            <div class="codex-skills-picker-header">
+                <h2 class="codex-skills-picker-title" id="codexSkillsPickerTitle">Selectionner une compétence</h2>
+                <button type="button" class="codex-skills-picker-close tw-press" id="codexSkillsPickerClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="codex-skills-picker-toolbar">
+                <input type="search" class="codex-admin-input tw-input" id="codexSkillsPickerSearch" placeholder="Rechercher une compétence...">
+                <div class="codex-skills-picker-categories" id="codexSkillsPickerCategories"></div>
+            </div>
+            <div class="codex-skills-picker-list" id="codexSkillsPickerList"></div>
+            <div class="codex-skills-picker-custom">
+                <div class="codex-skills-picker-custom-title">Cas extrême / custom</div>
+                <div class="codex-skills-picker-custom-row">
+                    <input type="text" class="codex-admin-input tw-input" id="codexSkillsPickerCustomName" placeholder="Nom personnalisé">
+                    <select class="codex-admin-input tw-input" id="codexSkillsPickerCustomType">
+                        <option value="flat">Points</option>
+                        <option value="percent">Pourcentage</option>
+                    </select>
+                    <button type="button" class="codex-admin-button secondary tw-press" id="codexSkillsPickerCustomApply">Utiliser</button>
+                </div>
+            </div>
+            <div class="codex-skills-picker-actions">
+                <button type="button" class="codex-admin-button secondary tw-press" id="codexSkillsPickerCancel">Fermer</button>
+            </div>
+        </div>
+    </div>
+    <div class="codex-skills-detail-backdrop" id="codexSkillsDetailBackdrop" aria-hidden="true">
+        <div class="codex-skills-detail-modal" role="dialog" aria-modal="true" aria-labelledby="codexSkillsDetailTitle">
+            <div class="codex-skills-detail-header">
+                <h2 class="codex-skills-detail-title" id="codexSkillsDetailTitle">Détails compétence</h2>
+                <button type="button" class="codex-skills-detail-close tw-press" id="codexSkillsDetailClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="codex-skills-detail-body">
+                <div class="codex-skills-detail-hero">
+                    <div class="codex-skills-detail-icon" id="codexSkillsDetailIcon" aria-hidden="true">*</div>
+                    <div>
+                        <div class="codex-skills-detail-name" id="codexSkillsDetailName"></div>
+                        <div class="codex-skills-detail-category" id="codexSkillsDetailCategory"></div>
+                    </div>
+                </div>
+                <p class="codex-skills-detail-text">Choisissez rapidement le type de modificateur pour cette compétence.</p>
+            </div>
+            <div class="codex-skills-detail-actions">
+                <button type="button" class="codex-admin-button secondary tw-press" id="codexSkillsDetailPercent">Utiliser en %</button>
+                <button type="button" class="codex-admin-button tw-press" id="codexSkillsDetailFlat">Utiliser en points</button>
+            </div>
+        </div>
+    </div>
+    <div class="codex-cropper-backdrop" id="itemCropperBackdrop" aria-hidden="true">
+        <div class="codex-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="itemCropperTitle">
+            <div class="codex-cropper-header">
+                <h2 class="codex-cropper-title" id="itemCropperTitle">Recadrer l'image</h2>
+                <button type="button" class="codex-cropper-close tw-press" id="itemCropperClose" aria-label="Fermer">x</button>
+            </div>
+            <div class="codex-cropper-body">
+                <div class="codex-cropper-stage">
+                    <img id="itemCropperImage" alt="Apercu recadrage">
+                </div>
+                <div class="codex-cropper-controls">
+                    <!-- Aspect Ratio Controls -->
+                    <div class="cropper-control-group">
+                        <label>Format</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="1" title="Carré 1:1">□ Carré</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
+                            <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="0.5625" title="Portrait 9:16">▯ Portrait</button>
+                        </div>
+                    </div>
+
+                    <!-- Rotation Controls -->
+                    <div class="cropper-control-group">
+                        <label>Rotation</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperRotateLeft" title="Rotation -90°">↺ -90°</button>
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperRotateRight" title="Rotation +90°">↻ +90°</button>
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperRotate180" title="Rotation 180°">↻ 180°</button>
+                        </div>
+                    </div>
+
+                    <!-- Flip Controls -->
+                    <div class="cropper-control-group">
+                        <label>Miroir</label>
+                        <div class="cropper-button-group">
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperFlipX" title="Miroir horizontal">↔ Horizontal</button>
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperFlipY" title="Miroir vertical">↕ Vertical</button>
+                        </div>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="cropper-control-group">
+                        <label for="itemCropperZoom">Zoom</label>
+                        <div class="cropper-zoom-group">
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperZoomOut" title="Zoom -">−</button>
+                            <input type="range" id="itemCropperZoom" min="0.2" max="3" step="0.01" value="1">
+                            <button type="button" class="cropper-btn tw-press" id="itemCropperZoomIn" title="Zoom +">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="cropper-control-group">
+                        <button type="button" class="cropper-btn cropper-btn-secondary tw-press" id="itemCropperReset" title="Réinitialiser">↺ Réinitialiser</button>
+                    </div>
+
+                    <span class="codex-cropper-hint">Utilise les contrôles pour ajuster le cadrage.</span>
+                </div>
+            </div>
+            <div class="codex-cropper-actions">
+                <button type="button" class="codex-admin-button secondary tw-press" id="itemCropperCancel">Annuler</button>
+                <button type="button" class="codex-admin-button tw-press" id="itemCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+    <!-- Delete confirmation modal -->
+    <div class="codex-delete-backdrop" id="deleteItemBackdrop" aria-hidden="true">
+        <div class="codex-delete-modal" role="dialog" aria-modal="true" aria-labelledby="deleteItemTitle">
+            <div class="codex-delete-header">
+                <h2 class="codex-delete-title" id="deleteItemTitle">Supprimer l'objet</h2>
+            </div>
+            <div class="codex-delete-body">
+                <p>Voulez-vous vraiment supprimer <strong id="deleteItemName"></strong> ?</p>
+                <p class="codex-delete-warning">Cette action est irréversible.</p>
+            </div>
+            <div class="codex-delete-actions">
+                <button type="button" class="codex-admin-button secondary tw-press" id="deleteItemCancel">Annuler</button>
+                <button type="button" class="codex-admin-button danger tw-press" id="deleteItemConfirm">Supprimer</button>
+            </div>
+        </div>
+    </div>
+    <!-- Données des objets -->
+    <script src="js/ui/performance-mode.js"></script>
+    <script src="js/image-helpers.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/item-modifiers.js"></script>
+    <script src="js/item-display-meta.js"></script>
+    <!-- External Libraries (CDN) - MUST LOAD FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+
+    <!-- Floating UI for tooltips/popovers (~5KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+
+    <!-- Notyf for toast notifications (~6KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+
+    <!-- body-scroll-lock for modal scroll prevention (~2KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+
+    <!-- localForage for IndexedDB/localStorage abstraction (~17KB) -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+
+
+
+
+    <!-- Library Wrappers (Astoria) - MUST LOAD BEFORE APP SCRIPTS -->
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/storage-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/utils/sanitize.js"></script>
+
+    <!-- App Scripts (now can use wrappers) -->
+    <script src="js/ui/list-helpers.js"></script>
+    <script src="js/ui/search-history.js"></script>
+    <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
+    <script type="module" src="js/ui/app-shell.js"></script>
+    <script src="js/codex.js"></script>
+    <script type="module" src="js/codex-admin-summary.js"></script>
+    <script type="module" src="js/codex-admin.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+    <script type="module" src="js/ui/table-labels.js"></script>
+</body>
+</html>

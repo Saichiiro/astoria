@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+
+
+
+<html lang="fr">
+
+
+
+<head>
+
+
+
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+    <title>Inventaire - Astoria</title>
+
+
+
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+
+
+
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+
+
+
+    <link rel="stylesheet" href="css/inventaire.css">
+    <link rel="stylesheet" href="css/quetes-items-modal.css">
+    <link rel="stylesheet" href="css/item-details-popover.css">
+    <link rel="stylesheet" href="css/components-ui.css">
+    <link rel="stylesheet" href="css/cropper-controls.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+
+    <style>
+        /* Overrides pour aligner les slots symétriquement - FORCÉ */
+        .inventory-layout {
+            align-items: start !important;
+        }
+
+        .inventory-sidebar {
+            align-self: start !important;
+            margin-top: 40px !important;
+            display: block !important;
+        }
+
+        /* Sticky only on desktop, not mobile */
+        @media (min-width: 992px) {
+            .inventory-sidebar {
+                position: sticky !important;
+                top: 24px !important;
+            }
+        }
+
+        .inventory-main {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .character-card {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+            min-height: 0 !important;
+        }
+
+        .character-showcase {
+            display: grid;
+            grid-template-columns: 56px 1fr 56px;
+            grid-template-rows: 1fr auto auto;
+            gap: 5px;
+            padding: 6px;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(237, 226, 238, 0.9));
+            border: 2px dashed rgba(228, 132, 184, 0.35);
+        }
+
+        .equip-col {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .equip-center {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            grid-row: 1;
+            grid-column: 2;
+        }
+
+        .character-sprite {
+            width: 100%;
+            max-width: 200px;
+            aspect-ratio: 230 / 320;
+            background-image: url('assets/images/Silhouette.png');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            border: none;
+            box-shadow: none;
+            cursor: pointer;
+        }
+
+        .character-upload-trigger {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #e91e63, #ff5d92);
+            color: #fff;
+            font-size: 1.3rem;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 16px rgba(233, 30, 99, 0.35);
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+        }
+
+        .character-upload-trigger:hover {
+            transform: translate(-50%, calc(-50% - 1px));
+            box-shadow: 0 10px 18px rgba(233, 30, 99, 0.32);
+        }
+
+        .character-upload-trigger:focus-visible {
+            outline: 2px solid rgba(233, 30, 99, 0.6);
+            outline-offset: 2px;
+        }
+
+        .equip-bottom {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .character-rank {
+            grid-column: 1 / -1;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--inv-text);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .character-rank-select {
+            min-width: 86px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(228, 132, 184, 0.65);
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--inv-text);
+            font-weight: 700;
+            font-size: 0.82rem;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .character-rank-select:focus-visible {
+            outline: 2px solid rgba(216, 27, 96, 0.45);
+            outline-offset: 2px;
+        }
+
+        .character-slot {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid rgba(238, 162, 201, 0.8);
+            box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+        }
+
+        .character-slot:focus-visible {
+            outline: 2px solid rgba(216, 27, 96, 0.65);
+            outline-offset: 2px;
+        }
+
+        .character-slot.is-drop-target {
+            border-color: rgba(216, 27, 96, 0.9);
+            box-shadow: 0 0 0 3px rgba(216, 27, 96, 0.2);
+            transform: scale(1.04);
+        }
+
+        .character-slot.has-item {
+            border-color: rgba(216, 27, 96, 0.55);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12);
+        }
+
+        .character-slot.has-item:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 6px 16px rgba(216, 27, 96, 0.18);
+        }
+
+        .character-slot:not(.has-item):not(.is-blocked):hover {
+            border-color: rgba(238, 162, 201, 1);
+            box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.12);
+        }
+
+        .character-slot.is-blocked {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(200, 200, 200, 0.3),
+                rgba(200, 200, 200, 0.3) 4px,
+                rgba(255, 255, 255, 0.95) 4px,
+                rgba(255, 255, 255, 0.95) 8px
+            );
+            border-color: rgba(150, 150, 150, 0.6);
+        }
+
+        .character-slot.is-available {
+            border-color: rgba(76, 175, 80, 0.8);
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(139, 195, 74, 0.1) 100%);
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.3), inset 0 0 20px rgba(76, 175, 80, 0.15);
+            animation: slot-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes slot-pulse {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(76, 175, 80, 0.3), inset 0 0 20px rgba(76, 175, 80, 0.15);
+                border-color: rgba(76, 175, 80, 0.8);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(76, 175, 80, 0.5), inset 0 0 30px rgba(76, 175, 80, 0.25);
+                border-color: rgba(76, 175, 80, 1);
+            }
+        }
+
+        .character-slot-label {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: rgba(106, 43, 90, 0.85);
+            text-align: center;
+            line-height: 1.1;
+            padding: 0 2px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .character-slot-icon {
+            font-size: 1.5rem;
+            opacity: 0.25;
+            filter: grayscale(100%);
+            user-select: none;
+            pointer-events: none;
+            transition: opacity 0.15s ease, filter 0.15s ease;
+        }
+
+        .character-slot:hover .character-slot-icon {
+            opacity: 0.4;
+            filter: grayscale(50%);
+        }
+
+        .character-slot-item-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        /* Equip shimmer — subtle glow */
+        @keyframes slot-equip-flash {
+            0%   { box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12); }
+            40%  { box-shadow: 0 0 8px 2px rgba(233, 30, 99, 0.22), inset 0 0 8px 1px rgba(255, 255, 255, 0.25); }
+            100% { box-shadow: inset 0 0 10px rgba(216, 27, 96, 0.1), 0 4px 12px rgba(216, 27, 96, 0.12); }
+        }
+
+        @keyframes slot-unequip-poof {
+            0%   { transform: scale(1); opacity: 1; }
+            35%  { transform: scale(1.06); opacity: 0.85; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .character-slot.equip-flash {
+            animation: slot-equip-flash 0.4s ease-out;
+        }
+
+        .character-slot.unequip-poof {
+            animation: slot-unequip-poof 0.25s ease-out;
+        }
+
+        /* Pulse animation for valid drop targets while dragging */
+        @keyframes slot-pulse {
+            0%, 100% { box-shadow: inset 0 0 8px rgba(216, 27, 96, 0.08); }
+            50% { box-shadow: inset 0 0 12px rgba(216, 27, 96, 0.18), 0 0 8px rgba(216, 27, 96, 0.12); }
+        }
+
+        .character-slot.valid-target:not(.has-item) {
+            animation: slot-pulse 1.2s ease-in-out infinite;
+            border-color: rgba(216, 27, 96, 0.6);
+        }
+
+        .character-slot.valid-target:not(.has-item) .character-slot-icon {
+            opacity: 0.5;
+            filter: grayscale(30%);
+        }
+
+        /* =================================================================
+           STATS SECTION
+           ================================================================= */
+        .character-stats {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 235, 240, 0.95));
+            border: 2px solid rgba(238, 162, 201, 0.65);
+            box-shadow: 0 4px 12px rgba(30, 20, 35, 0.08);
+        }
+
+        .stats-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(238, 162, 201, 0.35);
+        }
+
+        .stats-title {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #6a2b5a;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .stats-points {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #7a1242;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px dashed rgba(216, 27, 96, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            padding: 10px;
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(238, 162, 201, 0.5);
+        }
+
+        .stat-box-title {
+            margin: 0 0 8px 0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #6a2b5a;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.8rem;
+            color: #5c3a4f;
+            border-bottom: 1px dotted rgba(238, 162, 201, 0.25);
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #6a2b5a;
+        }
+
+        .stat-bonus {
+            color: #1f7a38;
+        }
+
+        .stat-box--dynamic {
+            min-height: 96px;
+        }
+
+        .stats-dynamic-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .stats-dynamic-empty {
+            color: #8e7484;
+            font-size: 0.76rem;
+            font-style: italic;
+            padding: 4px 0;
+        }
+
+        .stat-bar-container {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .stat-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-bar-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6a2b5a;
+            min-width: 40px;
+        }
+
+        .stat-bar {
+            flex: 1;
+            height: 10px;
+            background: rgba(238, 162, 201, 0.2);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .stat-bar-fill--hp {
+            background: linear-gradient(90deg, #e91e63, #ff5d92);
+        }
+
+        .stat-bar-fill--mana {
+            background: linear-gradient(90deg, #2196f3, #64b5f6);
+        }
+
+        .stat-bar-value {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #5c3a4f;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        @media (max-width: 400px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .inventory-item--draggable {
+            cursor: grab;
+        }
+
+        .inventory-item--draggable:active,
+        .inventory-item--draggable.is-dragging {
+            cursor: grabbing;
+            opacity: 0.72;
+        }
+
+        .inventory-item--rank-locked {
+            opacity: 0.66;
+            filter: grayscale(0.08);
+        }
+
+        .silhouette-cropper-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.56);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2147483000;
+            padding: 20px;
+        }
+
+        .silhouette-cropper-backdrop.open {
+            display: flex;
+        }
+
+        .silhouette-cropper-modal {
+            width: min(760px, 96vw);
+            max-height: 92vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 16px;
+            border: 2px solid rgba(216, 27, 96, 0.2);
+            padding: 16px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.26);
+        }
+
+        .silhouette-cropper-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .silhouette-cropper-title {
+            margin: 0;
+            font-size: 1.05rem;
+            color: var(--inv-text);
+        }
+
+        .silhouette-cropper-stage {
+            width: 100%;
+            min-height: 320px;
+            max-height: 62vh;
+            background: #f7f3f6;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .silhouette-cropper-stage img {
+            display: block;
+            max-width: 100%;
+        }
+
+        .silhouette-cropper-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .silhouette-cropper-controls input[type="range"] {
+            flex: 1;
+        }
+
+        .silhouette-cropper-actions {
+            margin-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+    </style>
+
+</head>
+
+
+
+<body class="min-h-screen">
+
+
+
+            <!-- Main inventory wrapper -->
+
+
+
+    <main class="inventory-wrapper" aria-labelledby="inventoryTitle">
+
+
+
+                <!-- Header with title and back button -->
+
+
+
+        <header class="page-header">
+            <a href="html/codex.html" class="page-back" title="Retour au codex">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title" id="inventoryTitle">Inventaire</h1>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+
+
+
+                <div class="character-avatar-wrapper">
+
+
+
+                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+
+
+
+                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+
+
+
+                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+
+
+
+                    </div>
+
+
+
+                    <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+
+
+
+                </div>
+
+
+
+                <div class="character-summary-text">
+
+
+
+                    <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+
+
+
+                    <span class="character-tagline" id="characterSummaryTagline">Classe / Role / Surnom</span>
+
+
+
+                    <div class="character-summary-meta">
+
+
+
+                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+
+
+
+                        <div class="character-souls" id="characterSouls" hidden>
+
+
+
+                            <span class="soul-count" title="&Acirc;mes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+
+
+
+                            <span class="soul-count" title="&Acirc;mes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+
+
+
+                        </div>
+
+
+
+                    </div>
+
+
+
+                </div>
+            </div>
+        </header>
+
+        <div class="inventory-layout">
+            <aside class="inventory-sidebar" aria-label="Equipement du personnage">
+                <div class="character-card" aria-label="Personnage">
+                    <div class="character-showcase">
+                        <!-- Left column (5) -->
+                        <div class="equip-col equip-left">
+                            <div class="character-slot" data-slot-key="head" data-slot-label="Casque" role="button" tabindex="0" aria-label="Slot Casque">
+                                <span class="character-slot-label">Casque</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="amulet" data-slot-label="Collier" role="button" tabindex="0" aria-label="Slot Collier">
+                                <span class="character-slot-label">Collier</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="chest" data-slot-label="Plastron" role="button" tabindex="0" aria-label="Slot Plastron">
+                                <span class="character-slot-label">Plastron</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="ring1" data-slot-label="Anneau" role="button" tabindex="0" aria-label="Slot Anneau">
+                                <span class="character-slot-label">Anneau</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="ring2" data-slot-label="Anneau" role="button" tabindex="0" aria-label="Slot Anneau">
+                                <span class="character-slot-label">Anneau</span>
+                            </div>
+                        </div>
+
+                        <!-- Center: character -->
+                        <div class="equip-center">
+                            <div class="character-sprite" aria-hidden="true"></div>
+                            <button type="button" class="character-upload-trigger tw-press" id="silhouetteUploadTrigger" aria-label="Importer une silhouette">+</button>
+                        </div>
+
+                        <!-- Right column (5) -->
+                        <div class="equip-col equip-right">
+                            <div class="character-slot" data-slot-key="cape" data-slot-label="Cape" role="button" tabindex="0" aria-label="Slot Cape">
+                                <span class="character-slot-label">Cape</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="shoulders" data-slot-label="Epaulettes" role="button" tabindex="0" aria-label="Slot Epaulettes">
+                                <span class="character-slot-label">Epaulettes</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="belt" data-slot-label="Ceinture" role="button" tabindex="0" aria-label="Slot Ceinture">
+                                <span class="character-slot-label">Ceinture</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="gloves" data-slot-label="Gantelets" role="button" tabindex="0" aria-label="Slot Gantelets">
+                                <span class="character-slot-label">Gantelets</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="boots" data-slot-label="Bottes" role="button" tabindex="0" aria-label="Slot Bottes">
+                                <span class="character-slot-label">Bottes</span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom row (5) -->
+                        <div class="equip-bottom">
+                            <div class="character-slot" data-slot-key="artifact" data-slot-label="Artefact" role="button" tabindex="0" aria-label="Slot Artefact">
+                                <span class="character-slot-label">Artefact</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="weapon" data-slot-label="Arme" role="button" tabindex="0" aria-label="Slot Arme">
+                                <span class="character-slot-label">Arme</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="offhand" data-slot-label="Arme secondaire" role="button" tabindex="0" aria-label="Slot Arme secondaire">
+                                <span class="character-slot-label">Secondaire</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="mount" data-slot-label="Monture" role="button" tabindex="0" aria-label="Slot Monture">
+                                <span class="character-slot-label">Monture</span>
+                            </div>
+                            <div class="character-slot" data-slot-key="companion" data-slot-label="Familier" role="button" tabindex="0" aria-label="Slot Familier">
+                                <span class="character-slot-label">Familier</span>
+                            </div>
+                        </div>
+
+                        <div class="character-rank">
+                            <label for="characterRankSelect">Rang (comp.) :</label>
+                            <select id="characterRankSelect" class="character-rank-select" aria-label="Rang du personnage (calcule depuis les competences)">
+                                <option value="F">F</option>
+                                <option value="E">E</option>
+                                <option value="D">D</option>
+                                <option value="C">C</option>
+                                <option value="B">B</option>
+                                <option value="A">A</option>
+                                <option value="S">S</option>
+                                <option value="S+">S+</option>
+                                <option value="SS">SS</option>
+                                <option value="SSS">SSS</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="character-stats" id="characterStats">
+                        <div class="stats-header">
+                            <h3 class="stats-title">Attributs</h3>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-box stat-box--dynamic">
+                                <h4 class="stat-box-title">Bonus equipement</h4>
+                                <div class="stats-dynamic-list" id="statsDynamicList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="inventory-main">
+                <div class="inventory-actions">
+                    <span id="itemCount" class="inventory-info">0 objets</span>
+                    <button class="add-item-btn tw-press" id="openAddPanel" title="Ajouter un objet">
+                        <span class="add-icon">+</span>
+                        <span class="add-label">Ajouter</span>
+                    </button>
+                </div>
+
+                <!-- Category filter bar + search -->
+                <div class="inventory-toolbar">
+
+            <div class="inventory-sort" id="inventorySort">
+                <button type="button" class="inventory-sort-btn tw-press" id="inventorySortBtn" aria-label="Trier" aria-expanded="false" title="Trier les objets">
+                    <span class="inventory-sort-icon">&#x2195;</span>
+                </button>
+                <div class="inventory-sort-dropdown" id="inventorySortDropdown" hidden>
+                    <button class="sort-option active" data-sort="default">Par défaut</button>
+                    <button class="sort-option" data-sort="name-asc">A &rarr; Z</button>
+                    <button class="sort-option" data-sort="name-desc">Z &rarr; A</button>
+                    <button class="sort-option" data-sort="price-desc">Prix &darr;</button>
+                    <button class="sort-option" data-sort="price-asc">Prix &uarr;</button>
+                    <button class="sort-option" data-sort="qty-desc">Quantité &darr;</button>
+                </div>
+            </div>
+
+            <nav class="inventory-categories" aria-label="Cat&eacute;gories d'inventaire">
+
+
+
+                <button class="category-btn active tw-press" data-category="all">
+
+
+
+                    <span class="category-icon">&#x1F4E6;</span>
+
+
+
+                    <span class="category-label">Tous</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="agricole">
+
+
+
+                    <span class="category-icon">&#x1F33E;</span>
+
+
+
+                    <span class="category-label">Agricole</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="consommable">
+
+
+
+                    <span class="category-icon">&#x1F9EA;</span>
+
+
+
+                    <span class="category-label">Consommables</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="equipement">
+
+
+
+                    <span class="category-icon">&#x2694;&#xFE0F;</span>
+
+
+
+                    <span class="category-label">&Eacute;quipements</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="materiau">
+
+
+
+                    <span class="category-icon">&#x2692;&#xFE0F;</span>
+
+
+
+                    <span class="category-label">Matériaux</span>
+
+
+
+                </button>
+
+
+
+                <button class="category-btn tw-press" data-category="quete">
+
+
+
+                    <span class="category-icon">&#x2728;</span>
+
+
+
+                    <span class="category-label">Quêtes</span>
+
+
+
+                </button>
+
+
+
+            </nav>
+
+
+
+            <div class="inventory-search" id="inventorySearch" data-search-priority="page">
+
+
+
+                <button type="button" class="inventory-search-toggle tw-press" id="inventorySearchToggle" aria-label="Rechercher" aria-expanded="false">
+
+
+
+                    <span class="inventory-search-icon">&#x1F50D;</span>
+
+
+
+                </button>
+
+
+
+                <input
+
+
+
+                    type="search"
+
+
+
+                    id="inventorySearchInput"
+
+
+
+                    class="inventory-search-input tw-input"
+
+
+
+                    placeholder="Rechercher un objet..."
+
+
+
+                    aria-label="Rechercher un objet"
+
+
+
+                >
+
+
+
+                <button type="button" class="inventory-search-clear tw-press" id="inventorySearchClear" aria-label="Effacer la recherche" hidden>x</button>
+
+
+
+                <div class="recent-searches-dropdown inventory-search-history" id="inventorySearchHistory"></div>
+
+
+
+            </div>
+
+
+
+                </div>
+
+                <!-- Main content area: grid + details -->
+                <div class="inventory-content">
+
+
+
+            <!-- Items grid (left side) -->
+
+
+
+                        <div class="inventory-grid-container">
+
+
+
+                <div class="inventory-grid" id="inventoryGrid">
+
+
+
+                    <!-- Items will be rendered here by JS -->
+
+
+
+                </div>
+
+
+
+                <div class="empty-inventory is-hidden" id="emptyState">
+
+
+
+                    <div class="empty-state-icon">&#x1F4E6;</div>
+
+
+
+                    <div class="empty-state-title">Aucun objet</div>
+
+
+
+                    <div class="empty-state-message">Votre inventaire est vide dans cette catégorie</div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <!-- Item detail panel (right side) -->
+
+
+
+                        <div class="inventory-detail" id="itemDetail">
+
+
+
+                <div class="detail-placeholder">
+
+                    <div class="placeholder-icon">&#x1F446;</div>
+
+                    <p>S&eacute;lectionnez un objet pour voir ses d&eacute;tails.</p>
+
+                    <p class="detail-placeholder-tip">Astuce : clique un objet pour lire ses bonus, puis glisse un &eacute;quipement sur la silhouette pour l'&eacute;quiper.</p>
+
+                </div>
+
+
+
+                <!-- Details will be rendered here when item is selected -->
+
+
+
+            </div>
+
+
+
+            <!-- Scroll types panel (right-most side) -->
+
+
+
+            <aside class="scroll-types-panel" id="scrollTypesPanel" aria-hidden="true">
+
+
+
+                <div class="scroll-panel-header">
+
+
+
+                    <h3 id="scrollPanelTitle">Types de parchemins</h3>
+
+
+
+                    <button class="scroll-panel-add-btn tw-press" id="scrollPanelAddBtn" type="button" title="Ajouter des parchemins" aria-label="Ajouter des parchemins" aria-expanded="false" aria-controls="scrollPanelAdd" disabled>+</button>
+
+
+
+                </div>
+
+
+
+                <div class="scroll-panel-body" id="scrollPanelBody">
+
+
+
+                    <div class="scroll-panel-add" id="scrollPanelAdd" aria-hidden="true">
+
+
+
+                        <div class="scroll-add-random">
+
+
+
+                            <span class="scroll-add-random-label">Distribution aléatoire</span>
+
+
+
+                            <div class="scroll-add-random-controls">
+
+
+
+                                <input type="number" id="scrollRandomQty" class="tw-input scroll-random-qty" min="1" value="1">
+
+
+
+                                <button type="button" id="scrollRandomAddBtn" class="tw-press scroll-random-add-btn">Distribuer</button>
+
+
+
+                            </div>
+
+
+
+                        </div>
+
+
+
+                        <div class="scroll-add-search">
+
+
+
+                            <input type="text" id="scrollTypeSearch" class="tw-input" placeholder="Rechercher un type">
+
+
+
+                        </div>
+
+
+
+                        <div class="scroll-suggestions" id="scrollTypeSuggestions"></div>
+
+
+
+                    </div>
+
+
+
+                    <p class="scroll-panel-empty" id="scrollPanelEmpty">Aucun type de parchemin disponible.</p>
+
+
+
+                    <div class="scroll-panel-list" id="scrollPanelList"></div>
+
+
+
+                </div>
+
+
+
+            </aside>
+
+
+
+                </div>
+            </section>
+        </div>
+
+
+
+    </main>
+
+
+
+    <!-- Items Selection Modal -->
+    <div class="quest-items-modal-backdrop" id="questItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Sélectionner des objets</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-categories">
+                <button class="quest-items-category-btn active tw-press" data-category="all">
+                    <span class="quest-items-category-icon">📦</span>
+                    <span class="quest-items-category-label">Tous</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="agricole">
+                    <span class="quest-items-category-icon">🌾</span>
+                    <span class="quest-items-category-label">Agricole</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="consommable">
+                    <span class="quest-items-category-icon">🧪</span>
+                    <span class="quest-items-category-label">Consommable</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="equipement">
+                    <span class="quest-items-category-icon">⚔️</span>
+                    <span class="quest-items-category-label">Équipement</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="materiau">
+                    <span class="quest-items-category-icon">⚒️</span>
+                    <span class="quest-items-category-label">Matériaux</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="quete">
+                    <span class="quest-items-category-icon">✨</span>
+                    <span class="quest-items-category-label">Quêtes</span>
+                </button>
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items générés dynamiquement -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Ajouter à l'inventaire</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+
+
+
+    <div class="delete-modal-overlay" id="deleteModal">
+
+
+
+        <div class="delete-modal">
+
+
+
+            <div class="delete-modal-header">
+
+
+
+                <h3>Supprimer l'objet</h3>
+
+
+
+            </div>
+
+
+
+            <div class="delete-modal-body">
+
+
+
+                <p>Combien d'unités de <span class="delete-modal-item-name" id="deleteItemName"></span> voulez-vous supprimer ?</p>
+
+
+
+                <div class="form-group">
+
+
+
+                    <label for="deleteQuantityInput">Quantité à supprimer</label>
+
+
+
+                    <div class="quantity-control">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="deleteQtyMinus">-</button>
+
+
+
+                        <input type="number" id="deleteQuantityInput" class="tw-input" min="1" value="1">
+
+
+
+                        <button type="button" class="qty-btn tw-press" id="deleteQtyPlus">+</button>
+
+
+
+                    </div>
+
+
+
+                </div>
+
+
+
+            </div>
+
+
+
+            <div class="delete-modal-footer">
+
+
+
+                <button type="button" class="btn-secondary tw-press" id="cancelDelete">Annuler</button>
+
+
+
+                <button type="button" class="btn-danger tw-press" id="confirmDelete">Supprimer</button>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+    </div>
+
+
+
+    <input type="file" id="silhouetteUploadInput" accept="image/*" hidden>
+
+    <div class="silhouette-cropper-backdrop" id="silhouetteCropperBackdrop" aria-hidden="true">
+        <div class="silhouette-cropper-modal" role="dialog" aria-modal="true" aria-labelledby="silhouetteCropperTitle">
+            <div class="silhouette-cropper-header">
+                <h3 class="silhouette-cropper-title" id="silhouetteCropperTitle">Importer la silhouette du personnage</h3>
+                <button type="button" class="btn-secondary tw-press" id="silhouetteCropperClose">Fermer</button>
+            </div>
+            <div class="silhouette-cropper-stage">
+                <img id="silhouetteCropperImage" alt="Apercu silhouette">
+            </div>
+            <div class="silhouette-cropper-controls">
+                <!-- Aspect Ratio Controls -->
+                <div class="cropper-control-group">
+                    <label>Format</label>
+                    <div class="cropper-button-group">
+                        <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1" title="Carré 1:1">□ Carré</button>
+                        <button type="button" class="cropper-btn cropper-aspect-btn active" data-ratio="0.71875" title="Portrait 230:320">▯ Portrait</button>
+                        <button type="button" class="cropper-btn cropper-aspect-btn" data-ratio="1.7778" title="Paysage 16:9">▭ Paysage</button>
+                    </div>
+                </div>
+
+                <!-- Rotation Controls -->
+                <div class="cropper-control-group">
+                    <label>Rotation</label>
+                    <div class="cropper-button-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotateLeft" title="Rotation -90°">↺ -90°</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotateRight" title="Rotation +90°">↻ +90°</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperRotate180" title="Rotation 180°">↻ 180°</button>
+                    </div>
+                </div>
+
+                <!-- Flip Controls -->
+                <div class="cropper-control-group">
+                    <label>Miroir</label>
+                    <div class="cropper-button-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperFlipX" title="Miroir horizontal">↔ Horizontal</button>
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperFlipY" title="Miroir vertical">↕ Vertical</button>
+                    </div>
+                </div>
+
+                <!-- Zoom Controls -->
+                <div class="cropper-control-group">
+                    <label for="silhouetteCropperZoom">Zoom</label>
+                    <div class="cropper-zoom-group">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperZoomOut" title="Zoom -">−</button>
+                        <input type="range" id="silhouetteCropperZoom" min="0.2" max="3" step="0.01" value="1">
+                        <button type="button" class="cropper-btn tw-press" id="silhouetteCropperZoomIn" title="Zoom +">+</button>
+                    </div>
+                </div>
+
+                <!-- Reset Button -->
+                <div class="cropper-control-group">
+                    <button type="button" class="cropper-btn cropper-btn-secondary tw-press" id="silhouetteCropperReset" title="Réinitialiser">↺ Réinitialiser</button>
+                </div>
+
+                <span>Ratio personnage 230x320 (portrait)</span>
+            </div>
+            <div class="silhouette-cropper-actions">
+                <button type="button" class="btn-secondary tw-press" id="silhouetteCropperCancel">Annuler</button>
+                <button type="button" class="btn-danger tw-press" id="silhouetteCropperConfirm">Appliquer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load shared data -->
+
+
+
+    <script src="js/image-helpers.js"></script>
+
+
+
+    <script src="js/data.js"></script>
+    <script src="js/scroll-store.js"></script>
+
+
+
+    <script src="js/item-modifiers.js"></script>
+    <script src="js/item-display-meta.js"></script>
+    <script src="js/inventory-stats.js"></script>
+
+
+
+    <script src="js/ui/list-helpers.js"></script>
+
+
+
+    <script src="js/ui/search-history.js"></script>
+
+
+
+    <script src="js/ui/searchbar.js"></script>
+    <script src="js/components/type-to-search.js"></script>
+
+    <!-- External Libraries (CDN) - MUST LOAD FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    
+    
+    
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <!-- Library Wrappers (Astoria) - MUST LOAD BEFORE APP SCRIPTS -->
+    <script src="js/components/toast-manager.js"></script>
+    <script src="js/components/storage-manager.js"></script>
+    <script src="js/components/modal-manager.js"></script>
+    <script src="js/components/uploader-cropper.js"></script>
+    <script src="js/components/drag-drop-manager.js"></script>
+    <script src="js/utils/sanitize.js"></script>
+
+    <!-- App Scripts -->
+    <script type="module" src="js/ui/app-shell.js"></script>
+
+
+
+    <script type="module">
+
+
+
+        import { initCharacterSummary } from './js/ui/character-summary.js';
+
+
+
+        // Initialize character summary with kaels and dropdown
+
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+
+
+
+            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+
+
+
+        });
+
+
+
+    </script>
+
+
+
+    <!-- Activity Logger Module -->
+    <script type="module">
+        import { logActivity, ActionTypes } from './js/api/activity-logger.js';
+        // Expose to inventory script
+        window.astoriaActivityLogger = { logActivity, ActionTypes };
+    </script>
+
+    <!-- Items Modal -->
+    <script type="module" src="js/inventory-items-modal.js"></script>
+
+    <!-- Inventory-specific JS -->
+
+
+
+    <script src="js/pages/inventaire/item-catalog.js"></script>
+    <script src="js/pages/inventaire/equipment.js"></script>
+    <script src="js/pages/inventaire/item-display.js"></script>
+    <script src="js/pages/inventaire/character-rank.js"></script>
+    <script src="js/pages/inventaire/inventaire-page.js"></script>
+
+
+    <script src="js/ui/performance-mode.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+
+
+
+</body>
+
+
+
+</html>

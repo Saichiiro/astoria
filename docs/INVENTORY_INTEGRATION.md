@@ -4,7 +4,7 @@
 
 ### Files
 1. **inventaire.html** - New inventory page
-2. **style.css** - Added inventory-specific styles (lines ~725-1054)
+2. **css/style.css** - Added inventory-specific styles (lines ~725-1054)
 3. **INVENTORY_INTEGRATION.md** - This guide
 
 ## How it works

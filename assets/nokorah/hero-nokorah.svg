@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+    <defs>
+        <linearGradient id="heroGlow" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0" stop-color="#ffe2d4"/>
+            <stop offset="1" stop-color="#ccecff"/>
+        </linearGradient>
+    </defs>
+    <rect width="360" height="360" rx="36" fill="url(#heroGlow)"/>
+    <circle cx="180" cy="170" r="100" fill="#fffaf0"/>
+    <circle cx="140" cy="160" r="18" fill="#4b2f2f"/>
+    <circle cx="220" cy="160" r="18" fill="#4b2f2f"/>
+    <circle cx="135" cy="155" r="6" fill="#fff"/>
+    <circle cx="215" cy="155" r="6" fill="#fff"/>
+    <path d="M140 205c14 18 44 18 60 0" fill="none" stroke="#f5a4a4" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="110" cy="105" r="16" fill="#ffd1b8"/>
+    <circle cx="250" cy="105" r="16" fill="#d3f1ff"/>
+</svg>

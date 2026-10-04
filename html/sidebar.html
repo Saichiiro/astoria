@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astoria Sidebar</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+</head>
+<body class="sidebar-layout min-h-screen">
+  <input type="checkbox" class="openSidebarMenu" id="openSidebarMenu" aria-controls="sidebarMenu" aria-label="Ouvrir le menu">
+  <label for="openSidebarMenu" class="sidebarIconToggle">
+    <div class="spinner diagonal part-1"></div>
+    <div class="spinner horizontal"></div>
+    <div class="spinner diagonal part-2"></div>
+  </label>
+  <nav id="sidebarMenu" aria-label="Raccourcis">
+    <div class="sidebar-topbar">
+      <div class="menu-header">
+        <span class="menu-header-title" aria-hidden="true">&nbsp;</span>
+        <span class="menu-header-sub">Astoria</span>
+      </div>
+      <button type="button" class="theme-toggle sidebar-theme-toggle tw-press" data-theme-toggle aria-pressed="false" aria-label="Basculer le theme">
+        <!--
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-thumb">
+            <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">&#9728;</span>
+            <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">&#9790;</span>
+          </span>
+        </span>
+        -->
+      </button>
+    </div>
+    <ul class="sidebarMenuInner">
+      <li class="menu-item" id="adminShortcut" hidden>
+        <button type="button" class="menu-link tw-press" data-panel="admin">
+          <span class="menu-icon" aria-hidden="true">&#9881;</span>
+          <span class="menu-text">Admin</span>
+        </button>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/codex.html">
+            <span class="menu-icon" aria-hidden="true">&#128214;</span>
+            <span class="menu-text">Codex</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="codex" aria-label="Ouvrir le panneau Codex">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/competences.html">
+            <span class="menu-icon" aria-hidden="true">&#9876;</span>
+            <span class="menu-text">Comp&#233;tences</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="competences" aria-label="Ouvrir le panneau Comp&#233;tences">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/hdv.html">
+            <span class="menu-icon" aria-hidden="true">&#127963;</span>
+            <span class="menu-text">H&#244;tel de vente</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="hdv" aria-label="Ouvrir le panneau HDV">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/inventaire.html">
+            <span class="menu-icon" aria-hidden="true">&#127890;</span>
+            <span class="menu-text">Inventaire</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="inventaire" aria-label="Ouvrir le panneau Inventaire">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/quetes.html">
+            <span class="menu-icon" aria-hidden="true">&#128301;</span>
+            <span class="menu-text">Qu&#234;tes</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="quetes" aria-label="Ouvrir le panneau Qu&#234;tes">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/magie.html">
+            <span class="menu-icon" aria-hidden="true">&#10024;</span>
+            <span class="menu-text">Magie</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="magie" aria-label="Ouvrir le panneau Magie">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/nokorah.html">
+            <span class="menu-icon" aria-hidden="true">&#128123;</span>
+            <span class="menu-text">Nokorah</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="nokorah" aria-label="Ouvrir le panneau Nokorah">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item">
+        <div class="sidebar-row">
+          <a class="menu-link" href="html/fiche.html">
+            <span class="menu-icon" aria-hidden="true">&#128100;</span>
+            <span class="menu-text">Personnage</span>
+          </a>
+          <button type="button" class="menu-open tw-press" data-panel="fiche" aria-label="Ouvrir le panneau Personnage">&#8599;</button>
+        </div>
+      </li>
+      <li class="menu-item menu-footer">
+        <button type="button" class="character-select-logout tw-press" id="logoutButton" hidden>D&#233;connexion</button>
+        <button type="button" class="character-select-logout tw-press" id="loginButton" hidden>Connexion</button>
+      </li>
+    </ul>
+  </nav>
+  <main class="main sidebar-content fade-in">
+    <h1>Profil</h1>
+    <p>Sidebar a bascule 100% CSS, basee sur le template selectionne.</p>
+    <p>Le menu s'ouvre avec l'icone en haut a gauche.</p>
+  </main>
+  <script src="js/sidebar.js"></script>
+  <script src="js/theme-toggle.js"></script>
+</body>
+</html>

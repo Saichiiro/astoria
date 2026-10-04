@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic localStorage - Astoria</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f5f5f5;
+        }
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #d81b60;
+            margin-top: 0;
+        }
+        h2 {
+            color: #333;
+            font-size: 1.1rem;
+            margin-top: 0;
+        }
+        .key {
+            font-weight: 600;
+            color: #555;
+        }
+        .value {
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+        }
+        .ok {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+        .error {
+            color: #c62828;
+            font-weight: 600;
+        }
+        .warning {
+            color: #f57c00;
+            font-weight: 600;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        button {
+            background: #d81b60;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+        button:hover {
+            background: #ad1457;
+        }
+    
+        </style>
+</head>
+<body class="min-h-screen">
+    <h1>🔍 Diagnostic localStorage - Astoria</h1>
+    <div class="panel tw-surface">
+        <h2>1. Informations Page</h2>
+        <div class="key">URL :</div>
+        <div class="value" id="pageUrl"></div>
+        <div class="key">Origin :</div>
+        <div class="value" id="pageOrigin"></div>
+        <div class="key">Protocol :</div>
+        <div class="value" id="pageProtocol"></div>
+    </div>
+    <div class="panel tw-surface">
+        <h2>2. localStorage.getItem('astoria_session')</h2>
+        <div id="sessionCheck"></div>
+    </div>
+    <div class="panel tw-surface">
+        <h2>3. localStorage.getItem('astoria_active_character')</h2>
+        <div id="characterCheck"></div>
+    </div>
+    <div class="panel tw-surface">
+        <h2>4. Test import modules</h2>
+        <div id="moduleCheck"></div>
+    </div>
+    <div class="panel tw-surface">
+        <h2>5. Tout le localStorage</h2>
+        <div id="allStorage"></div>
+    </div>
+    <div class="panel tw-surface">
+        <h2>Actions</h2>
+        <button onclick="window.location.href='index.html'" class="tw-press">Aller à index.html</button>
+        <button onclick="window.location.href='html/hdv.html'" class="tw-press">Aller à hdv.html</button>
+        <button onclick="window.location.href='html/profil.html'" class="tw-press">Aller à profil.html</button>
+        <button onclick="window.location.reload()" class="tw-press">Recharger</button>
+    </div>
+    <script type="module">
+        // 1. Page info
+        document.getElementById('pageUrl').textContent = window.location.href;
+        document.getElementById('pageOrigin').textContent = window.location.origin;
+        document.getElementById('pageProtocol').textContent = window.location.protocol;
+        // 2. Session check
+        const sessionRaw = localStorage.getItem('astoria_session');
+        const sessionEl = document.getElementById('sessionCheck');
+        if (!sessionRaw) {
+            sessionEl.innerHTML = '<div class="error">❌ NULL - Pas de session trouvée !</div>';
+        } else {
+            try {
+                const sessionData = JSON.parse(sessionRaw);
+                const hasUser = sessionData && sessionData.user && sessionData.user.id;
+                if (hasUser) {
+                    sessionEl.innerHTML = `
+                        <div class="ok">✅ Session valide</div>
+                        <div class="key">Username :</div>
+                        <div class="value">${sessionData.user.username || 'N/A'}</div>
+                        <div class="key">User ID :</div>
+                        <div class="value">${sessionData.user.id || 'N/A'}</div>
+                        <div class="key">Timestamp :</div>
+                        <div class="value">${new Date(sessionData.timestamp).toLocaleString()}</div>
+                        <div class="key">JSON complet :</div>
+                        <div class="value"><pre>${JSON.stringify(sessionData, null, 2)}</pre></div>
+                    `;
+                } else {
+                    sessionEl.innerHTML = `
+                        <div class="warning">⚠️ Session existe mais pas de user</div>
+                        <div class="value"><pre>${JSON.stringify(sessionData, null, 2)}</pre></div>
+                    `;
+                }
+            } catch (err) {
+                sessionEl.innerHTML = `
+                    <div class="error">❌ JSON invalide</div>
+                    <div class="value"><pre>${sessionRaw}</pre></div>
+                    <div class="error">${err.message}</div>
+                `;
+            }
+        }
+        // 3. Character check
+        const charRaw = localStorage.getItem('astoria_active_character');
+        const charEl = document.getElementById('characterCheck');
+        if (!charRaw) {
+            charEl.innerHTML = '<div class="warning">⚠️ NULL - Aucun personnage actif</div>';
+        } else {
+            try {
+                const charData = JSON.parse(charRaw);
+                const hasId = charData && charData.id;
+                if (hasId) {
+                    charEl.innerHTML = `
+                        <div class="ok">✅ Personnage actif trouvé</div>
+                        <div class="key">Nom :</div>
+                        <div class="value">${charData.name || 'N/A'}</div>
+                        <div class="key">ID :</div>
+                        <div class="value">${charData.id || 'N/A'}</div>
+                        <div class="key">JSON complet :</div>
+                        <div class="value"><pre>${JSON.stringify(charData, null, 2)}</pre></div>
+                    `;
+                } else {
+                    charEl.innerHTML = `
+                        <div class="warning">⚠️ Existe mais pas d'ID</div>
+                        <div class="value"><pre>${JSON.stringify(charData, null, 2)}</pre></div>
+                    `;
+                }
+            } catch (err) {
+                charEl.innerHTML = `
+                    <div class="error">❌ JSON invalide</div>
+                    <div class="value"><pre>${charRaw}</pre></div>
+                    <div class="error">${err.message}</div>
+                `;
+            }
+        }
+        // 4. Module test
+        const moduleEl = document.getElementById('moduleCheck');
+        moduleEl.innerHTML = '<div>Chargement des modules...</div>';
+        try {
+            const authModule = await import('./js/auth.js');
+            const { getCurrentUser, getActiveCharacter } = authModule;
+            const currentUser = getCurrentUser ? getCurrentUser() : null;
+            const activeChar = getActiveCharacter ? getActiveCharacter() : null;
+            let html = '<div class="ok">✅ Import réussi</div>';
+            if (currentUser && currentUser.id) {
+                html += `
+                    <div class="ok">✅ getCurrentUser() retourne un user</div>
+                    <div class="key">Username :</div>
+                    <div class="value">${currentUser.username || 'N/A'}</div>
+                `;
+            } else {
+                html += '<div class="error">❌ getCurrentUser() retourne NULL</div>';
+            }
+            if (activeChar && activeChar.id) {
+                html += `
+                    <div class="ok">✅ getActiveCharacter() retourne un personnage</div>
+                    <div class="key">Nom :</div>
+                    <div class="value">${activeChar.name || 'N/A'}</div>
+                `;
+            } else {
+                html += '<div class="warning">⚠️ getActiveCharacter() retourne NULL</div>';
+            }
+            moduleEl.innerHTML = html;
+        } catch (err) {
+            moduleEl.innerHTML = `
+                <div class="error">❌ Erreur import module</div>
+                <div class="error">${err.message}</div>
+                <div class="value"><pre>${err.stack}</pre></div>
+            `;
+        }
+        // 5. All storage
+        const allEl = document.getElementById('allStorage');
+        const allKeys = Object.keys(localStorage).filter(k => k.startsWith('astoria'));
+        if (allKeys.length === 0) {
+            allEl.innerHTML = '<div class="error">❌ Aucune clé Astoria dans localStorage</div>';
+        } else {
+            let html = `<div class="ok">✅ ${allKeys.length} clé(s) trouvée(s)</div>`;
+            allKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                const truncated = value && value.length > 200 ? value.substring(0, 200) + '...' : value;
+                html += `
+                    <div class="key" style="margin-top: 1rem;">${key} :</div>
+                    <div class="value"><pre>${truncated}</pre></div>
+                `;
+            });
+            allEl.innerHTML = html;
+        }
+    </script>
+    <script src="js/sidebar.js"></script>
+</body>
+</html>

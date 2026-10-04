@@ -1,0 +1,1539 @@
+/* =====================================================================
+   ASTORIA ADMIN - Tabler Customizations
+   ===================================================================== */
+
+/* =================================================================
+   THEME OVERRIDES - Pink/purple Astoria theme
+   ================================================================= */
+:root {
+    --tblr-primary: #d24b8f;
+    --tblr-primary-rgb: 210, 75, 143;
+    --tblr-pink: #f48fb1;
+    --tblr-pink-rgb: 244, 143, 177;
+    --admin-bg-dark: #1a1225;
+    --admin-bg-card: #231832;
+    --admin-bg-surface: #2a1f3d;
+    --admin-border: rgba(210, 75, 143, 0.15);
+    --admin-border-strong: rgba(210, 75, 143, 0.3);
+    --admin-text: #f0e6f5;
+    --admin-text-muted: #a89db5;
+    --admin-accent-soft: rgba(210, 75, 143, 0.08);
+    --admin-glow: rgba(210, 75, 143, 0.25);
+}
+
+/* Navbar brand styling */
+.navbar-brand a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.nav-brand-icon {
+    font-size: 1.5rem;
+}
+
+.nav-brand-text {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* Discord color */
+.bg-discord-lt {
+    background: rgba(88, 101, 242, 0.1) !important;
+    color: #5865f2 !important;
+}
+
+/* =================================================================
+   PAGE SYSTEM
+   ================================================================= */
+.admin-page {
+    display: none;
+}
+
+.admin-page.active {
+    display: block;
+    animation: adminFadeIn 0.25s ease;
+}
+
+@keyframes adminFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =================================================================
+   HEADER ADJUSTMENTS
+   ================================================================= */
+.page-header-content {
+    padding: 1rem 0;
+}
+
+.page-title {
+    margin-bottom: 0;
+}
+
+.page-subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* =================================================================
+   CARDS
+   ================================================================= */
+.card {
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--admin-border);
+    padding: 1rem 1.25rem;
+}
+
+.card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+/* =================================================================
+   STATS CARDS
+   ================================================================= */
+.card-sm {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.card-sm .avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 14px;
+    font-size: 1.25rem;
+}
+
+.card-sm .font-weight-medium {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.card-sm .text-muted {
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* =================================================================
+   TABLES
+   ================================================================= */
+.table-vcenter td,
+.table-vcenter th {
+    vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(233, 30, 99, 0.02);
+}
+
+.table-sheet {
+    max-height: min(64vh, 560px);
+    overflow: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(210, 75, 143, 0.22);
+    scrollbar-gutter: stable;
+}
+
+.table-sheet .table {
+    margin-bottom: 0;
+}
+
+.table-sheet .table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: linear-gradient(180deg, rgba(252, 234, 244, 0.98), rgba(246, 220, 236, 0.98));
+    backdrop-filter: blur(4px);
+}
+
+.theme-dark .table-sheet {
+    border-color: rgba(210, 75, 143, 0.32);
+    background: rgba(31, 20, 48, 0.45);
+}
+
+.theme-dark .table-sheet .table thead th {
+    background: linear-gradient(180deg, rgba(50, 33, 74, 0.98), rgba(37, 24, 54, 0.98));
+}
+
+/* =================================================================
+   ACTIVITY LIST
+   ================================================================= */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.activity-item + .activity-item {
+    border-top: 1px solid var(--tblr-border-color);
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--tblr-muted);
+}
+
+/* =================================================================
+   BADGES
+   ================================================================= */
+.badge.bg-yellow-lt {
+    background: rgba(245, 159, 0, 0.1);
+    color: #f59f00;
+}
+
+/* =================================================================
+   BUTTONS
+   ================================================================= */
+.btn {
+    border-radius: 10px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #ad1457 0%, #880e4f 100%);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 8px var(--admin-glow);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #c2185b 0%, #ad1457 100%);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--admin-glow);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-outline-primary {
+    color: var(--tblr-primary);
+    border-color: var(--admin-border-strong);
+    background: var(--admin-accent-soft);
+}
+
+.btn-outline-primary:hover {
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+    color: #fff;
+}
+
+.btn-ghost-primary {
+    color: var(--tblr-primary);
+}
+
+.btn-ghost-primary:hover {
+    background: var(--admin-accent-soft);
+}
+
+/* =================================================================
+   DARK THEME ADJUSTMENTS - Astoria purple/pink aesthetic
+   ================================================================= */
+.theme-dark {
+    --tblr-body-bg: var(--admin-bg-dark);
+    --tblr-bg-surface: var(--admin-bg-surface);
+    --tblr-card-bg: var(--admin-bg-card);
+    --tblr-body-color: var(--admin-text);
+    --tblr-muted: var(--admin-text-muted);
+}
+
+.theme-dark .card {
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--admin-border);
+}
+
+.theme-dark .card-header {
+    border-bottom-color: var(--admin-border);
+    background: transparent;
+}
+
+.theme-dark .card-title {
+    color: var(--admin-text);
+}
+
+.theme-dark .navbar-vertical {
+    background: linear-gradient(180deg, #1f1430 0%, #150d1f 100%);
+    border-right: 1px solid var(--admin-border);
+}
+
+.theme-dark .nav-link {
+    color: var(--admin-text-muted);
+    transition: all 0.15s ease;
+    border-radius: 8px;
+    margin: 2px 8px;
+}
+
+.theme-dark .nav-link:hover {
+    color: var(--admin-text);
+    background: var(--admin-accent-soft);
+}
+
+.theme-dark .nav-link.active {
+    color: var(--tblr-primary) !important;
+    background: rgba(210, 75, 143, 0.15);
+    font-weight: 500;
+}
+
+.theme-dark .page-wrapper {
+    background: linear-gradient(135deg, var(--admin-bg-dark) 0%, #1a1028 50%, #1e1530 100%);
+    min-height: 100vh;
+}
+
+.theme-dark .page-header {
+    background: rgba(35, 24, 50, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.theme-dark .page-title {
+    color: #fff;
+}
+
+.theme-dark .footer {
+    border-top: 1px solid var(--admin-border);
+    background: var(--admin-bg-card);
+}
+
+.theme-dark .table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.theme-dark .table {
+    color: var(--admin-text);
+}
+
+.theme-dark .table thead th {
+    color: var(--admin-text-muted);
+    border-bottom-color: var(--admin-border);
+}
+
+.theme-dark .form-control,
+.theme-dark .form-select {
+    background: var(--admin-bg-surface);
+    border-color: var(--admin-border);
+    color: var(--admin-text);
+    border-radius: 10px;
+}
+
+.theme-dark .form-control:focus,
+.theme-dark .form-select:focus {
+    background: var(--admin-bg-surface);
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 3px var(--admin-glow);
+}
+
+.theme-dark .form-control::placeholder {
+    color: var(--admin-text-muted);
+}
+
+/* Stat cards */
+.theme-dark .avatar {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.theme-dark .bg-primary {
+    background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .bg-pink {
+    background: linear-gradient(135deg, #f48fb1 0%, #f06292 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .bg-green {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .bg-yellow {
+    background: linear-gradient(135deg, #ffca28 0%, #ffa726 100%) !important;
+    color: #1a1225 !important;
+}
+
+.theme-dark .bg-purple {
+    background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%) !important;
+    color: #fff !important;
+}
+
+.theme-dark .dropdown-menu {
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.theme-dark .dropdown-item {
+    color: var(--admin-text);
+}
+
+.theme-dark .dropdown-item:hover {
+    background: rgba(244, 143, 177, 0.12);
+    color: #fff;
+}
+
+.theme-dark .dropdown-divider {
+    border-color: var(--admin-border);
+}
+
+/* Modal */
+.theme-dark .modal-content {
+    background: var(--admin-bg-card);
+    border-color: var(--admin-border);
+}
+
+.theme-dark .modal-header {
+    border-bottom-color: var(--admin-border);
+}
+
+.theme-dark .modal-footer {
+    border-top-color: var(--admin-border);
+}
+
+.theme-dark .btn-close {
+    filter: invert(1);
+}
+
+/* Status badges */
+.theme-dark .badge {
+    font-weight: 600;
+}
+
+/* Links */
+.theme-dark a {
+    color: var(--tblr-primary);
+}
+
+.theme-dark a:hover {
+    color: #f8bbd9;
+}
+
+.theme-dark .link-secondary {
+    color: var(--admin-text-muted) !important;
+}
+
+/* Text colors */
+.theme-dark .text-muted {
+    color: var(--admin-text-muted) !important;
+}
+
+/* =================================================================
+   RESPONSIVE
+   ================================================================= */
+@media (max-width: 991.98px) {
+    .navbar-vertical.navbar-expand-lg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        height: auto;
+    }
+
+    .page-wrapper {
+        padding-top: 3.5rem;
+    }
+}
+
+/* =================================================================
+   CUSTOM STATUS INDICATORS
+   ================================================================= */
+.status-online {
+    color: var(--tblr-success);
+    position: relative;
+}
+
+.status-online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--tblr-success);
+    margin-right: 5px;
+    animation: statusPulse 2s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@keyframes statusPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.status-offline {
+    color: var(--tblr-muted);
+}
+
+.status-banned {
+    color: var(--tblr-danger);
+}
+
+/* Admin role gold badge */
+.badge-role-admin {
+    background: linear-gradient(135deg, #f59f00 0%, #d4ac0d 100%);
+    color: #1a1225;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(245, 159, 0, 0.35);
+}
+
+.badge-role-player {
+    background: rgba(168, 157, 181, 0.15);
+    color: var(--admin-text-muted);
+    border: 1px solid rgba(168, 157, 181, 0.25);
+}
+
+/* User row in table */
+.user-row-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+/* =================================================================
+   EMPTY STATES
+   ================================================================= */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--tblr-muted);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+/* =================================================================
+   UX ENHANCEMENTS
+   ================================================================= */
+
+/* Smooth transitions */
+.card,
+.btn,
+.nav-link,
+.dropdown-item,
+.form-control,
+.form-select {
+    transition: all 0.15s ease;
+}
+
+/* Card hover lift */
+.theme-dark .card:hover {
+    border-color: rgba(244, 143, 177, 0.2);
+}
+
+.theme-dark .card-sm:hover .card {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(244, 143, 177, 0.18);
+    border-color: rgba(244, 143, 177, 0.22);
+}
+
+.card-sm .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-sm[data-nav] {
+    cursor: pointer;
+}
+
+/* Better focus states */
+.theme-dark .btn:focus {
+    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.2);
+}
+
+/* Table row hover */
+.theme-dark .table tbody tr {
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.theme-dark .table tbody tr:hover {
+    background: rgba(244, 143, 177, 0.05) !important;
+}
+
+/* Quick action buttons - softer outlines with hover glow */
+.theme-dark .btn-outline-success {
+    color: #66bb6a;
+    border-color: rgba(102, 187, 106, 0.3);
+    background: rgba(102, 187, 106, 0.08);
+}
+
+.theme-dark .btn-outline-success:hover {
+    background: #66bb6a;
+    border-color: #66bb6a;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(102, 187, 106, 0.25);
+}
+
+.theme-dark .btn-outline-info {
+    color: #4fc3f7;
+    border-color: rgba(79, 195, 247, 0.3);
+    background: rgba(79, 195, 247, 0.08);
+}
+
+.theme-dark .btn-outline-info:hover {
+    background: #4fc3f7;
+    border-color: #4fc3f7;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(79, 195, 247, 0.25);
+}
+
+.theme-dark .btn-outline-warning {
+    color: #ffca28;
+    border-color: rgba(255, 202, 40, 0.3);
+    background: rgba(255, 202, 40, 0.08);
+}
+
+.theme-dark .btn-outline-warning:hover {
+    background: #ffca28;
+    border-color: #ffca28;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(255, 202, 40, 0.25);
+}
+
+/* Pink outline button */
+.theme-dark .btn-outline-pink {
+    color: #f48fb1;
+    border-color: rgba(244, 143, 177, 0.3);
+    background: rgba(244, 143, 177, 0.08);
+}
+
+.theme-dark .btn-outline-pink:hover {
+    background: #f48fb1;
+    border-color: #f48fb1;
+    color: #1a1225;
+    box-shadow: 0 4px 12px rgba(244, 143, 177, 0.25);
+}
+
+/* Purple outline button */
+.theme-dark .btn-outline-purple {
+    color: #7c4dff;
+    border-color: rgba(124, 77, 255, 0.3);
+    background: rgba(124, 77, 255, 0.08);
+}
+
+.theme-dark .btn-outline-purple:hover {
+    background: #7c4dff;
+    border-color: #7c4dff;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(124, 77, 255, 0.25);
+}
+
+.theme-dark .btn-outline-primary:hover,
+.theme-dark .btn-outline-success:hover,
+.theme-dark .btn-outline-info:hover,
+.theme-dark .btn-outline-warning:hover,
+.theme-dark .btn-outline-pink:hover,
+.theme-dark .btn-outline-purple:hover {
+    transform: translateY(-1px);
+}
+
+/* Avatar ring on hover */
+.theme-dark .avatar:hover {
+    box-shadow: 0 0 0 3px rgba(244, 143, 177, 0.3);
+}
+
+/* Navbar brand subtle animation */
+.nav-brand-icon {
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: inline-block;
+}
+
+.navbar-brand a:hover .nav-brand-icon {
+    transform: rotate(12deg) scale(1.15);
+}
+
+/* Active nav indicator animation */
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: var(--tblr-primary);
+    border-radius: 0 2px 2px 0;
+    animation: navBarSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes navBarSlideIn {
+    from { height: 0; opacity: 0; }
+    to { height: 60%; opacity: 1; }
+}
+
+.nav-link {
+    position: relative;
+}
+
+/* Scrollbar styling */
+.theme-dark ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+    background: var(--admin-border-strong);
+    border-radius: 3px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--tblr-primary);
+}
+
+/* Loading shimmer for placeholders */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.loading-shimmer {
+    background: linear-gradient(90deg, var(--admin-bg-surface) 25%, var(--admin-bg-card) 50%, var(--admin-bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* =================================================================
+   STAT CARDS STAGGERED ENTRANCE
+   ================================================================= */
+.row-deck .col-sm-6:nth-child(1) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.05s; }
+.row-deck .col-sm-6:nth-child(2) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.10s; }
+.row-deck .col-sm-6:nth-child(3) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.15s; }
+.row-deck .col-sm-6:nth-child(4) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.20s; }
+.row-deck .col-sm-6:nth-child(5) .card-sm .card { animation: cardSlideUp 0.35s ease both; animation-delay: 0.25s; }
+
+@keyframes cardSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* "Active today" glow for recently active list */
+#recentlyActiveList .active-today .avatar {
+    box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.5), 0 0 8px rgba(102, 187, 106, 0.25);
+}
+
+/* =================================================================
+   STAT CARD ACCENT BORDERS
+   ================================================================= */
+.card-sm:nth-child(1) .card {
+    border-top: 3px solid #7c4dff;
+}
+
+.card-sm:nth-child(2) .card {
+    border-top: 3px solid #f48fb1;
+}
+
+.card-sm:nth-child(3) .card {
+    border-top: 3px solid #66bb6a;
+}
+
+.card-sm:nth-child(4) .card {
+    border-top: 3px solid #ffca28;
+}
+
+/* Alternate: using column selectors */
+.row-cards > .col-sm-6:nth-child(1) .card-sm {
+    border-top: 3px solid #7c4dff;
+}
+
+.row-cards > .col-sm-6:nth-child(2) .card-sm {
+    border-top: 3px solid #f48fb1;
+}
+
+.row-cards > .col-sm-6:nth-child(3) .card-sm {
+    border-top: 3px solid #66bb6a;
+}
+
+.row-cards > .col-sm-6:nth-child(4) .card-sm {
+    border-top: 3px solid #ffca28;
+}
+
+/* Loading state skeleton */
+.skeleton {
+    background: linear-gradient(90deg, var(--admin-bg-surface) 25%, var(--admin-bg-card) 50%, var(--admin-bg-surface) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Smooth page transitions */
+.admin-page {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =================================================================
+   EMPTY STATE ENHANCEMENT
+   ================================================================= */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--admin-text-muted);
+}
+
+.empty-state i,
+.empty-state .ti {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+/* =================================================================
+   NAV SECTION LABELS
+   ================================================================= */
+.theme-dark .nav-link-title {
+    font-size: 0.875rem;
+}
+
+.theme-dark .dropdown-menu {
+    border-radius: 12px;
+    padding: 0.5rem;
+}
+
+.theme-dark .dropdown-item {
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    margin: 2px 0;
+}
+
+/* =================================================================
+   ENHANCED ADMIN TABLES (All Pages)
+   ================================================================= */
+[data-page="users"] .table tbody td,
+[data-page="characters"] .table tbody td,
+[data-page="items"] .table tbody td,
+[data-page="economy"] .table tbody td,
+[data-page="market"] .table tbody td,
+[data-page="logs"] .table tbody td,
+[data-page="competences"] .table tbody td {
+    border-bottom: 1px solid rgba(244, 143, 177, 0.05);
+    padding: 1rem 0.75rem;
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-page="users"] .table tbody td.text-muted,
+[data-page="characters"] .table tbody td.text-muted,
+[data-page="items"] .table tbody td.text-muted,
+[data-page="economy"] .table tbody td.text-muted,
+[data-page="market"] .table tbody td.text-muted,
+[data-page="logs"] .table tbody td.text-muted,
+[data-page="competences"] .table tbody td.text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-page="users"] .table thead th,
+[data-page="characters"] .table thead th,
+[data-page="items"] .table thead th,
+[data-page="economy"] .table thead th,
+[data-page="market"] .table thead th,
+[data-page="logs"] .table thead th,
+[data-page="competences"] .table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #b39ddb !important;
+    background: rgba(124, 77, 255, 0.08);
+    padding: 0.75rem;
+    border-bottom: 2px solid rgba(124, 77, 255, 0.3);
+}
+
+.competences-health-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem 0;
+}
+
+.competences-health-pill,
+.competences-health-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.competences-health-pill {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+}
+
+.competences-health-source {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.68rem;
+    margin-top: 0.35rem;
+}
+
+.competences-health-pill.is-table,
+.competences-health-source.is-table {
+    color: #8ff0a4;
+    background: rgba(47, 179, 68, 0.12);
+    border-color: rgba(47, 179, 68, 0.24);
+}
+
+.competences-health-pill.is-legacy,
+.competences-health-source.is-legacy {
+    color: #ffd66b;
+    background: rgba(245, 159, 0, 0.14);
+    border-color: rgba(245, 159, 0, 0.24);
+}
+
+.competences-health-pill.is-missing,
+.competences-health-source.is-missing {
+    color: #ff9aa2;
+    background: rgba(214, 57, 57, 0.14);
+    border-color: rgba(214, 57, 57, 0.24);
+}
+
+.competences-health-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.96);
+    font-weight: 700;
+}
+
+.competences-health-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem 0.7rem;
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.competences-health-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.competences-health-metric-main {
+    font-size: 0.98rem;
+    font-weight: 800;
+}
+
+.competences-health-metric-sub {
+    margin-top: 0.2rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.competences-health-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+/* Better contrast for all table rows - remove white backgrounds */
+.theme-dark [data-page="users"] .table tbody tr,
+.theme-dark [data-page="characters"] .table tbody tr,
+.theme-dark [data-page="items"] .table tbody tr,
+.theme-dark [data-page="economy"] .table tbody tr,
+.theme-dark [data-page="market"] .table tbody tr,
+.theme-dark [data-page="logs"] .table tbody tr,
+.theme-dark [data-page="quetes"] .table tbody tr {
+    background: transparent !important;
+}
+
+/* Override striped table styling that creates white rows */
+.theme-dark [data-page="users"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="users"] .table-striped tbody tr:nth-of-type(even),
+.theme-dark [data-page="characters"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="characters"] .table-striped tbody tr:nth-of-type(even),
+.theme-dark [data-page="items"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="items"] .table-striped tbody tr:nth-of-type(even),
+.theme-dark [data-page="economy"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="economy"] .table-striped tbody tr:nth-of-type(even),
+.theme-dark [data-page="market"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="market"] .table-striped tbody tr:nth-of-type(even),
+.theme-dark [data-page="logs"] .table-striped tbody tr:nth-of-type(odd),
+.theme-dark [data-page="logs"] .table-striped tbody tr:nth-of-type(even) {
+    background: transparent !important;
+}
+
+.theme-dark [data-page="users"] .table tbody tr:hover,
+.theme-dark [data-page="characters"] .table tbody tr:hover,
+.theme-dark [data-page="items"] .table tbody tr:hover,
+.theme-dark [data-page="economy"] .table tbody tr:hover,
+.theme-dark [data-page="market"] .table tbody tr:hover,
+.theme-dark [data-page="logs"] .table tbody tr:hover,
+.theme-dark [data-page="quetes"] .table tbody tr:hover {
+    background: rgba(244, 143, 177, 0.08) !important;
+    box-shadow: inset 0 0 0 1px rgba(244, 143, 177, 0.2);
+}
+
+/* White text for usernames */
+.theme-dark .table .text-white {
+    color: #fff !important;
+    font-weight: 600;
+}
+
+/* User avatar gradient */
+.theme-dark .avatar {
+    box-shadow: 0 0 0 2px rgba(244, 143, 177, 0.15);
+}
+
+/* Better badge contrast */
+.theme-dark .badge.bg-red {
+    background: linear-gradient(135deg, #f44336 0%, #c62828 100%) !important;
+    box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+}
+
+.theme-dark .badge.bg-blue {
+    background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%) !important;
+    box-shadow: 0 2px 4px rgba(66, 165, 245, 0.3);
+}
+
+.theme-dark .badge.bg-success {
+    background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%) !important;
+    box-shadow: 0 2px 4px rgba(102, 187, 106, 0.3);
+}
+
+/* Code snippets */
+.theme-dark code {
+    background: rgba(124, 77, 255, 0.1);
+    color: #b39ddb;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85em;
+    border: 1px solid rgba(124, 77, 255, 0.2);
+}
+
+/* Action buttons visibility */
+.theme-dark .btn-ghost-info {
+    color: #4fc3f7;
+}
+
+.theme-dark .btn-ghost-info:hover {
+    background: rgba(79, 195, 247, 0.15);
+    color: #4fc3f7;
+}
+
+.theme-dark .btn-ghost-warning {
+    color: #ffca28;
+}
+
+.theme-dark .btn-ghost-warning:hover {
+    background: rgba(255, 202, 40, 0.15);
+    color: #ffca28;
+}
+
+/* Better spacing for action buttons */
+.btn-list {
+    gap: 0.25rem;
+}
+
+.btn-list .btn-sm {
+    padding: 0.35rem 0.6rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-list .btn-sm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Enhanced tooltips on buttons */
+.btn-sm[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    margin-bottom: 0.5rem;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Kaels coin icon */
+.ti-coin {
+    color: #ffca28 !important;
+    filter: drop-shadow(0 1px 2px rgba(255, 202, 40, 0.3));
+}
+
+/* Character count emphasis */
+.text-primary.fw-bold {
+    color: #f48fb1 !important;
+    text-shadow: 0 1px 3px rgba(244, 143, 177, 0.3);
+}
+
+/* =================================================================
+   FICHE JOUEUR
+   ================================================================= */
+.fj-user-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--admin-border);
+    transition: background 0.12s ease;
+}
+
+.fj-user-row:hover {
+    background: var(--admin-accent-soft);
+}
+
+.fj-user-row.selected {
+    background: rgba(210, 75, 143, 0.12);
+    border-left: 3px solid var(--tblr-primary);
+}
+
+.fj-user-row.banned {
+    opacity: 0.55;
+}
+
+.fj-user-name {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.fj-user-meta {
+    font-size: .72rem;
+}
+
+.fj-arrow {
+    margin-left: auto;
+    opacity: 0.3;
+    font-size: .8rem;
+    flex-shrink: 0;
+}
+
+.fj-user-row.selected .fj-arrow {
+    opacity: 1;
+    color: var(--tblr-primary);
+}
+
+.theme-dark [data-page="fiche-joueur"] .table tbody tr {
+    background: transparent !important;
+}
+
+.theme-dark [data-page="fiche-joueur"] .table tbody tr:hover {
+    background: rgba(244, 143, 177, 0.08) !important;
+}
+
+/* =================================================================
+   QUÊTES TABLE STYLES
+   ================================================================= */
+.quest-rank-badge,
+.quest-status-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .02em;
+}
+
+.quest-kaels-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: .75rem;
+    font-weight: 600;
+    color: #f59f00;
+    background: rgba(245,159,0,.12);
+    border-radius: 5px;
+    padding: 1px 7px;
+    margin-top: 2px;
+}
+
+.quest-type-label {
+    font-size: .82rem;
+    color: var(--admin-text-muted);
+}
+
+.quest-part-count {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.quest-repeatable-yes {
+    font-size: .8rem;
+    font-weight: 600;
+    color: #42a5f5;
+}
+
+.fj-quest-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.fj-context-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid rgba(244, 143, 177, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.fj-context-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(210, 75, 143, 0.12);
+    border: 1px solid rgba(244, 143, 177, 0.15);
+    color: var(--admin-text);
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.fj-context-pill i {
+    color: var(--admin-text-muted);
+}
+
+.fj-quest-stat .card-body,
+.fj-quest-panel .card-body {
+    background:
+        radial-gradient(circle at top right, rgba(210, 75, 143, 0.12), transparent 42%),
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+.fj-quest-stat-label {
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--admin-text-muted);
+    margin-bottom: 8px;
+}
+
+.fj-quest-stat-value {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+}
+
+.fj-quest-stat-value--date {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.fj-quest-stat-meta {
+    font-size: .78rem;
+    color: var(--admin-text-muted);
+    margin-top: 4px;
+}
+
+.fj-quest-list,
+.fj-quest-timeline {
+    display: grid;
+    gap: 12px;
+}
+
+.fj-quest-entry,
+.fj-quest-timeline-entry {
+    position: relative;
+    border: 1px solid rgba(244, 143, 177, 0.18);
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.fj-quest-entry-top,
+.fj-quest-timeline-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.fj-quest-entry-title {
+    font-size: .98rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+
+.fj-quest-entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    font-size: .8rem;
+    color: var(--admin-text-muted);
+}
+
+.fj-quest-gains {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 193, 7, 0.08);
+    border: 1px solid rgba(255, 193, 7, 0.18);
+    color: #f9d56e;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.fj-quest-timeline-entry {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr);
+    gap: 14px;
+}
+
+.fj-quest-timeline-marker {
+    width: 10px;
+    border-radius: 999px;
+    min-height: 100%;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.03);
+}
+
+.fj-quest-timeline-date {
+    font-size: .78rem;
+    color: var(--admin-text-muted);
+    font-weight: 600;
+}
+
+.fj-quest-empty {
+    min-height: 220px;
+}
+
+@media (max-width: 1199.98px) {
+    .fj-quest-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =================================================================
+   RECENTLY ACTIVE LIST
+   ================================================================= */
+#recentlyActiveList .d-flex {
+    border-radius: 10px;
+    padding: 6px 8px;
+    margin: -6px -8px;
+    transition: background 0.15s ease;
+    cursor: default;
+}
+
+#recentlyActiveList .d-flex:hover {
+    background: rgba(244, 143, 177, 0.08);
+}
+
+/* =================================================================
+   PERFORMANCE MODE
+   ================================================================= */
+body.perf-lite .admin-page.active {
+    animation: none;
+}
+
+body.perf-lite .btn,
+body.perf-lite .card,
+body.perf-lite .nav-link {
+    transition: none !important;
+}
+
+body.perf-lite .btn::before {
+    display: none !important;
+}
+
+/* =================================================================
+   INVENTORY INSPECTOR (Characters page)
+   ================================================================= */
+.admin-inventory-inspector .card-actions {
+    align-items: center;
+}
+
+.admin-inventory-inspector #adminInventoryCharacterSelect {
+    min-width: 220px;
+}
+
+.admin-inventory-summary {
+    font-size: 0.9rem;
+}
+
+.admin-inventory-equip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-inventory-slot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(244, 143, 177, 0.25);
+    background: rgba(244, 143, 177, 0.08);
+    color: #f5d6e8;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.admin-inventory-slot strong {
+    color: #fff;
+}
+
+.admin-inventory-table .table tbody td {
+    font-size: 0.84rem;
+    vertical-align: middle;
+}
+
+.admin-inventory-table .btn-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.admin-inventory-table code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+@media (max-width: 768px) {
+    .admin-inventory-inspector .card-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-inventory-inspector #adminInventoryCharacterSelect {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .admin-inventory-table .table {
+        min-width: 640px;
+    }
+}
+
+[data-page="items"] th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+[data-page="items"] th.sortable,
+[data-page="quetes"] th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+[data-page="items"] th.sortable:hover,
+[data-page="quetes"] th.sortable:hover {
+    color: #ff77b4;
+}

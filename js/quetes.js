@@ -1,0 +1,4168 @@
+import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
+import { initCharacterSummary } from "./ui/character-summary.js";
+import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
+import { getCharacterById, updateCharacter } from "./api/characters-service.js";
+import { patchCharacterProfile } from "./api/profile-patch-service.js";
+import { initItemsModal } from "./quetes-items-modal.js";
+import { initSkillsRewardsModal } from "./quetes-skills-modal.js";
+import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
+import { logQuestJoin, logActivity, ActionTypes } from "./api/activity-logger.js";
+import { createFilterBar, itemMatchesFilters, sortItemsBy, normalizeFilter } from "./components/ui/FilterBar.js";
+
+// Safe sanitizer wrapper with fallback when sanitizer not available
+// Plain text (names, labels, URLs) inserted into HTML templates: escape it,
+// including quotes for attribute values. Never returns raw input.
+function clean(value) {
+    if (!value) return ''; // same as before for empty values and 0
+    if (window.sanitizer?.escapeHtml) return window.sanitizer.escapeHtml(value);
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+const QUEST_TYPES = ["Exp\u00E9dition", "Chasse", "Assistance", "Investigation", "Evenementiel"];
+const QUEST_RANKS = ["F", "E", "D", "C", "B", "A", "S", "S+", "SS", "SSS"];
+const STATUS_META = {
+    available: { label: "Disponible", color: "#6aa7ff" },
+    in_progress: { label: "En cours", color: "#ff9c4a" },
+    locked: { label: "Acces restreint", color: "#ff6b6b" }
+};
+
+const QUEST_STORAGE_KEY = "astoria_quests_state";
+const QUEST_HISTORY_STORAGE_KEY = "astoria_quests_history";
+const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
+const QUEST_VIEW_STORAGE_KEY = "astoria_quests_view_mode";
+const QUEST_CACHE_VERSION = 1;
+const QUEST_CACHE_TTL_MS = 30 * 60 * 1000;
+const QUESTS_TABLE = "quests";
+const QUESTS_LIST_VIEW = "quests_list";
+const QUEST_HISTORY_TABLE = "quest_history";
+const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
+const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
+const QUESTS_POLL_COLUMNS = "id,status,max_participants,completed_by";
+const QUEST_HISTORY_SELECT_COLUMNS = "*";
+const HISTORY_INITIAL_VISIBLE = 30;
+const HISTORY_VISIBLE_STEP = 30;
+const QUEST_INITIAL_BATCH_SIZE = 8;
+const QUEST_BACKGROUND_BATCH_SIZE = 24;
+const QUEST_HISTORY_PAGE_SIZE = 100;
+const QUEST_BACKGROUND_PRELOAD_DELAY_MS = 350;
+const QUEST_POLLING_FALLBACK_MS = 180000;
+const REWARD_ELEMENTS = ["Feu", "Eau", "Vent", "Terre", "Glace", "Foudre", "Lumiere", "Ombre"];
+const REWARD_ELEMENT_MAP = {
+    feu: "feu",
+    eau: "eau",
+    vent: "vent",
+    terre: "terre",
+    roche: "roche",
+    glace: "glace",
+    cryo: "glace",
+    foudre: "foudre",
+    nature: "nature",
+    osmose: "osmose",
+    lumiere: "lumiere",
+    ombre: "tenebres",
+    tenebres: "tenebres"
+};
+
+const state = {
+    quests: [],
+    history: [],
+    completedQuestIdsFromActivity: new Set(),
+    completedQuestNamesFromActivity: new Set(),
+    items: [],
+    adminCharacters: [],
+    inventoryCache: new Map(),
+    filters: {
+        search: "",
+        type: "all",
+        rank: "all",
+        status: "all",
+        sort: "default",
+        myQuests: false,
+        historyType: "all"
+    },
+    viewMode: "carousel",
+    activeQuestId: null,
+    activeImageIndex: 0,
+    isAdmin: false,
+    participant: null,
+    editor: {
+        questId: null,
+        images: [],
+        rewards: [],
+        prerequisites: []
+    },
+    currentQuest: {
+        prerequisites: []
+    },
+    carousel: {
+        x: 0,
+        step: 0,
+        minX: 0,
+        maxX: 0,
+        isDragging: false
+    },
+    cropper: {
+        instance: null, // Direct Cropper.js instance
+        scaleX: 1,
+        scaleY: 1,
+        baseZoom: 1
+    },
+    isValidating: false,
+    adminNotes: {},
+    historyVisibleCount: HISTORY_INITIAL_VISIBLE,
+    historyBackendLoaded: false,
+    historyLoading: false,
+    syncBadgeHideTimer: null
+};
+
+let questRealtimeChannel = null;
+let questRealtimeRefreshTimer = null;
+let questRealtimePollingTimer = null;
+let questBackgroundPreloadTimer = null;
+let questBackgroundPreloadRunId = 0;
+let questHistoryObserver = null;
+let questRealtimeNeedsHistoryRefresh = false;
+let isQuestRealtimeRefreshing = false;
+const SHOULD_REDUCE_QUEST_EFFECTS = Boolean(
+    (window.astoriaPerformanceMode && window.astoriaPerformanceMode.enabled)
+    || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    || (Number(navigator.hardwareConcurrency) > 0 && Number(navigator.hardwareConcurrency) <= 4)
+);
+
+const questStorage = (() => {
+    const memory = new Map();
+    const tryStore = (store) => {
+        if (!store) return null;
+        try {
+            const key = "__astoria_quest_test__";
+            store.setItem(key, "1");
+            store.removeItem(key);
+            return store;
+        } catch {
+            return null;
+        }
+    };
+    const local = tryStore(window.localStorage);
+    const session = local ? null : tryStore(window.sessionStorage);
+    const backend = local || session;
+    const mode = local ? "local" : session ? "session" : "memory";
+    return {
+        mode,
+        getItem: (key) => (backend ? backend.getItem(key) : (memory.has(key) ? memory.get(key) : null)),
+        setItem: (key, value) => {
+            if (backend) {
+                try {
+                    backend.setItem(key, value);
+                } catch (e) {
+                    // Silently handle quota errors since data persists to database
+                    if (e.name !== 'QuotaExceededError') {
+                        console.warn('[Quetes] Storage error:', e);
+                    }
+                }
+            } else {
+                memory.set(key, value);
+            }
+        },
+        removeItem: (key) => {
+            if (backend) {
+                backend.removeItem(key);
+            } else {
+                memory.delete(key);
+            }
+        }
+    };
+})();
+
+function loadAdminNotesMap() {
+    try {
+        const raw = questStorage.getItem(getQuestAdminNotesStorageKey());
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveAdminNotesMap(map) {
+    try {
+        questStorage.setItem(getQuestAdminNotesStorageKey(), JSON.stringify(map || {}));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist admin notes:", error);
+    }
+}
+
+const dom = {
+    typeFilter: document.getElementById("questTypeFilter"),
+    rankFilter: document.getElementById("questRankFilter"),
+    statusFilter: document.getElementById("questStatusFilter"),
+    sortFilter: document.getElementById("questSortFilter"),
+    myQuestsBtn: document.getElementById("questMyQuestsBtn"),
+    searchRoot: document.getElementById("questSearch"),
+    searchInput: document.getElementById("questSearchInput"),
+    searchToggle: document.getElementById("questSearchToggle"),
+    searchClear: document.getElementById("questSearchClear"),
+    searchHistory: document.getElementById("questSearchHistory"),
+    prevBtn: document.getElementById("questPrevBtn"),
+    nextBtn: document.getElementById("questNextBtn"),
+    viewport: document.getElementById("questViewport"),
+    track: document.getElementById("questTrack"),
+    carouselViewBtn: document.getElementById("questCarouselViewBtn"),
+    gridViewBtn: document.getElementById("questGridViewBtn"),
+    addBtn: document.getElementById("questAddBtn"),
+    progressName: document.getElementById("questProgressName"),
+    progressDate: document.getElementById("questProgressDate"),
+    progressType: document.getElementById("questProgressType"),
+    progressRank: document.getElementById("questProgressRank"),
+    progressStatus: document.getElementById("questProgressStatus"),
+    progressNotes: document.getElementById("questProgressNotes"),
+    progressSave: document.getElementById("questProgressSave"),
+    progressSaved: document.getElementById("questProgressSaved"),
+    historySection: document.getElementById("questHistory"),
+    historyFilters: document.getElementById("questHistoryFilters"),
+    historyMeta: document.getElementById("questHistoryMeta"),
+    historyBody: document.getElementById("questHistoryBody"),
+    historyLoadMore: document.getElementById("questHistoryLoadMore"),
+    syncBadge: document.getElementById("questSyncBadge"),
+    detailModal: document.getElementById("questDetailModal"),
+    detailTitle: document.getElementById("questDetailTitle"),
+    detailType: document.getElementById("questDetailType"),
+    detailRank: document.getElementById("questDetailRank"),
+    detailStatus: document.getElementById("questDetailStatus"),
+    detailLocations: document.getElementById("questDetailLocations"),
+    detailRewards: document.getElementById("questDetailRewards"),
+    detailDescription: document.getElementById("questDetailDescription"),
+    detailParticipants: document.getElementById("questDetailParticipants"),
+    detailParticipantsCount: document.getElementById("questDetailParticipantsCount"),
+    adminParticipantSelect: document.getElementById("questAdminParticipantSelect"),
+    adminParticipantAddBtn: document.getElementById("questAdminParticipantAddBtn"),
+    detailNote: document.getElementById("questDetailNote"),
+    detailPrev: document.getElementById("questDetailPrev"),
+    detailNext: document.getElementById("questDetailNext"),
+    mediaImage: document.getElementById("questMediaImage"),
+    mediaFrame: document.querySelector(".quest-media-frame"),
+    mediaDots: document.getElementById("questMediaDots"),
+    mediaPrev: document.getElementById("questMediaPrev"),
+    mediaNext: document.getElementById("questMediaNext"),
+    joinBtn: document.getElementById("questJoinBtn"),
+    editBtn: document.getElementById("questEditBtn"),
+    validateBtn: document.getElementById("questValidateBtn"),
+    editorModal: document.getElementById("questEditorModal"),
+    editorTitle: document.getElementById("questEditorTitle"),
+    editorForm: document.getElementById("questEditorForm"),
+    nameInput: document.getElementById("questNameInput"),
+    typeInput: document.getElementById("questTypeInput"),
+    rankInput: document.getElementById("questRankInput"),
+    statusInput: document.getElementById("questStatusInput"),
+    statusDots: Array.from(document.querySelectorAll(".quest-editor-status-dot")),
+    descInput: document.getElementById("questDescriptionInput"),
+    maxParticipantsInput: document.getElementById("questMaxParticipantsInput"),
+    repeatableInput: document.getElementById("questRepeatableInput"),
+    locationsInput: document.getElementById("questLocationsInput"),
+    imageUrlInput: document.getElementById("questImageUrlInput"),
+    imageFileInput: document.getElementById("questImageFileInput"),
+    addImageBtn: document.getElementById("questAddImageBtn"),
+    imagePreviewBtn: document.getElementById("questImagePreviewBtn"),
+    imagesList: document.getElementById("questImagesList"),
+    rewardNameInput: document.getElementById("questRewardNameInput"),
+    // DEPRECATED - Old dropdown system:
+    // rewardSelect: document.getElementById("questRewardSelect"),
+    // rewardPicker: document.getElementById("questRewardPicker"),
+    // rewardTrigger: document.getElementById("questRewardTrigger"),
+    // rewardPopover: document.getElementById("questRewardPopover"),
+    // rewardOptions: document.getElementById("questRewardOptions"),
+    // rewardTooltip: document.getElementById("questRewardTooltip"),
+    rewardQtyInput: document.getElementById("questRewardQtyInput"),
+    addRewardBtn: document.getElementById("questAddRewardBtn"),
+    rewardsList: document.getElementById("questRewardsList"),
+    imagePreview: document.querySelector(".quest-editor-image-preview"),
+    // rewardPreview: document.getElementById("questRewardPreview"), // DEPRECATED
+    cropperBackdrop: document.getElementById("questCropperBackdrop"),
+    cropperImage: document.getElementById("questCropperImage"),
+    cropperZoom: document.getElementById("questCropperZoom"),
+    cropperZoomDisplay: document.getElementById("questCropperZoomDisplay"),
+    cropperZoomIn: document.getElementById("questCropperZoomIn"),
+    cropperZoomOut: document.getElementById("questCropperZoomOut"),
+    cropperRotateLeft: document.getElementById("questCropperRotateLeft"),
+    cropperRotateRight: document.getElementById("questCropperRotateRight"),
+    cropperFlipX: document.getElementById("questCropperFlipX"),
+    cropperFlipY: document.getElementById("questCropperFlipY"),
+    cropperReset: document.getElementById("questCropperReset"),
+    cropperClose: document.getElementById("questCropperClose"),
+    cropperCancel: document.getElementById("questCropperCancel"),
+    cropperConfirm: document.getElementById("questCropperConfirm")
+};
+
+function setSyncBadge(syncing, message = "") {
+    const badge = dom.syncBadge;
+    if (!badge) return;
+    if (state.syncBadgeHideTimer) {
+        window.clearTimeout(state.syncBadgeHideTimer);
+        state.syncBadgeHideTimer = null;
+    }
+
+    if (syncing) {
+        badge.textContent = message || "Syncing...";
+        badge.hidden = false;
+        badge.classList.add("is-visible", "is-syncing");
+        return;
+    }
+
+    badge.textContent = message || "Synced just now";
+    badge.hidden = false;
+    badge.classList.add("is-visible");
+    badge.classList.remove("is-syncing");
+    state.syncBadgeHideTimer = window.setTimeout(() => {
+        badge.classList.remove("is-visible", "is-syncing");
+        badge.hidden = true;
+    }, 1200);
+}
+
+function normalize(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+function normalizeText(value) {
+    if (window.astoriaListHelpers?.normalizeText) {
+        return window.astoriaListHelpers.normalizeText(value);
+    }
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+}
+
+function sanitizeText(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function formatHistoryDate(value) {
+    if (!value) return "";
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString("fr-FR");
+    }
+    return String(value);
+}
+
+function parseHistoryDateToTimestamp(value) {
+    if (!value) return 0;
+    if (value instanceof Date) return value.getTime();
+    const direct = new Date(value);
+    if (!Number.isNaN(direct.getTime())) return direct.getTime();
+    const text = String(value).trim();
+    const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+    if (!match) return 0;
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3]);
+    const hour = Number(match[4] || 0);
+    const minute = Number(match[5] || 0);
+    const second = Number(match[6] || 0);
+    const fallback = new Date(year, month, day, hour, minute, second);
+    return Number.isNaN(fallback.getTime()) ? 0 : fallback.getTime();
+}
+
+function sortHistoryByMostRecent(list) {
+    return [...(Array.isArray(list) ? list : [])].sort((a, b) =>
+        parseHistoryDateToTimestamp(b?.date) - parseHistoryDateToTimestamp(a?.date)
+    );
+}
+
+function formatCategory(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function getRewardInitial(item) {
+    const name = String(item?.name || "").trim();
+    return name ? name.charAt(0).toUpperCase() : "?";
+}
+
+function buildRewardMeta(item) {
+    const meta = [];
+    const category = formatCategory(item?.category);
+    if (category) meta.push(category);
+    const buy = String(item?.buyPrice || "").trim();
+    const sell = String(item?.sellPrice || "").trim();
+    if (buy) meta.push(`Achat: ${buy}`);
+    if (sell) meta.push(`Vente: ${sell}`);
+    return meta;
+}
+
+function getScrollTypesList() {
+    const list = Array.isArray(window.astoriaScrollTypes) ? window.astoriaScrollTypes : [];
+    if (list.length) {
+        return list.map((entry) => ({
+            key: String(entry?.key || entry?.label || "").trim(),
+            label: String(entry?.label || entry?.key || "").trim()
+        })).filter((entry) => entry.key || entry.label);
+    }
+    return REWARD_ELEMENTS.map((label) => ({
+        key: normalizeText(label),
+        label
+    }));
+}
+
+function shouldRandomizeElement(itemOrName) {
+    const helper = window.astoriaItemTags;
+    if (helper?.isScrollItem) {
+        return helper.isScrollItem(itemOrName);
+    }
+    const name = normalizeText(itemOrName?.name || itemOrName || "");
+    return name.includes("parchemin") || name.includes("scroll");
+}
+
+function pickRewardElement() {
+    const list = getScrollTypesList();
+    if (!list.length) return { key: "", label: "" };
+    const picked = list[Math.floor(Math.random() * list.length)] || {};
+    return {
+        key: String(picked.key || "").trim(),
+        label: String(picked.label || picked.key || "").trim()
+    };
+}
+
+function ensureRewardElement(reward) {
+    if (!reward) return reward;
+    if (shouldRandomizeElement(reward.name)) {
+        if (!reward.element) {
+            const picked = pickRewardElement();
+            reward.element = picked.label || reward.element;
+            if (picked.key) reward.elementKey = picked.key;
+        }
+        if (reward.element && !reward.elementKey) {
+            const fallbackKey = getScrollTypeKeyForReward(reward);
+            if (fallbackKey) reward.elementKey = fallbackKey;
+        }
+    }
+    return reward;
+}
+
+function formatRewardLabel(reward, options = {}) {
+    if (!reward) return "";
+    if (reward.type === "competence") {
+        const category = String(reward.categoryLabel || reward.categoryId || "").trim();
+        const fallback = String(reward.name || reward.skillName || "").trim();
+        return category || fallback || "Competence";
+    }
+    const showElement = options.showElement !== false;
+    const name = String(reward.name || "");
+    const element = showElement && reward.element ? ` (${reward.element})` : "";
+    return `${name}${element}`;
+}
+
+function rewardIdentityKey(reward) {
+    if (!reward) return "";
+    if (reward.type === "competence") {
+        return `competence:${normalizeText(reward.categoryId)}`;
+    }
+    return `item:${normalizeText(reward.name)}`;
+}
+
+function stripRewardElement(reward) {
+    if (!reward) return reward;
+    const { element, elementKey, ...rest } = reward;
+    return rest;
+}
+
+function getScrollTypeKeyForReward(reward) {
+    if (!reward) return "";
+    if (reward.elementKey) return String(reward.elementKey);
+    const element = normalizeText(reward.element || "");
+    if (!element) return "";
+    const list = getScrollTypesList();
+    const match = list.find((entry) =>
+        normalizeText(entry.key) === element || normalizeText(entry.label) === element
+    );
+    if (match && match.key) return match.key;
+    return REWARD_ELEMENT_MAP[element] || "";
+}
+
+function buildScrollRewardEntries(reward) {
+    if (!reward || !reward.name) return [];
+    const helper = window.astoriaItemTags;
+    if (helper?.isScrollItem && !helper.isScrollItem(reward)) return [];
+    if (!helper?.isScrollItem && !shouldRandomizeElement(reward.name)) return [];
+    const item = resolveItemByName(reward.name) || { name: reward.name };
+    const category = helper?.getScrollCategory ? helper.getScrollCategory(item) : null;
+    if (!category) return [];
+    const qty = Math.max(0, Math.floor(Number(reward.qty) || 0));
+    if (!qty) return [];
+    const groupedCounts = new Map();
+
+    for (let index = 0; index < qty; index += 1) {
+        const picked = pickRewardElement();
+        const typeKey = String(picked.key || "").trim() || getScrollTypeKeyForReward(reward);
+        if (!typeKey) continue;
+        groupedCounts.set(typeKey, (groupedCounts.get(typeKey) || 0) + 1);
+    }
+
+    return Array.from(groupedCounts.entries()).map(([typeKey, groupedQty]) => ({
+        category,
+        item,
+        typeKey,
+        qty: groupedQty
+    }));
+}
+
+function buildParticipant(label, id) {
+    const safeLabel = String(label || "Invite");
+    const key = id ? `id:${id}` : `name:${normalize(safeLabel)}`;
+    return { key, label: safeLabel, id: id || null };
+}
+
+function participantKeyFromId(id) {
+    const safeId = String(id || "").trim();
+    return safeId ? `id:${safeId}` : "";
+}
+
+function normalizeCharacterId(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    return raw.startsWith("id:") ? raw.slice(3) : raw;
+}
+
+function resolveParticipant() {
+    const character = getActiveCharacter?.();
+    if (character && character.id) {
+        return buildParticipant(character.name || "Personnage", character.id);
+    }
+    if (character && character.name) {
+        return buildParticipant(character.name);
+    }
+    return null;
+}
+
+function resolveQuestScopeId() {
+    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+    return activeCharacterId || "";
+}
+
+function getScopedQuestStorageKey(baseKey) {
+    const scopeId = resolveQuestScopeId();
+    return scopeId ? `${baseKey}:${scopeId}` : baseKey;
+}
+
+function getQuestHistoryStorageKey() {
+    return getScopedQuestStorageKey(QUEST_HISTORY_STORAGE_KEY);
+}
+
+function getQuestAdminNotesStorageKey() {
+    return getScopedQuestStorageKey(QUEST_ADMIN_NOTES_KEY);
+}
+
+function loadQuestViewMode() {
+    const saved = questStorage.getItem(QUEST_VIEW_STORAGE_KEY);
+    return saved === "grid" ? "grid" : "carousel";
+}
+
+function persistQuestViewMode() {
+    try {
+        questStorage.setItem(QUEST_VIEW_STORAGE_KEY, state.viewMode);
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist view mode:", error);
+    }
+}
+
+function syncQuestViewModeUI() {
+    const isGrid = state.viewMode === "grid";
+    dom.track.classList.toggle("is-grid", isGrid);
+    dom.viewport.classList.toggle("is-grid", isGrid);
+    dom.viewport.closest(".quest-carousel")?.classList.toggle("is-grid-mode", isGrid);
+    dom.carouselViewBtn?.classList.toggle("is-active", !isGrid);
+    dom.gridViewBtn?.classList.toggle("is-active", isGrid);
+    dom.carouselViewBtn?.setAttribute("aria-pressed", String(!isGrid));
+    dom.gridViewBtn?.setAttribute("aria-pressed", String(isGrid));
+}
+
+function setQuestViewMode(mode) {
+    const nextMode = mode === "grid" ? "grid" : "carousel";
+    if (state.viewMode === nextMode) return;
+    state.viewMode = nextMode;
+    persistQuestViewMode();
+    syncQuestViewModeUI();
+    applyQuestListLayout({ resetCarousel: nextMode === "carousel" });
+}
+
+function getHistoryCharacterScope() {
+    const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+    const activeCharacterLabel = normalizeText(
+        state.participant?.label
+        || getActiveCharacter?.()?.name
+        || ""
+    );
+    return {
+        activeCharacterId,
+        activeCharacterLabel
+    };
+}
+
+function getParticipantStorageKey() {
+    if (state.participant?.id) return `id:${state.participant.id}`;
+    if (state.participant?.key) return state.participant.key;
+    return "";
+}
+
+function getActiveQuestForParticipant() {
+    const participant = state.participant;
+    if (!participant) return null;
+    const matches = state.quests.filter((quest) =>
+        quest.participants?.some((entry) => entry.key === participant.key)
+    );
+    if (!matches.length) return null;
+    return matches.find((quest) => quest.status === "in_progress") || matches[0];
+}
+
+function formatJoinedAt(value) {
+    if (!value) return "";
+    const date = typeof value === "number" ? new Date(value) : new Date(String(value));
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("fr-FR");
+}
+
+function renderQuestProgressPanel() {
+    if (!dom.progressName) return;
+    const quest = getActiveQuestForParticipant();
+    if (!quest) {
+        dom.progressName.textContent = "Aucune qu\u00EAte en cours.";
+        if (dom.progressDate) dom.progressDate.textContent = "-";
+        if (dom.progressType) dom.progressType.textContent = "-";
+        if (dom.progressRank) dom.progressRank.textContent = "-";
+        if (dom.progressStatus) {
+            dom.progressStatus.textContent = "-";
+            dom.progressStatus.style.color = "";
+        }
+    } else {
+        const entry = quest.participants.find((participant) => participant.key === state.participant?.key);
+        const joined = formatJoinedAt(entry?.joinedAt);
+        const meta = getStatusMeta(quest.status);
+        dom.progressName.textContent = quest.name;
+        if (dom.progressDate) dom.progressDate.textContent = joined || "-";
+        if (dom.progressType) dom.progressType.textContent = quest.type;
+        if (dom.progressRank) dom.progressRank.textContent = quest.rank;
+        if (dom.progressStatus) {
+            dom.progressStatus.textContent = meta.label;
+            dom.progressStatus.style.color = meta.color;
+        }
+    }
+
+    if (dom.progressNotes) {
+        const key = getParticipantStorageKey();
+        const note = key ? state.adminNotes[key] || "" : "";
+        dom.progressNotes.value = note;
+        dom.progressNotes.disabled = !key;
+    }
+    if (dom.progressSaved) {
+        dom.progressSaved.textContent = "";
+    }
+}
+
+function getStatusMeta(status) {
+    return STATUS_META[status] || STATUS_META.available;
+}
+
+function parseJsonArray(value) {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function loadStoredState() {
+    const now = Date.now();
+    let restored = false;
+    try {
+        const rawQuests = questStorage.getItem(QUEST_STORAGE_KEY);
+        if (rawQuests) {
+            const parsed = JSON.parse(rawQuests);
+            const isFresh = parsed?.version === QUEST_CACHE_VERSION
+                && Array.isArray(parsed?.data)
+                && (now - Number(parsed?.timestamp || 0)) <= QUEST_CACHE_TTL_MS;
+            if (isFresh) {
+                state.quests = parsed.data.map(mapQuestRow);
+                restored = true;
+            }
+        }
+    } catch (error) {
+        console.warn("[Quetes] Failed to restore quest cache:", error);
+    }
+
+    try {
+        const rawHistory = questStorage.getItem(getQuestHistoryStorageKey());
+        if (rawHistory) {
+            const parsed = JSON.parse(rawHistory);
+            const isFresh = parsed?.version === QUEST_CACHE_VERSION
+                && Array.isArray(parsed?.data)
+                && (now - Number(parsed?.timestamp || 0)) <= QUEST_CACHE_TTL_MS;
+            if (isFresh) {
+                state.history = dedupeHistory(parsed.data.map(mapHistoryRow));
+                restored = true;
+            }
+        }
+    } catch (error) {
+        console.warn("[Quetes] Failed to restore history cache:", error);
+    }
+
+    return restored;
+}
+
+function persistState() {
+    state.history = dedupeHistory(state.history);
+    const now = Date.now();
+    try {
+        questStorage.setItem(QUEST_STORAGE_KEY, JSON.stringify({
+            version: QUEST_CACHE_VERSION,
+            timestamp: now,
+            data: state.quests
+        }));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist quest cache:", error);
+    }
+    try {
+        questStorage.setItem(getQuestHistoryStorageKey(), JSON.stringify({
+            version: QUEST_CACHE_VERSION,
+            timestamp: now,
+            data: state.history
+        }));
+    } catch (error) {
+        console.warn("[Quetes] Failed to persist history cache:", error);
+    }
+}
+
+function dedupeHistory(list) {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    const output = [];
+    list.forEach((entry) => {
+        const signature = entry?.id
+            ? `id:${entry.id}`
+            : `sig:${entry?.date}|${entry?.questId || ""}|${entry?.type}|${entry?.rank}|${entry?.name}|${entry?.gains}|${entry?.characterId || ""}|${entry?.characterLabel || ""}`;
+        if (seen.has(signature)) return;
+        seen.add(signature);
+        output.push(entry);
+    });
+    return output;
+}
+
+function mapQuestRow(row) {
+    const participantRows = Array.isArray(row?.participants) ? row.participants : [];
+    const hasFullPayload = Boolean(
+        row?.isHydrated
+        || row?.description !== undefined
+        || row?.rewards !== undefined
+        || row?.prerequisites !== undefined
+        || row?.locations !== undefined
+        || row?.repeatable !== undefined
+        || row?.max_participants !== undefined
+        || row?.maxParticipants !== undefined
+        || row?.completed_by !== undefined
+        || row?.completedBy !== undefined
+    );
+    return {
+        id: row.id,
+        name: row.name,
+        type: normalizeQuestType(row.type),
+        rank: row.rank,
+        status: row.status,
+        repeatable: Boolean(row.repeatable),
+        description: row.description || "",
+        locations: parseJsonArray(row.locations),
+        rewards: parseJsonArray(row.rewards),
+        prerequisites: parseJsonArray(row.prerequisites),
+        images: parseJsonArray(row.images),
+        participants: participantRows.map((entry) => ({
+            id: normalizeCharacterId(entry?.id || null) || null,
+            key: entry?.key || participantKeyFromId(entry?.id),
+            label: String(entry?.label || "Unknown"),
+            joinedAt: Number(entry?.joinedAt) || Date.now()
+        })),
+        maxParticipants: Number(row.max_participants ?? row.maxParticipants) || 1,
+        completedBy: parseJsonArray(row.completed_by ?? row.completedBy),
+        isHydrated: hasFullPayload
+    };
+}
+
+function mapHistoryRow(row) {
+    return {
+        id: row.id,
+        date: row.date,
+        questId: row.quest_id ?? row.questId ?? null,
+        type: normalizeQuestType(row.type),
+        rank: row.rank,
+        name: row.name,
+        gains: row.gains,
+        characterId: normalizeCharacterId(row.character_id ?? row.characterId ?? null) || null,
+        characterLabel: row.character_label ?? row.characterLabel ?? ""
+    };
+}
+
+function normalizeQuestType(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return QUEST_TYPES[0];
+    const normalized = normalizeText(raw);
+    if (normalized === "event" || normalized === "evenement" || normalized === "evenementiel") {
+        return "Evenementiel";
+    }
+    const existing = QUEST_TYPES.find((type) => normalizeText(type) === normalized);
+    return existing || raw;
+}
+
+function cancelQuestBackgroundPreload() {
+    questBackgroundPreloadRunId += 1;
+    if (questBackgroundPreloadTimer) {
+        window.clearTimeout(questBackgroundPreloadTimer);
+        questBackgroundPreloadTimer = null;
+    }
+}
+
+function scheduleBackgroundPreloadTick(callback, delayMs = QUEST_BACKGROUND_PRELOAD_DELAY_MS) {
+    if (questBackgroundPreloadTimer) {
+        window.clearTimeout(questBackgroundPreloadTimer);
+    }
+    questBackgroundPreloadTimer = window.setTimeout(() => {
+        questBackgroundPreloadTimer = null;
+        void callback();
+    }, Math.max(0, delayMs));
+}
+
+async function fetchQuestsPage(supabase, from, to) {
+    let { data, error } = await supabase
+        .from(QUESTS_TABLE)
+        .select(QUESTS_SELECT_COLUMNS)
+        .order("created_at", { ascending: true })
+        .range(from, to);
+
+    if (error) {
+        const message = String(error?.message || "").toLowerCase();
+        const code = String(error?.code || "");
+        const fallbackToListView = code === "42501"
+            || message.includes("permission")
+            || message.includes("forbidden")
+            || message.includes("relation")
+            || message.includes("does not exist");
+        if (fallbackToListView) {
+            ({ data, error } = await supabase
+                .from(QUESTS_LIST_VIEW)
+                .select("*")
+                .order("created_at", { ascending: true })
+                .range(from, to));
+        }
+    }
+
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function fetchQuestsDeltaPoll(supabase) {
+    const { data, error } = await supabase
+        .from(QUESTS_TABLE)
+        .select(QUESTS_POLL_COLUMNS)
+        .order("created_at", { ascending: true });
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+function hasQuestDeltaChanged(deltaRows) {
+    if (deltaRows.length !== state.quests.length) return true;
+    const map = new Map(state.quests.map(q => [q.id, q]));
+    for (const row of deltaRows) {
+        const cached = map.get(row.id);
+        if (!cached) return true;
+        if (cached.status !== row.status) return true;
+        const cachedMax = cached.maxParticipants ?? cached.max_participants;
+        if (String(cachedMax) !== String(row.max_participants)) return true;
+        const cachedCompleted = JSON.stringify(cached.completed_by ?? []);
+        if (cachedCompleted !== JSON.stringify(row.completed_by ?? [])) return true;
+    }
+    return false;
+}
+
+async function fetchQuestDetailById(questId) {
+    const supabase = await getSupabaseClient();
+    let { data, error } = await supabase
+        .from(QUESTS_TABLE)
+        .select(QUESTS_SELECT_COLUMNS)
+        .eq("id", questId)
+        .single();
+    if (error) {
+        const message = String(error?.message || "").toLowerCase();
+        const code = String(error?.code || "");
+        const permissionLike = code === "42501" || message.includes("permission") || message.includes("forbidden");
+        if (permissionLike) {
+            ({ data, error } = await supabase
+                .from(QUESTS_LIST_VIEW)
+                .select("*")
+                .eq("id", questId)
+                .single());
+        }
+    }
+    if (error) throw error;
+    return mapQuestRow(data);
+}
+
+function mergeQuestIntoState(updatedQuest) {
+    if (!updatedQuest?.id) return null;
+    const index = state.quests.findIndex((item) => item.id === updatedQuest.id);
+    if (index < 0) return updatedQuest;
+    const previous = state.quests[index];
+    const merged = {
+        ...previous,
+        ...updatedQuest,
+        participants: Array.isArray(previous?.participants) ? previous.participants : []
+    };
+    state.quests[index] = merged;
+    return merged;
+}
+
+async function ensureQuestHydrated(questId, { force = false } = {}) {
+    const current = state.quests.find((item) => item.id === questId);
+    if (!current) return null;
+    if (current.isHydrated && !force) return current;
+    try {
+        const hydrated = await fetchQuestDetailById(questId);
+        const merged = mergeQuestIntoState(hydrated);
+        persistState();
+        return merged || hydrated;
+    } catch (error) {
+        console.warn("[Quetes] Failed to hydrate quest detail:", error);
+        return current;
+    }
+}
+
+async function ensurePrerequisiteQuestsHydrated(quest) {
+    const prerequisiteIds = Array.isArray(quest?.prerequisites)
+        ? quest.prerequisites.filter(Boolean)
+        : [];
+    if (!prerequisiteIds.length) return;
+
+    for (const prerequisiteId of prerequisiteIds) {
+        const existing = state.quests.find((item) => item.id === prerequisiteId);
+        if (existing?.isHydrated) continue;
+        try {
+            const hydrated = await fetchQuestDetailById(prerequisiteId);
+            const merged = mergeQuestIntoState(hydrated);
+            if (!existing && hydrated?.id) {
+                state.quests.push(hydrated);
+            } else if (merged) {
+                hydrated.participants = merged.participants;
+            }
+        } catch (error) {
+            console.warn("[Quetes] Failed to hydrate prerequisite quest:", error);
+        }
+    }
+    persistState();
+}
+
+async function loadParticipantsForQuests(questIds = null) {
+    try {
+        const targetQuestIds = Array.isArray(questIds) ? questIds.filter(Boolean) : null;
+        if (targetQuestIds && targetQuestIds.length === 0) return true;
+
+        const supabase = await getSupabaseClient();
+        let query = supabase
+            .from("quest_participants")
+            .select(`
+                quest_id,
+                character_id,
+                joined_at,
+                characters (
+                    id,
+                    name
+                )
+            `);
+        if (targetQuestIds) {
+            query = query.in("quest_id", targetQuestIds);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        // Build a map of quest_id → participants array
+        const participantsMap = new Map();
+        if (Array.isArray(data)) {
+            data.forEach(row => {
+                if (!participantsMap.has(row.quest_id)) {
+                    participantsMap.set(row.quest_id, []);
+                }
+                participantsMap.get(row.quest_id).push({
+                    id: row.character_id,
+                    key: participantKeyFromId(row.character_id),
+                    label: row.characters?.name || "Unknown",
+                    joinedAt: new Date(row.joined_at).getTime()
+                });
+            });
+        }
+
+        // Assign participants to each quest
+        state.quests.forEach((quest) => {
+            if (targetQuestIds && !targetQuestIds.includes(quest.id)) return;
+            quest.participants = participantsMap.get(quest.id) || [];
+            quest.participantsLoaded = true;
+        });
+        persistState();
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to load quest participants:", error);
+        return false;
+    }
+}
+
+async function preloadRemainingQuests(supabase, startIndex, runId) {
+    let nextStart = startIndex;
+    const knownIds = new Set(state.quests.map((quest) => quest.id));
+
+    const pump = async () => {
+        if (runId !== questBackgroundPreloadRunId) return;
+        const rows = await fetchQuestsPage(
+            supabase,
+            nextStart,
+            nextStart + QUEST_BACKGROUND_BATCH_SIZE - 1
+        );
+        if (!rows.length) return;
+
+        const mapped = rows.map(mapQuestRow);
+        const fresh = mapped.filter((quest) => {
+            if (!quest?.id || knownIds.has(quest.id)) return false;
+            knownIds.add(quest.id);
+            return true;
+        });
+
+        if (fresh.length) {
+            state.quests = [...state.quests, ...fresh];
+            await loadParticipantsForQuests(fresh.map((quest) => quest.id));
+            appendVisibleQuestCards(fresh);
+        }
+
+        nextStart += QUEST_BACKGROUND_BATCH_SIZE;
+        scheduleBackgroundPreloadTick(pump);
+    };
+
+    scheduleBackgroundPreloadTick(pump);
+}
+
+async function loadQuestsFromDb(options = {}) {
+    const { progressive = true } = options;
+    try {
+        cancelQuestBackgroundPreload();
+        const supabase = await getSupabaseClient();
+
+        if (!progressive) {
+            const rows = await fetchQuestsPage(supabase, 0, 999);
+            state.quests = rows.map(mapQuestRow);
+            persistState();
+            await loadParticipantsForQuests();
+            return true;
+        }
+
+        const initialRows = await fetchQuestsPage(supabase, 0, QUEST_INITIAL_BATCH_SIZE - 1);
+        state.quests = initialRows.map(mapQuestRow);
+        persistState();
+        renderQuestList();
+        renderQuestProgressPanel();
+        void loadParticipantsForQuests(state.quests.map((quest) => quest.id)).then(() => {
+            renderQuestList();
+            renderQuestProgressPanel();
+        });
+
+        if (initialRows.length >= QUEST_INITIAL_BATCH_SIZE) {
+            const runId = questBackgroundPreloadRunId;
+            void preloadRemainingQuests(supabase, QUEST_INITIAL_BATCH_SIZE, runId);
+        }
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to load quests from DB:", error);
+    }
+    return false;
+}
+
+async function loadHistoryFromDb() {
+    try {
+        const { activeCharacterId } = getHistoryCharacterScope();
+        if (!activeCharacterId) {
+            state.history = [];
+            state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+            state.historyBackendLoaded = true;
+            persistState();
+            return true;
+        }
+
+        const supabase = await getSupabaseClient();
+        let query = supabase
+            .from(QUEST_HISTORY_TABLE)
+            .select(QUEST_HISTORY_SELECT_COLUMNS)
+            .order("date", { ascending: false })
+            .limit(QUEST_HISTORY_PAGE_SIZE)
+            .eq("character_id", activeCharacterId);
+        const { data, error } = await query;
+        if (error) throw error;
+        state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
+        state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+        state.historyBackendLoaded = true;
+        persistState();
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to load history from DB:", error);
+    }
+    return false;
+}
+
+async function ensureHistoryDataLoaded({ force = false } = {}) {
+    if (state.historyLoading) return false;
+    if (state.historyBackendLoaded && !force) return true;
+
+    state.historyLoading = true;
+    try {
+        const historyLoaded = await loadHistoryFromDb();
+        await loadQuestCompletionsFromActivity();
+        if (!historyLoaded) {
+            state.history = [];
+            state.historyBackendLoaded = false;
+        }
+        state.history = dedupeHistory(state.history);
+        renderHistory();
+        renderQuestList();
+        renderQuestProgressPanel();
+        return historyLoaded;
+    } finally {
+        state.historyLoading = false;
+    }
+}
+
+async function upsertQuestParticipants(questId, participants) {
+    if (!questId || !Array.isArray(participants)) return;
+    try {
+        const supabase = await getSupabaseClient();
+
+        // First, delete all existing participants for this quest
+        await supabase
+            .from("quest_participants")
+            .delete()
+            .eq("quest_id", questId);
+
+        // Then insert the new participants
+        if (participants.length > 0) {
+            const payload = participants.map(p => ({
+                quest_id: questId,
+                character_id: resolveParticipantId(p),
+                joined_at: p.joinedAt ? new Date(p.joinedAt).toISOString() : new Date().toISOString()
+            })).filter((row) => Boolean(row.character_id));
+
+            if (!payload.length) {
+                return true;
+            }
+
+            const { error } = await supabase
+                .from("quest_participants")
+                .insert(payload);
+            if (error) throw error;
+        }
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to upsert quest participants:", error);
+        return false;
+    }
+}
+
+async function upsertQuestToDb(quest, { syncParticipants = false } = {}) {
+    if (!quest) return;
+    try {
+        const supabase = await getSupabaseClient();
+        const payload = {
+            id: quest.id,
+            name: quest.name,
+            type: normalizeQuestType(quest.type),
+            rank: quest.rank,
+            status: quest.status,
+            repeatable: quest.repeatable,
+            description: quest.description,
+            locations: quest.locations,
+            rewards: quest.rewards,
+            prerequisites: quest.prerequisites || [],
+            images: quest.images,
+            max_participants: quest.maxParticipants,
+            completed_by: quest.completedBy
+        };
+        const { error } = await supabase
+            .from(QUESTS_TABLE)
+            .upsert([payload], { onConflict: "id" });
+        if (error) throw error;
+
+        if (syncParticipants) {
+            await upsertQuestParticipants(quest.id, quest.participants);
+        }
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to upsert quest:", error);
+    }
+    return false;
+}
+
+async function deleteQuestFromDb(questId) {
+    if (!questId) return;
+    try {
+        const supabase = await getSupabaseClient();
+        const { error } = await supabase
+            .from(QUESTS_TABLE)
+            .delete()
+            .eq("id", questId);
+        if (error) throw error;
+    } catch (error) {
+        console.warn("[Quetes] Failed to delete quest:", error);
+    }
+}
+
+async function insertHistoryToDb(entry) {
+    if (!entry) return;
+    if (entry.synced) return;
+    try {
+        const supabase = await getSupabaseClient();
+        const basePayload = {
+            id: entry.id,
+            date: entry.date,
+            quest_id: entry.questId || null,
+            type: normalizeQuestType(entry.type),
+            rank: entry.rank,
+            name: entry.name,
+            gains: entry.gains || null,
+            character_id: entry.characterId || null,
+            character_label: entry.characterLabel || null
+        };
+
+        // Keep history inserts resilient across live schema variants.
+        const attempts = [
+            basePayload,
+            { ...basePayload, quest_id: undefined },
+            { ...basePayload, character_label: undefined },
+            { ...basePayload, quest_id: undefined, character_label: undefined },
+            { ...basePayload, gains: undefined },
+            { ...basePayload, quest_id: undefined, gains: undefined },
+            { ...basePayload, gains: undefined, character_label: undefined },
+            { ...basePayload, quest_id: undefined, gains: undefined, character_label: undefined },
+            { ...basePayload, character_id: undefined, character_label: undefined },
+            { ...basePayload, quest_id: undefined, character_id: undefined, character_label: undefined },
+            { id: basePayload.id, date: basePayload.date, type: basePayload.type, rank: basePayload.rank, name: basePayload.name }
+        ];
+
+        let lastError = null;
+        let saved = false;
+        for (const attempt of attempts) {
+            const payload = {};
+            Object.entries(attempt).forEach(([key, value]) => {
+                if (value !== undefined) payload[key] = value;
+            });
+
+            const { error } = await supabase
+                .from(QUEST_HISTORY_TABLE)
+                .upsert([payload], { onConflict: "id" });
+
+            if (!error) {
+                saved = true;
+                break;
+            }
+            lastError = error;
+            const code = String(error?.code || "").toUpperCase();
+            const message = String(error?.message || "").toLowerCase();
+            const details = String(error?.details || "").toLowerCase();
+            const missingColumn = code === "PGRST204"
+                || message.includes("column")
+                || message.includes("does not exist")
+                || details.includes("column");
+            if (!missingColumn) {
+                break;
+            }
+        }
+
+        if (!saved && lastError) throw lastError;
+        entry.synced = true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to insert history:", error);
+    }
+}
+
+async function refreshQuestStateFromBackend(options = {}) {
+    const { refreshHistory = false, deltaCheck = false } = options;
+    if (isQuestRealtimeRefreshing) return false;
+    if (dom.editorModal?.classList.contains("open")) return false;
+    isQuestRealtimeRefreshing = true;
+    try {
+        // Delta poll: fetch lightweight columns first; skip full reload if nothing changed
+        if (deltaCheck && !refreshHistory && state.quests.length > 0) {
+            try {
+                const supabase = await getSupabaseClient();
+                const deltaRows = await fetchQuestsDeltaPoll(supabase);
+                if (!hasQuestDeltaChanged(deltaRows)) {
+                    return false; // finally releases lock
+                }
+            } catch {
+                // Delta check failed — fall through to full reload
+            }
+        }
+
+        setSyncBadge(true, refreshHistory ? "Synchronisation des quêtes et de l'historique..." : "Synchronisation des quêtes...");
+        const activeQuestId = state.activeQuestId;
+        const detailOpen = dom.detailModal?.classList.contains("open");
+        // Progressive loading is for initial page load only. Realtime/polling refreshes
+        // must load all quests in one shot to avoid the list jumping between renders.
+        const questsLoaded = await loadQuestsFromDb({ progressive: false });
+        const historyLoaded = refreshHistory ? await loadHistoryFromDb() : false;
+        const activityLoaded = refreshHistory ? await loadQuestCompletionsFromActivity() : false;
+        if (!questsLoaded && !historyLoaded && !activityLoaded) {
+            return false;
+        }
+        if (refreshHistory) {
+            state.history = dedupeHistory(state.history);
+        }
+        renderQuestList();
+        if (refreshHistory) {
+            renderHistory();
+        }
+        renderQuestProgressPanel();
+        if (detailOpen && activeQuestId) {
+            const quest = await ensureQuestHydrated(activeQuestId);
+            if (quest) {
+                state.activeQuestId = activeQuestId;
+                renderDetail(quest);
+            } else {
+                closeModal(dom.detailModal);
+                state.activeQuestId = null;
+            }
+        }
+        return true;
+    } finally {
+        isQuestRealtimeRefreshing = false;
+        setSyncBadge(false);
+    }
+}
+
+let questRefreshPendingWhileHidden = false;
+
+function scheduleQuestRealtimeRefresh(options = {}) {
+    const normalized = typeof options === "number" ? { delayMs: options } : options;
+    const { delayMs = 180, refreshHistory = false } = normalized;
+    if (refreshHistory) {
+        questRealtimeNeedsHistoryRefresh = true;
+    }
+    // Background tabs refresh once when shown again instead of on every change.
+    if (document.hidden) {
+        questRefreshPendingWhileHidden = true;
+        return;
+    }
+    if (questRealtimeRefreshTimer) {
+        window.clearTimeout(questRealtimeRefreshTimer);
+    }
+    questRealtimeRefreshTimer = window.setTimeout(() => {
+        questRealtimeRefreshTimer = null;
+        const shouldRefreshHistory = questRealtimeNeedsHistoryRefresh;
+        questRealtimeNeedsHistoryRefresh = false;
+        void refreshQuestStateFromBackend({ refreshHistory: shouldRefreshHistory });
+    }, Math.max(0, delayMs));
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden || !questRefreshPendingWhileHidden) return;
+    questRefreshPendingWhileHidden = false;
+    scheduleQuestRealtimeRefresh({ delayMs: 0 });
+});
+
+function startQuestPollingFallback() {
+    if (questRealtimePollingTimer) return;
+    questRealtimePollingTimer = window.setInterval(() => {
+        if (document.hidden) return;
+        void refreshQuestStateFromBackend({ refreshHistory: false, deltaCheck: true });
+    }, QUEST_POLLING_FALLBACK_MS);
+}
+
+function stopQuestPollingFallback() {
+    if (!questRealtimePollingTimer) return;
+    window.clearInterval(questRealtimePollingTimer);
+    questRealtimePollingTimer = null;
+}
+
+async function initQuestRealtimeSync() {
+    try {
+        const supabase = await getSupabaseClient();
+        if (!supabase?.channel) {
+            startQuestPollingFallback();
+            return;
+        }
+
+        if (questRealtimeChannel) {
+            try {
+                supabase.removeChannel(questRealtimeChannel);
+            } catch {}
+        }
+
+        questRealtimeChannel = supabase
+            .channel("astoria-quests-live")
+            .on("postgres_changes", { event: "*", schema: "public", table: QUESTS_TABLE }, () => {
+                scheduleQuestRealtimeRefresh({ refreshHistory: false });
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: "quest_participants" }, () => {
+                scheduleQuestRealtimeRefresh({ refreshHistory: false });
+            })
+            .on("postgres_changes", { event: "*", schema: "public", table: QUEST_HISTORY_TABLE }, () => {
+                scheduleQuestRealtimeRefresh({ refreshHistory: true });
+            })
+            .subscribe((status) => {
+                if (status === "SUBSCRIBED") {
+                    stopQuestPollingFallback();
+                    return;
+                }
+                if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+                    startQuestPollingFallback();
+                }
+            });
+
+        window.addEventListener("beforeunload", () => {
+            stopQuestPollingFallback();
+            if (questRealtimeChannel) {
+                try {
+                    supabase.removeChannel(questRealtimeChannel);
+                } catch {}
+                questRealtimeChannel = null;
+            }
+        }, { once: true });
+    } catch (error) {
+        console.warn("[Quetes] Realtime unavailable, enabling polling fallback:", error);
+        startQuestPollingFallback();
+    }
+}
+
+async function syncLocalItemsToDb() {
+    // Disabled on purpose: codex/items are managed directly from backend.
+}
+
+function resolveParticipantId(participant) {
+    if (!participant) return null;
+    if (participant.id) return participant.id;
+    const key = String(participant.key || "").trim();
+    if (key.startsWith("id:")) {
+        return key.slice(3);
+    }
+    // Legacy format: key stored as raw UUID without id: prefix.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) {
+        return key;
+    }
+    return null;
+}
+
+function normalizeParticipantCompletionKeys(participant) {
+    const out = new Set();
+    if (!participant) return out;
+    const rawKey = String(participant.key || "").trim();
+    if (rawKey) out.add(rawKey);
+    const id = resolveParticipantId(participant);
+    if (id) {
+        out.add(id);
+        out.add(participantKeyFromId(id));
+    }
+    return out;
+}
+
+function hasQuestBeenCompletedByParticipant(quest, participant) {
+    const completed = Array.isArray(quest?.completedBy) ? quest.completedBy : [];
+    if (!completed.length) return false;
+    const keys = normalizeParticipantCompletionKeys(participant);
+    for (const key of keys) {
+        if (completed.includes(key)) return true;
+    }
+    return false;
+}
+
+function hasQuestHistoryCompletion(quest, participant) {
+    if (!quest || !participant) return false;
+
+    const participantId = resolveParticipantId(participant);
+    const normalizedQuestName = normalizeText(quest.name || "");
+
+    return state.history.some((entry) => {
+        const entryCharacterId = normalizeCharacterId(entry?.characterId);
+        if (participantId && entryCharacterId && entryCharacterId !== participantId) {
+            return false;
+        }
+
+        const entryQuestId = String(entry?.questId || "").trim();
+        if (entryQuestId && quest.id && entryQuestId === quest.id) {
+            return true;
+        }
+
+        if (!entryQuestId && normalizedQuestName) {
+            return normalizeText(entry?.name || "") === normalizedQuestName;
+        }
+
+        return false;
+    });
+}
+
+function hasParticipantCompletedQuest(quest, participant) {
+    return hasQuestBeenCompletedByParticipant(quest, participant)
+        || hasQuestHistoryCompletion(quest, participant)
+        || hasQuestActivityCompletion(quest, participant);
+}
+
+function hasQuestActivityCompletion(quest, participant) {
+    if (!quest || !participant) return false;
+    const participantId = resolveParticipantId(participant);
+    const activeParticipantId = resolveParticipantId(state.participant);
+    if (!participantId || !activeParticipantId || participantId !== activeParticipantId) {
+        return false;
+    }
+
+    if (quest.id && state.completedQuestIdsFromActivity.has(String(quest.id))) {
+        return true;
+    }
+
+    const normalizedQuestName = normalizeText(quest.name || "");
+    return normalizedQuestName
+        ? state.completedQuestNamesFromActivity.has(normalizedQuestName)
+        : false;
+}
+
+async function loadQuestCompletionsFromActivity() {
+    try {
+        state.completedQuestIdsFromActivity = new Set();
+        state.completedQuestNamesFromActivity = new Set();
+
+        const activeCharacterId = normalizeCharacterId(state.participant?.id || getActiveCharacter?.()?.id || null);
+        if (!activeCharacterId) {
+            return true;
+        }
+
+        const supabase = await getSupabaseClient();
+        const { data, error } = await supabase
+            .from("activity_logs")
+            .select("action_data")
+            .eq("action_type", ActionTypes.QUEST_COMPLETE)
+            .eq("character_id", activeCharacterId)
+            .limit(500);
+
+        if (error) throw error;
+
+        (Array.isArray(data) ? data : []).forEach((row) => {
+            const actionData = row?.action_data && typeof row.action_data === "object"
+                ? row.action_data
+                : null;
+            const questId = String(actionData?.quest_id || "").trim();
+            const questName = normalizeText(actionData?.quest_name || "");
+            if (questId) state.completedQuestIdsFromActivity.add(questId);
+            if (questName) state.completedQuestNamesFromActivity.add(questName);
+        });
+
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Failed to load quest completion activity:", error);
+    }
+    return false;
+}
+
+async function loadItemCatalog() {
+    state.items = [];
+
+    if (typeof getAllItems !== "function") return;
+    try {
+        const rows = await getAllItems();
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        state.items = rows
+            .map((row) => {
+                const name = String(row?.name || "").trim();
+                if (!name) return null;
+                return {
+                    id: row.id,
+                    name,
+                    category: row.category,
+                    rarity: row.rarity,
+                    description: row.description,
+                    effect: row.effect,
+                    price: row.price_kaels || 0,
+                    images: row.images
+                };
+            })
+            .filter(Boolean);
+    } catch (error) {
+        console.warn("[Quetes] Items load failed:", error);
+    }
+}
+
+async function ensureItemCatalogLoaded() {
+    if (Array.isArray(state.items) && state.items.length > 0) return;
+    await loadItemCatalog();
+}
+
+function resolveItemImage(item) {
+    if (!item) return "";
+    if (typeof item.image === "string") return item.image;
+    if (Array.isArray(item.images) && item.images.length) return item.images[0];
+    return "";
+}
+
+function ensureKaelsItem() {
+    const existing = state.items.find((item) => normalizeText(item?.name) === "kaels");
+    if (existing) return;
+    state.items.push({
+        id: "kaels",
+        name: "Kaels",
+        category: "Monnaie",
+        description: "Monnaie d'Astoria.",
+        effect: "",
+        images: []
+    });
+}
+
+function getRewardItems() {
+    ensureKaelsItem();
+    return state.items
+        .slice()
+        .filter((item) => item?.name)
+        .sort((a, b) => String(a?.name || "").localeCompare(String(b?.name || ""), "fr"));
+}
+
+function setRewardTriggerLabel(name) {
+    if (!dom.rewardTrigger) return;
+    const label = name || "S\u00E9lectionner un objet";
+    dom.rewardTrigger.textContent = label;
+    dom.rewardTrigger.title = label;
+}
+
+function renderRewardTooltip(item) {
+    if (!dom.rewardTooltip) return;
+    if (!item || normalizeText(item?.name) === "kaels") {
+        dom.rewardTooltip.classList.add("is-empty");
+        dom.rewardTooltip.textContent = "Survole un objet pour voir son apercu.";
+        return;
+    }
+    dom.rewardTooltip.classList.remove("is-empty");
+    const image = resolveItemImage(item);
+    const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
+    const meta = buildRewardMeta(item);
+    const metaLine = meta.length ? `<div class="quest-reward-tooltip-meta">${clean(meta.join(" | "))}</div>` : "";
+    dom.rewardTooltip.innerHTML = `
+        <div class="quest-reward-tooltip-media">
+            ${image
+                ? `<img src="${clean(image)}" alt="Apercu ${clean(item.name)}">`
+                : `<div class="quest-reward-tooltip-thumb">${clean(getRewardInitial(item))}</div>`}
+        </div>
+        <div class="quest-reward-tooltip-body">
+            <div class="quest-reward-tooltip-title">${clean(item.name)}</div>
+            ${metaLine}
+            <div class="quest-reward-tooltip-desc">${clean(description)}</div>
+        </div>
+    `;
+    dom.rewardTooltip.scrollTop = 0;
+}
+
+function renderRewardMenu(items) {
+    if (!dom.rewardOptions) return;
+    dom.rewardOptions.innerHTML = "";
+    items.forEach((item) => {
+        const option = document.createElement("div");
+        option.className = "quest-reward-option";
+        option.setAttribute("role", "option");
+        option.dataset.rewardName = item.name;
+        option.title = item.name;
+
+        const thumb = document.createElement("span");
+        thumb.className = "quest-reward-option-thumb";
+        const image = resolveItemImage(item);
+        if (image) {
+            const img = document.createElement("img");
+            img.src = image;
+            img.alt = item.name;
+            img.loading = "lazy";
+            img.decoding = "async";
+            thumb.appendChild(img);
+        } else {
+            thumb.textContent = getRewardInitial(item);
+        }
+
+        const info = document.createElement("span");
+        info.className = "quest-reward-option-info";
+        const title = document.createElement("span");
+        title.className = "quest-reward-option-title";
+        title.textContent = item.name;
+        info.appendChild(title);
+
+        const category = formatCategory(item.category);
+        if (category) {
+            const meta = document.createElement("span");
+            meta.className = "quest-reward-option-meta";
+            meta.textContent = category;
+            info.appendChild(meta);
+        }
+
+        option.append(thumb, info);
+        dom.rewardOptions.appendChild(option);
+    });
+    renderRewardTooltip(null);
+}
+
+function populateRewardSelect() {
+    if (!dom.rewardSelect) return;
+    const items = getRewardItems();
+    dom.rewardSelect.value = "";
+    renderRewardMenu(items);
+    setRewardTriggerLabel("");
+    updateRewardPreview();
+}
+function updateRewardPreview() {
+    if (!dom.rewardPreview) return;
+    const selectedName = dom.rewardSelect?.value || "";
+    const item = resolveItemByName(selectedName);
+    if (!item) {
+        dom.rewardPreview.classList.add("empty");
+        dom.rewardPreview.innerHTML = "S\u00E9lectionne un objet pour voir son aper\u00E7u.";
+        return;
+    }
+    dom.rewardPreview.classList.remove("empty");
+    const image = resolveItemImage(item);
+    const description = sanitizeText(item.description || item.effect || "Pas de description disponible.");
+    const category = formatCategory(item.category);
+    const metaLine = category ? `<div class="quest-reward-preview-meta">${clean(category)}</div>` : "";
+    dom.rewardPreview.innerHTML = `
+        ${image
+            ? `<img src="${clean(image)}" alt="Aper\u00E7u ${clean(item.name)}">`
+            : `<div class="quest-reward-preview-thumb">${clean(getRewardInitial(item))}</div>`}
+        <div class="quest-reward-preview-body">
+            <div class="quest-reward-preview-title">${clean(item.name)}</div>
+            ${metaLine}
+            <div class="quest-reward-preview-desc">${clean(description)}</div>
+        </div>
+    `;
+}
+function updateRewardMenuActive(name) {
+    if (!dom.rewardOptions) return;
+    const activeKey = normalizeText(name);
+    dom.rewardOptions.querySelectorAll(".quest-reward-option").forEach((option) => {
+        const isActive = normalizeText(option.dataset.rewardName) === activeKey && activeKey;
+        option.classList.toggle("is-active", Boolean(isActive));
+    });
+}
+
+function openRewardPopover() {
+    if (!dom.rewardPopover) return;
+    dom.rewardPopover.hidden = false;
+    dom.rewardTrigger?.setAttribute("aria-expanded", "true");
+    const selected = resolveItemByName(dom.rewardSelect?.value || "");
+    updateRewardMenuActive(dom.rewardSelect?.value || "");
+    renderRewardTooltip(selected || null);
+}
+
+function closeRewardPopover() {
+    if (!dom.rewardPopover) return;
+    dom.rewardPopover.hidden = true;
+    dom.rewardTrigger?.setAttribute("aria-expanded", "false");
+}
+
+function toggleRewardPopover() {
+    if (!dom.rewardPopover) return;
+    if (dom.rewardPopover.hidden) {
+        openRewardPopover();
+    } else {
+        closeRewardPopover();
+    }
+}
+
+function selectRewardItem(name) {
+    if (!dom.rewardSelect) return;
+    dom.rewardSelect.value = name || "";
+    setRewardTriggerLabel(name);
+    updateRewardPreview();
+    updateRewardMenuActive(name);
+    closeRewardPopover();
+}
+
+function resolveItemByName(name) {
+    const key = normalizeText(name);
+    if (!key) return null;
+    const direct = state.items.find((item) => normalizeText(item?.name) === key);
+    return direct || null;
+}
+
+function resolveSourceIndex(item) {
+    if (!item) return null;
+    const direct = Number(item.sourceIndex);
+    if (Number.isFinite(direct) && direct >= 0) return direct;
+    const idx = state.items.findIndex((entry) => entry && entry.name === item.name);
+    return idx >= 0 ? idx : null;
+}
+
+async function getInventoryCache(characterId) {
+    if (state.inventoryCache.has(characterId)) {
+        return state.inventoryCache.get(characterId);
+    }
+    try {
+        const rows = await getInventoryRows(characterId);
+        state.inventoryCache.set(characterId, rows);
+        return rows;
+    } catch (error) {
+        console.warn("[Quetes] Inventory load failed:", error);
+        return null;
+    }
+}
+
+async function applyInventoryDelta(characterId, itemName, delta) {
+    const safeDelta = Math.trunc(Number(delta) || 0);
+    if (!characterId || !safeDelta) return false;
+    const rows = await getInventoryCache(characterId);
+    if (!Array.isArray(rows)) return false;
+
+    const item = resolveItemByName(itemName) || { name: itemName };
+    // Keep backend key authoritative. item_index can drift between datasets,
+    // so avoid forcing a potentially wrong index when granting rewards.
+    const sourceIndex = null;
+    const normalized = normalizeText(itemName);
+    const entry = rows.find((row) =>
+        (item?.id && row?.item_id && String(row.item_id) === String(item.id)) ||
+        normalizeText(row?.item_key) === normalized ||
+        normalizeText(row?.name) === normalized
+    ) || null;
+    const currentQty = entry ? Math.floor(Number(entry?.qty) || 0) : 0;
+    const nextQty = currentQty + safeDelta;
+    if (nextQty < 0) return false;
+
+    const itemKey = item?.name ? String(item.name) : String(itemName || "");
+    try {
+        const updated = await setInventoryItem(characterId, {
+            item_key: itemKey,
+            item_id: item?.id || entry?.item_id || null,
+            item_index: sourceIndex
+        }, nextQty);
+        if (entry) {
+            entry.qty = nextQty;
+            entry.item_key = itemKey;
+            entry.item_id = item?.id || entry?.item_id || null;
+            entry.item_index = null;
+        } else if (updated) {
+            rows.push({
+                id: updated.id,
+                item_id: updated.item_id,
+                item_key: updated.item_key,
+                item_index: updated.item_index,
+                qty: updated.qty
+            });
+        }
+        return true;
+    } catch (error) {
+        console.warn("[Quetes] Inventory update failed:", error);
+        return false;
+    }
+}
+
+async function applyKaelsDelta(characterId, delta) {
+    const safeDelta = Math.trunc(Number(delta) || 0);
+    if (!characterId || !safeDelta) return false;
+    let current = null;
+    const active = getActiveCharacter?.();
+    if (active && active.id === characterId && Number.isFinite(active.kaels)) {
+        current = Number(active.kaels);
+    }
+    if (!Number.isFinite(current)) {
+        const row = await getCharacterById(characterId);
+        current = Number(row?.kaels);
+    }
+    if (!Number.isFinite(current)) {
+        current = 0;
+    }
+    const next = current + safeDelta;
+    if (next < 0) return false;
+    const result = await updateCharacter(characterId, { kaels: next });
+    if (result?.success && active && active.id === characterId) {
+        document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { kaels: next } }));
+    }
+    return Boolean(result?.success);
+}
+
+// Per-character queue to prevent lost-update races when multiple rewards
+// fire for the same character in parallel (read-modify-write on the same row).
+const _competenceDeltaQueue = new Map();
+
+async function applyCompetenceDelta(characterId, categoryId, delta) {
+    const safeDelta = Math.trunc(Number(delta) || 0);
+    const safeCategoryId = String(categoryId || "").trim();
+    if (!characterId || !safeCategoryId || !safeDelta) return false;
+
+    // Serialize writes per character: wait for any in-flight delta to finish first.
+    const previous = _competenceDeltaQueue.get(characterId) ?? Promise.resolve();
+    let resolve;
+    const gate = new Promise(r => { resolve = r; });
+    _competenceDeltaQueue.set(characterId, previous.then(() => gate));
+    await previous;
+
+    // All paths beyond this point must call resolve() to unblock the queue.
+    let success = false;
+    try {
+        const supabase = await getSupabaseClient();
+        const { data: compRow } = await supabase
+            .from('character_competences')
+            .select('data')
+            .eq('character_id', characterId)
+            .maybeSingle();
+
+        const competences = (compRow?.data && typeof compRow.data === 'object') ? { ...compRow.data } : {};
+        const pointsByCategory = competences.pointsByCategory && typeof competences.pointsByCategory === "object"
+            ? { ...competences.pointsByCategory }
+            : {};
+        const current = Math.floor(Number(pointsByCategory[safeCategoryId]) || 0);
+        const next = current + safeDelta;
+        if (next < 0) return false; // success stays false, finally still fires
+
+        pointsByCategory[safeCategoryId] = next;
+        competences.version = Number(competences.version) || 1;
+        competences.baseValuesByCategory = competences.baseValuesByCategory || {};
+        competences.pointsByCategory = pointsByCategory;
+        competences.allocationsByCategory = competences.allocationsByCategory || {};
+        competences.locksByCategory = competences.locksByCategory || {};
+        competences.locksByCategory[safeCategoryId] = next <= 0;
+        competences.customSkillsByCategory = competences.customSkillsByCategory || {};
+
+        const { error } = await supabase
+            .from('character_competences')
+            .upsert({ character_id: characterId, data: competences });
+        if (error) {
+            console.warn("[Quetes] Failed to apply competence delta:", error);
+        } else {
+            success = true;
+            document.dispatchEvent(new CustomEvent("astoria:competences-updated", {
+                detail: { characterId, competences }
+            }));
+        }
+    } finally {
+        resolve(); // always unblock next queued delta for this character
+    }
+    return success;
+}
+
+async function applyScrollTypeRewards(characterId, entries) {
+    if (!characterId || !Array.isArray(entries) || entries.length === 0) return false;
+    const store = window.astoriaScrollStore;
+    if (!store) return false;
+    const valid = entries.filter((entry) => entry?.category && entry.item && entry.typeKey && entry.qty > 0);
+    if (!valid.length) return false;
+
+    // Read-modify-write on the fresh DB row (optimistic lock): a cached
+    // profile_data would overwrite changes saved meanwhile by another page.
+    const result = await patchCharacterProfile(characterId, (profileData) => {
+        const inventory = { ...(profileData.inventory || {}) };
+        let scrollTypes = inventory.scrollTypes || {};
+        valid.forEach((entry) => {
+            const counts = store.getCounts(scrollTypes, entry.category, entry.item) || {};
+            counts[entry.typeKey] = (Number(counts[entry.typeKey]) || 0) + entry.qty;
+            scrollTypes = store.setCounts(scrollTypes, entry.category, entry.item, counts);
+        });
+        inventory.scrollTypes = scrollTypes;
+        return { ...profileData, inventory };
+    });
+
+    const active = getActiveCharacter?.();
+    if (result.success && active && active.id === characterId) {
+        document.dispatchEvent(new CustomEvent("astoria:character-updated", { detail: { profile_data: result.profileData } }));
+    }
+    return Boolean(result.success);
+}
+
+async function applyRewardsToParticipants(quest, participantsOverride = null, rewardsOverride = null) {
+    if (!quest) return;
+    const rewards = Array.isArray(rewardsOverride) && rewardsOverride.length
+        ? rewardsOverride
+        : quest.rewards;
+    if (!Array.isArray(rewards) || rewards.length === 0) return;
+    const recipients = Array.isArray(participantsOverride) && participantsOverride.length
+        ? participantsOverride
+        : quest.participants;
+    if (!recipients.length) return;
+    for (const participant of recipients) {
+        const characterId = resolveParticipantId(participant);
+        if (!characterId) continue;
+        const scrollEntries = [];
+        for (const reward of rewards) {
+            if (reward?.type === "competence") {
+                await applyCompetenceDelta(characterId, reward.categoryId, reward.qty || 0);
+                continue;
+            }
+            const rewardName = String(reward?.name || "").trim();
+            if (!rewardName) continue;
+            if (normalizeText(rewardName) === "kaels") {
+                await applyKaelsDelta(characterId, reward.qty || 0);
+                continue;
+            }
+            const updated = await applyInventoryDelta(characterId, rewardName, reward.qty || 0);
+            if (updated) {
+                const entries = buildScrollRewardEntries(reward);
+                if (entries.length) scrollEntries.push(...entries);
+            }
+        }
+        if (scrollEntries.length) {
+            await applyScrollTypeRewards(characterId, scrollEntries);
+        }
+    }
+}
+
+function syncStatusDots(value) {
+    if (!dom.statusDots.length) return;
+    dom.statusDots.forEach((dot) => {
+        dot.classList.toggle("is-active", dot.dataset.status === value);
+    });
+}
+
+function seedData() {
+    if (!state.quests.length) {
+        state.quests = [
+        {
+            id: "quest-1",
+            name: "Sauvetage",
+            type: "Exp\u00E9dition",
+            rank: "F",
+            status: "available",
+            repeatable: false,
+            description: "Retrouver les eclaireurs perdus dans les falaises d'Aethra.",
+            locations: ["Falaises d'Aethra", "Refuge du Vent"],
+            rewards: [{ name: "Potion de vitalite", qty: 2 }, { name: "Kaels", qty: 120 }],
+            images: [
+                "assets/images/objets/Fiole_de_vitalite.jpg",
+                "assets/images/objets/Cape_de_lAube_Vermeille_on.jpg"
+            ],
+            participants: [buildParticipant("Seraphina"), buildParticipant("Eden")],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-2",
+            name: "Oeil de Matera",
+            type: "Investigation",
+            rank: "C",
+            status: "in_progress",
+            repeatable: true,
+            description: "Examiner les vestiges luminescents et retrouver l'origine des murmures.",
+            locations: ["Sanctuaire Matera", "Crypte amethyste"],
+            rewards: [{ name: "Eclat lumineux", qty: 1 }, { name: "Kaels", qty: 220 }],
+            images: [
+                "assets/images/objets/Larme_de_Matera.png",
+                "assets/images/objets/Book_of_Aeris.png"
+            ],
+            participants: [buildParticipant("Lyra")],
+            maxParticipants: 4,
+            completedBy: []
+        },
+        {
+            id: "quest-3",
+            name: "Chasse au Colosse",
+            type: "Chasse",
+            rank: "D",
+            status: "locked",
+            repeatable: false,
+            description: "Le colosse de pierre s'est eveille. Rassembler une equipe experimentee.",
+            locations: ["Gorge de Vexarion"],
+            rewards: [{ name: "Eclat de roche", qty: 3 }, { name: "Kaels", qty: 180 }],
+            images: ["assets/images/objets/Armure_de_Vexarion.png"],
+            participants: [],
+            maxParticipants: 3,
+            completedBy: []
+        },
+        {
+            id: "quest-4",
+            name: "Refuge des Brumes",
+            type: "Assistance",
+            rank: "E",
+            status: "available",
+            repeatable: false,
+            description: "Secourir les voyageurs bloques dans la foret embrumee.",
+            locations: ["Foret des Brumes"],
+            rewards: [{ name: "Fruit Papooru", qty: 5 }],
+            images: ["assets/images/objets/Fruit_Papooru.jpg"],
+            participants: [buildParticipant("Mira")],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-5",
+            name: "Echo d'Aeris",
+            type: "Exp\u00E9dition",
+            rank: "B",
+            status: "available",
+            repeatable: true,
+            description: "Explorer les ruines suspendues et collecter les fragments mystiques.",
+            locations: ["Ruines d'Aeris"],
+            rewards: [{ name: "Livre d'Aeris", qty: 1 }, { name: "Kaels", qty: 420 }],
+            images: ["assets/images/objets/Book_of_Aeris.png"],
+            participants: [],
+            maxParticipants: 5,
+            completedBy: []
+        },
+        {
+            id: "quest-6",
+            name: "Ruines d'Onyx",
+            type: "Investigation",
+            rank: "S",
+            status: "in_progress",
+            repeatable: false,
+            description: "Plonger dans les galeries d'Onyx pour retrouver les glyphes perdus.",
+            locations: ["Canyon d'Onyx", "Laboratoire abandonne"],
+            rewards: [{ name: "Cloche de Resonance", qty: 1 }, { name: "Kaels", qty: 620 }],
+            images: ["assets/images/objets/Cloche_de_Resonnance.png"],
+            participants: [buildParticipant("Orion"), buildParticipant("Naelis")],
+            maxParticipants: 4,
+            completedBy: [buildParticipant("Orion").key]
+        }
+        ];
+    }
+
+    if (!state.history.length) {
+        state.history = [
+        {
+            id: "history-1",
+            date: "14/01/2026 17:54",
+            type: "Exp\u00E9dition",
+            rank: "F",
+            name: "Sauvetage",
+            gains: "Potion de vitalite x2"
+        },
+        {
+            id: "history-2",
+            date: "09/01/2026 10:35",
+            type: "Assistance",
+            rank: "F",
+            name: "Refuge des Brumes",
+            gains: "Fruit Papooru x3"
+        }
+        ];
+    }
+}
+
+function fillFilters() {
+    const populateSelect = (select, options, placeholder) => {
+        if (!select) return;
+        select.innerHTML = "";
+        if (placeholder) {
+            const placeholderOption = document.createElement("option");
+            placeholderOption.value = "";
+            placeholderOption.textContent = placeholder;
+            placeholderOption.disabled = true;
+            placeholderOption.selected = true;
+            select.appendChild(placeholderOption);
+        }
+        options.forEach((value) => {
+            const option = document.createElement("option");
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+        });
+    };
+
+    QUEST_TYPES.forEach((type) => {
+        const option = document.createElement("option");
+        option.value = type;
+        option.textContent = type;
+        dom.typeFilter.appendChild(option);
+    });
+
+    QUEST_RANKS.forEach((rank) => {
+        const option = document.createElement("option");
+        option.value = rank;
+        option.textContent = rank;
+        dom.rankFilter.appendChild(option);
+    });
+
+    populateSelect(dom.typeInput, QUEST_TYPES, "S\u00E9lectionner (d\u00E9roulant)");
+    populateSelect(dom.rankInput, QUEST_RANKS, "S\u00E9lectionner (d\u00E9roulant)");
+
+    QUEST_TYPES.forEach((type, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `quest-history-filter${index === 0 ? " active" : ""}`;
+        btn.textContent = type;
+        btn.dataset.value = type;
+        dom.historyFilters.appendChild(btn);
+    });
+
+    const allBtn = document.createElement("button");
+    allBtn.type = "button";
+    allBtn.className = "quest-history-filter active";
+    allBtn.textContent = "Toutes";
+    allBtn.dataset.value = "all";
+    dom.historyFilters.prepend(allBtn);
+}
+
+const QUEST_FILTER_MATCHERS = [
+    { id: "type",     match: (q, v) => v === "all" || q.type === v },
+    { id: "rank",     match: (q, v) => v === "all" || q.rank === v },
+    { id: "status",   match: (q, v) => v === "all" || q.status === v },
+    { id: "myQuests", match: (q, v) => !v || isParticipant(q) },
+    { id: "search",   match: (q, v) => !v || normalizeFilter(q.name).includes(v) },
+];
+
+const QUEST_SORTERS = {
+    name:       (a, b) => normalizeFilter(a.name).localeCompare(normalizeFilter(b.name), "fr", { sensitivity: "base" }),
+    inprogress: (a, b) => (a.status === "in_progress" ? 0 : 1) - (b.status === "in_progress" ? 0 : 1),
+};
+
+function getFilteredQuests() {
+    const filtered = state.quests.filter((q) => itemMatchesFilters(q, state.filters, QUEST_FILTER_MATCHERS));
+    return sortItemsBy(filtered, state.filters.sort, QUEST_SORTERS);
+}
+
+function questMatchesActiveFilters(quest) {
+    return itemMatchesFilters(quest, state.filters, QUEST_FILTER_MATCHERS);
+}
+
+function buildQuestCard(quest, index) {
+    const meta = getStatusMeta(quest.status);
+    const joined = isParticipant(quest);
+    const card = document.createElement("article");
+    card.className = `quest-card${joined ? " is-joined" : ""}`;
+    card.dataset.id = quest.id;
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `Ouvrir la quete ${quest.name}`);
+    card.style.setProperty("--status-color", meta.color);
+    card.style.setProperty("--delay", `${index * 120}ms`);
+    const adminAction = state.isAdmin
+        ? `<button class="quest-delete-btn" type="button" data-id="${clean(quest.id)}" aria-label="Supprimer la quete">&#128465;</button>`
+        : "";
+    const imageLoading = index < 2 ? "eager" : "lazy";
+    const imagePriority = index === 0 ? "high" : "low";
+    card.innerHTML = `
+        <div class="quest-card-content">
+            <div class="quest-card-header">
+                <h3 class="quest-card-title">${clean(quest.name)}</h3>
+                <span class="quest-rank-badge">${clean(quest.rank)}</span>
+            </div>
+            <div class="quest-card-media">
+                <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" loading="${imageLoading}" decoding="async" fetchpriority="${imagePriority}" draggable="false">
+            </div>
+            <div class="quest-card-meta">
+                <span class="quest-type-pill">${clean(quest.type)}</span>
+                <span class="quest-status-pill">${clean(meta.label)}</span>
+            </div>
+            <div class="quest-card-actions">
+                <button class="quest-details-btn" type="button" data-id="${clean(quest.id)}">Details</button>
+                ${adminAction}
+            </div>
+            <div class="quest-card-participation">
+                ${joined ? "Vous participez" : "Non inscrit"}
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+function applyQuestListLayout({ resetCarousel = false } = {}) {
+    syncQuestViewModeUI();
+    const cards = Array.from(dom.track.querySelectorAll(".quest-card"));
+    if (state.viewMode === "carousel") {
+        updateCarouselMetrics();
+        const snaps = state.carousel.snaps || [];
+        const fallback = snaps.length > 1 ? snaps[1] : snaps[0] || 0;
+        const nextX = resetCarousel ? fallback : (Number.isFinite(state.carousel.x) ? state.carousel.x : fallback);
+        applyCarouselPosition(nextX);
+        updateCarouselParallax();
+    } else {
+        state.carousel.x = 0;
+        state.carousel.cards = cards;
+        state.carousel.snaps = [];
+        dom.track.style.width = "";
+        dom.track.style.transform = "";
+        dom.track.classList.remove("is-dragging");
+        cards.forEach((card) => {
+            card.style.width = "";
+        });
+        cards.forEach((card) => {
+            const img = card.querySelector("img");
+            if (img) img.style.transform = "";
+        });
+    }
+}
+
+function attachQuestCardInteractions(cards) {
+    cards.forEach((card) => {
+        const questId = card.dataset.id;
+        const detailsBtn = card.querySelector(".quest-details-btn");
+        const deleteBtn = card.querySelector(".quest-delete-btn");
+
+        detailsBtn?.addEventListener("click", () => {
+            if (!questId) return;
+            void openDetail(questId);
+        });
+
+        deleteBtn?.addEventListener("click", async () => {
+            if (!state.isAdmin || !questId) return;
+            const quest = state.quests.find((item) => item.id === questId);
+            if (!quest) return;
+            if (!window.confirm(`Supprimer la quete "${quest.name}" ?`)) return;
+            state.quests = state.quests.filter((item) => item.id !== questId);
+            if (state.activeQuestId === questId) {
+                closeModal(dom.detailModal);
+                state.activeQuestId = null;
+            }
+            if (state.editor.questId === questId) {
+                closeModal(dom.editorModal);
+                state.editor.questId = null;
+                state.editor.images = [];
+                state.editor.rewards = [];
+            }
+            renderQuestList();
+            persistState();
+            await deleteQuestFromDb(questId);
+            toastManager.success(`"${quest.name}" supprimee`);
+        });
+
+        card.addEventListener("click", (event) => {
+            if (!questId || event.target.closest(".quest-details-btn, .quest-delete-btn")) return;
+            void openDetail(questId);
+        });
+        card.addEventListener("keydown", (event) => {
+            if (!questId || event.target.closest(".quest-details-btn, .quest-delete-btn")) return;
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void openDetail(questId);
+            }
+        });
+    });
+}
+
+function appendVisibleQuestCards(quests) {
+    if (!Array.isArray(quests) || !quests.length) return;
+    const visibleQuests = quests.filter((quest) => questMatchesActiveFilters(quest));
+    if (!visibleQuests.length) {
+        renderQuestProgressPanel();
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const startIndex = dom.track.children.length;
+    const cards = [];
+    visibleQuests.forEach((quest, index) => {
+        const card = buildQuestCard(quest, startIndex + index);
+        cards.push(card);
+        fragment.appendChild(card);
+    });
+    dom.track.appendChild(fragment);
+    attachQuestCardInteractions(cards);
+    applyQuestListLayout({ resetCarousel: false });
+    renderQuestProgressPanel();
+}
+
+function renderQuestList() {
+    state.participant = resolveParticipant();
+    const filtered = getFilteredQuests();
+    dom.track.innerHTML = "";
+    filtered.forEach((quest, index) => {
+        const meta = getStatusMeta(quest.status);
+        const joined = isParticipant(quest);
+        const card = document.createElement("article");
+        card.className = `quest-card${joined ? " is-joined" : ""}`;
+        card.dataset.id = quest.id;
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `Ouvrir la quête ${quest.name}`);
+        card.style.setProperty("--status-color", meta.color);
+        card.style.setProperty("--delay", `${index * 120}ms`);
+        const adminAction = state.isAdmin
+            ? `<button class="quest-delete-btn" type="button" data-id="${clean(quest.id)}" aria-label="Supprimer la qu\u00EAte">&#128465;</button>`
+            : "";
+        const imageLoading = index < 2 ? "eager" : "lazy";
+        const imagePriority = index === 0 ? "high" : "low";
+        card.innerHTML = `
+            <div class="quest-card-content">
+                <div class="quest-card-header">
+                    <h3 class="quest-card-title">${clean(quest.name)}</h3>
+                    <span class="quest-rank-badge">${clean(quest.rank)}</span>
+                </div>
+                <div class="quest-card-media">
+                    <img src="${quest.images?.[0] ? clean(quest.images[0]) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22400%22 height=%22300%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2224%22 fill=%22%23999%22%3EImage indisponible%3C/text%3E%3C/svg%3E'}" alt="Illustration ${clean(quest.name)}" loading="${imageLoading}" decoding="async" fetchpriority="${imagePriority}" draggable="false">
+                </div>
+                <div class="quest-card-meta">
+                    <span class="quest-type-pill">${clean(quest.type)}</span>
+                    <span class="quest-status-pill">${clean(meta.label)}</span>
+                </div>
+                <div class="quest-card-actions">
+                    <button class="quest-details-btn" type="button" data-id="${clean(quest.id)}">Details</button>
+                    ${adminAction}
+                </div>
+                <div class="quest-card-participation">
+                    ${joined ? "Vous participez" : "Non inscrit"}
+                </div>
+            </div>
+        `;
+        dom.track.appendChild(card);
+    });
+
+    dom.track.querySelectorAll(".quest-details-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            void openDetail(btn.dataset.id);
+        });
+    });
+    dom.track.querySelectorAll(".quest-delete-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            if (!state.isAdmin) return;
+            const questId = btn.dataset.id;
+            const quest = state.quests.find((item) => item.id === questId);
+            if (!quest) return;
+            if (!window.confirm(`Supprimer la qu\u00EAte "${quest.name}" ?`)) return;
+            state.quests = state.quests.filter((item) => item.id !== questId);
+            if (state.activeQuestId === questId) {
+                closeModal(dom.detailModal);
+                state.activeQuestId = null;
+            }
+            if (state.editor.questId === questId) {
+                closeModal(dom.editorModal);
+                state.editor.questId = null;
+                state.editor.images = [];
+                state.editor.rewards = [];
+            }
+            renderQuestList();
+            persistState();
+            await deleteQuestFromDb(questId);
+            toastManager.success(`"${quest.name}" supprimée`);
+        });
+    });
+
+    dom.track.querySelectorAll(".quest-card").forEach((card) => {
+        const questId = card.dataset.id;
+        const shouldIgnore = (event) => event.target.closest(".quest-details-btn, .quest-delete-btn");
+        card.addEventListener("click", (event) => {
+            if (!questId || shouldIgnore(event)) return;
+            void openDetail(questId);
+        });
+        card.addEventListener("keydown", (event) => {
+            if (!questId || shouldIgnore(event)) return;
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void openDetail(questId);
+            }
+        });
+    });
+
+    applyQuestListLayout({ resetCarousel: true });
+    renderQuestProgressPanel();
+}
+
+function renderHistory() {
+    const { activeCharacterId, activeCharacterLabel } = getHistoryCharacterScope();
+    const scoped = activeCharacterId
+        ? state.history.filter((item) => {
+            const itemCharacterId = normalizeCharacterId(item.characterId);
+            if (itemCharacterId && itemCharacterId === activeCharacterId) return true;
+            if (!itemCharacterId && activeCharacterLabel) {
+                return normalizeText(item.characterLabel || "") === activeCharacterLabel;
+            }
+            return false;
+        })
+        : [];
+    const filtered = state.filters.historyType === "all"
+        ? scoped
+        : scoped.filter((item) => item.type === state.filters.historyType);
+    const sorted = sortHistoryByMostRecent(filtered);
+    const visibleCount = Math.max(HISTORY_INITIAL_VISIBLE, Number(state.historyVisibleCount) || HISTORY_INITIAL_VISIBLE);
+    const visibleRows = sorted.slice(0, visibleCount);
+
+    const plural = sorted.length !== 1;
+    const showing = Math.min(visibleRows.length, sorted.length);
+    dom.historyMeta.textContent = `${sorted.length} Qu\u00EAte${plural ? "s" : ""} ex\u00E9cut\u00E9e${plural ? "s" : ""} \u2022 ${showing} affich\u00E9e${showing > 1 ? "s" : ""}`;
+
+    dom.historyBody.innerHTML = visibleRows.map((entry) => `
+        <tr>
+            <td>${clean(formatHistoryDate(entry.date))}</td>
+            <td>${clean(entry.type)}</td>
+            <td>${clean(entry.rank)}</td>
+            <td>${clean(entry.name)}</td>
+            <td>${clean(entry.gains)}</td>
+        </tr>
+    `).join("");
+
+    if (dom.historyLoadMore) {
+        const hasMore = sorted.length > visibleRows.length;
+        dom.historyLoadMore.hidden = !hasMore;
+        dom.historyLoadMore.disabled = !hasMore;
+        if (hasMore) {
+            const remaining = sorted.length - visibleRows.length;
+            dom.historyLoadMore.textContent = `Charger ${Math.min(HISTORY_VISIBLE_STEP, remaining)} entr\u00E9es plus anciennes`;
+        }
+    }
+}
+
+function updateHistoryFilterButtons() {
+    dom.historyFilters.querySelectorAll(".quest-history-filter").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.value === state.filters.historyType);
+    });
+}
+
+async function openDetail(questId) {
+    const quest = state.quests.find((item) => item.id === questId);
+    if (!quest) return;
+    state.activeQuestId = questId;
+    state.activeImageIndex = 0;
+    renderDetail(quest);
+    dom.detailModal.classList.add("open");
+    dom.detailModal.setAttribute("aria-hidden", "false");
+    dom.detailModal.removeAttribute("inert");
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
+    if (state.isAdmin) {
+        void ensureAdminCharactersLoaded().then(() => {
+            if (state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+                renderAdminParticipantOptions(state.quests.find((item) => item.id === questId) || quest);
+            }
+        });
+    }
+    if (!quest.isHydrated) {
+        const hydrated = await ensureQuestHydrated(questId);
+        if (hydrated && state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+            await ensurePrerequisiteQuestsHydrated(hydrated);
+            renderDetail(hydrated);
+        }
+    } else {
+        await ensurePrerequisiteQuestsHydrated(quest);
+        if (state.activeQuestId === questId && dom.detailModal.classList.contains("open")) {
+            renderDetail(quest);
+        }
+    }
+}
+
+function closeModal(modal) {
+    if (!modal) return;
+    const active = document.activeElement;
+    if (active && modal.contains(active)) {
+        active.blur();
+    }
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    modal.setAttribute("inert", "");
+    // Unlock body scroll
+    document.body.style.overflow = "";
+}
+
+function renderDetail(quest) {
+    const meta = getStatusMeta(quest.status);
+    dom.detailTitle.textContent = quest.name;
+    dom.detailType.textContent = quest.type;
+    dom.detailRank.textContent = quest.rank;
+    dom.detailStatus.textContent = meta.label;
+    dom.detailStatus.style.color = meta.color;
+    dom.detailModal.querySelector(".quest-modal-card").style.setProperty("--status-color", meta.color);
+
+    dom.detailLocations.innerHTML = quest.locations.map((loc) => `<li>${clean(loc)}</li>`).join("");
+    if (quest.rewards.length) {
+        dom.detailRewards.innerHTML = quest.rewards
+            .map((reward) => {
+                const amount = reward?.type === "competence"
+                    ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+                    : `x${reward.qty}`;
+                return `<li>${clean(formatRewardLabel(reward, { showElement: false }))} ${clean(amount)}</li>`;
+            })
+            .join("");
+    } else {
+        dom.detailRewards.innerHTML = "<li>Aucune recompense</li>";
+    }
+    dom.detailDescription.textContent = quest.description;
+
+    renderParticipants(quest);
+    renderMedia(quest);
+    renderJoinButton(quest);
+}
+
+function renderParticipants(quest) {
+    dom.detailParticipantsCount.textContent = getQuestParticipantCountLabel(quest);
+    if (!quest.participants.length) {
+        dom.detailParticipants.innerHTML = "<li>Aucun participant</li>";
+    } else {
+        dom.detailParticipants.innerHTML = quest.participants.map((participant) => {
+            if (!state.isAdmin) {
+                return `<li>${clean(participant.label)}</li>`;
+            }
+            const participantId = resolveParticipantId(participant);
+            const removeAction = participantId
+                ? `<button type="button" class="quest-participant-remove tw-press" data-remove-participant="${clean(participantId)}">Retirer</button>`
+                : "";
+            return `
+                <li>
+                    <div class="quest-participant-entry">
+                        <span>${clean(participant.label)}</span>
+                        ${removeAction}
+                    </div>
+                </li>
+            `;
+        }).join("");
+    }
+
+    renderAdminParticipantOptions(quest);
+    const note = buildJoinNote(quest);
+    dom.detailNote.textContent = note || "";
+}
+
+function renderMedia(quest) {
+    const images = quest.images || [];
+    if (!images.length) {
+        dom.mediaImage.removeAttribute("src");
+        dom.mediaImage.style.cursor = "default";
+        dom.mediaDots.innerHTML = "";
+        dom.mediaPrev.hidden = true;
+        dom.mediaNext.hidden = true;
+        return;
+    }
+    const index = Math.max(0, Math.min(state.activeImageIndex, images.length - 1));
+    state.activeImageIndex = index;
+    dom.mediaImage.src = images[index];
+    dom.mediaImage.setAttribute("draggable", "false");
+    dom.mediaImage.style.cursor = "zoom-in";
+    dom.mediaImage.title = "Cliquer pour voir l'image en grand";
+    dom.mediaDots.innerHTML = images.map((_, idx) => {
+        const active = idx === index ? "active" : "";
+        return `<span class="quest-media-dot ${active}"></span>`;
+    }).join("");
+    const showControls = images.length > 1;
+    dom.mediaPrev.hidden = !showControls;
+    dom.mediaNext.hidden = !showControls;
+}
+
+function openImageFullscreen(imageUrl) {
+    // Create fullscreen overlay
+    const overlay = document.createElement("div");
+    overlay.className = "quest-image-fullscreen";
+    overlay.innerHTML = `
+        <div class="quest-image-fullscreen-scrim"></div>
+        <div class="quest-image-fullscreen-content">
+            <button class="quest-image-fullscreen-close tw-press" aria-label="Fermer">&times;</button>
+            <img src="${imageUrl}" alt="Image de quête en grand" class="quest-image-fullscreen-img">
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = "hidden";
+
+    // Close handlers
+    const close = () => {
+        overlay.remove();
+        document.body.style.overflow = "";
+    };
+
+    overlay.querySelector(".quest-image-fullscreen-scrim").addEventListener("click", close);
+    overlay.querySelector(".quest-image-fullscreen-close").addEventListener("click", close);
+
+    // ESC key to close
+    const handleEsc = (event) => {
+        if (event.key === "Escape") {
+            close();
+            document.removeEventListener("keydown", handleEsc);
+        }
+    };
+    document.addEventListener("keydown", handleEsc);
+
+    // Cleanup on close
+    overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) {
+            close();
+        }
+    });
+}
+
+function buildJoinNote(quest) {
+    const participant = state.participant;
+    if (!participant || !participant.id) {
+        return "Selectionnez un personnage pour participer.";
+    }
+
+    // Check prerequisites
+    if (quest.prerequisites && quest.prerequisites.length > 0) {
+        const missingPrereqs = quest.prerequisites.filter(prereqId => {
+            const prereqQuest = state.quests.find(q => q.id === prereqId);
+            if (!prereqQuest) return true; // If quest not found, consider it missing
+            return !hasParticipantCompletedQuest(prereqQuest, participant);
+        });
+
+        if (missingPrereqs.length > 0) {
+            return "Vous devez compl\u00E9ter les qu\u00EAtes pr\u00E9requises.";
+        }
+    }
+
+    if (!quest.repeatable && hasParticipantCompletedQuest(quest, participant)) {
+        return "Qu\u00EAte d\u00E9j\u00E0 r\u00E9alis\u00E9e (non r\u00E9p\u00E9titive).";
+    }
+    if (quest.status === "locked") {
+        return "Acces restreint par le staff.";
+    }
+    if (quest.status === "in_progress" && !isParticipant(quest)) {
+        return "Qu\u00EAte en cours.";
+    }
+    if (!isParticipant(quest) && quest.participants.length >= quest.maxParticipants) {
+        return "Places compl\u00E8tes.";
+    }
+    return "";
+}
+
+function isParticipant(quest) {
+    if (!state.participant) return false;
+    return quest.participants.some((entry) => entry.key === state.participant.key);
+}
+
+function getQuestParticipantCountLabel(quest) {
+    return `(${quest.participants.length}/${quest.maxParticipants})`;
+}
+
+function getAdminCharacterLabel(character) {
+    const name = String(character?.name || "Sans nom").trim() || "Sans nom";
+    const race = String(character?.race || "").trim();
+    const role = String(character?.class || "").trim();
+    const parts = [name];
+    const meta = [race, role].filter(Boolean).join(" / ");
+    if (meta) {
+        parts.push(`- ${meta}`);
+    }
+    return parts.join(" ");
+}
+
+function renderAdminParticipantOptions(quest) {
+    if (!dom.adminParticipantSelect) return;
+    if (!state.isAdmin) {
+        dom.adminParticipantSelect.innerHTML = `<option value="">Selectionner un personnage...</option>`;
+        dom.adminParticipantSelect.disabled = true;
+        dom.adminParticipantAddBtn?.setAttribute("disabled", "true");
+        return;
+    }
+
+    const currentValue = dom.adminParticipantSelect.value;
+    const assignedIds = new Set((quest?.participants || []).map((participant) => resolveParticipantId(participant)).filter(Boolean));
+    const availableCharacters = state.adminCharacters
+        .filter((character) => character?.id && !assignedIds.has(character.id))
+        .sort((a, b) => getAdminCharacterLabel(a).localeCompare(getAdminCharacterLabel(b), "fr", { sensitivity: "base" }));
+
+    const options = [`<option value="">Selectionner un personnage...</option>`]
+        .concat(availableCharacters.map((character) =>
+            `<option value="${clean(character.id)}">${clean(getAdminCharacterLabel(character))}</option>`
+        ));
+
+    dom.adminParticipantSelect.innerHTML = options.join("");
+    dom.adminParticipantSelect.value = availableCharacters.some((character) => character.id === currentValue) ? currentValue : "";
+    const canAdd = Boolean(quest?.id) && availableCharacters.length > 0;
+    dom.adminParticipantSelect.disabled = !canAdd;
+    dom.adminParticipantAddBtn?.toggleAttribute("disabled", !canAdd);
+}
+
+async function loadAdminCharacters() {
+    if (!state.isAdmin) {
+        state.adminCharacters = [];
+        return;
+    }
+
+    try {
+        const authModule = await import("./auth.js");
+        const characters = await authModule.getAllCharacters?.();
+        state.adminCharacters = Array.isArray(characters) ? characters.filter((character) => Boolean(character?.id)) : [];
+    } catch (error) {
+        console.warn("[Quetes] Failed to load admin characters:", error);
+        state.adminCharacters = [];
+    }
+}
+
+async function ensureAdminCharactersLoaded() {
+    if (!state.isAdmin) return;
+    if (Array.isArray(state.adminCharacters) && state.adminCharacters.length > 0) return;
+    await loadAdminCharacters();
+}
+
+async function addParticipantAsAdmin() {
+    if (!state.isAdmin) return;
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    const selectedId = String(dom.adminParticipantSelect?.value || "").trim();
+    if (!quest || !selectedId) {
+        toastManager.warning("Selectionne un personnage a ajouter.");
+        return;
+    }
+
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
+    if (quest.participants.some((participant) => resolveParticipantId(participant) === selectedId)) {
+        toastManager.warning("Ce personnage participe deja a cette quete.");
+        return;
+    }
+
+    let character = state.adminCharacters.find((entry) => entry.id === selectedId) || null;
+    if (!character) {
+        character = await getCharacterById(selectedId);
+    }
+    if (!character?.id) {
+        toastManager.error("Impossible de retrouver ce personnage.");
+        return;
+    }
+
+    quest.participants.push(buildParticipant(character.name || "Personnage", character.id));
+    quest.participants[quest.participants.length - 1].joinedAt = Date.now();
+
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible d'ajouter ce participant.");
+        return;
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+    renderQuestProgressPanel();
+    toastManager.success(`${character.name || "Le personnage"} a ete ajoute a la quete.`);
+    scheduleQuestRealtimeRefresh(80);
+}
+
+async function removeParticipantAsAdmin(participantId) {
+    if (!state.isAdmin || !participantId) return;
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    if (!quest) return;
+
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
+    const participant = quest.participants.find((entry) => resolveParticipantId(entry) === participantId);
+    if (!participant) return;
+
+    quest.participants = quest.participants.filter((entry) => resolveParticipantId(entry) !== participantId);
+
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible de retirer ce participant.");
+        return;
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+    renderQuestProgressPanel();
+    toastManager.success(`${participant.label || "Le participant"} a ete retire de la quete.`);
+    scheduleQuestRealtimeRefresh(80);
+}
+
+function renderJoinButton(quest) {
+    const already = isParticipant(quest);
+    const note = buildJoinNote(quest);
+    const canJoin = !note || already;
+
+    dom.joinBtn.textContent = already ? "Annuler" : "Participer";
+    dom.joinBtn.disabled = !canJoin;
+}
+
+async function toggleParticipation() {
+    const quest = state.quests.find((item) => item.id === state.activeQuestId);
+    if (!quest || !state.participant || !state.participant.id) return;
+    const previousParticipants = Array.isArray(quest.participants) ? quest.participants.slice() : [];
+    const already = isParticipant(quest);
+
+    if (!already) {
+        const note = buildJoinNote(quest);
+        if (note) return;
+        if (!isParticipant(quest)) {
+            quest.participants.push({ ...state.participant, joinedAt: Date.now() });
+            // Log quest join activity
+            logQuestJoin({
+                characterId: state.participant?.id,
+                questId: quest.id,
+                questName: quest.name
+            });
+        }
+    } else {
+        quest.participants = quest.participants.filter((entry) => entry.key !== state.participant.key);
+        // Log quest abandon activity
+        logActivity({
+            actionType: ActionTypes.QUEST_ABANDON,
+            characterId: state.participant?.id,
+            actionData: {
+                quest_id: quest.id,
+                quest_name: quest.name
+            }
+        });
+    }
+
+    const saved = await upsertQuestToDb(quest, { syncParticipants: true });
+    if (!saved) {
+        quest.participants = previousParticipants;
+        renderDetail(quest);
+        renderQuestList();
+        renderQuestProgressPanel();
+        toastManager.error("Impossible de synchroniser la participation.");
+        return;
+    }
+
+    renderDetail(quest);
+    renderQuestList();
+    renderQuestProgressPanel();
+    scheduleQuestRealtimeRefresh(80);
+}
+
+async function validateQuest() {
+    if (!state.isAdmin) return;
+    if (state.isValidating) return;
+    state.isValidating = true;
+    const questId = dom.editorModal.classList.contains("open") && state.editor.questId
+        ? state.editor.questId
+        : state.activeQuestId;
+    const quest = state.quests.find((item) => item.id === questId);
+    if (!quest) {
+        state.isValidating = false;
+        return;
+    }
+
+    const recipients = (Array.isArray(quest.participants) ? quest.participants : [])
+        .filter((participant) => Boolean(resolveParticipantId(participant)));
+    if (!recipients.length) {
+        toastManager.warning("Aucun participant valide pour cette quete.");
+        state.isValidating = false;
+        return;
+    }
+    const date = new Date().toISOString();
+    const appliedRewards = Array.isArray(quest.rewards)
+        ? quest.rewards.map((reward) => {
+            const baseReward = stripRewardElement(reward) || {};
+            return { ...baseReward };
+        })
+        : [];
+    const gains = appliedRewards.length
+        ? appliedRewards.map((reward) => {
+            const amount = reward?.type === "competence"
+                ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+                : `x${reward.qty}`;
+            return `${formatRewardLabel(reward, { showElement: !shouldRandomizeElement(reward?.name) })} ${amount}`;
+        }).join(", ")
+        : "Aucun gain";
+    const timestamp = Date.now();
+    const historyEntries = recipients.map((participant, index) => ({
+        id: `history-${timestamp}-${index}`,
+        date,
+        questId: quest.id,
+        type: normalizeQuestType(quest.type),
+        rank: quest.rank,
+        name: quest.name,
+        gains,
+        characterId: resolveParticipantId(participant),
+        characterLabel: participant.label || ""
+    }));
+
+    state.history.unshift(...historyEntries);
+
+    await applyRewardsToParticipants(quest, recipients, appliedRewards);
+
+    recipients.forEach((participant) => {
+        const completionKey = participantKeyFromId(resolveParticipantId(participant)) || String(participant.key || "").trim();
+        if (completionKey && !quest.completedBy.includes(completionKey)) {
+            quest.completedBy.push(completionKey);
+        }
+        const participantId = resolveParticipantId(participant);
+        const activeParticipantId = resolveParticipantId(state.participant);
+        if (participantId && activeParticipantId && participantId === activeParticipantId) {
+            if (quest.id) state.completedQuestIdsFromActivity.add(String(quest.id));
+            const normalizedQuestName = normalizeText(quest.name || "");
+            if (normalizedQuestName) {
+                state.completedQuestNamesFromActivity.add(normalizedQuestName);
+            }
+        }
+    });
+    quest.participants = [];
+
+    if (state.activeQuestId === quest.id) {
+        renderDetail(quest);
+    }
+    renderQuestList();
+    renderHistory();
+    renderQuestProgressPanel();
+    await upsertQuestToDb(quest, { syncParticipants: true });
+    for (const entry of historyEntries) {
+        await insertHistoryToDb(entry);
+    }
+
+    // Log quest completions for each recipient
+    for (const recipient of recipients) {
+        await logActivity({
+            actionType: ActionTypes.QUEST_COMPLETE,
+            characterId: resolveParticipantId(recipient),
+            actionData: {
+                quest_id: quest.id,
+                quest_name: quest.name,
+                quest_type: quest.type,
+                quest_rank: quest.rank,
+                rewards: appliedRewards.map(r => ({
+                    name: formatRewardLabel(r),
+                    quantity: r.qty
+                }))
+            }
+        });
+    }
+
+    const recipientNames = recipients.map(r => r.label || r.name).filter(Boolean).join(', ') || 'les participants';
+    toastManager.success(`Quête validée pour ${recipientNames}`);
+    scheduleQuestRealtimeRefresh(80);
+
+    state.isValidating = false;
+}
+
+function navigateDetail(delta) {
+    const filtered = getFilteredQuests();
+    if (!filtered.length) return;
+    const currentIndex = filtered.findIndex((quest) => quest.id === state.activeQuestId);
+    const nextIndex = (currentIndex + delta + filtered.length) % filtered.length;
+    void openDetail(filtered[nextIndex].id);
+}
+
+function getTrackGap() {
+    const styles = window.getComputedStyle(dom.track);
+    return Number.parseFloat(styles.columnGap || styles.gap || 0) || 0;
+}
+
+function getTrackStep() {
+    const card = dom.track.querySelector(".quest-card");
+    if (!card) return dom.track.clientWidth || 0;
+    const gap = getTrackGap();
+    return card.getBoundingClientRect().width + gap;
+}
+
+function updateCarouselParallax() {
+    const cards = Array.isArray(state.carousel.cards) ? state.carousel.cards : Array.from(dom.track.querySelectorAll(".quest-card"));
+    if (!cards.length) return;
+    if (SHOULD_REDUCE_QUEST_EFFECTS) {
+        cards.forEach((card) => {
+            const img = card.querySelector("img");
+            if (img) img.style.transform = "translateX(0px) scale(1.01)";
+        });
+        return;
+    }
+    const step = Number(state.carousel.step) || getTrackStep();
+    if (!step) return;
+    const centerIndex = Math.round((state.carousel.maxX - state.carousel.x) / step);
+    cards.forEach((card, index) => {
+        const img = card.querySelector("img");
+        if (!img) return;
+        const offset = index - centerIndex;
+        const translate = Math.max(-16, Math.min(16, offset * -8));
+        img.style.transform = `translateX(${translate}px) scale(1.02)`;
+    });
+}
+
+function getVisibleCount() {
+    if (window.innerWidth <= 720) return 1;
+    return 3;
+}
+
+function getCarouselViewportWidth() {
+    if (!dom.viewport) return dom.track.clientWidth || 0;
+    const styles = window.getComputedStyle(dom.viewport);
+    const padLeft = Number.parseFloat(styles.paddingLeft) || 0;
+    const padRight = Number.parseFloat(styles.paddingRight) || 0;
+    return Math.max(0, (dom.viewport.clientWidth || 0) - padLeft - padRight);
+}
+
+function scrollCarousel(direction, stepOverride) {
+    const snaps = state.carousel.snaps || [];
+    if (!snaps.length) return;
+    let closestIndex = 0;
+    let min = Math.abs(state.carousel.x - snaps[0]);
+    snaps.forEach((snap, idx) => {
+        const dist = Math.abs(state.carousel.x - snap);
+        if (dist < min) {
+            min = dist;
+            closestIndex = idx;
+        }
+    });
+    const step = stepOverride || 1;
+    const nextIndex = Math.max(0, Math.min(snaps.length - 1, closestIndex + direction * step));
+    applyCarouselPosition(snaps[nextIndex], true);
+}
+
+function snapCarousel() {
+    const snaps = state.carousel.snaps || [];
+    if (!snaps.length) return;
+    let closest = snaps[0];
+    let min = Math.abs(state.carousel.x - closest);
+    for (const snap of snaps) {
+        const dist = Math.abs(state.carousel.x - snap);
+        if (dist < min) {
+            min = dist;
+            closest = snap;
+        }
+    }
+    applyCarouselPosition(closest, true);
+}
+
+function updateCarouselMetrics() {
+    const cards = Array.from(dom.track.querySelectorAll(".quest-card"));
+    const gap = getTrackGap();
+    const visible = getVisibleCount();
+    const viewportWidth = getCarouselViewportWidth();
+    const cardWidth = visible > 0
+        ? Math.max(220, (viewportWidth - gap * (visible - 1)) / visible)
+        : viewportWidth;
+
+    cards.forEach((card) => {
+        card.style.width = `${cardWidth}px`;
+    });
+
+    const step = cardWidth + gap;
+    const trackWidth = cards.length ? (cards.length * step) - gap : viewportWidth;
+    const centerOffset = (viewportWidth - cardWidth) / 2;
+    state.carousel.step = step;
+    state.carousel.cards = cards;
+    state.carousel.maxX = centerOffset;
+    state.carousel.minX = centerOffset - (step * (cards.length - 1));
+    if (!Number.isFinite(state.carousel.minX)) state.carousel.minX = 0;
+    state.carousel.x = Math.max(state.carousel.minX, Math.min(state.carousel.maxX, state.carousel.x));
+    dom.track.style.width = `${trackWidth}px`;
+    state.carousel.snaps = cards.map((_, idx) => centerOffset - idx * step);
+}
+
+function isEditableTarget(target) {
+    if (!target) return false;
+    if (target.isContentEditable) return true;
+    const tag = target.tagName ? target.tagName.toLowerCase() : "";
+    return tag === "input" || tag === "textarea" || tag === "select";
+}
+
+function isCarouselFocused() {
+    const active = document.activeElement;
+    if (!active) return false;
+    if (active === dom.track || active === dom.viewport) return true;
+    return dom.track.contains(active) || active === dom.prevBtn || active === dom.nextBtn;
+}
+
+function applyCarouselPosition(nextX, animate = false) {
+    const bounded = Math.max(state.carousel.minX, Math.min(state.carousel.maxX, nextX));
+    state.carousel.x = bounded;
+    if (animate) {
+        dom.track.style.transition = "transform 0.35s ease";
+    } else {
+        dom.track.style.transition = "none";
+    }
+    dom.track.style.transform = `translateX(${bounded}px)`;
+    updateCarouselParallax();
+}
+
+function bindCarouselDrag() {
+    let startX = 0;
+    let startPos = 0;
+    let moved = false;
+    let skipClick = false;
+    let lastX = 0;
+    let lastTime = 0;
+    let velocity = 0;
+    let momentumId = null;
+
+    const stopMomentum = () => {
+        if (momentumId) cancelAnimationFrame(momentumId);
+        momentumId = null;
+    };
+
+    const startMomentum = () => {
+        stopMomentum();
+        let momentumVelocity = velocity;
+        let lastFrame = performance.now();
+
+        const step = (time) => {
+            const delta = time - lastFrame;
+            lastFrame = time;
+            momentumVelocity *= 0.92;
+            applyCarouselPosition(state.carousel.x + momentumVelocity * delta, false);
+            if (Math.abs(momentumVelocity) > 0.02) {
+                momentumId = requestAnimationFrame(step);
+            } else {
+                momentumId = null;
+                snapCarousel();
+            }
+        };
+
+        if (Math.abs(momentumVelocity) > 0.04) {
+            momentumId = requestAnimationFrame(step);
+        } else {
+            snapCarousel();
+        }
+    };
+
+    dom.track.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button, a, input, select, textarea")) return;
+        if (event.button !== 0) return;
+        updateCarouselMetrics();
+        state.carousel.isDragging = true;
+        moved = false;
+        skipClick = false;
+        startX = event.clientX;
+        startPos = state.carousel.x;
+        lastX = event.clientX;
+        lastTime = performance.now();
+        velocity = 0;
+        stopMomentum();
+        dom.track.setPointerCapture(event.pointerId);
+        dom.track.classList.add("is-dragging");
+    });
+
+    dom.track.addEventListener("pointermove", (event) => {
+        if (!state.carousel.isDragging) return;
+        const delta = event.clientX - startX;
+        if (Math.abs(delta) > 6) moved = true;
+        applyCarouselPosition(startPos + delta, false);
+        const now = performance.now();
+        const dt = now - lastTime;
+        if (dt > 0) {
+            velocity = (event.clientX - lastX) / dt;
+            lastX = event.clientX;
+            lastTime = now;
+        }
+    });
+
+    function endDrag(event) {
+        if (!state.carousel.isDragging) return;
+        state.carousel.isDragging = false;
+        dom.track.releasePointerCapture(event.pointerId);
+        dom.track.classList.remove("is-dragging");
+        if (moved) {
+            skipClick = true;
+            startMomentum();
+            setTimeout(() => {
+                skipClick = false;
+            }, 0);
+        }
+    }
+
+    dom.track.addEventListener("pointerup", endDrag);
+    dom.track.addEventListener("pointercancel", endDrag);
+
+    dom.track.addEventListener("click", (event) => {
+        if (!skipClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+    });
+
+    window.addEventListener("resize", () => {
+        updateCarouselMetrics();
+        applyCarouselPosition(state.carousel.x, false);
+    });
+}
+
+function bindMediaDrag() {
+    if (!dom.mediaFrame) return;
+    let isDragging = false;
+    let startX = 0;
+    let lastX = 0;
+    let lastTime = 0;
+    let velocity = 0;
+
+    dom.mediaFrame.addEventListener("pointerdown", (event) => {
+        if (event.target.closest("button")) return;
+        if (event.button !== 0) return;
+        isDragging = true;
+        startX = event.clientX;
+        lastX = event.clientX;
+        lastTime = performance.now();
+        velocity = 0;
+        dom.mediaFrame.setPointerCapture(event.pointerId);
+        dom.mediaFrame.classList.add("is-dragging");
+    });
+
+    dom.mediaFrame.addEventListener("pointermove", (event) => {
+        if (!isDragging) return;
+        const now = performance.now();
+        const dt = now - lastTime;
+        if (dt > 0) {
+            velocity = (event.clientX - lastX) / dt;
+            lastX = event.clientX;
+            lastTime = now;
+        }
+    });
+
+    function endDrag(event) {
+        if (!isDragging) return;
+        isDragging = false;
+        dom.mediaFrame.releasePointerCapture(event.pointerId);
+        dom.mediaFrame.classList.remove("is-dragging");
+        const delta = event.clientX - startX;
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (!quest) return;
+        const threshold = dom.mediaFrame.clientWidth * 0.15;
+        if (delta > threshold || velocity > 0.4) {
+            state.activeImageIndex = (state.activeImageIndex - 1 + quest.images.length) % quest.images.length;
+            renderMedia(quest);
+        } else if (delta < -threshold || velocity < -0.4) {
+            state.activeImageIndex = (state.activeImageIndex + 1) % quest.images.length;
+            renderMedia(quest);
+        }
+    }
+
+    dom.mediaFrame.addEventListener("pointerup", endDrag);
+    dom.mediaFrame.addEventListener("pointercancel", endDrag);
+}
+
+async function openEditor(quest) {
+    await ensureItemCatalogLoaded();
+    let targetQuest = quest;
+    if (targetQuest?.id && !targetQuest.isHydrated) {
+        targetQuest = await ensureQuestHydrated(targetQuest.id);
+    }
+
+    state.editor.questId = targetQuest ? targetQuest.id : null;
+    state.editor.images = targetQuest ? [...targetQuest.images] : [];
+    state.editor.rewards = targetQuest
+        ? targetQuest.rewards.map((reward) => {
+            const next = stripRewardElement(reward) || {};
+            if (next.type === "competence") {
+                return {
+                    type: "competence",
+                    categoryId: String(next.categoryId || "").trim(),
+                    categoryLabel: String(next.categoryLabel || "").trim(),
+                    qty: Math.max(1, Number(next.qty) || 1),
+                };
+            }
+            return {
+                type: "item",
+                name: String(next.name || "").trim(),
+                qty: Math.max(1, Number(next.qty) || 1),
+            };
+        }).filter((reward) => (reward.type === "competence" ? reward.categoryId : reward.name))
+        : [];
+    state.currentQuest.prerequisites = targetQuest ? [...(targetQuest.prerequisites || [])] : [];
+    dom.editorTitle.textContent = targetQuest ? "Modifier la qu\u00EAte" : "Cr\u00E9ation de Qu\u00EAtes";
+
+    dom.nameInput.value = targetQuest ? targetQuest.name : "";
+    dom.typeInput.value = targetQuest ? normalizeQuestType(targetQuest.type) : QUEST_TYPES[0];
+    dom.rankInput.value = targetQuest ? targetQuest.rank : QUEST_RANKS[0];
+    dom.statusInput.value = targetQuest ? targetQuest.status : "available";
+    dom.descInput.value = targetQuest ? targetQuest.description : "";
+    dom.maxParticipantsInput.value = targetQuest ? targetQuest.maxParticipants : 5;
+    dom.repeatableInput.checked = targetQuest ? targetQuest.repeatable : false;
+    dom.locationsInput.value = targetQuest ? targetQuest.locations.join(", ") : "";
+    syncStatusDots(dom.statusInput.value);
+    if (dom.validateBtn) {
+        dom.validateBtn.disabled = !targetQuest;
+    }
+    if (dom.rewardSelect) {
+        dom.rewardSelect.value = "";
+        setRewardTriggerLabel("");
+        updateRewardPreview();
+        renderRewardTooltip(null);
+    }
+
+    renderEditorLists();
+    renderPrerequisitesList();
+    dom.editorModal.classList.add("open");
+    dom.editorModal.setAttribute("aria-hidden", "false");
+    dom.editorModal.removeAttribute("inert");
+    document.body.style.overflow = "hidden";
+}
+
+function renderEditorLists() {
+    dom.imagesList.innerHTML = state.editor.images.map((src, idx) => `
+        <div class="quest-editor-item">
+            <span>${clean(src)}</span>
+            <button type="button" data-remove-image="${idx}">Retirer</button>
+        </div>
+    `).join("");
+
+    dom.rewardsList.innerHTML = state.editor.rewards.map((reward, idx) => {
+        const label = formatRewardLabel(reward, { showElement: false });
+        const qtyLabel = reward?.type === "competence"
+            ? `+${Math.max(1, Number(reward.qty) || 1)} pts`
+            : `x${reward.qty}`;
+        // Tooltip désactivé - causait des glitches dans la liste
+        return `
+        <div class="quest-editor-item">
+            <span>${clean(label)} ${clean(qtyLabel)}</span>
+            <button type="button" data-remove-reward="${idx}">Retirer</button>
+        </div>
+        `;
+    }).join("");
+
+    // Render prerequisites list
+    const prerequisitesList = document.getElementById("questPrerequisitesList");
+    if (prerequisitesList && state.editor.prerequisites) {
+        prerequisitesList.innerHTML = state.editor.prerequisites.map((questId, idx) => {
+            const quest = state.quests.find(q => q.id === questId);
+            const title = quest ? quest.name : questId;
+            return `
+            <div class="quest-editor-item">
+                <span>${clean(title)}</span>
+                <button type="button" data-remove-prerequisite="${idx}">Retirer</button>
+            </div>
+            `;
+        }).join("");
+    }
+
+    if (dom.imagePreview) {
+        const previewSrc = state.editor.images[0];
+        if (previewSrc) {
+            dom.imagePreview.style.backgroundImage = `url(${previewSrc})`;
+            dom.imagePreview.classList.add("has-image");
+        } else {
+            dom.imagePreview.style.backgroundImage = "none";
+            dom.imagePreview.classList.remove("has-image");
+        }
+    }
+}
+
+function renderPrerequisitesList() {
+    const prerequisitesList = document.getElementById("questPrerequisitesList");
+    if (prerequisitesList && state.currentQuest.prerequisites) {
+        prerequisitesList.innerHTML = state.currentQuest.prerequisites.map((questId, idx) => {
+            const quest = state.quests.find(q => q.id === questId);
+            const title = quest ? quest.name : questId;
+            return `
+            <div class="quest-editor-item">
+                <span>${clean(title)}</span>
+                <button type="button" data-remove-prerequisite="${idx}">Retirer</button>
+            </div>
+            `;
+        }).join("");
+    }
+}
+
+function buildQuestPersistenceState(existingQuest = null) {
+    return {
+        participants: Array.isArray(existingQuest?.participants) ? existingQuest.participants : [],
+        completedBy: Array.isArray(existingQuest?.completedBy) ? existingQuest.completedBy : []
+    };
+}
+
+async function handleEditorSubmit(event) {
+    event.preventDefault();
+    const name = dom.nameInput.value.trim();
+    if (!name) return;
+
+    const locations = dom.locationsInput.value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+
+    const existingQuest = state.editor.questId
+        ? state.quests.find((quest) => quest.id === state.editor.questId) || null
+        : null;
+    const persistenceState = buildQuestPersistenceState(existingQuest);
+
+    const questData = {
+        id: state.editor.questId || `quest-${Date.now()}`,
+        name,
+        type: normalizeQuestType(dom.typeInput.value),
+        rank: dom.rankInput.value,
+        status: dom.statusInput.value,
+        repeatable: dom.repeatableInput.checked,
+        description: dom.descInput.value.trim() || "Description a definir.",
+        locations,
+        rewards: state.editor.rewards.length ? state.editor.rewards : [],
+        prerequisites: state.currentQuest.prerequisites || [],
+        images: state.editor.images.length ? state.editor.images : ["assets/images/objets/Clef_Manndorf.png"],
+        participants: persistenceState.participants,
+        maxParticipants: Math.min(5, Math.max(1, Number(dom.maxParticipantsInput.value) || 1)),
+        completedBy: persistenceState.completedBy
+    };
+
+    if (state.editor.questId) {
+        const idx = state.quests.findIndex((quest) => quest.id === state.editor.questId);
+        if (idx >= 0) state.quests[idx] = { ...state.quests[idx], ...questData };
+    } else {
+        state.quests.unshift(questData);
+    }
+
+    renderQuestList();
+    closeModal(dom.editorModal);
+    const saved = await upsertQuestToDb(questData);
+    if (saved) {
+        const isUpdate = state.editor.questId;
+        toastManager.success(isUpdate ? `"${name}" mis à jour` : `"${name}" ajouté`);
+        scheduleQuestRealtimeRefresh(80);
+    } else {
+        toastManager.error('Échec de la sauvegarde');
+    }
+}
+
+function handleAddImage() {
+    if (dom.imageUrlInput) {
+        const url = dom.imageUrlInput.value.trim();
+        if (url) {
+            state.editor.images.push(url);
+            dom.imageUrlInput.value = "";
+            renderEditorLists();
+            return;
+        }
+    }
+    if (dom.imageFileInput) {
+        dom.imageFileInput.click();
+    }
+}
+
+function updateCropInfo() {
+    if (!state.cropper.instance) return;
+
+    const imageData = state.cropper.instance.getImageData();
+    const currentZoom = imageData.width / imageData.naturalWidth;
+    const zoomPercent = Math.round((currentZoom / state.cropper.baseZoom) * 100);
+
+    if (dom.cropperZoomDisplay) {
+        dom.cropperZoomDisplay.textContent = zoomPercent + '%';
+    }
+    if (dom.cropperZoom) {
+        dom.cropperZoom.value = zoomPercent;
+    }
+}
+
+function destroyCropper() {
+    if (state.cropper.instance) {
+        state.cropper.instance.destroy();
+        state.cropper.instance = null;
+    }
+}
+
+function closeCropper(resetInput = true) {
+    if (dom.cropperBackdrop) {
+        modalManager.close(dom.cropperBackdrop);
+    }
+    destroyCropper();
+
+    // Clear the image element to prevent blob URL issues
+    if (dom.cropperImage) {
+        dom.cropperImage.src = '';
+        dom.cropperImage.removeAttribute('src');
+    }
+
+    if (resetInput && dom.imageFileInput) {
+        dom.imageFileInput.value = "";
+    }
+}
+
+function openCropper(file) {
+    if (!dom.cropperBackdrop || !dom.cropperImage || !window.Cropper) {
+        console.warn("[Quetes] Cropper unavailable, falling back to raw image.");
+        toastManager.warning('Recadrage indisponible, upload direct');
+        const reader = new FileReader();
+        reader.onload = () => {
+            const src = String(reader.result || "");
+            if (src) {
+                state.editor.images.push(src);
+                renderEditorLists();
+            }
+        };
+        reader.readAsDataURL(file);
+        return;
+    }
+
+    // Destroy existing cropper
+    if (state.cropper.instance) {
+        state.cropper.instance.destroy();
+        state.cropper.instance = null;
+    }
+
+    // Load image
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        dom.cropperImage.src = event.target.result;
+
+        // Wait for image to load before initializing cropper
+        dom.cropperImage.onload = () => {
+            // Open modal with modalManager (like items modal)
+            modalManager.open(dom.cropperBackdrop, {
+                closeOnBackdropClick: false,
+                closeOnEsc: true
+            });
+
+            // Initialize Cropper.js
+            state.cropper.instance = new Cropper(dom.cropperImage, {
+                viewMode: 1,
+                dragMode: 'move',
+                aspectRatio: NaN, // FREE aspect ratio
+                autoCropArea: 1.0, // Full image by default
+                restore: true,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false,
+                background: true,
+                responsive: true,
+                checkOrientation: true,
+                modal: true,
+                minCropBoxWidth: 50,
+                minCropBoxHeight: 50,
+                wheelZoomRatio: 0.1,
+                movable: true,
+                zoomable: true,
+                rotatable: true,
+                scalable: true,
+                ready() {
+                    // Store the initial zoom as the base (100%)
+                    const imageData = state.cropper.instance.getImageData();
+                    state.cropper.baseZoom = imageData.width / imageData.naturalWidth;
+                    updateCropInfo();
+                },
+                crop() {
+                    updateCropInfo();
+                },
+                zoom() {
+                    updateCropInfo();
+                }
+            });
+
+            state.cropper.scaleX = 1;
+            state.cropper.scaleY = 1;
+        };
+    };
+    reader.readAsDataURL(file);
+
+    // Wire up controls
+    if (dom.cropperZoom) {
+        dom.cropperZoom.oninput = () => {
+            if (!state.cropper.instance) return;
+            const targetPercent = parseInt(dom.cropperZoom.value) / 100;
+            const targetZoom = state.cropper.baseZoom * targetPercent;
+            state.cropper.instance.zoomTo(targetZoom);
+        };
+    }
+
+    if (dom.cropperZoomIn) {
+        dom.cropperZoomIn.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.zoom(0.1);
+        };
+    }
+
+    if (dom.cropperZoomOut) {
+        dom.cropperZoomOut.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.zoom(-0.1);
+        };
+    }
+
+    if (dom.cropperRotateLeft) {
+        dom.cropperRotateLeft.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.rotate(-90);
+        };
+    }
+
+    if (dom.cropperRotateRight) {
+        dom.cropperRotateRight.onclick = () => {
+            if (state.cropper.instance) state.cropper.instance.rotate(90);
+        };
+    }
+
+    if (dom.cropperFlipX) {
+        dom.cropperFlipX.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.scaleX = -state.cropper.scaleX;
+                state.cropper.instance.scaleX(state.cropper.scaleX);
+            }
+        };
+    }
+
+    if (dom.cropperFlipY) {
+        dom.cropperFlipY.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.scaleY = -state.cropper.scaleY;
+                state.cropper.instance.scaleY(state.cropper.scaleY);
+            }
+        };
+    }
+
+    if (dom.cropperReset) {
+        dom.cropperReset.onclick = () => {
+            if (state.cropper.instance) {
+                state.cropper.instance.reset();
+                state.cropper.scaleX = 1;
+                state.cropper.scaleY = 1;
+            }
+        };
+    }
+}
+
+async function applyCropper() {
+    if (!state.cropper.instance) {
+        closeCropper();
+        return;
+    }
+
+    const canvas = state.cropper.instance.getCroppedCanvas({
+        maxWidth: 4096,
+        maxHeight: 4096,
+        fillColor: '#fff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+
+    if (!canvas) {
+        toastManager.error('Recadrage impossible');
+        return;
+    }
+
+    // Convert canvas to blob then to data URL
+    canvas.toBlob((blob) => {
+        if (!blob) {
+            toastManager.error('Recadrage impossible');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const dataUrl = String(reader.result || "");
+            if (dataUrl) {
+                state.editor.images.push(dataUrl);
+                renderEditorLists();
+                toastManager.success('Image ajoutée');
+            }
+        };
+        reader.readAsDataURL(blob);
+    }, 'image/jpeg', 0.92);
+
+    closeCropper(false);
+}
+
+function handleImageFile(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    openCropper(file);
+}
+
+function handleAddReward(itemName = null, itemQty = null) {
+    const name = itemName || dom.rewardSelect?.value || "";
+    const qty = itemQty !== null ? Math.max(1, Number(itemQty)) : Math.max(1, Number(dom.rewardQtyInput?.value) || 1);
+    if (!name) return;
+    const incoming = { type: "item", name, qty };
+    const incomingKey = rewardIdentityKey(incoming);
+    const existing = state.editor.rewards.find((reward) => rewardIdentityKey(reward) === incomingKey);
+    if (existing) {
+        existing.qty = Math.max(1, Number(existing.qty) || 0) + qty;
+    } else {
+        state.editor.rewards.push(incoming);
+    }
+    if (!itemName && dom.rewardSelect) {
+        dom.rewardSelect.value = "";
+        setRewardTriggerLabel("");
+        updateRewardPreview();
+        renderRewardTooltip(null);
+    }
+    if (!itemQty && dom.rewardQtyInput) {
+        dom.rewardQtyInput.value = "1";
+    }
+    renderEditorLists();
+}
+
+function handleAddCompetenceReward(categoryId, points = 1, categoryLabel = "") {
+    const safeCategoryId = String(categoryId || "").trim();
+    const safeCategoryLabel = String(categoryLabel || "").trim();
+    const safePoints = Math.max(1, Math.floor(Number(points) || 1));
+    if (!safeCategoryId) return;
+
+    const incoming = {
+        type: "competence",
+        categoryId: safeCategoryId,
+        categoryLabel: safeCategoryLabel,
+        qty: safePoints
+    };
+    const incomingKey = rewardIdentityKey(incoming);
+    const existing = state.editor.rewards.find((reward) => rewardIdentityKey(reward) === incomingKey);
+    if (existing) {
+        existing.qty = Math.max(1, Number(existing.qty) || 0) + safePoints;
+    } else {
+        state.editor.rewards.push(incoming);
+    }
+    renderEditorLists();
+}
+
+function bindEditorListEvents() {
+    if (!dom.editorModal) return;
+    dom.editorModal.addEventListener("click", (event) => {
+        const removeImageBtn = event.target.closest("[data-remove-image]");
+        if (removeImageBtn) {
+            const idx = Number(removeImageBtn.dataset.removeImage);
+            if (Number.isFinite(idx)) {
+                state.editor.images.splice(idx, 1);
+                renderEditorLists();
+            }
+            return;
+        }
+        const removeRewardBtn = event.target.closest("[data-remove-reward]");
+        if (removeRewardBtn) {
+            const idx = Number(removeRewardBtn.dataset.removeReward);
+            if (Number.isFinite(idx)) {
+                state.editor.rewards.splice(idx, 1);
+                renderEditorLists();
+            }
+            return;
+        }
+        const removePrerequisiteBtn = event.target.closest("[data-remove-prerequisite]");
+        if (removePrerequisiteBtn) {
+            const idx = Number(removePrerequisiteBtn.dataset.removePrerequisite);
+            if (Number.isFinite(idx)) {
+                state.currentQuest.prerequisites.splice(idx, 1);
+                renderPrerequisitesList();
+            }
+        }
+    });
+}
+
+function syncAdminUI() {
+    document.querySelectorAll("[data-admin-only]").forEach((el) => {
+        if (state.isAdmin) {
+            el.removeAttribute("hidden");
+        } else {
+            el.setAttribute("hidden", "true");
+        }
+    });
+}
+
+function bindEvents() {
+    if (dom.searchRoot && dom.searchInput && window.astoriaSearchBar) {
+        const searchBar = window.astoriaSearchBar.bind({
+            root: dom.searchRoot,
+            input: dom.searchInput,
+            toggle: dom.searchToggle,
+            clearButton: dom.searchClear,
+            dropdown: dom.searchHistory,
+            debounceWait: 200,
+            collapseWhenEmpty: false,
+            onSearch: (value) => {
+                state.filters.search = normalizeFilter(value);
+                renderQuestList();
+            }
+        });
+        searchBar?.setOpen?.(true);
+    } else {
+        dom.searchInput.addEventListener("input", () => {
+            state.filters.search = normalizeFilter(dom.searchInput.value);
+            renderQuestList();
+        });
+    }
+    createFilterBar({
+        filters: [
+            { id: "type",     type: "select", el: dom.typeFilter,   default: "all" },
+            { id: "rank",     type: "select", el: dom.rankFilter,   default: "all" },
+            { id: "status",   type: "select", el: dom.statusFilter, default: "all" },
+            { id: "sort",     type: "select", el: dom.sortFilter,   default: "default" },
+            { id: "myQuests", type: "toggle", el: dom.myQuestsBtn,  default: false, labels: ["Toutes", "Mes quêtes"] },
+        ],
+        onChange: (filters) => {
+            Object.assign(state.filters, filters);
+            renderQuestList();
+        },
+    });
+    document.querySelector('a[href$="#questHistory"]')?.addEventListener("click", () => {
+        void ensureHistoryDataLoaded();
+    });
+    dom.statusInput.addEventListener("change", () => {
+        syncStatusDots(dom.statusInput.value);
+    });
+    dom.statusDots.forEach((dot) => {
+        dot.addEventListener("click", () => {
+            const status = dot.dataset.status;
+            if (!status) return;
+            dom.statusInput.value = status;
+            syncStatusDots(status);
+            if (state.editor.questId) {
+                const quest = state.quests.find((item) => item.id === state.editor.questId);
+                if (quest) {
+                    quest.status = status;
+                    renderQuestList();
+                    if (state.activeQuestId === quest.id) {
+                        renderDetail(quest);
+                    }
+                    renderQuestProgressPanel();
+                    persistState();
+                    upsertQuestToDb(quest);
+                }
+            }
+        });
+    });
+    dom.prevBtn.addEventListener("click", () => {
+        scrollCarousel(-1, 1);
+    });
+    dom.nextBtn.addEventListener("click", () => {
+        scrollCarousel(1, 1);
+    });
+    dom.carouselViewBtn?.addEventListener("click", () => {
+        setQuestViewMode("carousel");
+    });
+    dom.gridViewBtn?.addEventListener("click", () => {
+        setQuestViewMode("grid");
+    });
+    window.addEventListener("keydown", (event) => {
+        if (event.defaultPrevented) return;
+        if (isEditableTarget(event.target)) return;
+
+        // ESC pour fermer le modal détail
+        if (event.key === "Escape" && dom.detailModal.classList.contains("open")) {
+            event.preventDefault();
+            closeModal(dom.detailModal);
+            return;
+        }
+
+        if (dom.detailModal.classList.contains("open")) return;
+        if (!isCarouselFocused()) return;
+        if (state.viewMode !== "carousel") return;
+        if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            scrollCarousel(-1, 1);
+        } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            scrollCarousel(1, 1);
+        }
+    });
+    dom.detailPrev.addEventListener("click", () => navigateDetail(-1));
+    dom.detailNext.addEventListener("click", () => navigateDetail(1));
+    dom.mediaPrev.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (!quest) return;
+        state.activeImageIndex -= 1;
+        if (state.activeImageIndex < 0) state.activeImageIndex = quest.images.length - 1;
+        renderMedia(quest);
+    });
+    dom.mediaNext.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (!quest) return;
+        state.activeImageIndex += 1;
+        if (state.activeImageIndex >= quest.images.length) state.activeImageIndex = 0;
+        renderMedia(quest);
+    });
+    dom.mediaImage.addEventListener("click", () => {
+        const imageUrl = dom.mediaImage.src;
+        if (imageUrl) openImageFullscreen(imageUrl);
+    });
+    dom.joinBtn.addEventListener("click", toggleParticipation);
+    dom.adminParticipantAddBtn?.addEventListener("click", () => {
+        void addParticipantAsAdmin();
+    });
+    dom.editBtn.addEventListener("click", () => {
+        const quest = state.quests.find((item) => item.id === state.activeQuestId);
+        if (quest) {
+            void openEditor(quest);
+        }
+    });
+    dom.validateBtn.addEventListener("click", validateQuest);
+    dom.addBtn.addEventListener("click", () => {
+        void openEditor(null);
+    });
+
+    dom.detailModal.addEventListener("click", (event) => {
+        if (event.target.dataset.close === "true") {
+            closeModal(dom.detailModal);
+            return;
+        }
+
+        const removeParticipantBtn = event.target.closest("[data-remove-participant]");
+        if (removeParticipantBtn) {
+            void removeParticipantAsAdmin(removeParticipantBtn.dataset.removeParticipant);
+        }
+    });
+    dom.editorModal.addEventListener("click", (event) => {
+        if (event.target.dataset.close === "true") {
+            closeModal(dom.editorModal);
+        }
+    });
+
+    dom.historyFilters.addEventListener("click", (event) => {
+        const btn = event.target.closest(".quest-history-filter");
+        if (!btn) return;
+        state.filters.historyType = btn.dataset.value;
+        state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
+        updateHistoryFilterButtons();
+        renderHistory();
+    });
+    dom.historyLoadMore?.addEventListener("click", () => {
+        state.historyVisibleCount += HISTORY_VISIBLE_STEP;
+        renderHistory();
+    });
+    dom.progressSave?.addEventListener("click", () => {
+        if (!state.isAdmin || !dom.progressNotes) return;
+        const key = getParticipantStorageKey();
+        if (!key) return;
+        state.adminNotes[key] = dom.progressNotes.value.trim();
+        saveAdminNotesMap(state.adminNotes);
+        if (dom.progressSaved) {
+            dom.progressSaved.textContent = "Sauvegard\u00E9.";
+            const existing = Number(dom.progressSaved.dataset.timerId || 0);
+            if (existing) window.clearTimeout(existing);
+            const timer = window.setTimeout(() => {
+                if (dom.progressSaved) dom.progressSaved.textContent = "";
+            }, 2000);
+            dom.progressSaved.dataset.timerId = String(timer);
+        }
+    });
+    window.addEventListener("astoria:character-changed", () => {
+        state.participant = resolveParticipant();
+        state.adminNotes = loadAdminNotesMap();
+        state.historyBackendLoaded = false;
+        loadStoredState();
+        void ensureHistoryDataLoaded({ force: true }).then(() => {
+            renderHistory();
+            renderQuestProgressPanel();
+        });
+        renderQuestList();
+    });
+
+    dom.editorForm.addEventListener("submit", handleEditorSubmit);
+    dom.addImageBtn.addEventListener("click", handleAddImage);
+    dom.imagePreviewBtn?.addEventListener("click", handleAddImage);
+    dom.imageFileInput.addEventListener("change", handleImageFile);
+    // dom.addRewardBtn?.addEventListener("click", handleAddReward); // DEPRECATED - Modal remplace ce bouton
+
+    // ==========================================
+    // DEPRECATED - Old dropdown/popover event listeners
+    // Replaced by modal in quetes-items-modal.js
+    // ==========================================
+    /*
+    dom.rewardTrigger?.addEventListener("click", (event) => {
+        event.preventDefault();
+        toggleRewardPopover();
+    });
+    dom.rewardOptions?.addEventListener("click", (event) => {
+        const option = event.target.closest(".quest-reward-option");
+        if (!option) return;
+        selectRewardItem(option.dataset.rewardName);
+    });
+    dom.rewardOptions?.addEventListener("pointerover", (event) => {
+        const option = event.target.closest(".quest-reward-option");
+        if (!option) return;
+        const item = resolveItemByName(option.dataset.rewardName);
+        renderRewardTooltip(item);
+    });
+    dom.rewardOptions?.addEventListener("pointerleave", () => {
+        const selected = resolveItemByName(dom.rewardSelect?.value || "");
+        renderRewardTooltip(selected || null);
+    });
+    document.addEventListener("click", (event) => {
+        if (!dom.rewardPicker || !dom.rewardPopover || dom.rewardPopover.hidden) return;
+        if (!dom.rewardPicker.contains(event.target)) {
+            closeRewardPopover();
+        }
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            closeRewardPopover();
+        }
+    });
+    */
+    dom.cropperClose?.addEventListener("click", () => closeCropper());
+    dom.cropperCancel?.addEventListener("click", () => closeCropper());
+    dom.cropperConfirm?.addEventListener("click", () => applyCropper());
+    bindEditorListEvents();
+    bindCarouselDrag();
+    bindMediaDrag();
+    dom.track.addEventListener("pointerdown", () => {
+        dom.track.focus();
+    });
+    dom.cropperBackdrop?.addEventListener("click", (event) => {
+        if (event.target === dom.cropperBackdrop) {
+            closeCropper();
+        }
+    });
+}
+
+async function initQuestPanelShortcuts() {
+    try {
+        const panelShortcuts = await import("./ui/panel-shortcuts.js");
+        if (typeof panelShortcuts.initPanelShortcuts === "function") {
+            panelShortcuts.initPanelShortcuts({
+                selector: ".quest-page [data-panel]"
+            });
+        }
+    } catch (error) {
+        console.warn("[Quetes] Panel shortcuts failed:", error);
+    }
+}
+
+function scheduleDeferredTask(task, delay = 0) {
+    if (typeof task !== "function") return;
+    if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(() => {
+            void task();
+        }, { timeout: Math.max(250, delay || 250) });
+        return;
+    }
+    window.setTimeout(() => {
+        void task();
+    }, delay);
+}
+
+function setupHistoryLazyLoad() {
+    const section = dom.historySection;
+    if (!section) return;
+
+    const shouldLoadImmediately = window.location.hash === "#questHistory";
+    if (shouldLoadImmediately) {
+        void ensureHistoryDataLoaded();
+        return;
+    }
+
+    if (typeof window.IntersectionObserver !== "function") {
+        scheduleDeferredTask(async () => {
+            await ensureHistoryDataLoaded();
+        }, 600);
+        return;
+    }
+
+    if (questHistoryObserver) {
+        questHistoryObserver.disconnect();
+    }
+
+    questHistoryObserver = new window.IntersectionObserver((entries) => {
+        const entry = entries.find((item) => item.target === section);
+        if (!entry?.isIntersecting) return;
+        questHistoryObserver?.disconnect();
+        questHistoryObserver = null;
+        void ensureHistoryDataLoaded();
+    }, {
+        rootMargin: "240px 0px"
+    });
+
+    questHistoryObserver.observe(section);
+}
+
+async function init() {
+    await refreshSessionUser?.();
+    await initCharacterSummary({ enableDropdown: true, showKaels: true });
+    setSyncBadge(true, "Chargement des dernières données...");
+    if (SHOULD_REDUCE_QUEST_EFFECTS) {
+        document.querySelector(".quest-page")?.classList.add("quest-perf-lite");
+    }
+    state.isAdmin = Boolean(isAdmin?.());
+    state.participant = resolveParticipant();
+    state.adminNotes = loadAdminNotesMap();
+    state.viewMode = loadQuestViewMode();
+    const cacheLoaded = loadStoredState();
+
+    fillFilters();
+    syncAdminUI();
+
+    if (cacheLoaded) {
+        renderQuestList();
+        renderHistory();
+    }
+
+    const dbLoaded = await loadQuestsFromDb();
+    if (!dbLoaded) state.quests = [];
+
+    // Initialiser le modal de sélection des récompenses AVANT bindEvents
+    // pour que le modal remplace le bouton trigger avant que l'ancien listener soit attaché
+    initItemsModal({ dom, resolveItemByName, addReward: handleAddReward });
+    initSkillsRewardsModal({ addCompetenceReward: handleAddCompetenceReward });
+
+    // Initialiser le modal de sélection des prérequis
+    initPrerequisitesModal({ state, renderPrerequisitesList });
+    bindEvents();
+
+    renderQuestList();
+    renderHistory();
+    setSyncBadge(false, "Prêt");
+    setupHistoryLazyLoad();
+
+    scheduleDeferredTask(async () => {
+        await initQuestPanelShortcuts();
+        await initQuestRealtimeSync();
+    }, 120);
+
+    scheduleDeferredTask(async () => {
+        await ensureItemCatalogLoaded();
+    }, 180);
+}
+
+init();

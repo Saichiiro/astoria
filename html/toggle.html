@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astoria Theme Toggle</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/theme-toggle.css">
+</head>
+  <body class="min-h-screen">
+    <main class="theme-toggle-demo fade-in">
+      <h1>Theme toggle</h1>
+      <button type="button" class="theme-toggle tw-press" data-theme-toggle aria-pressed="false" aria-label="Basculer le theme">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-thumb">
+            <span class="theme-toggle-icon theme-toggle-sun" aria-hidden="true">&#9728;</span>
+            <span class="theme-toggle-icon theme-toggle-moon" aria-hidden="true">&#9790;</span>
+          </span>
+        </span>
+      </button>
+      <p>Preview the light/dark toggle.</p>
+    </main>
+    <script src="js/theme-toggle.js"></script>
+  </body>
+</html>

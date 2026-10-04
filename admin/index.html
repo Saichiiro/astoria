@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel | Astoria</title>
+    <link rel="icon" type="image/x-icon" href="../assets/images/ALICE_ACADEMIA.ico">
+    <!-- Tabler CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.css">
+    <!-- Custom overrides -->
+    <link rel="stylesheet" href="css/admin.css">
+    <!-- Items Modal CSS -->
+    <link rel="stylesheet" href="../css/quetes-items-modal.css">
+    <link rel="stylesheet" href="../css/item-details-popover.css">
+    <link rel="stylesheet" href="../css/components-ui.css">
+</head>
+<body class="theme-dark">
+    <div class="page">
+        <!-- Sidebar -->
+        <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+            <div class="container-fluid">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <h1 class="navbar-brand navbar-brand-autodark">
+                    <a href="#">
+                        <span class="nav-brand-icon">⚔️</span>
+                        <span class="nav-brand-text">Astoria Admin</span>
+                    </a>
+                </h1>
+                <div class="collapse navbar-collapse" id="sidebar-menu">
+                    <ul class="navbar-nav pt-lg-3">
+                        <!-- Dashboard -->
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard" data-page="dashboard">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-dashboard"></i>
+                                </span>
+                                <span class="nav-link-title">Tableau de bord</span>
+                            </a>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-users"></i>
+                                </span>
+                                <span class="nav-link-title">Gestion</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#users" data-page="users">
+                                    <i class="ti ti-user me-2"></i> Utilisateurs
+                                </a>
+                                <a class="dropdown-item" href="#fiche-joueur" data-page="fiche-joueur">
+                                    <i class="ti ti-id-badge me-2"></i> Fiche Joueur
+                                </a>
+                                <a class="dropdown-item" href="#characters" data-page="characters">
+                                    <i class="ti ti-mask me-2"></i> Personnages
+                                </a>
+                                <a class="dropdown-item" href="#items" data-page="items">
+                                    <i class="ti ti-box me-2"></i> Objets (Codex)
+                                </a>
+                                <a class="dropdown-item" href="#quetes" data-page="quetes">
+                                    <i class="ti ti-map-2 me-2"></i> Quêtes
+                                </a>
+                                <a class="dropdown-item" href="#competences" data-page="competences">
+                                    <i class="ti ti-sparkles me-2"></i> Compétences
+                                </a>
+                            </div>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-coin"></i>
+                                </span>
+                                <span class="nav-link-title">Économie</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#economy" data-page="economy">
+                                    <i class="ti ti-cash me-2"></i> Kaels & Transactions
+                                </a>
+                                <a class="dropdown-item" href="#market" data-page="market">
+                                    <i class="ti ti-building-store me-2"></i> Marché
+                                </a>
+                            </div>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-calendar-event"></i>
+                                </span>
+                                <span class="nav-link-title">RP & Events</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#events" data-page="events">
+                                    <i class="ti ti-calendar me-2"></i> Événements
+                                </a>
+                                <a class="dropdown-item" href="#announcements" data-page="announcements">
+                                    <i class="ti ti-speakerphone me-2"></i> Annonces
+                                </a>
+                            </div>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-settings"></i>
+                                </span>
+                                <span class="nav-link-title">Système</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#logs" data-page="logs">
+                                    <i class="ti ti-list-details me-2"></i> Logs & Audit
+                                </a>
+                                <a class="dropdown-item" href="#integrations" data-page="integrations">
+                                    <i class="ti ti-plug me-2"></i> Intégrations
+                                </a>
+                                <a class="dropdown-item" href="#settings" data-page="settings">
+                                    <i class="ti ti-adjustments me-2"></i> Paramètres
+                                </a>
+                            </div>
+                        </li>
+
+                        <li class="nav-item mt-auto">
+                            <a class="nav-link text-warning" href="../index.html">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-logout"></i>
+                                </span>
+                                <span class="nav-link-title">Retour au site</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main wrapper -->
+        <div class="page-wrapper">
+            <!-- Header -->
+            <header class="page-header d-print-none">
+                <div class="container-xl">
+                    <div class="page-header-content">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <h2 class="page-title" id="pageTitle">Tableau de bord</h2>
+                                <div class="page-subtitle text-muted" id="pageSubtitle">Vue d'ensemble de l'activité</div>
+                            </div>
+                            <div class="col-auto ms-auto">
+                                <div class="btn-list">
+                                    <a href="#" class="btn btn-ghost-primary" data-bs-toggle="modal" data-bs-target="#quickActionsModal">
+                                        <i class="ti ti-bolt"></i>
+                                        Actions rapides
+                                    </a>
+                                    <div class="nav-item dropdown">
+                                        <a href="#" class="btn btn-outline-primary" data-bs-toggle="dropdown">
+                                            <span class="avatar avatar-sm" id="adminAvatar" style="background-image: url(../assets/images/Silhouette.png)"></span>
+                                            <span class="ms-2" id="adminUsername">Admin</span>
+                                        </a>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a class="dropdown-item" href="../html/profil.html">
+                                                <i class="ti ti-user me-2"></i> Mon profil
+                                            </a>
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-danger" href="#" id="logoutBtn">
+                                                <i class="ti ti-logout me-2"></i> Déconnexion
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page body -->
+            <div class="page-body">
+                <div class="container-xl">
+                    <!-- ================================================
+                         DASHBOARD PAGE
+                         ================================================ -->
+                    <div class="admin-page active" data-page="dashboard">
+                        <!-- Stats Row -->
+                        <div class="row row-deck row-cards mb-4">
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm" data-nav="users">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-primary text-white avatar">
+                                                    <i class="ti ti-users"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statUsers">--</div>
+                                                <div class="text-muted">Utilisateurs</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm" data-nav="characters">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-pink text-white avatar">
+                                                    <i class="ti ti-mask"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statCharacters">--</div>
+                                                <div class="text-muted">Personnages</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm" data-nav="items">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-green text-white avatar">
+                                                    <i class="ti ti-box"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statItems">--</div>
+                                                <div class="text-muted">Objets</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm" data-nav="economy">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-yellow text-white avatar">
+                                                    <i class="ti ti-coin"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statKaels">--</div>
+                                                <div class="text-muted">Kaels totaux</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm" data-nav="quetes">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="bg-purple text-white avatar">
+                                                    <i class="ti ti-map-2"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuests">--</div>
+                                                <div class="text-muted">Quêtes actives</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row row-deck row-cards">
+                            <!-- Quick Actions -->
+                            <div class="col-lg-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Actions rapides</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <a href="../html/codex.html" class="btn btn-outline-success w-100">
+                                                    <i class="ti ti-plus me-1"></i> Nouvel objet
+                                                </a>
+                                            </div>
+                                            <div class="col-6">
+                                                <a href="#" class="btn btn-outline-warning w-100" data-bs-toggle="modal" data-bs-target="#giveKaelsModal">
+                                                    <i class="ti ti-coin me-1"></i> Donner Kaels
+                                                </a>
+                                            </div>
+                                            <div class="col-6">
+                                                <a href="#announcements" class="btn btn-outline-pink w-100" data-page="announcements">
+                                                    <i class="ti ti-speakerphone me-1"></i> Annonce
+                                                </a>
+                                            </div>
+                                            <div class="col-6">
+                                                <a href="#events" class="btn btn-outline-purple w-100" data-page="events">
+                                                    <i class="ti ti-calendar-plus me-1"></i> Nouvel event
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recently Active -->
+                            <div class="col-lg-2">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <span class="status-dot status-dot-animated bg-green me-1"></span>
+                                            Actifs récemment
+                                        </h3>
+                                    </div>
+                                    <div class="card-body" style="overflow-y:auto; max-height:240px;">
+                                        <div id="recentlyActiveList">
+                                            <small class="text-muted">Chargement...</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Activity -->
+                            <div class="col-lg-7">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Activité récente</h3>
+                                    </div>
+                                    <div class="card-body card-body-scrollable card-body-scrollable-shadow" style="height: 300px;">
+                                        <div class="divide-y" id="activityList">
+                                            <div class="text-center text-muted py-4">
+                                                <i class="ti ti-list-details" style="font-size: 2rem; opacity: 0.5;"></i>
+                                                <p class="mt-2 mb-0">Aucune activité récente</p>
+                                                <small>Les actions admin apparaîtront ici</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Site shortcuts -->
+                        <div class="row row-cards mt-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">
+                                            <i class="ti ti-layout-grid me-2 text-muted"></i>
+                                            Accès rapide au site
+                                        </h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-2">
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/inventaire.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-backpack"></i> Inventaire
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/quetes.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-map-2"></i> Quêtes
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-sparkles"></i> Compétences
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/magie.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-wand"></i> Magie
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/codex.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-book-2"></i> Codex
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/craft.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-hammer"></i> Craft
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/hdv.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-building-store"></i> Marché
+                                                </a>
+                                            </div>
+                                            <div class="col-6 col-md-3">
+                                                <a href="../html/fiche.html" target="_blank" class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2">
+                                                    <i class="ti ti-id-badge"></i> Fiche
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         USERS PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="users">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Gestion des utilisateurs</h3>
+                                <div class="card-actions">
+                                    <div class="input-icon me-2">
+                                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="Rechercher..." id="usersSearch">
+                                    </div>
+                                    <button type="button" class="btn btn-primary" disabled title="Création de compte via inscription uniquement">
+                                        <i class="ti ti-plus me-1"></i> Ajouter
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-responsive table-sheet">
+                                <table class="table table-vcenter card-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Utilisateur</th>
+                                            <th>Rôle</th>
+                                            <th>Personnages</th>
+                                            <th>Kaels</th>
+                                            <th>Dernière connexion</th>
+                                            <th>Status</th>
+                                            <th class="w-1"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                Chargement des utilisateurs...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="card-footer d-flex align-items-center">
+                                <p class="m-0 text-muted">Affichage de <span>0</span> à <span>0</span> sur <span>0</span> utilisateurs</p>
+                                <ul class="pagination m-0 ms-auto">
+                                    <li class="page-item disabled"><a class="page-link" href="#"><i class="ti ti-chevron-left"></i></a></li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item disabled"><a class="page-link" href="#"><i class="ti ti-chevron-right"></i></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         FICHE JOUEUR PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="fiche-joueur">
+                        <div class="row g-3" style="min-height:70vh;">
+                            <!-- Left: user list -->
+                            <div class="col-lg-3">
+                                <div class="card h-100">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Joueurs</h3>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="p-2 border-bottom">
+                                            <input type="text" class="form-control form-control-sm" id="ficheJoueurSearch" placeholder="Rechercher...">
+                                        </div>
+                                        <div id="ficheJoueurList" style="overflow-y:auto;max-height:calc(70vh - 80px);">
+                                            <div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm"></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Right: player profile -->
+                            <div class="col-lg-9">
+                                <div id="ficheJoueurEmpty" class="card h-100 d-flex align-items-center justify-content-center">
+                                    <div class="empty-state">
+                                        <i class="ti ti-id-badge"></i>
+                                        <div class="mt-2 text-muted">Sélectionne un joueur</div>
+                                    </div>
+                                </div>
+                                <div id="ficheJoueurProfile" class="d-none">
+                                    <!-- Header -->
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <span class="avatar avatar-lg" id="fjAvatar" style="font-size:1.4rem;font-weight:700;"></span>
+                                                <div class="flex-fill">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <h3 class="mb-0" id="fjUsername">—</h3>
+                                                        <span id="fjRoleBadge"></span>
+                                                    </div>
+                                                    <div class="text-muted small mt-1">
+                                                        Dernière co : <span id="fjLastLogin">—</span>
+                                                        &nbsp;·&nbsp; <span id="fjCharCount">0</span> personnage(s)
+                                                        &nbsp;·&nbsp; <span id="fjTotalKaels">0</span> Kaels au total
+                                                    </div>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <button class="btn btn-sm btn-outline-warning" id="fjBtnRole"><i class="ti ti-shield me-1"></i>Rôle</button>
+                                                    <button class="btn btn-sm btn-outline-danger" id="fjBtnToggleActive"><i class="ti ti-ban me-1"></i>Bannir</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Tabs -->
+                                    <ul class="nav nav-tabs mb-3" id="fjTabs">
+                                        <li class="nav-item"><a class="nav-link active" href="#" data-fj-tab="characters"><i class="ti ti-mask me-1"></i>Personnages</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="inventory"><i class="ti ti-backpack me-1"></i>Inventaire</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="kaels"><i class="ti ti-coin me-1"></i>Kaels</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="#" data-fj-tab="quests"><i class="ti ti-map-2 me-1"></i>Quêtes</a></li>
+                                    </ul>
+                                    <div class="fj-context-bar mb-3" id="fjContextBar"></div>
+                                    <div id="fjTabContent"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         CHARACTERS PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="characters">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Gestion des personnages</h3>
+                                <div class="card-actions">
+                                    <div class="input-icon me-2">
+                                        <span class="input-icon-addon"><i class="ti ti-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="Rechercher..." id="charactersSearch">
+                                    </div>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                            Filtrer
+                                        </button>
+                                        <div class="dropdown-menu">
+                                            <button class="dropdown-item" type="button" data-char-filter="all">Tous</button>
+                                            <button class="dropdown-item" type="button" data-char-filter="active">Actifs</button>
+                                            <button class="dropdown-item" type="button" data-char-filter="inactive">Inactifs</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive table-sheet">
+                                <table class="table table-vcenter card-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Avatar</th>
+                                            <th>Nom</th>
+                                            <th>Propriétaire</th>
+                                            <th>Rang</th>
+                                            <th>Kaels</th>
+                                            <th>Créé le</th>
+                                            <th class="w-1"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="charactersTableBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                Chargement des personnages...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card mt-3 admin-inventory-inspector">
+                            <div class="card-header">
+                                <h3 class="card-title">Vue inventaire personnage</h3>
+                                <div class="card-actions d-flex gap-2">
+                                    <select class="form-select form-select-sm" id="adminInventoryCharacterSelect">
+                                        <option value="">S&eacute;lectionner un personnage...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="adminInventoryRefreshBtn">
+                                        <i class="ti ti-refresh me-1"></i>Actualiser
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="admin-inventory-summary text-muted mb-3" id="adminInventorySummary">
+                                    S&eacute;lectionne un personnage pour afficher son inventaire et son &eacute;quipement.
+                                </div>
+                                <div class="admin-inventory-equip mb-3" id="adminInventoryEquipment"></div>
+                                <div class="table-responsive table-sheet admin-inventory-table">
+                                    <table class="table table-vcenter card-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Objet</th>
+                                                <th>Cat&eacute;gorie</th>
+                                                <th>Qt&eacute;</th>
+                                                <th>ID item</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="adminInventoryRows">
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">Aucune donn&eacute;e charg&eacute;e.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         ITEMS PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="items">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Gestion des objets</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card card-body bg-primary-lt">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="ti ti-book-2" style="font-size: 2.5rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="mb-1">Codex d'Astoria</h4>
+                                                    <p class="text-muted mb-2">Gérer les objets via le Codex principal</p>
+                                                    <a href="../html/codex.html" class="btn btn-primary">
+                                                        <i class="ti ti-external-link me-1"></i> Ouvrir le Codex
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card card-body">
+                                            <h4 class="mb-3">Actions groupées</h4>
+                                            <div class="btn-list">
+                                                <button class="btn btn-outline-secondary" disabled>
+                                                    <i class="ti ti-upload me-1"></i> Import CSV
+                                                </button>
+                                                <button class="btn btn-outline-secondary" disabled>
+                                                    <i class="ti ti-download me-1"></i> Export CSV
+                                                </button>
+                                                <button class="btn btn-outline-danger" disabled>
+                                                    <i class="ti ti-trash me-1"></i> Purger désactivés
+                                                </button>
+                                            </div>
+                                            <small class="text-muted mt-2 d-block">Fonctionnalités à venir</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mt-3">
+                        <div class="card-header">
+                            <h3 class="card-title"><i class="ti ti-book-2 me-2"></i>Codex miroir (admin)</h3>
+                            <div class="card-actions btn-list">
+                                <button class="btn btn-outline-secondary btn-sm" id="adminItemsMirrorRefresh">
+                                    <i class="ti ti-refresh me-1"></i>Actualiser
+                                </button>
+                                <a href="../html/codex.html" class="btn btn-primary btn-sm">
+                                    <i class="ti ti-external-link me-1"></i>Ouvrir codex complet
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <input id="adminItemsMirrorSearch" type="search" class="form-control" placeholder="Rechercher nom, effet, description...">
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorCategory" class="form-select">
+                                        <option value="all">Toutes categories</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorRarity" class="form-select">
+                                        <option value="all">Toutes raretes</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorRank" class="form-select">
+                                        <option value="all">Tous rangs</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <select id="adminItemsMirrorPricing" class="form-select">
+                                        <option value="all">Tous prix</option>
+                                        <option value="split">Achat / vente differencies</option>
+                                        <option value="legacy">Prix unique (legacy)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive table-sheet">
+                                <table class="table table-vcenter card-table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-sort="name">Nom</th>
+                                            <th class="sortable" data-sort="category">Categorie</th>
+                                            <th class="sortable" data-sort="rarity">Rarete</th>
+                                            <th class="sortable" data-sort="rank">Rang</th>
+                                            <th class="sortable" data-sort="buy">Achat</th>
+                                            <th class="sortable" data-sort="sell">Vente</th>
+                                            <th>Etat pricing</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminItemsMirrorBody">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">
+                                                Chargement...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex align-items-center">
+                            <p class="m-0 text-muted" id="adminItemsMirrorCount">0 objet(s)</p>
+                        </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         QUÊTES PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="quetes">
+                        <!-- Stats -->
+                        <div class="row row-cards mb-3">
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto"><span class="bg-purple text-white avatar"><i class="ti ti-map-2"></i></span></div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuestsFull">--</div>
+                                                <div class="text-muted">Quêtes au total</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
+                                <div class="card card-sm">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto"><span class="bg-green text-white avatar"><i class="ti ti-circle-check"></i></span></div>
+                                            <div class="col">
+                                                <div class="font-weight-medium" id="statQuestsActive">--</div>
+                                                <div class="text-muted">Disponibles</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quest Table -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Quêtes</h3>
+                                <div class="card-actions gap-2 d-flex align-items-center">
+                                    <div class="btn-group btn-group-sm" id="questFilterBtns">
+                                        <button class="btn btn-outline-secondary active" data-quest-filter="all">Toutes</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="available">Disponibles</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="in_progress">En cours</button>
+                                        <button class="btn btn-outline-secondary" data-quest-filter="locked">Verrouillées</button>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" id="btnCreateQuest">
+                                        <i class="ti ti-plus me-1"></i> Nouvelle quête
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-sheet">
+                                <table class="table table-vcenter">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" data-quest-sort="name">Nom <span class="sort-indicator" data-sort-col="name">↕</span></th>
+                                            <th class="sortable" data-quest-sort="type">Type <span class="sort-indicator" data-sort-col="type">↕</span></th>
+                                            <th class="sortable" style="width:70px" data-quest-sort="rank">Rang <span class="sort-indicator" data-sort-col="rank">↕</span></th>
+                                            <th class="sortable" style="width:120px" data-quest-sort="status">Statut <span class="sort-indicator" data-sort-col="status">↕</span></th>
+                                            <th style="width:110px">Participants</th>
+                                            <th style="width:90px">Répétable</th>
+                                            <th style="width:100px">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="questsTableBody">
+                                        <tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         MODAL — CREATE / EDIT QUEST
+                         ================================================ -->
+                    <div class="modal modal-blur fade" id="questModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="questModalTitle">Nouvelle quête</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <input type="hidden" id="questModalId">
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label required">Nom</label>
+                                            <input type="text" class="form-control" id="questFormName" placeholder="Titre de la quête">
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Type</label>
+                                            <select class="form-select" id="questFormType">
+                                                <option value="Expédition">Expédition</option>
+                                                <option value="Chasse">Chasse</option>
+                                                <option value="Assistance">Assistance</option>
+                                                <option value="Investigation">Investigation</option>
+                                                <option value="Evenementiel">Événementiel</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Rang</label>
+                                            <select class="form-select" id="questFormRank">
+                                                <option>F</option><option>E</option><option>D</option><option>C</option><option>B</option><option>A</option><option>S</option><option>S+</option><option>SS</option><option>SSS</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <label class="form-label required">Statut</label>
+                                            <select class="form-select" id="questFormStatus">
+                                                <option value="available">Disponible</option>
+                                                <option value="in_progress">En cours</option>
+                                                <option value="locked">Verrouillée</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <label class="form-label">Max participants</label>
+                                            <input type="number" class="form-control" id="questFormMaxPart" min="1" max="10" value="5">
+                                        </div>
+                                        <div class="col-sm-6 d-flex align-items-end">
+                                            <label class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" id="questFormRepeatable">
+                                                <span class="form-check-label">Répétable</span>
+                                            </label>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Description</label>
+                                            <textarea class="form-control" id="questFormDesc" rows="3" placeholder="Description de la quête..."></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Images</label>
+                                            <textarea class="form-control" id="questFormImages" rows="3" placeholder="Une URL d'image par ligne"></textarea>
+                                            <div class="form-hint">Une ligne = une image de la quête côté joueur.</div>
+                                        </div>
+                                        <!-- Rewards -->
+                                        <div class="col-12">
+                                            <label class="form-label">Récompenses</label>
+                                            <div id="questRewardsList" class="d-flex flex-column gap-2 mb-2"></div>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-warning" id="btnAddKaelsReward"><i class="ti ti-coin me-1"></i>+ Kaels</button>
+                                                <button type="button" class="btn btn-outline-info" id="btnAddItemReward"><i class="ti ti-box me-1"></i>+ Objet</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="button" class="btn btn-primary" id="btnSaveQuest">
+                                        <i class="ti ti-device-floppy me-1"></i> Sauvegarder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         MODAL — PARTICIPANTS
+                         ================================================ -->
+                    <div class="modal modal-blur fade" id="questParticipantsModal" tabindex="-1">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="questParticipantsTitle">Participants</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" id="questParticipantsBody">
+                                    <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-link text-muted" data-bs-dismiss="modal">Fermer</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         COMPÉTENCES PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="competences">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Catalogue des compétences</h3>
+                                <div class="card-actions">
+                                    <a href="../html/competences.html" target="_blank" class="btn btn-primary btn-sm">
+                                        <i class="ti ti-external-link me-1"></i> Ouvrir les compétences
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="card card-body" style="background: rgba(210,75,143,0.06);">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <i class="ti ti-sparkles" style="font-size: 2.5rem; color: var(--tblr-primary);"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="mb-1">Compétences</h4>
+                                                    <p class="text-muted mb-2">Gérer le catalogue global, allouer les points par personnage</p>
+                                                    <a href="../html/competences.html" target="_blank" class="btn btn-primary">
+                                                        <i class="ti ti-external-link me-1"></i> Gérer les compétences
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card card-body">
+                                            <h4 class="mb-3">Actions admin compétences</h4>
+                                            <div class="d-flex flex-column gap-2">
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-sm btn-outline-success text-start"><i class="ti ti-plus me-2"></i>Ajouter une compétence au catalogue global</a>
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-sm btn-outline-warning text-start"><i class="ti ti-edit me-2"></i>Modifier nom, icône, cap d'une compétence</a>
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-sm btn-outline-info text-start"><i class="ti ti-arrow-up me-2"></i>Allouer des points à un personnage</a>
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-sm btn-outline-danger text-start"><i class="ti ti-arrow-down me-2"></i>Retirer des points</a>
+                                                <a href="../html/competences.html" target="_blank" class="btn btn-sm btn-outline-secondary text-start"><i class="ti ti-refresh me-2"></i>Reset les allocations</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Santé des compétences -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-activity-heartbeat me-2"></i>Santé des compétences</h3>
+                                <div class="card-actions">
+                                    <button id="refreshCompetencesHealth" class="btn btn-sm btn-outline-secondary">
+                                        <i class="ti ti-refresh me-1"></i> Actualiser
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="competencesHealthTable">
+                                    <div class="text-center p-4 text-muted">Cliquez sur "Actualiser" ou naviguez vers cette page pour charger.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         ECONOMY PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="economy">
+                        <div class="row row-cards">
+                            <div class="col-lg-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Donner/Retirer Kaels</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="kaelsForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Personnage</label>
+                                                <select class="form-select" id="kaelsCharacterSelect">
+                                                    <option value="">Sélectionner...</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Montant</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" id="kaelsAmount" placeholder="100">
+                                                    <span class="input-group-text">kaels</span>
+                                                </div>
+                                                <small class="text-muted">Négatif pour retirer</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Raison</label>
+                                                <input type="text" class="form-control" id="kaelsReason" placeholder="Récompense event...">
+                                            </div>
+                                            <button type="submit" class="btn btn-primary w-100" disabled>
+                                                <i class="ti ti-send me-1"></i> Appliquer
+                                            </button>
+                                        </form>
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-success w-100" id="giveItemsBtn">
+                                                <i class="ti ti-gift me-1"></i> Donner des objets
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h3 class="card-title">Historique des transactions</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="text-center text-muted py-4">
+                                            <i class="ti ti-receipt" style="font-size: 2rem; opacity: 0.5;"></i>
+                                            <p class="mt-2 mb-0">Historique à venir</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         MARKET PAGE (stub)
+                         ================================================ -->
+                    <div class="admin-page" data-page="market">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="ti ti-building-store mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <h3>Gestion du Marché</h3>
+                                <p class="text-muted">Configuration des prix, surveillance des offres, historique des ventes.</p>
+                                <span class="badge bg-yellow-lt">À venir</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         EVENTS PAGE (stub)
+                         ================================================ -->
+                    <div class="admin-page" data-page="events">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Événements RP</h3>
+                                <div class="card-actions">
+                                    <button type="button" class="btn btn-primary" disabled>
+                                        <i class="ti ti-plus me-1"></i> Nouvel événement
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body text-center py-5">
+                                <i class="ti ti-calendar-event mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <p class="text-muted">Créer et planifier des événements RP, gérer les participants.</p>
+                                <span class="badge bg-yellow-lt">À venir</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         ANNOUNCEMENTS PAGE (stub)
+                         ================================================ -->
+                    <div class="admin-page" data-page="announcements">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Annonces</h3>
+                                <div class="card-actions">
+                                    <button type="button" class="btn btn-primary" disabled>
+                                        <i class="ti ti-plus me-1"></i> Nouvelle annonce
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body text-center py-5">
+                                <i class="ti ti-speakerphone mb-3" style="font-size: 3rem; opacity: 0.5;"></i>
+                                <p class="text-muted">Diffuser des annonces aux joueurs, planifier des publications.</p>
+                                <span class="badge bg-yellow-lt">À venir</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         LOGS PAGE - Activity Logs Viewer
+                         ================================================ -->
+                    <div class="admin-page" data-page="logs">
+                        <!-- Statistics Row -->
+                        <div class="row g-2 mb-3" id="logsStatsContainer">
+                            <!-- Stats will be dynamically populated -->
+                        </div>
+
+                        <!-- Quick Filters -->
+                        <div class="mb-3">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary" id="quickFilterToday">
+                                    <i class="ti ti-calendar-event me-1"></i> Aujourd'hui
+                                </button>
+                                <button type="button" class="btn btn-outline-success" id="quickFilterQuestsWeek">
+                                    <i class="ti ti-check me-1"></i> Quêtes cette semaine
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" id="quickFilterKaels">
+                                    <i class="ti ti-coin me-1"></i> Dons de Kaels
+                                </button>
+                                <button type="button" class="btn btn-outline-info" id="quickFilterPurchases">
+                                    <i class="ti ti-shopping-cart me-1"></i> Achats HDV
+                                </button>
+                                <button type="button" class="btn btn-ghost-secondary" id="quickFilterClear">
+                                    <i class="ti ti-x me-1"></i> Réinitialiser
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filters Card -->
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-filter me-2"></i>Filtres</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="activityLogsFilterForm" class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Type d'action</label>
+                                        <select id="actionTypeFilter" class="form-select">
+                                            <option value="">Tous les types</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date début</label>
+                                        <input type="date" id="startDateFilter" class="form-control">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Date fin</label>
+                                        <input type="date" id="endDateFilter" class="form-control">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Résultats par page</label>
+                                        <select id="limitFilter" class="form-select">
+                                            <option value="25">25</option>
+                                            <option value="50" selected>50</option>
+                                            <option value="100">100</option>
+                                            <option value="200">200</option>
+                                        </select>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Logs Table Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title"><i class="ti ti-list-details me-2"></i>Journal d'activité</h3>
+                                <div class="card-actions">
+                                    <button class="btn btn-outline-secondary btn-sm" id="logsRefreshBtn">
+                                        <i class="ti ti-refresh me-1"></i> Actualiser
+                                    </button>
+                                    <button class="btn btn-outline-primary btn-sm" id="logsExportBtn">
+                                        <i class="ti ti-download me-1"></i> Exporter CSV
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="table-responsive table-sheet">
+                                <table class="table table-vcenter card-table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Type</th>
+                                            <th>Utilisateur</th>
+                                            <th>Personnage</th>
+                                            <th>Détails</th>
+                                            <th width="60"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="activityLogsTable">
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Chargement...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="card-footer d-flex align-items-center">
+                                <p class="m-0 text-muted" id="logsPageInfo">Page 1</p>
+                                <ul class="pagination m-0 ms-auto">
+                                    <li class="page-item">
+                                        <button class="page-link" id="logsPrevBtn" disabled>
+                                            <i class="ti ti-chevron-left"></i> Précédent
+                                        </button>
+                                    </li>
+                                    <li class="page-item">
+                                        <button class="page-link" id="logsNextBtn">
+                                            Suivant <i class="ti ti-chevron-right"></i>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         INTEGRATIONS PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="integrations">
+                        <div class="row row-cards">
+                            <div class="col-lg-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="avatar avatar-lg bg-discord-lt">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <h3 class="mb-0">Discord</h3>
+                                                <p class="text-muted mb-0">Lier les comptes Discord pour sync & bot</p>
+                                            </div>
+                                            <div class="col-auto">
+                                                <span class="badge bg-yellow-lt">À configurer</span>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <div class="mb-2">
+                                                <label class="form-label">Discord Bot Token</label>
+                                                <input type="password" class="form-control" placeholder="••••••••••••••••" disabled>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Guild ID</label>
+                                                <input type="text" class="form-control" placeholder="123456789012345678" disabled>
+                                            </div>
+                                            <button class="btn btn-outline-primary" disabled>
+                                                <i class="ti ti-plug me-1"></i> Connecter
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-auto">
+                                                <span class="avatar avatar-lg bg-green-lt">
+                                                    <i class="ti ti-webhook"></i>
+                                                </span>
+                                            </div>
+                                            <div class="col">
+                                                <h3 class="mb-0">Webhooks</h3>
+                                                <p class="text-muted mb-0">Notifications externes pour events</p>
+                                            </div>
+                                            <div class="col-auto">
+                                                <span class="badge bg-yellow-lt">À venir</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================================================
+                         SETTINGS PAGE
+                         ================================================ -->
+                    <div class="admin-page" data-page="settings">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Paramètres</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <h4 class="subheader">Général</h4>
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" disabled>
+                                                <span class="form-check-label">Mode maintenance</span>
+                                            </label>
+                                            <small class="text-muted d-block">Seuls les admins peuvent accéder au site</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" checked disabled>
+                                                <span class="form-check-label">Inscriptions ouvertes</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <h4 class="subheader">Base de données</h4>
+                                        <div class="mb-3">
+                                            <button class="btn btn-outline-secondary" disabled>
+                                                <i class="ti ti-database-export me-1"></i> Backup manuel
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Dernier backup: --</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="footer footer-transparent d-print-none">
+                <div class="container-xl">
+                    <div class="row text-center align-items-center">
+                        <div class="col-12">
+                            <span class="text-muted">Astoria Admin Panel</span>
+                            <span class="mx-1">·</span>
+                            <span class="text-muted">Powered by <a href="https://tabler.io" target="_blank" class="link-secondary">Tabler</a></span>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Quick Actions Modal -->
+    <div class="modal modal-blur fade" id="quickActionsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Actions rapides</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="../html/codex.html" class="btn btn-outline-success w-100 py-3">
+                                <i class="ti ti-plus d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Nouvel objet
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#" id="quickActionGiveKaels" class="btn btn-outline-warning w-100 py-3">
+                                <i class="ti ti-coin d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Donner Kaels
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#announcements" class="btn btn-outline-pink w-100 py-3" data-page="announcements" data-bs-dismiss="modal">
+                                <i class="ti ti-speakerphone d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Annonce
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#events" class="btn btn-outline-purple w-100 py-3" data-page="events" data-bs-dismiss="modal">
+                                <i class="ti ti-calendar-plus d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Nouvel event
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#quetes" class="btn btn-outline-purple w-100 py-3" data-page="quetes" data-bs-dismiss="modal">
+                                <i class="ti ti-map-2 d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Quêtes
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="#competences" class="btn btn-outline-pink w-100 py-3" data-page="competences" data-bs-dismiss="modal">
+                                <i class="ti ti-sparkles d-block mb-1" style="font-size: 1.5rem;"></i>
+                                Compétences
+                            </a>
+                        </div>
+                        <div class="col-12 mt-2">
+                            <a href="#users" class="btn btn-outline-primary w-100" data-page="users" data-bs-dismiss="modal">
+                                <i class="ti ti-users me-1"></i> Gérer utilisateurs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Give Kaels Modal -->
+    <div class="modal modal-blur fade" id="giveKaelsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Donner des Kaels</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quickKaelsForm">
+                        <div class="mb-3">
+                            <label class="form-label">Personnage</label>
+                            <select class="form-select" id="quickKaelsCharacter">
+                                <option value="">Sélectionner un personnage...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Montant</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="quickKaelsAmount" placeholder="100" min="1">
+                                <span class="input-group-text">kaels</span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Raison (optionnel)</label>
+                            <input type="text" class="form-control" id="quickKaelsReason" placeholder="Récompense event...">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" id="quickKaelsSubmit" disabled>
+                        <i class="ti ti-send me-1"></i> Envoyer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Kaels Modal (from character table) -->
+    <div class="modal modal-blur fade" id="kaelsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Modifier les Kaels</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Personnage: <strong id="kaelsModalCharName">-</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau montant</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="kaelsModalInput" min="0" value="0">
+                            <span class="input-group-text">kaels</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-warning" id="kaelsModalSave">
+                        <i class="ti ti-check me-1"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Character Modal -->
+    <div class="modal modal-blur fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-status bg-danger"></div>
+                <div class="modal-body text-center py-4">
+                    <i class="ti ti-alert-triangle text-danger" style="font-size: 3rem;"></i>
+                    <h3 class="mt-3">Supprimer le personnage ?</h3>
+                    <p class="text-muted">
+                        Vous êtes sur le point de supprimer <strong id="deleteModalCharName">-</strong>.
+                        <br>Cette action est irréversible.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="deleteModalConfirm">
+                        <i class="ti ti-trash me-1"></i> Supprimer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Details Modal -->
+    <div class="modal modal-blur fade" id="logDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Détails du log</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="logDetailsContent">
+                    <!-- Content will be injected by JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Items Modal Backdrop -->
+    <div class="quest-items-modal-backdrop" id="adminItemsModalBackdrop" hidden aria-hidden="true">
+        <div class="quest-items-modal" role="dialog" aria-modal="true" aria-labelledby="questItemsModalTitle">
+            <div class="quest-items-modal-header">
+                <h2 class="quest-items-modal-title" id="questItemsModalTitle">Donner des objets</h2>
+                <button type="button" class="quest-items-modal-close tw-press" id="questItemsModalClose" aria-label="Fermer">×</button>
+            </div>
+            <div class="quest-items-modal-search">
+                <input type="text" id="questItemsSearch" class="quest-items-search-input" placeholder="Rechercher un objet..." aria-label="Rechercher">
+            </div>
+            <div class="quest-items-modal-categories">
+                <button class="quest-items-category-btn active tw-press" data-category="all">
+                    <span class="quest-items-category-icon">📦</span>
+                    <span class="quest-items-category-label">Tous</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="equipement">
+                    <span class="quest-items-category-icon">⚔️</span>
+                    <span class="quest-items-category-label">Équipement</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="consommable">
+                    <span class="quest-items-category-icon">🧪</span>
+                    <span class="quest-items-category-label">Consommable</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="materiau">
+                    <span class="quest-items-category-icon">⚒️</span>
+                    <span class="quest-items-category-label">Matériaux</span>
+                </button>
+                <button class="quest-items-category-btn tw-press" data-category="quete">
+                    <span class="quest-items-category-icon">✨</span>
+                    <span class="quest-items-category-label">Quêtes</span>
+                </button>
+            </div>
+            <div class="quest-items-modal-body" id="questItemsModalBody">
+                <!-- Items generated dynamically -->
+            </div>
+            <div class="quest-items-modal-footer">
+                <div class="quest-items-selected-count" id="questItemsSelectedCount">0 objet(s) sélectionné(s)</div>
+                <div class="quest-items-modal-actions">
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--cancel tw-press" id="questItemsModalCancel">Annuler</button>
+                    <button type="button" class="quest-items-modal-btn quest-items-modal-btn--confirm tw-press" id="questItemsModalConfirm">Donner les objets</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/ui/performance-mode.js"></script>
+    <!-- Tabler JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+    <!-- Notyf / Toast -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="../js/components/toast-manager.js"></script>
+    <!-- Modal Manager -->
+    <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
+    <script src="../js/components/modal-manager.js"></script>
+    <!-- Admin JS -->
+    <script type="module" src="js/admin.js"></script>
+    <!-- Activity Logs -->
+    <script type="module" src="js/activity-logs.js"></script>
+</body>
+</html>

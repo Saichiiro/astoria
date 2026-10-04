@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page introuvable - Astoria</title>
+    <script>
+        // Served by GitHub Pages for any unknown URL, at any depth: work out the site
+        // root (project sites live under /<repo>/ on *.github.io), then load the theme.
+        window.astoriaSiteRoot = (function () {
+            var segments = window.location.pathname.split('/').filter(Boolean);
+            var isProjectSite = /\.github\.io$/.test(window.location.hostname) && segments.length > 0;
+            return isProjectSite ? '/' + segments[0] + '/' : '/';
+        })();
+        ['css/style.css', 'css/home.css'].forEach(function (href) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = window.astoriaSiteRoot + href;
+            document.head.appendChild(link);
+        });
+    </script>
+</head>
+<body class="home-body">
+    <main class="home-page home-notfound">
+        <section class="home-section">
+            <img class="home-notfound-logo" id="notFoundLogo" src="" alt="" width="88" height="88" hidden>
+            <h1 class="home-section-title">Page introuvable</h1>
+            <p class="home-text">Cette page n'existe pas ou a déménagé.</p>
+            <div class="home-actions">
+                <a class="home-btn" id="notFoundHome" href="./">Retour à l'accueil</a>
+                <a class="home-btn home-btn--ghost" id="notFoundGlossary" href="./#glossaire">Explorer le glossaire</a>
+            </div>
+        </section>
+    </main>
+    <script type="module">
+        // Old root links (e.g. /inventaire.html) go to their new place, taken from routes.js
+        // (every route stored under html/), keeping ?query and #hash.
+        const root = window.astoriaSiteRoot;
+        document.getElementById('notFoundHome').href = root;
+        document.getElementById('notFoundGlossary').href = `${root}#glossaire`;
+        const logo = document.getElementById('notFoundLogo');
+        logo.src = `${root}assets/images/alice_academia_logo.png`;
+        logo.hidden = false;
+        try {
+            const { ROUTES } = await import(`${root}js/config/routes.js`);
+            const requested = window.location.pathname.slice(root.length);
+            const target = Object.values(ROUTES).find((path) =>
+                path.startsWith('html/') && path.slice('html/'.length) === requested);
+            if (target) {
+                window.location.replace(root + target + window.location.search + window.location.hash);
+            }
+        } catch (error) {
+            console.warn('[404] routes unavailable:', error);
+        }
+    </script>
+</body>
+</html>

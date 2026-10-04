@@ -1,0 +1,151 @@
+import { getSupabaseClient } from './supabase-client.js';
+
+const FALLBACK_CATEGORIES = [
+    { slug: 'agricole', name: 'Agricole', icon: '🌾', is_active: true, display_order: 1 },
+    { slug: 'consommable', name: 'Consommable', icon: '🧪', is_active: true, display_order: 2 },
+    { slug: 'equipement', name: 'Équipement', icon: '⚔️', is_active: true, display_order: 3 },
+    { slug: 'materiau', name: 'Matériaux', icon: '⚒️', is_active: true, display_order: 4 },
+    { slug: 'quete', name: 'Quêtes', icon: '✨', is_active: true, display_order: 5 }
+];
+
+let _categoriesCache = null;
+let _categoriesCacheExpiry = 0;
+
+// The categories table may not exist (fallback list is used then). Remember it
+// for the browser session so every page view doesn't repeat a failing request.
+const MISSING_TABLE_FLAG = 'astoria_categories_table_missing';
+
+function isTableKnownMissing() {
+    try {
+        return sessionStorage.getItem(MISSING_TABLE_FLAG) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function rememberTableMissing() {
+    try {
+        sessionStorage.setItem(MISSING_TABLE_FLAG, '1');
+    } catch {}
+}
+
+function isMissingCategoriesTable(error) {
+    const code = String(error?.code || '').trim();
+    const message = String(error?.message || '').toLowerCase();
+    return code === '42P01'
+        || code === 'PGRST205'
+        || code === 'PGRST204'
+        || (message.includes('relation') && message.includes('categories') && message.includes('does not exist'))
+        || (message.includes('categories') && message.includes('schema cache'))
+        || (message.includes('column') && message.includes('display_order'));
+}
+
+/**
+ * Get all active categories, ordered by display_order
+ * @returns {Promise<Array>} Array of category objects
+ */
+export async function getCategories() {
+    if (_categoriesCache && Date.now() < _categoriesCacheExpiry) {
+        return _categoriesCache;
+    }
+    if (isTableKnownMissing()) {
+        return FALLBACK_CATEGORIES;
+    }
+
+    const supabase = await getSupabaseClient();
+    const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+    if (error) {
+        if (isMissingCategoriesTable(error)) {
+            rememberTableMissing();
+            return FALLBACK_CATEGORIES;
+        }
+        throw error;
+    }
+
+    _categoriesCache = data || [];
+    _categoriesCacheExpiry = Date.now() + 5 * 60 * 1000;
+    return _categoriesCache;
+}
+
+/**
+ * Get a single category by slug
+ * @param {string} slug - Category slug (e.g., 'agricole')
+ * @returns {Promise<Object|null>} Category object or null if not found
+ */
+export async function getCategory(slug) {
+    const supabase = await getSupabaseClient();
+    const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single();
+
+    if (error) {
+        if (isMissingCategoriesTable(error)) {
+            return FALLBACK_CATEGORIES.find((entry) => entry.slug === slug) || null;
+        }
+        if (error.code === 'PGRST116') return null; // Not found
+        throw error;
+    }
+    return data;
+}
+
+/**
+ * Create or update a category (admin only)
+ * @param {Object} category - Category data
+ * @returns {Promise<Object>} Created/updated category
+ */
+export async function upsertCategory(category) {
+    const supabase = await getSupabaseClient();
+    const { data, error } = await supabase
+        .from('categories')
+        .upsert(category, { onConflict: 'slug' })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+/**
+ * Get categories as a Map (slug -> category object) for quick lookups
+ * @returns {Promise<Map>} Map of categories keyed by slug
+ */
+export async function getCategoriesMap() {
+    const categories = await getCategories();
+    const map = new Map();
+    categories.forEach(cat => {
+        map.set(cat.slug, cat);
+    });
+    return map;
+}
+
+/**
+ * Get categories formatted for dropdowns/selects
+ * @param {boolean} includeAll - Whether to include "Toutes catégories" option
+ * @returns {Promise<Array>} Array of {value, label, icon} objects
+ */
+export async function getCategoriesForSelect(includeAll = true) {
+    const categories = await getCategories();
+    const options = categories.map(cat => ({
+        value: cat.slug,
+        label: cat.name,
+        icon: cat.icon || ''
+    }));
+
+    if (includeAll) {
+        options.unshift({
+            value: 'all',
+            label: 'Toutes catégories',
+            icon: '📦'
+        });
+    }
+
+    return options;
+}

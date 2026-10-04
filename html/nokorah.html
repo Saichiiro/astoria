@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- Pages live in html/: resolve every relative URL from the site root. -->
+    <base href="../">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nokorah - Astoria</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- Speed: connect early to the CDN and Supabase, download supabase-js while the page
+         parses (same URL as js/api/supabase-client.js), prefetch linked pages on hover. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://eibfahbctgzqnmubrhzy.supabase.co" crossorigin>
+    <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js">
+    <script type="speculationrules">
+    {"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"selector_matches": "[target=_blank], [data-no-prefetch]"}}]}, "eagerness": "moderate"}]}
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/nokorah.css">
+</head>
+<body class="nokorah-theme min-h-screen">
+    <main class="nokorah-page">
+        <header class="page-header">
+            <a href="html/profil.html" class="page-back" title="Retour au profil">← Retour</a>
+            <div class="page-header-main">
+                <div class="page-title-block">
+                    <h1 class="page-title">Nokorah</h1>
+                </div>
+                <div class="character-summary" aria-label="Résumé du personnage">
+                <div class="character-avatar-wrapper">
+                    <div class="character-avatar character-avatar--clickable" role="button" tabindex="0" aria-haspopup="true" aria-label="Changer de personnage">
+                        <img class="character-avatar-img" id="characterSummaryAvatar" alt="Avatar" hidden>
+                        <div class="character-avatar-circle" id="characterSummaryInitial" hidden></div>
+                    </div>
+                    <div class="character-dropdown" hidden aria-label="Sélectionner un personnage"></div>
+                </div>
+                <div class="character-summary-text">
+                    <a class="character-name" id="characterSummaryName" href="html/profil.html">Nom du personnage</a>
+                    <span class="character-tagline" id="characterSummaryTagline">Classe / Rôle / Surnom</span>
+                    <div class="character-summary-meta">
+                        <span class="stats-badge" id="characterKaelsBadge" hidden>0 kaels</span>
+                        <div class="character-souls" id="characterSouls" hidden>
+                            <span class="soul-count" title="Âmes consommation"><span class="soul-icon">🔥</span><span id="soulConsoValue">0</span></span>
+                            <span class="soul-count" title="Âmes progression"><span class="soul-icon">⭐</span><span id="soulProgValue">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <section class="nokorah-hero">
+            <div class="nokorah-hero-card tw-surface tw-panel tw-hover">
+                <span class="nokorah-hero-tag">✨ Nouveauté : Compagnons Nokorah</span>
+                <h2 class="nokorah-section-title">Un esprit doux, un style unique</h2>
+                <p class="nokorah-lore">
+                    Les Nokorah sont de petits esprits spirituels nés des émotions positives. Ils veillent sur
+                    leur porteur, partagent une énergie apaisante et s'expriment par des regards ronds et
+                    des gestes mignons. Leur force dépend de leur rareté, mais leur personnalité vient de toi.
+                </p>
+            </div>
+            <div class="nokorah-hero-art">
+                <img src="assets/nokorah/hero-nokorah.svg" alt="Illustration Nokorah">
+                <p class="nokorah-lore">Un seul Nokorah actif à la fois.</p>
+            </div>
+        </section>
+        <section class="nokorah-section">
+            <h2 class="nokorah-section-title">Mon Nokorah</h2>
+            <div class="nokorah-manager" data-nokorah-root="main"></div>
+        </section>
+        <section class="nokorah-section">
+            <h2 class="nokorah-section-title">Règles principales</h2>
+            <div class="rules-grid">
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>1 Nokorah max</h4>
+                    <p>Un seul Nokorah actif à la fois, impossible de cumuler plusieurs esprits.</p>
+                </div>
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>Invocation</h4>
+                    <p>Invoquer un Nokorah consomme 25 Ames chances. La rareté initiale est Commun.</p>
+                </div>
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>Abandon</h4>
+                    <p>Changer nécessite 100 Ames chances et une scène d'adieux obligatoire.</p>
+                </div>
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>Bonus cumulés</h4>
+                    <p>Les bonus de rareté se cumulent. Les points sont distribués sur les compétences existantes.</p>
+                </div>
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>Accessoire</h4>
+                    <p>Certains Nokorah sont accessoires : aucun effet en combat (tag visible).</p>
+                </div>
+                <div class="rule-card tw-surface tw-panel tw-hover">
+                    <h4>Améliorations</h4>
+                    <p>Les stats évoluent via une roulette aléatoire. Chaque palier de 5 niveaux bloque la progression jusqu'à l'évolution de rareté. Trois résultats identiques donnent +3 sur la même stat.</p>
+                </div>
+            </div>
+        </section>
+        <section class="nokorah-section">
+            <h2 class="nokorah-section-title">Coûts d'évolution de rareté</h2>
+            <table class="cost-table" aria-label="Coûts de rareté">
+                <thead>
+                    <tr>
+                        <th>Passage</th>
+                        <th>Coût Ames chances</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Commun → Rare</td>
+                        <td>45</td>
+                    </tr>
+                    <tr>
+                        <td>Rare → &Eacute;pique</td>
+                        <td>70</td>
+                    </tr>
+                    <tr>
+                        <td>&Eacute;pique → Mythique</td>
+                        <td>95</td>
+                    </tr>
+                    <tr>
+                        <td>Mythique → Légendaire</td>
+                        <td>120</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="nokorah-section">
+            <h2 class="nokorah-section-title">Aperçu des raretés</h2>
+            <div class="rarity-preview-grid">
+                <div class="rarity-preview-card tw-surface tw-hover">
+                    <div class="rarity-frame rarity-commun">
+                        <img src="assets/nokorah/silhouette-1.svg" alt="Nokorah commun">
+                    </div>
+                    <span class="rarity-badge rarity-commun rarity-mini">Commun</span>
+                </div>
+                <div class="rarity-preview-card tw-surface tw-hover">
+                    <div class="rarity-frame rarity-rare">
+                        <img src="assets/nokorah/silhouette-2.svg" alt="Nokorah rare">
+                    </div>
+                    <span class="rarity-badge rarity-rare rarity-mini">Rare</span>
+                </div>
+                <div class="rarity-preview-card tw-surface tw-hover">
+                    <div class="rarity-frame rarity-epique">
+                        <img src="assets/nokorah/silhouette-3.svg" alt="Nokorah épique">
+                    </div>
+                    <span class="rarity-badge rarity-epique rarity-mini">&Eacute;pique</span>
+                </div>
+                <div class="rarity-preview-card tw-surface tw-hover">
+                    <div class="rarity-frame rarity-mythique">
+                        <img src="assets/nokorah/silhouette-4.svg" alt="Nokorah mythique">
+                    </div>
+                    <span class="rarity-badge rarity-mythique rarity-mini">Mythique</span>
+                </div>
+                <div class="rarity-preview-card tw-surface tw-hover">
+                    <div class="rarity-frame rarity-legendaire">
+                        <img src="assets/nokorah/silhouette-5.svg" alt="Nokorah légendaire">
+                    </div>
+                    <span class="rarity-badge rarity-legendaire rarity-mini">Légendaire</span>
+                </div>
+            </div>
+        </section>
+    </main>
+    <!-- Modals -->
+    <div class="modal" id="invokeModal">
+        <div class="modal-content">
+            <h3>Invoquer un Nokorah</h3>
+            <input type="text" id="nokorahName" placeholder="Nom du Nokorah" maxlength="24">
+            <p style="font-size: 0.85rem; color: #666; margin: 0.5rem 0;">Choisissez une apparence (style Cookie Run):</p>
+            <div class="appearance-grid" id="appearanceGrid"></div>
+            <label style="font-size: 0.85rem; color: #666;">Ou téléverser (optionnel)</label>
+            <input type="file" id="appearanceUpload" accept="image/*">
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary tw-press" id="invokeCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-primary tw-press" id="invokeConfirmBtn">Confirmer <span>25 LS</span></button>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="farewellModal">
+        <div class="modal-content">
+            <h3>Scène d'adieux</h3>
+            <p style="font-size: 0.85rem; color: #666;">Explique pourquoi tu abandonnes ton Nokorah (min 80 caractères):</p>
+            <textarea id="farewellText" placeholder="&Eacute;cris un message sinc&egrave;re..."></textarea>
+            <p style="font-size: 0.85rem; color: #666;" id="farewellCount">0 / 80</p>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary tw-press" id="farewellCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-danger tw-press" id="farewellConfirmBtn">Abandonner <span>100 LS</span></button>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="appearanceModal">
+        <div class="modal-content">
+            <h3>Changer l'apparence</h3>
+            <p style="font-size: 0.85rem; color: #666; margin: 0.5rem 0;">Choisissez une apparence (style Cookie Run):</p>
+            <div class="appearance-grid" id="appearanceEditGrid"></div>
+            <label style="font-size: 0.85rem; color: #666;">Ou téléverser (optionnel)</label>
+            <input type="file" id="appearanceEditUpload" accept="image/*">
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary tw-press" id="appearanceCancelBtn" style="width: auto;">Annuler</button>
+                <button class="btn btn-primary tw-press" id="appearanceConfirmBtn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/image-helpers.js"></script>
+    <script src="js/data.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
+    <script src="js/components/toast-manager.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
+    <script type="module" src="js/ui/app-shell.js"></script>
+    <script type="module">
+        import { initCharacterSummary } from './js/ui/character-summary.js';
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initCharacterSummary({ enableDropdown: true, showKaels: true });
+        });
+    </script>
+    <script type="module" src="js/nokorah.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script src="js/ui/headroom.js"></script>
+    <script type="module" src="js/ui/table-labels.js"></script>
+</body>
+</html>

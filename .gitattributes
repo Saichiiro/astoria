@@ -1,0 +1,2 @@
+# Line endings: the repository is LF-only; checkouts stay LF on every OS.
+* text=auto eol=lf

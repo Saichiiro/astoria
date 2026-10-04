@@ -1,0 +1,19 @@
+{
+    "skills": [
+        { "id": "detection-ames", "name": "Détection d'Âmes", "category": "Connaissances" },
+        { "id": "synchronisation-ames", "name": "Synchronisation d'Âmes", "category": "Connaissances" },
+        { "id": "vitesse", "name": "Vitesse", "category": "Physique" },
+        { "id": "endurance", "name": "Endurance", "category": "Physique" },
+        { "id": "agilite", "name": "Agilité", "category": "Physique" },
+        { "id": "charisme", "name": "Charisme", "category": "Social" },
+        { "id": "intuition", "name": "Intuition", "category": "Social" },
+        { "id": "volonte", "name": "Volonté", "category": "Mental" },
+        { "id": "sang-froid", "name": "Sang-froid", "category": "Mental" },
+        { "id": "tir", "name": "Tir", "category": "Combat" },
+        { "id": "corps-a-corps", "name": "Corps à corps", "category": "Combat" },
+        { "id": "magie-brute", "name": "Magie brute", "category": "Pouvoirs" },
+        { "id": "concentration", "name": "Concentration", "category": "Pouvoirs" },
+        { "id": "artisanat", "name": "Artisanat", "category": "Artisanat" },
+        { "id": "survie", "name": "Survie", "category": "Nature" }
+    ]
+}
