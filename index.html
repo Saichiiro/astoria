@@ -4,106 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Astoria - Accueil</title>
-    <meta name="description" content="Astoria : univers de jeu de rôle d'Alice Academia, ses royaumes et son glossaire.">
+    <meta name="description" content="Astoria : univers de jeu de rôle d'Alice Academia.">
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/home-viewer.css">
 </head>
 <body class="home-body">
-    <a class="home-skip" href="#glossaire">Aller au glossaire</a>
+    <main class="home-welcome" id="haut">
+        <img class="home-welcome-logo" src="assets/images/alice_academia_logo.png" alt="Logo Alice Academia" width="180" height="180">
+        <p class="home-kicker" id="homeKicker">Alice Academia</p>
+        <h1 class="home-title" id="homeTitle">Astoria</h1>
+        <p class="home-tagline" id="homeTagline"></p>
 
-    <header class="home-topbar" id="haut">
-        <a class="home-brand" href="#" data-route="publicHome" aria-label="Astoria, accueil">
-            <img src="assets/images/alice_academia_logo.png" alt="" width="40" height="40">
-            <span>Astoria</span>
-        </a>
-        <nav class="home-topnav" aria-label="Sections">
-            <a href="#royaumes">Royaumes</a>
-            <a href="#glossaire">Glossaire</a>
-        </nav>
-        <a class="home-btn home-btn--small" href="#" data-route="login" data-account-link>Se connecter</a>
-        <button type="button" class="home-menu-btn" id="publicNavToggle" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="publicNav">☰</button>
-    </header>
-
-    <section class="home-hero" aria-labelledby="homeTitle">
-        <div class="home-hero-inner">
-            <img class="home-hero-logo" src="assets/images/alice_academia_logo.png" alt="Logo Alice Academia" width="180" height="180">
-            <div class="home-hero-text">
-                <p class="home-kicker" id="homeKicker">Alice Academia</p>
-                <h1 class="home-title" id="homeTitle">Astoria</h1>
-                <p class="home-tagline" id="homeTagline"></p>
-                <p class="home-text" id="homeText" hidden></p>
-                <div class="home-actions">
-                    <a class="home-btn" href="#" data-route="login" data-account-link>Se connecter</a>
-                    <a class="home-btn home-btn--ghost" href="#glossaire">Explorer le glossaire</a>
-                </div>
-                <ul class="home-stats" aria-label="En bref">
-                    <li><strong id="statKingdoms">–</strong> royaumes</li>
-                    <li><strong id="statTerms">–</strong> termes</li>
-                </ul>
-            </div>
+        <div class="home-choices">
+            <button type="button" class="home-choice home-choice--primary" data-open-view="decouvrir">
+                <span class="home-choice-title">Je découvre Astoria</span>
+                <span class="home-choice-text">Une courte visite guidée</span>
+            </button>
+            <a class="home-choice" href="#" data-route="login" data-account-link data-account-card>
+                <span class="home-choice-title" data-account-title>Je joue déjà</span>
+                <span class="home-choice-text" data-account-text>Se connecter</span>
+            </a>
         </div>
-    </section>
 
-    <main class="home-page">
-        <nav class="home-quick" aria-label="Accès rapides">
-            <a class="home-quick-card" href="#royaumes">
-                <span class="home-quick-icon" aria-hidden="true">🏰</span>
-                <span class="home-quick-title">Les royaumes</span>
-                <span class="home-quick-text">Où naître, fuir ou prendre sa place.</span>
-            </a>
-            <a class="home-quick-card" href="#glossaire">
-                <span class="home-quick-icon" aria-hidden="true">📖</span>
-                <span class="home-quick-title">Le glossaire</span>
-                <span class="home-quick-text">Tous les termes du RP, par royaume.</span>
-            </a>
-            <a class="home-quick-card" href="#" data-route="login" data-account-link data-account-card>
-                <span class="home-quick-icon" aria-hidden="true">✨</span>
-                <span class="home-quick-title" data-account-title>Rejoindre</span>
-                <span class="home-quick-text" data-account-text>Se connecter ou créer un compte.</span>
-            </a>
-        </nav>
-
-        <section class="home-section" id="royaumes" aria-labelledby="royaumesTitle">
-            <h2 class="home-section-title" id="royaumesTitle">Royaumes</h2>
-            <div class="home-kingdoms" id="homeKingdoms"></div>
-        </section>
-
-        <section class="home-section" id="glossaire" aria-labelledby="glossaireTitle">
-            <h2 class="home-section-title" id="glossaireTitle">Glossaire</h2>
-            <div class="home-glossary">
-                <aside class="home-glossary-side" data-mobile-filters="Filtres">
-                    <label class="sr-only" for="glossarySearch">Rechercher un terme</label>
-                    <input class="home-search" id="glossarySearch" type="search" placeholder="Rechercher un terme…" autocomplete="off">
-                    <div data-filter-item>
-                        <p class="home-filter-label">Royaume</p>
-                        <div class="home-chips" id="glossaryKingdoms" role="group" aria-label="Filtrer par royaume"></div>
-                    </div>
-                    <div data-filter-item>
-                        <p class="home-filter-label">Catégorie</p>
-                        <div class="home-chips" id="glossaryCategories" role="group" aria-label="Filtrer par catégorie"></div>
-                    </div>
-                    <nav class="home-letters" id="glossaryLetters" aria-label="Index alphabétique"></nav>
-                </aside>
-                <div class="home-glossary-main">
-                    <p class="home-count" id="glossaryCount" aria-live="polite">Chargement…</p>
-                    <div id="glossaryResults"></div>
-                </div>
-            </div>
-        </section>
+        <button type="button" class="home-link" data-open-view="glossaire">Ouvrir le glossaire</button>
     </main>
 
-    <footer class="home-footer">
-        <div class="home-footer-inner">
-            <span>Astoria · Alice Academia</span>
-            <a href="#haut">Haut de page</a>
-            <a href="#" data-route="login" data-account-link>Se connecter</a>
+    <!-- Lecteur intégré : visite guidée et glossaire, sans quitter la page -->
+    <div class="home-viewer" id="homeViewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle" hidden>
+        <div class="home-viewer-panel">
+            <header class="home-viewer-head">
+                <p class="home-viewer-label" id="viewerLabel"></p>
+                <button type="button" class="home-viewer-close" id="viewerClose" aria-label="Fermer et revenir à l'accueil">✕</button>
+            </header>
+            <div class="home-viewer-body" id="viewerBody" tabindex="-1">
+                <h2 class="home-viewer-title" id="viewerTitle"></h2>
+                <div id="viewerContent"></div>
+            </div>
+            <footer class="home-viewer-foot" id="viewerFoot"></footer>
         </div>
-    </footer>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/body-scroll-lock@4.0.0-beta.0/lib/bodyScrollLock.min.js"></script>
-    <script type="module" src="js/ui/mobile-filters.js"></script>
-    <script type="module" src="js/public/public-nav.js"></script>
     <script type="module" src="js/public/home.js"></script>
 </body>
 </html>

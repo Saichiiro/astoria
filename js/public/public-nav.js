@@ -1,45 +1,16 @@
-// Public hamburger menu (home and login pages): sections of the home page and
-// the way in, without requiring an account. Links resolve from the site root.
-import { readSession } from '../api/session-store.js';
-import { getRouteHref } from '../config/routes.js';
-
-function isLoggedIn() {
-    try {
-        return Boolean(readSession()?.user?.id);
-    } catch {
-        return false;
-    }
-}
-
-// <a data-route="key" [data-route-hash="section"]>: href comes from js/config/routes.js.
-function applyRouteLinks(root = document) {
-    root.querySelectorAll('[data-route]').forEach((link) => {
-        const hash = link.dataset.routeHash;
-        link.href = getRouteHref(link.dataset.route, hash ? { hash } : {});
-    });
-}
-
-// Links marked data-account-link lead to login, or to the characters when logged in.
-function syncAccountLinks(loggedIn) {
-    if (!loggedIn) return;
-    document.querySelectorAll('[data-account-link]').forEach((link) => {
-        link.dataset.route = 'characterHub';
-        if (!link.hasAttribute('data-account-card')) link.textContent = 'Mes personnages';
-    });
-    document.querySelectorAll('[data-account-title]').forEach((node) => { node.textContent = 'Mes personnages'; });
-    document.querySelectorAll('[data-account-text]').forEach((node) => { node.textContent = 'Reprendre le jeu avec ton personnage.'; });
-}
+// Public hamburger menu (login and other public pages): home, guided tour,
+// glossary and the way in. Links resolve through routes.js.
+import { initAccountLinks, isLoggedIn, getRouteHref } from './account-links.js';
 
 export function initPublicNav() {
     if (document.getElementById('publicNav')) return;
     const loggedIn = isLoggedIn();
-    syncAccountLinks(loggedIn);
-    applyRouteLinks();
+    initAccountLinks();
 
-    // Home page sections (ids of index.html) + the way in, all through routes.js.
+    // Home, its viewer screens (#decouvrir, #glossaire) and the way in, through routes.js.
     const links = [
-        { href: getRouteHref('publicHome', { hash: 'haut' }), label: 'Accueil' },
-        { href: getRouteHref('publicHome', { hash: 'royaumes' }), label: 'Royaumes' },
+        { href: getRouteHref('publicHome'), label: 'Accueil' },
+        { href: getRouteHref('publicHome', { hash: 'decouvrir' }), label: 'Découvrir Astoria' },
         { href: getRouteHref('publicHome', { hash: 'glossaire' }), label: 'Glossaire' }
     ];
     const primary = loggedIn

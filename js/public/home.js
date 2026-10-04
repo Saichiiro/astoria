@@ -1,9 +1,15 @@
-// Public home page: presentation, kingdoms and glossary from data/glossaire.json.
-// Everything is built with textContent: content is never parsed as HTML.
+// Public home page: a minimal welcome with two choices, and a built-in viewer
+// (guided tour "Je découvre Astoria" + glossary) that never leaves the page.
+// Content comes from data/glossaire.json; everything is built with textContent.
+import { initAccountLinks, getRouteHref } from './account-links.js';
 
 // Single place for the content file location (edited by the team, see _lisezMoi inside).
 const CONTENT_URL = 'data/glossaire.json';
 const GENERAL = 'general';
+// Viewer screens in the URL: #decouvrir, #decouvrir-2…, #glossaire, #terme-<mot>
+const VIEW_TOUR = 'decouvrir';
+const VIEW_GLOSSARY = 'glossaire';
+const TERM_PREFIX = 'terme-';
 
 const normalize = (value) => String(value || '')
     .normalize('NFD')
@@ -20,6 +26,19 @@ function el(tag, className, text) {
     return node;
 }
 
+function button(label, className, onClick) {
+    const node = el('button', className, label);
+    node.type = 'button';
+    node.addEventListener('click', onClick);
+    return node;
+}
+
+function link(label, className, href) {
+    const node = el('a', className, label);
+    node.href = href;
+    return node;
+}
+
 // Text with every occurrence of the (normalized) query wrapped in <mark>, built as nodes.
 function highlight(text, query) {
     const value = String(text || '');
@@ -28,8 +47,8 @@ function highlight(text, query) {
         fragment.append(value);
         return fragment;
     }
-    // normalize() keeps one character per source character for Latin text (accents are
-    // dropped after NFD), so indexes found on the normalized copy map back to the original.
+    // Accents are dropped after NFD, one character per source character for Latin text,
+    // so indexes found on the folded copy map back to the original.
     const folded = value.normalize('NFD').replace(/[̀-ͯ]/g, '');
     if (folded.length !== value.length) {
         fragment.append(value);
@@ -68,173 +87,148 @@ function renderPresentation(data) {
     set('homeKicker', p.surtitre);
     set('homeTitle', p.titre || 'Astoria');
     set('homeTagline', p.accroche);
-    set('homeText', p.texte);
 }
 
-function renderKingdoms(data, onSelect) {
-    const list = document.getElementById('homeKingdoms');
-    if (!list) return;
-    list.innerHTML = '';
-    (data.royaumes || []).forEach((kingdom) => {
-        const card = el('article', 'home-kingdom');
-        card.id = `royaume-${kingdom.id}`;
-        if (kingdom.couleur) card.style.setProperty('--kingdom-color', kingdom.couleur);
-        if (kingdom.position) card.appendChild(el('span', 'home-kingdom-position', kingdom.position));
-        card.appendChild(el('h3', 'home-kingdom-name', kingdom.nom));
-        if (kingdom.accroche) card.appendChild(el('p', 'home-kingdom-tagline', kingdom.accroche));
-        if (kingdom.description) card.appendChild(el('p', 'home-kingdom-text', kingdom.description));
-        if (Array.isArray(kingdom.tags) && kingdom.tags.length) {
-            const tags = el('div', 'home-tags');
-            kingdom.tags.forEach((tag) => tags.appendChild(el('span', 'home-tag', tag)));
-            card.appendChild(tags);
-        }
-        const btn = el('button', 'home-btn home-btn--ghost', `Termes de ${kingdom.nom}`);
-        btn.type = 'button';
-        btn.addEventListener('click', () => onSelect(kingdom.id));
-        card.appendChild(btn);
-        list.appendChild(card);
-    });
-}
-
-function createGlossary(data) {
+function createViewer(data) {
+    const viewer = document.getElementById('homeViewer');
+    const panelBody = document.getElementById('viewerBody');
+    const labelEl = document.getElementById('viewerLabel');
+    const titleEl = document.getElementById('viewerTitle');
+    const content = document.getElementById('viewerContent');
+    const foot = document.getElementById('viewerFoot');
+    const steps = Array.isArray(data.parcours) ? data.parcours : [];
     const kingdoms = data.royaumes || [];
     const categories = data.categories || [];
-    const kingdomName = (id) => (id === GENERAL ? 'Général' : kingdoms.find((k) => k.id === id)?.nom || id);
-    const categoryName = (id) => categories.find((c) => c.id === id)?.libelle || id;
+    let lastFocus = null;
+
+    // ---------- Visite guidée ----------
+    function renderStepBody(step) {
+        if (step.texte) content.appendChild(el('p', 'viewer-text', step.texte));
+
+        if (step.type === 'royaumes') {
+            const list = el('div', 'viewer-kingdom-list');
+            kingdoms.forEach((kingdom) => {
+                const item = el('details', 'viewer-kingdom');
+                if (kingdom.couleur) item.style.setProperty('--kingdom-color', kingdom.couleur);
+                const summary = el('summary', 'viewer-kingdom-summary');
+                summary.appendChild(el('span', 'viewer-kingdom-name', kingdom.nom));
+                if (kingdom.accroche) summary.appendChild(el('span', 'viewer-kingdom-tagline', kingdom.accroche));
+                item.appendChild(summary);
+                if (kingdom.description) item.appendChild(el('p', 'viewer-kingdom-text', kingdom.description));
+                list.appendChild(item);
+            });
+            content.appendChild(list);
+        }
+
+        if (step.type === 'rejoindre') {
+            const actions = el('div', 'viewer-actions');
+            actions.appendChild(link('Créer un compte', 'home-btn', getRouteHref('login', { hash: 'register' })));
+            actions.appendChild(link('Se connecter', 'home-btn home-btn--ghost', getRouteHref('login')));
+            content.appendChild(actions);
+            content.appendChild(button('Ouvrir le glossaire', 'home-link', () => show(VIEW_GLOSSARY)));
+        }
+    }
+
+    function renderTour(index) {
+        const i = Math.min(Math.max(index, 0), Math.max(steps.length - 1, 0));
+        const step = steps[i];
+        if (!step) return;
+        labelEl.textContent = `Découvrir · ${i + 1} / ${steps.length}`;
+        titleEl.textContent = step.titre || '';
+        renderStepBody(step);
+
+        const prev = button('Précédent', 'home-btn home-btn--ghost', () => show(VIEW_TOUR, i - 1));
+        prev.disabled = i === 0;
+        const dots = el('div', 'viewer-dots');
+        dots.setAttribute('aria-hidden', 'true');
+        steps.forEach((_, index2) => dots.appendChild(el('span', index2 === i ? 'viewer-dot is-active' : 'viewer-dot')));
+        const isLast = i === steps.length - 1;
+        const next = isLast
+            ? button('Terminer', 'home-btn', close)
+            : button('Suivant', 'home-btn', () => show(VIEW_TOUR, i + 1));
+        foot.append(prev, dots, next);
+    }
+
+    // ---------- Glossaire ----------
     const terms = (data.termes || [])
         .filter((t) => t && t.terme)
         .map((t) => ({
             ...t,
             royaume: t.royaume || GENERAL,
-            slug: `terme-${slugify(t.terme)}`,
+            slug: `${TERM_PREFIX}${slugify(t.terme)}`,
             haystack: normalize([t.terme, ...(t.alias || []), t.definition].join(' '))
         }))
         .sort((a, b) => normalize(a.terme).localeCompare(normalize(b.terme), 'fr'));
+    const kingdomName = (id) => (id === GENERAL ? 'Général' : kingdoms.find((k) => k.id === id)?.nom || id);
+    const categoryName = (id) => categories.find((c) => c.id === id)?.libelle || id;
+    const totalBy = (key, value) => terms.filter((t) => t[key] === value).length;
+    const glossaryState = { query: '', kingdom: 'all' };
+    let searchInput = null;
 
-    const state = { query: '', kingdom: 'all', category: 'all' };
-    const search = document.getElementById('glossarySearch');
-    const kingdomChips = document.getElementById('glossaryKingdoms');
-    const categoryChips = document.getElementById('glossaryCategories');
-    const letters = document.getElementById('glossaryLetters');
-    const results = document.getElementById('glossaryResults');
-    const count = document.getElementById('glossaryCount');
-
-    // After a filter/search change, keep the top of the results in view instead of
-    // leaving the reader wherever the shorter page happens to end.
-    function keepResultsInView() {
-        const section = document.getElementById('glossaire');
-        const bar = document.querySelector('.home-topbar');
-        if (!section) return;
-        const barBottom = bar ? bar.getBoundingClientRect().bottom : 0;
-        const top = count.getBoundingClientRect().top;
-        if (top < barBottom || top > window.innerHeight) {
-            window.scrollTo({ top: window.scrollY + top - barBottom - 12, behavior: 'auto' });
-        }
-    }
-
-    function buildChips(container, options, key) {
-        container.innerHTML = '';
-        options.forEach(({ value, label, total }) => {
-            const chip = el('button', 'home-chip', label);
-            chip.type = 'button';
-            if (total !== undefined) {
-                chip.appendChild(el('span', 'home-chip-count', String(total)));
-                if (!total) chip.classList.add('home-chip--empty');
-            }
-            chip.dataset.value = value;
-            chip.setAttribute('aria-pressed', String(state[key] === value));
-            chip.addEventListener('click', () => {
-                state[key] = value;
-                syncChips();
-                render();
-                keepResultsInView();
-            });
-            container.appendChild(chip);
-        });
-    }
-
-    function syncChips() {
-        kingdomChips.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === state.kingdom)));
-        categoryChips.querySelectorAll('.home-chip').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === state.category)));
-    }
-
-    const isFiltered = () => Boolean(state.query.trim()) || state.kingdom !== 'all' || state.category !== 'all';
-
-    function reset() {
-        state.query = '';
-        state.kingdom = 'all';
-        state.category = 'all';
-        search.value = '';
-        syncChips();
-        render();
-        keepResultsInView();
-        search.focus();
-    }
-
-    function resetButton() {
-        const btn = el('button', 'home-reset', 'Réinitialiser les filtres');
-        btn.type = 'button';
-        btn.addEventListener('click', reset);
-        return btn;
-    }
-
-    async function shareTerm(t, button) {
+    async function shareTerm(t, shareButton) {
         const url = new URL(window.location.href);
         url.hash = t.slug;
-        history.replaceState(null, '', `#${t.slug}`);
         const done = await copyText(url.href);
-        button.textContent = done ? 'Lien copié ✓' : 'Lien dans la barre d\'adresse';
-        button.classList.add('is-done');
+        shareButton.textContent = done ? 'Lien copié ✓' : url.href;
+        shareButton.classList.add('is-done');
         setTimeout(() => {
-            button.textContent = '🔗';
-            button.classList.remove('is-done');
+            shareButton.textContent = '🔗';
+            shareButton.classList.remove('is-done');
         }, 1800);
     }
 
-    function render() {
-        const query = normalize(state.query);
-        const visible = terms.filter((t) =>
-            (state.kingdom === 'all' || t.royaume === state.kingdom)
-            && (state.category === 'all' || t.categorie === state.category)
-            && (!query || t.haystack.includes(query)));
+    function renderGlossary(focusSlug = null) {
+        labelEl.textContent = 'Glossaire';
+        titleEl.textContent = 'Glossaire';
 
-        count.textContent = `${visible.length} terme${visible.length > 1 ? 's' : ''}`;
-        if (visible.length !== terms.length) count.append(` sur ${terms.length}`);
-        if (isFiltered()) count.appendChild(resetButton());
-        results.innerHTML = '';
-        letters.innerHTML = '';
+        const search = el('input', 'home-search');
+        search.type = 'search';
+        search.placeholder = 'Rechercher un mot…';
+        search.setAttribute('aria-label', 'Rechercher un mot');
+        search.value = glossaryState.query;
+        searchInput = search;
 
-        if (!visible.length) {
-            const empty = el('div', 'home-empty');
-            empty.appendChild(el('p', null, 'Aucun terme ne correspond à cette recherche.'));
-            empty.appendChild(resetButton());
-            results.appendChild(empty);
-            return;
-        }
+        const chips = el('div', 'home-chips');
+        chips.setAttribute('role', 'group');
+        chips.setAttribute('aria-label', 'Filtrer par royaume');
+        const count = el('p', 'home-count');
+        count.setAttribute('aria-live', 'polite');
+        const list = el('div', 'home-terms viewer-terms');
 
-        const groups = new Map();
-        visible.forEach((t) => {
-            const letter = normalize(t.terme).charAt(0).toUpperCase() || '#';
-            if (!groups.has(letter)) groups.set(letter, []);
-            groups.get(letter).push(t);
-        });
+        const isFiltered = () => Boolean(glossaryState.query.trim()) || glossaryState.kingdom !== 'all';
+        const syncChips = () => chips.querySelectorAll('.home-chip')
+            .forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.value === glossaryState.kingdom)));
+        const reset = () => {
+            glossaryState.query = '';
+            glossaryState.kingdom = 'all';
+            search.value = '';
+            syncChips();
+            renderList();
+            search.focus();
+        };
+        const resetButton = () => button('Réinitialiser les filtres', 'home-reset', reset);
 
-        groups.forEach((items, letter) => {
-            const link = el('a', 'home-letter', letter);
-            link.href = `#lettre-${letter}`;
-            letters.appendChild(link);
-
-            const group = el('section', 'home-letter-group');
-            group.setAttribute('aria-labelledby', `lettre-${letter}`);
-            const heading = el('h3', 'home-letter-title', letter);
-            heading.id = `lettre-${letter}`;
-            group.appendChild(heading);
-            const list = el('div', 'home-terms');
-            items.forEach((t) => {
+        function renderList() {
+            const query = normalize(glossaryState.query);
+            const visible = terms.filter((t) =>
+                (glossaryState.kingdom === 'all' || t.royaume === glossaryState.kingdom)
+                && (!query || t.haystack.includes(query)));
+            count.textContent = `${visible.length} mot${visible.length > 1 ? 's' : ''}`;
+            if (visible.length !== terms.length) count.append(` sur ${terms.length}`);
+            if (isFiltered()) count.appendChild(resetButton());
+            list.innerHTML = '';
+            if (!visible.length) {
+                const empty = el('div', 'home-empty');
+                empty.appendChild(el('p', null, 'Aucun mot ne correspond.'));
+                empty.appendChild(resetButton());
+                list.appendChild(empty);
+                return;
+            }
+            visible.forEach((t) => {
                 const card = el('article', 'home-term');
                 card.id = t.slug;
                 const head = el('div', 'home-term-head');
-                const name = el('h4', 'home-term-name');
+                const name = el('h3', 'home-term-name');
                 name.appendChild(highlight(t.terme, query));
                 if (Array.isArray(t.alias) && t.alias.length) {
                     const alias = el('span', 'home-term-alias');
@@ -242,128 +236,182 @@ function createGlossary(data) {
                     name.appendChild(alias);
                 }
                 head.appendChild(name);
-                const share = el('button', 'home-term-share', '🔗');
-                share.type = 'button';
+                const share = button('🔗', 'home-term-share', () => shareTerm(t, share));
                 share.setAttribute('aria-label', `Copier le lien vers « ${t.terme} »`);
-                share.title = 'Copier le lien vers ce terme';
-                share.addEventListener('click', () => shareTerm(t, share));
+                share.title = 'Copier le lien vers ce mot';
                 head.appendChild(share);
                 card.appendChild(head);
                 const hasDef = Boolean(String(t.definition || '').trim());
                 const def = el('p', hasDef ? 'home-term-def' : 'home-term-def home-term-def--empty');
                 def.appendChild(hasDef ? highlight(t.definition, query) : document.createTextNode('Définition à venir.'));
                 card.appendChild(def);
-                const tags = el('div', 'home-tags');
-                tags.appendChild(el('span', 'home-tag', kingdomName(t.royaume)));
-                if (t.categorie) tags.appendChild(el('span', 'home-tag', categoryName(t.categorie)));
-                card.appendChild(tags);
+                card.appendChild(el('p', 'viewer-term-meta',
+                    [kingdomName(t.royaume), t.categorie ? categoryName(t.categorie) : ''].filter(Boolean).join(' · ')));
                 list.appendChild(card);
             });
-            group.appendChild(list);
-            results.appendChild(group);
+        }
+
+        [
+            { value: 'all', label: 'Tout' },
+            { value: GENERAL, label: 'Général', total: totalBy('royaume', GENERAL) },
+            ...kingdoms.map((k) => ({ value: k.id, label: k.nom, total: totalBy('royaume', k.id) }))
+        ].forEach(({ value, label, total }) => {
+            const chip = button(label, 'home-chip', () => {
+                glossaryState.kingdom = value;
+                syncChips();
+                renderList();
+                panelBody.scrollTop = 0;
+            });
+            chip.dataset.value = value;
+            if (total !== undefined) {
+                chip.appendChild(el('span', 'home-chip-count', String(total)));
+                if (!total) chip.classList.add('home-chip--empty');
+            }
+            chips.appendChild(chip);
         });
+        syncChips();
+
+        let timer = null;
+        search.addEventListener('input', () => {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                glossaryState.query = search.value;
+                renderList();
+            }, 120);
+        });
+
+        const tools = el('div', 'viewer-glossary-tools');
+        tools.append(search, chips, count);
+        content.append(tools, list);
+        renderList();
+        foot.appendChild(button('Revenir à l\'accueil', 'home-btn home-btn--ghost', close));
+
+        if (focusSlug) {
+            const target = document.getElementById(focusSlug);
+            if (target) {
+                target.classList.add('is-target');
+                requestAnimationFrame(() => target.scrollIntoView({ block: 'center' }));
+            }
+        }
     }
 
-    const totalBy = (key, value) => terms.filter((t) => t[key] === value).length;
-    buildChips(kingdomChips, [
-        { value: 'all', label: 'Tous les royaumes' },
-        { value: GENERAL, label: 'Général', total: totalBy('royaume', GENERAL) },
-        ...kingdoms.map((k) => ({ value: k.id, label: k.nom, total: totalBy('royaume', k.id) }))
-    ], 'kingdom');
-    buildChips(categoryChips, [
-        { value: 'all', label: 'Toutes les catégories' },
-        ...categories.map((c) => ({ value: c.id, label: c.libelle, total: totalBy('categorie', c.id) }))
-    ], 'category');
+    // ---------- Ouverture / fermeture (liée à l'adresse) ----------
+    function parseHash() {
+        const hash = decodeURIComponent(window.location.hash.slice(1));
+        if (hash === VIEW_GLOSSARY) return { view: VIEW_GLOSSARY };
+        if (hash.startsWith(TERM_PREFIX)) return { view: VIEW_GLOSSARY, term: hash };
+        const match = hash.match(/^decouvrir(?:-(\d+))?$/);
+        if (match) return { view: VIEW_TOUR, step: match[1] ? Number(match[1]) - 1 : 0 };
+        return null;
+    }
 
-    // "/" jumps to the search field, like most sites with a search box.
+    function hashFor(view, step) {
+        if (view === VIEW_TOUR) return step > 0 ? `#${VIEW_TOUR}-${step + 1}` : `#${VIEW_TOUR}`;
+        return `#${view}`;
+    }
+
+    function lockScroll(locked) {
+        const lock = window.bodyScrollLock;
+        if (lock) {
+            if (locked) lock.disableBodyScroll(panelBody, { reserveScrollBarGap: true });
+            else lock.enableBodyScroll(panelBody);
+        } else {
+            document.documentElement.style.overflow = locked ? 'hidden' : '';
+        }
+    }
+
+    function render(state) {
+        if (!state) {
+            if (!viewer.hidden) {
+                viewer.hidden = true;
+                lockScroll(false);
+                lastFocus?.focus?.();
+            }
+            return;
+        }
+        if (viewer.hidden) {
+            lastFocus = document.activeElement;
+            viewer.hidden = false;
+            lockScroll(true);
+        }
+        content.innerHTML = '';
+        foot.innerHTML = '';
+        searchInput = null;
+        panelBody.scrollTop = 0;
+        if (state.view === VIEW_GLOSSARY) renderGlossary(state.term || null);
+        else renderTour(state.step || 0);
+        panelBody.focus({ preventScroll: true });
+    }
+
+    // Viewer screens pushed in the history since the home page: "Fermer" goes
+    // back to the home page in one step, the back button goes back one screen.
+    let depth = 0;
+
+    function show(view, step = 0) {
+        const hash = hashFor(view, step);
+        if (window.location.hash === hash) return;
+        history.pushState(null, '', window.location.pathname + window.location.search + hash);
+        depth += 1;
+        render(parseHash());
+    }
+
+    function close() {
+        if (depth > 0) {
+            history.go(-depth); // popstate renders the home page
+            depth = 0;
+            return;
+        }
+        // Opened from a shared link: no home entry to go back to.
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        render(null);
+    }
+
+    document.querySelectorAll('[data-open-view]').forEach((trigger) => {
+        trigger.addEventListener('click', () => show(trigger.dataset.openView));
+    });
+    document.getElementById('viewerClose').addEventListener('click', close);
+    viewer.addEventListener('click', (event) => {
+        if (event.target === viewer) close();
+    });
     document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !viewer.hidden) {
+            close();
+            return;
+        }
+        // "/" opens the glossary search, like most sites with a search box.
         if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
         const target = event.target;
         if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
         event.preventDefault();
-        search.focus();
+        if (!searchInput) show(VIEW_GLOSSARY);
+        searchInput?.focus();
+    });
+    window.addEventListener('popstate', () => {
+        const state = parseHash();
+        depth = state ? Math.max(0, depth - 1) : 0;
+        render(state);
     });
 
-    let timer = null;
-    search.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            state.query = search.value;
-            render();
-            keepResultsInView();
-        }, 120);
-    });
-
-    render();
-
-    return {
-        selectKingdom(id) {
-            state.kingdom = id;
-            syncChips();
-            render();
-            document.getElementById('glossaire')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    };
-}
-
-// Top bar: mark the section being read; floating "back to top" once past the hero.
-function initScrollUi() {
-    const links = [...document.querySelectorAll('.home-topnav a[href^="#"]')];
-    const sections = links
-        .map((link) => document.getElementById(link.getAttribute('href').slice(1)))
-        .filter(Boolean);
-    const hero = document.querySelector('.home-hero');
-    const footer = document.querySelector('.home-footer');
-
-    const toTop = el('a', 'home-totop', '↑');
-    toTop.href = '#haut';
-    toTop.setAttribute('aria-label', 'Revenir en haut de la page');
-    toTop.hidden = true;
-    document.body.appendChild(toTop);
-
-    let ticking = false;
-    const update = () => {
-        ticking = false;
-        const probe = window.innerHeight * 0.35;
-        let current = null;
-        sections.forEach((section) => {
-            if (section.getBoundingClientRect().top <= probe) current = section.id;
-        });
-        links.forEach((link) => {
-            if (link.getAttribute('href') === `#${current}`) link.setAttribute('aria-current', 'location');
-            else link.removeAttribute('aria-current');
-        });
-        // Hidden over the hero, and once the footer (with its own "Haut de page" link) shows.
-        toTop.hidden = !hero || hero.getBoundingClientRect().bottom > 0
-            || Boolean(footer && footer.getBoundingClientRect().top < window.innerHeight);
-    };
-    window.addEventListener('scroll', () => {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(update);
-    }, { passive: true });
-    update();
+    // Direct link (shared on Discord: index.html#decouvrir, #glossaire, #terme-kaels…)
+    render(parseHash());
 }
 
 async function initHome() {
-    const status = document.getElementById('glossaryCount');
+    initAccountLinks();
     try {
         const response = await fetch(CONTENT_URL, { cache: 'no-cache' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         renderPresentation(data);
-        const setStat = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = String(value); };
-        setStat('statKingdoms', (data.royaumes || []).length);
-        setStat('statTerms', (data.termes || []).filter((t) => t && t.terme).length);
-        const glossary = createGlossary(data);
-        renderKingdoms(data, (id) => glossary.selectKingdom(id));
-        // Deep link to a term (index.html#terme-kaels) once rendered
-        if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+        createViewer(data);
     } catch (error) {
         console.error('[Home] content load failed:', error);
-        if (status) status.textContent = 'Le contenu n\'a pas pu être chargé. Recharge la page.';
+        const tagline = document.getElementById('homeTagline');
+        if (tagline) {
+            tagline.hidden = false;
+            tagline.textContent = 'Le contenu n\'a pas pu être chargé. Recharge la page.';
+        }
     }
 }
 
-initScrollUi();
 initHome();
