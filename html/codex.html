@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <!-- Pages live in html/: resolve every relative URL from the site root. -->
     <base href="../">
+    <script>
+        // Non-admins are redirected right away: the page-change fade is then aborted,
+        // which is expected. Swallow that rejection instead of logging an error.
+        window.addEventListener('pagereveal', function (event) {
+            var vt = event.viewTransition;
+            if (!vt) return;
+            [vt.ready, vt.finished, vt.updateCallbackDone].forEach(function (p) { if (p) p.catch(function () {}); });
+        });
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="max-age=604800, public">
     <title>Liste d'objets</title>
