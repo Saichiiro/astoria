@@ -7271,6 +7271,7 @@
 
 
 
+                         loading="lazy"
                          decoding="async"
 
 
@@ -7666,6 +7667,7 @@
 
 
 
+                         loading="lazy"
                          decoding="async"
 
 

@@ -3743,3 +3743,19 @@ table[aria-busy="true"] tbody:has(.table-skeleton-row) {
         animation-duration: 180ms;
     }
 }
+
+/* Touch ergonomics: no double-tap-zoom delay on controls; stable text size on phone rotation. */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+a,
+button,
+[role="button"],
+summary,
+label,
+input,
+select {
+    touch-action: manipulation;
+}

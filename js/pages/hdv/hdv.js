@@ -1242,7 +1242,7 @@ function renderListings(listings) {
         }
         tdItem.innerHTML = `
             <div class="hdv-item-cell">
-                <img class="hdv-item-icon" src="${escapeHtml(img)}" alt="">
+                <img class="hdv-item-icon" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async">
                 <div class="hdv-item-text">
                     <div class="hdv-item-name">${escapeHtml(item.name || 'Item inconnu')}</div>
                     ${metaLines.join('')}
@@ -1607,7 +1607,7 @@ function renderMyListings(listings) {
         tdItem.classList.add('hdv-td-item');
         tdItem.innerHTML = `
             <div class="hdv-item-cell">
-                <img class="hdv-item-icon" src="${escapeHtml(img)}" alt="">
+                <img class="hdv-item-icon" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async">
                 <div class="hdv-item-text">
                     <div class="hdv-item-name">${escapeHtml(item.name || 'Item inconnu')}</div>
                     <div class="hdv-item-meta">${item.category ? escapeHtml(categoryLabel(item.category)) : ''}</div>

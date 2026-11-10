@@ -1523,7 +1523,7 @@ function renderRewardTooltip(item) {
     dom.rewardTooltip.innerHTML = `
         <div class="quest-reward-tooltip-media">
             ${image
-                ? `<img src="${clean(image)}" alt="Apercu ${clean(item.name)}">`
+                ? `<img src="${clean(image)}" alt="Apercu ${clean(item.name)}" loading="lazy" decoding="async">`
                 : `<div class="quest-reward-tooltip-thumb">${clean(getRewardInitial(item))}</div>`}
         </div>
         <div class="quest-reward-tooltip-body">
