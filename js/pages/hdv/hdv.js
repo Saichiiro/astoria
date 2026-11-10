@@ -5,9 +5,9 @@ import {
     getUserCharacters,
     setActiveCharacter,
     getAllItems,
-    getSupabaseClient,
     patchCharacterProfile
 } from '../../auth.js';
+import { subscribeMarket } from '../../api/realtime-service.js';
 import { SESSION_VERSION } from '../../api/session-store.js';
 import {
     buyListing,
@@ -2136,12 +2136,7 @@ function initHdvRealtime() {
         refreshActiveTab();
     });
 
-    getSupabaseClient().then(sb => {
-        if (!sb?.channel) return;
-        sb.channel('hdv-market-live')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'market' }, onMarketChange)
-            .subscribe();
-    }).catch(() => {});
+    subscribeMarket(onMarketChange).catch(() => {});
 }
 
 window.addEventListener('storage', (event) => {

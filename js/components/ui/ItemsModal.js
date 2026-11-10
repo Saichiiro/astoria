@@ -3,7 +3,7 @@
  * A complete, configurable modal for selecting items with quantities
  */
 
-import { getSupabaseClient } from '../../api/supabase-client.js';
+import { getAllItems } from '../../api/items-service.js';
 import { showItemDetailsPopover } from '../../domain/item-details-popover.js';
 
 /**
@@ -143,19 +143,9 @@ export class ItemsModal {
      */
     async _loadItems() {
         try {
-            const supabase = await getSupabaseClient();
-
-            const { data: dbItems, error } = await supabase
-                .from('items')
-                .select('id, name, description, effect, category, price_kaels, price_po, images, enabled')
-                .eq('enabled', true)
-                .order('name', { ascending: true });
-
-            if (error) {
-                console.error('[ItemsModal] Error loading items:', error);
-                this.state.allItems = [];
-                return;
-            }
+            // Shared, cached catalogue (name order); only enabled items are offered.
+            const catalogue = await getAllItems();
+            const dbItems = catalogue.filter((item) => item.enabled === true);
 
             // Map items
             this.state.allItems = (dbItems || []).map(item => {

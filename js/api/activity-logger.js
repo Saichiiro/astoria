@@ -420,3 +420,19 @@ export async function logCharacterCreate({ characterId, characterName, race, cha
         }
     });
 }
+
+/**
+ * Action data of the quests a character completed (latest 500 logs).
+ * Throws on failure.
+ */
+export async function fetchQuestCompletionLogs(characterId) {
+    const supabase = await getSupabaseClient();
+    const { data, error } = await supabase
+        .from('activity_logs')
+        .select('action_data')
+        .eq('action_type', ActionTypes.QUEST_COMPLETE)
+        .eq('character_id', characterId)
+        .limit(500);
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}

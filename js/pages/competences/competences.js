@@ -931,9 +931,6 @@
                 document.body.dataset.admin = persistState.auth.isAdmin?.() ? "true" : "false";
                 skillsState.isAdmin = document.body.dataset.admin === "true";
 
-                // Load Supabase client for direct table access
-                const { getSupabaseClient } = await import("../../api/supabase-client.js");
-                persistState.supabase = getSupabaseClient;
 
                 // Warm up equipped-slots cache from DB (fire-and-forget, best effort)
                 import("../../api/inventory-service.js").then(({ getEquippedSlots }) =>
@@ -1085,7 +1082,7 @@
     }
 
     async function flushProfileSave() {
-        if (persistState.mode !== "character" || !persistState.auth || !persistState.supabase) return;
+        if (persistState.mode !== "character" || !persistState.auth) return;
         if (persistState.readOnlyFallback) return;
         if (persistState.saveTimer) {
             clearTimeout(persistState.saveTimer);
@@ -1112,11 +1109,8 @@
 
         persistState.inFlight = (async () => {
             try {
-                const supabase = await persistState.supabase();
-                const { error } = await supabase
-                    .from('character_competences')
-                    .upsert({ character_id: characterId, data: nextData });
-                if (error) throw error;
+                const { saveCharacterCompetences } = await import("../../api/competences-service.js");
+                await saveCharacterCompetences(characterId, nextData);
                 persistState.dirty = false;
                 persistState.retryCount = 0;
                 if (persistState.retryTimer) {

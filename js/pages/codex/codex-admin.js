@@ -1,12 +1,19 @@
 import {
-    getSupabaseClient,
     getCurrentUser,
     isAdmin,
     refreshSessionUser
 } from '../../auth.js';
-import { invalidateItemsCache } from '../../api/items-service.js';
+import {
+    invalidateItemsCache,
+    fetchItemRowById,
+    insertItemRow,
+    updateItemRow,
+    deleteItemRow,
+    deleteItemRows,
+    fetchCodexItemRows,
+    uploadItemImage
+} from '../../api/items-service.js';
 
-const ITEMS_BUCKET = 'items';
 const IMAGE_SIZE = 256;
 
 const dom = {
@@ -80,7 +87,7 @@ const dom = {
     deleteConfirm: document.getElementById('deleteItemConfirm')
 };
 
-let supabase = null;
+let adminReady = false;
 let adminMode = false;
 let editingItem = null;
 let imageBlob = null;
@@ -674,20 +681,11 @@ function normalizeRank(value) {
 
 async function saveItemRow(payload, isUpdate, targetId) {
     if (isUpdate) {
-        const { data, error } = await supabase
-            .from('items')
-            .update(payload)
-            .eq('id', targetId)
-            .select()
-            .single();
+        const { data, error } = await updateItemRow(targetId, payload);
         if (error) throw error;
         return data;
     }
-    const { data, error } = await supabase
-        .from('items')
-        .insert([payload])
-        .select()
-        .single();
+    const { data, error } = await insertItemRow(payload);
     if (error) throw error;
     return data;
 }
@@ -781,13 +779,9 @@ async function openAdminModal(item) {
     let editingItemData = dbMatch || item || null;
 
     // If item exists in database, fetch fresh data to get modifiers
-    if (editingItemData && editingItemData._dbId && supabase) {
+    if (editingItemData && editingItemData._dbId && adminReady) {
         try {
-            const { data, error } = await supabase
-                .from('items')
-                .select('*')
-                .eq('id', editingItemData._dbId)
-                .single();
+            const { data, error } = await fetchItemRowById(editingItemData._dbId);
 
             if (!error && data) {
                 editingItemData = mapDbItem(data);
@@ -888,18 +882,15 @@ function closeDeleteModal() {
 }
 
 async function confirmDelete() {
-    if (!editingItem || !editingItem._dbId || !supabase) {
-        console.error('[DELETE] Cannot delete:', { editingItem, hasDbId: !!editingItem?._dbId, hasSupabase: !!supabase });
+    if (!editingItem || !editingItem._dbId || !adminReady) {
+        console.error('[DELETE] Cannot delete:', { editingItem, hasDbId: !!editingItem?._dbId, adminReady });
         return;
     }
 
     console.log('[DELETE] Deleting item:', editingItem.name, 'ID:', editingItem._dbId);
 
     try {
-        const { data, error } = await supabase
-            .from('items')
-            .delete()
-            .eq('id', editingItem._dbId);
+        const { data, error } = await deleteItemRow(editingItem._dbId);
 
         if (error) {
             console.error('[DELETE] Delete error:', error);
@@ -1037,8 +1028,8 @@ async function applyCropper() {
 }
 
 async function uploadImage(dbId, nameHint) {
-    if (!imageBlob || !supabase) {
-        console.warn('Upload skipped: no imageBlob or no supabase');
+    if (!imageBlob || !adminReady) {
+        console.warn('Upload skipped: no imageBlob or admin mode off');
         return null;
     }
 
@@ -1050,13 +1041,7 @@ async function uploadImage(dbId, nameHint) {
 
     console.log('[UPLOAD] Uploading image:', filePath, 'Size:', imageBlob.size);
 
-    const { error: uploadError } = await supabase.storage
-        .from(ITEMS_BUCKET)
-        .upload(filePath, imageBlob, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: 'image/png'
-        });
+    const { publicUrl, error: uploadError } = await uploadItemImage(filePath, imageBlob);
 
     if (uploadError) {
         console.error('[UPLOAD] Upload error:', uploadError);
@@ -1066,15 +1051,13 @@ async function uploadImage(dbId, nameHint) {
         return null;
     }
 
-    const { data } = supabase.storage.from(ITEMS_BUCKET).getPublicUrl(filePath);
-    const publicUrl = data?.publicUrl || null;
     console.log('[UPLOAD] Image uploaded successfully:', publicUrl);
     return publicUrl;
 }
 
 async function saveItem(event) {
     event.preventDefault();
-    if (!supabase) return;
+    if (!adminReady) return;
     setError('');
 
     const name = dom.nameInput.value.trim();
@@ -1143,12 +1126,7 @@ async function saveItem(event) {
                     ...payloadImages,
                     primary: imageUrl
                 };
-                const { data, error } = await supabase
-                    .from('items')
-                    .update({ images })
-                    .eq('id', row.id)
-                    .select()
-                    .single();
+                const { data, error } = await updateItemRow(row.id, { images });
                 if (!error && data) {
                     row = data;
                 } else {
@@ -1191,12 +1169,9 @@ async function saveItem(event) {
 }
 
 async function loadDbItems() {
-    if (!supabase || !window.astoriaCodex) return;
+    if (!adminReady || !window.astoriaCodex) return;
     console.log('[LOAD] Loading items from database...');
-    const { data, error } = await supabase
-        .from('items')
-        .select('id, name, description, effect, category, price_kaels, images, enabled, created_at, equipment_slot, rarity, rank, modifiers')
-        .order('created_at', { ascending: true });
+    const { data, error } = await fetchCodexItemRows();
 
     if (error) {
         console.error('[LOAD] Items load error:', error);
@@ -1240,10 +1215,7 @@ async function loadDbItems() {
         });
 
         if (idsToDelete.length) {
-            const { error: deleteError } = await supabase
-                .from('items')
-                .delete()
-                .in('id', idsToDelete);
+            const { error: deleteError } = await deleteItemRows(idsToDelete);
             if (deleteError) {
                 console.error('[LOAD] Failed to delete duplicates:', deleteError);
                 idsToDelete = [];
@@ -1307,7 +1279,7 @@ async function init() {
     adminMode = isAdmin();
     if (!adminMode) return;
 
-    supabase = await getSupabaseClient();
+    adminReady = true;
     dom.addBtn.hidden = false;
 
     renderCategoryOptions();

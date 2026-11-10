@@ -2,7 +2,7 @@
 // Modal de sélection des prérequis (quêtes) - Extension pour quetes.js
 // ============================================================================
 
-import { getSupabaseClient } from "../../api/supabase-client.js";
+import { fetchQuestSummaries } from "../../api/quests-service.js";
 
 // Cette fonction doit être appelée depuis quetes.js après l'initialisation du dom
 export function initPrerequisitesModal(questesModule) {
@@ -63,18 +63,7 @@ export function initPrerequisitesModal(questesModule) {
     // Charger les quêtes depuis Supabase
     async function loadQuests() {
         try {
-            const supabase = await getSupabaseClient();
-
-            const { data: quests, error } = await supabase
-                .from('quests')
-                .select('id, name, type, rank, description')
-                .order('name', { ascending: true });
-
-            if (error) {
-                console.error('[Prerequisites Modal] Error loading quests:', error);
-                modalState.allQuests = [];
-                return;
-            }
+            const quests = await fetchQuestSummaries();
 
             modalState.allQuests = quests || [];
             console.log(`[Prerequisites Modal] Loaded ${modalState.allQuests.length} quests`);

@@ -1,4 +1,4 @@
-import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "../../auth.js";
+import { getActiveCharacter, getAllItems, isAdmin, refreshSessionUser } from "../../auth.js";
 import { initCharacterSummary } from "../../ui/character-summary.js";
 import { getInventoryRows, setInventoryItem } from "../../api/inventory-service.js";
 import { getCharacterById, updateCharacter } from "../../api/characters-service.js";
@@ -6,7 +6,20 @@ import { patchCharacterProfile } from "../../api/profile-patch-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
 import { initSkillsRewardsModal } from "./quetes-skills-modal.js";
 import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
-import { logQuestJoin, logActivity, ActionTypes } from "../../api/activity-logger.js";
+import { logQuestJoin, logActivity, ActionTypes, fetchQuestCompletionLogs } from "../../api/activity-logger.js";
+import {
+    fetchQuestsPage,
+    fetchQuestsDeltaPoll,
+    fetchQuestRowById,
+    fetchQuestParticipants,
+    replaceQuestParticipants,
+    upsertQuestRow,
+    deleteQuestRow,
+    fetchQuestHistoryRows,
+    upsertQuestHistoryRow,
+    subscribeToQuestChanges
+} from "../../api/quests-service.js";
+import { getCharacterCompetences, saveCharacterCompetences } from "../../api/competences-service.js";
 import { createFilterBar, itemMatchesFilters, sortItemsBy, normalizeFilter } from "../../components/ui/FilterBar.js";
 
 // Safe sanitizer wrapper with fallback when sanitizer not available
@@ -37,13 +50,6 @@ const QUEST_ADMIN_NOTES_KEY = "astoria_quest_admin_notes";
 const QUEST_VIEW_STORAGE_KEY = "astoria_quests_view_mode";
 const QUEST_CACHE_VERSION = 1;
 const QUEST_CACHE_TTL_MS = 30 * 60 * 1000;
-const QUESTS_TABLE = "quests";
-const QUESTS_LIST_VIEW = "quests_list";
-const QUEST_HISTORY_TABLE = "quest_history";
-const QUESTS_LIST_SELECT_COLUMNS = "id,name,type,rank,status,images,created_at";
-const QUESTS_SELECT_COLUMNS = "id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at";
-const QUESTS_POLL_COLUMNS = "id,status,max_participants,completed_by";
-const QUEST_HISTORY_SELECT_COLUMNS = "*";
 const HISTORY_INITIAL_VISIBLE = 30;
 const HISTORY_VISIBLE_STEP = 30;
 const QUEST_INITIAL_BATCH_SIZE = 8;
@@ -838,43 +844,6 @@ function scheduleBackgroundPreloadTick(callback, delayMs = QUEST_BACKGROUND_PREL
     }, Math.max(0, delayMs));
 }
 
-async function fetchQuestsPage(supabase, from, to) {
-    let { data, error } = await supabase
-        .from(QUESTS_TABLE)
-        .select(QUESTS_SELECT_COLUMNS)
-        .order("created_at", { ascending: true })
-        .range(from, to);
-
-    if (error) {
-        const message = String(error?.message || "").toLowerCase();
-        const code = String(error?.code || "");
-        const fallbackToListView = code === "42501"
-            || message.includes("permission")
-            || message.includes("forbidden")
-            || message.includes("relation")
-            || message.includes("does not exist");
-        if (fallbackToListView) {
-            ({ data, error } = await supabase
-                .from(QUESTS_LIST_VIEW)
-                .select("*")
-                .order("created_at", { ascending: true })
-                .range(from, to));
-        }
-    }
-
-    if (error) throw error;
-    return Array.isArray(data) ? data : [];
-}
-
-async function fetchQuestsDeltaPoll(supabase) {
-    const { data, error } = await supabase
-        .from(QUESTS_TABLE)
-        .select(QUESTS_POLL_COLUMNS)
-        .order("created_at", { ascending: true });
-    if (error) throw error;
-    return Array.isArray(data) ? data : [];
-}
-
 function hasQuestDeltaChanged(deltaRows) {
     if (deltaRows.length !== state.quests.length) return true;
     const map = new Map(state.quests.map(q => [q.id, q]));
@@ -891,26 +860,7 @@ function hasQuestDeltaChanged(deltaRows) {
 }
 
 async function fetchQuestDetailById(questId) {
-    const supabase = await getSupabaseClient();
-    let { data, error } = await supabase
-        .from(QUESTS_TABLE)
-        .select(QUESTS_SELECT_COLUMNS)
-        .eq("id", questId)
-        .single();
-    if (error) {
-        const message = String(error?.message || "").toLowerCase();
-        const code = String(error?.code || "");
-        const permissionLike = code === "42501" || message.includes("permission") || message.includes("forbidden");
-        if (permissionLike) {
-            ({ data, error } = await supabase
-                .from(QUESTS_LIST_VIEW)
-                .select("*")
-                .eq("id", questId)
-                .single());
-        }
-    }
-    if (error) throw error;
-    return mapQuestRow(data);
+    return mapQuestRow(await fetchQuestRowById(questId));
 }
 
 function mergeQuestIntoState(updatedQuest) {
@@ -971,24 +921,7 @@ async function loadParticipantsForQuests(questIds = null) {
         const targetQuestIds = Array.isArray(questIds) ? questIds.filter(Boolean) : null;
         if (targetQuestIds && targetQuestIds.length === 0) return true;
 
-        const supabase = await getSupabaseClient();
-        let query = supabase
-            .from("quest_participants")
-            .select(`
-                quest_id,
-                character_id,
-                joined_at,
-                characters (
-                    id,
-                    name
-                )
-            `);
-        if (targetQuestIds) {
-            query = query.in("quest_id", targetQuestIds);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
+        const data = await fetchQuestParticipants(targetQuestIds);
 
         // Build a map of quest_id → participants array
         const participantsMap = new Map();
@@ -1021,14 +954,13 @@ async function loadParticipantsForQuests(questIds = null) {
     }
 }
 
-async function preloadRemainingQuests(supabase, startIndex, runId) {
+async function preloadRemainingQuests(startIndex, runId) {
     let nextStart = startIndex;
     const knownIds = new Set(state.quests.map((quest) => quest.id));
 
     const pump = async () => {
         if (runId !== questBackgroundPreloadRunId) return;
         const rows = await fetchQuestsPage(
-            supabase,
             nextStart,
             nextStart + QUEST_BACKGROUND_BATCH_SIZE - 1
         );
@@ -1058,17 +990,16 @@ async function loadQuestsFromDb(options = {}) {
     const { progressive = true } = options;
     try {
         cancelQuestBackgroundPreload();
-        const supabase = await getSupabaseClient();
 
         if (!progressive) {
-            const rows = await fetchQuestsPage(supabase, 0, 999);
+            const rows = await fetchQuestsPage(0, 999);
             state.quests = rows.map(mapQuestRow);
             persistState();
             await loadParticipantsForQuests();
             return true;
         }
 
-        const initialRows = await fetchQuestsPage(supabase, 0, QUEST_INITIAL_BATCH_SIZE - 1);
+        const initialRows = await fetchQuestsPage(0, QUEST_INITIAL_BATCH_SIZE - 1);
         state.quests = initialRows.map(mapQuestRow);
         persistState();
         renderQuestList();
@@ -1080,7 +1011,7 @@ async function loadQuestsFromDb(options = {}) {
 
         if (initialRows.length >= QUEST_INITIAL_BATCH_SIZE) {
             const runId = questBackgroundPreloadRunId;
-            void preloadRemainingQuests(supabase, QUEST_INITIAL_BATCH_SIZE, runId);
+            void preloadRemainingQuests(QUEST_INITIAL_BATCH_SIZE, runId);
         }
 
         return true;
@@ -1101,15 +1032,7 @@ async function loadHistoryFromDb() {
             return true;
         }
 
-        const supabase = await getSupabaseClient();
-        let query = supabase
-            .from(QUEST_HISTORY_TABLE)
-            .select(QUEST_HISTORY_SELECT_COLUMNS)
-            .order("date", { ascending: false })
-            .limit(QUEST_HISTORY_PAGE_SIZE)
-            .eq("character_id", activeCharacterId);
-        const { data, error } = await query;
-        if (error) throw error;
+        const data = await fetchQuestHistoryRows(activeCharacterId, QUEST_HISTORY_PAGE_SIZE);
         state.history = dedupeHistory(Array.isArray(data) ? data.map(mapHistoryRow) : []);
         state.historyVisibleCount = HISTORY_INITIAL_VISIBLE;
         state.historyBackendLoaded = true;
@@ -1146,31 +1069,14 @@ async function ensureHistoryDataLoaded({ force = false } = {}) {
 async function upsertQuestParticipants(questId, participants) {
     if (!questId || !Array.isArray(participants)) return;
     try {
-        const supabase = await getSupabaseClient();
+        const payload = participants.map(p => ({
+            quest_id: questId,
+            character_id: resolveParticipantId(p),
+            joined_at: p.joinedAt ? new Date(p.joinedAt).toISOString() : new Date().toISOString()
+        })).filter((row) => Boolean(row.character_id));
 
-        // First, delete all existing participants for this quest
-        await supabase
-            .from("quest_participants")
-            .delete()
-            .eq("quest_id", questId);
-
-        // Then insert the new participants
-        if (participants.length > 0) {
-            const payload = participants.map(p => ({
-                quest_id: questId,
-                character_id: resolveParticipantId(p),
-                joined_at: p.joinedAt ? new Date(p.joinedAt).toISOString() : new Date().toISOString()
-            })).filter((row) => Boolean(row.character_id));
-
-            if (!payload.length) {
-                return true;
-            }
-
-            const { error } = await supabase
-                .from("quest_participants")
-                .insert(payload);
-            if (error) throw error;
-        }
+        // Existing participants are replaced; an empty/invalid list only clears them.
+        await replaceQuestParticipants(questId, payload);
 
         return true;
     } catch (error) {
@@ -1182,7 +1088,6 @@ async function upsertQuestParticipants(questId, participants) {
 async function upsertQuestToDb(quest, { syncParticipants = false } = {}) {
     if (!quest) return;
     try {
-        const supabase = await getSupabaseClient();
         const payload = {
             id: quest.id,
             name: quest.name,
@@ -1198,10 +1103,7 @@ async function upsertQuestToDb(quest, { syncParticipants = false } = {}) {
             max_participants: quest.maxParticipants,
             completed_by: quest.completedBy
         };
-        const { error } = await supabase
-            .from(QUESTS_TABLE)
-            .upsert([payload], { onConflict: "id" });
-        if (error) throw error;
+        await upsertQuestRow(payload);
 
         if (syncParticipants) {
             await upsertQuestParticipants(quest.id, quest.participants);
@@ -1217,12 +1119,7 @@ async function upsertQuestToDb(quest, { syncParticipants = false } = {}) {
 async function deleteQuestFromDb(questId) {
     if (!questId) return;
     try {
-        const supabase = await getSupabaseClient();
-        const { error } = await supabase
-            .from(QUESTS_TABLE)
-            .delete()
-            .eq("id", questId);
-        if (error) throw error;
+        await deleteQuestRow(questId);
     } catch (error) {
         console.warn("[Quetes] Failed to delete quest:", error);
     }
@@ -1232,7 +1129,6 @@ async function insertHistoryToDb(entry) {
     if (!entry) return;
     if (entry.synced) return;
     try {
-        const supabase = await getSupabaseClient();
         const basePayload = {
             id: entry.id,
             date: entry.date,
@@ -1268,9 +1164,7 @@ async function insertHistoryToDb(entry) {
                 if (value !== undefined) payload[key] = value;
             });
 
-            const { error } = await supabase
-                .from(QUEST_HISTORY_TABLE)
-                .upsert([payload], { onConflict: "id" });
+            const { error } = await upsertQuestHistoryRow(payload);
 
             if (!error) {
                 saved = true;
@@ -1305,8 +1199,7 @@ async function refreshQuestStateFromBackend(options = {}) {
         // Delta poll: fetch lightweight columns first; skip full reload if nothing changed
         if (deltaCheck && !refreshHistory && state.quests.length > 0) {
             try {
-                const supabase = await getSupabaseClient();
-                const deltaRows = await fetchQuestsDeltaPoll(supabase);
+                const deltaRows = await fetchQuestsDeltaPoll();
                 if (!hasQuestDeltaChanged(deltaRows)) {
                     return false; // finally releases lock
                 }
@@ -1397,30 +1290,12 @@ function stopQuestPollingFallback() {
 
 async function initQuestRealtimeSync() {
     try {
-        const supabase = await getSupabaseClient();
-        if (!supabase?.channel) {
-            startQuestPollingFallback();
-            return;
-        }
-
-        if (questRealtimeChannel) {
-            try {
-                supabase.removeChannel(questRealtimeChannel);
-            } catch {}
-        }
-
-        questRealtimeChannel = supabase
-            .channel("astoria-quests-live")
-            .on("postgres_changes", { event: "*", schema: "public", table: QUESTS_TABLE }, () => {
-                scheduleQuestRealtimeRefresh({ refreshHistory: false });
-            })
-            .on("postgres_changes", { event: "*", schema: "public", table: "quest_participants" }, () => {
-                scheduleQuestRealtimeRefresh({ refreshHistory: false });
-            })
-            .on("postgres_changes", { event: "*", schema: "public", table: QUEST_HISTORY_TABLE }, () => {
-                scheduleQuestRealtimeRefresh({ refreshHistory: true });
-            })
-            .subscribe((status) => {
+        questRealtimeChannel?.unsubscribe();
+        questRealtimeChannel = await subscribeToQuestChanges({
+            onChange: ({ refreshHistory }) => {
+                scheduleQuestRealtimeRefresh({ refreshHistory });
+            },
+            onStatus: (status) => {
                 if (status === "SUBSCRIBED") {
                     stopQuestPollingFallback();
                     return;
@@ -1428,16 +1303,17 @@ async function initQuestRealtimeSync() {
                 if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
                     startQuestPollingFallback();
                 }
-            });
+            }
+        });
+        if (!questRealtimeChannel) {
+            startQuestPollingFallback();
+            return;
+        }
 
         window.addEventListener("beforeunload", () => {
             stopQuestPollingFallback();
-            if (questRealtimeChannel) {
-                try {
-                    supabase.removeChannel(questRealtimeChannel);
-                } catch {}
-                questRealtimeChannel = null;
-            }
+            questRealtimeChannel?.unsubscribe();
+            questRealtimeChannel = null;
         }, { once: true });
     } catch (error) {
         console.warn("[Quetes] Realtime unavailable, enabling polling fallback:", error);
@@ -1545,17 +1421,9 @@ async function loadQuestCompletionsFromActivity() {
             return true;
         }
 
-        const supabase = await getSupabaseClient();
-        const { data, error } = await supabase
-            .from("activity_logs")
-            .select("action_data")
-            .eq("action_type", ActionTypes.QUEST_COMPLETE)
-            .eq("character_id", activeCharacterId)
-            .limit(500);
+        const data = await fetchQuestCompletionLogs(activeCharacterId);
 
-        if (error) throw error;
-
-        (Array.isArray(data) ? data : []).forEach((row) => {
+        data.forEach((row) => {
             const actionData = row?.action_data && typeof row.action_data === "object"
                 ? row.action_data
                 : null;
@@ -1907,14 +1775,8 @@ async function applyCompetenceDelta(characterId, categoryId, delta) {
     // All paths beyond this point must call resolve() to unblock the queue.
     let success = false;
     try {
-        const supabase = await getSupabaseClient();
-        const { data: compRow } = await supabase
-            .from('character_competences')
-            .select('data')
-            .eq('character_id', characterId)
-            .maybeSingle();
-
-        const competences = (compRow?.data && typeof compRow.data === 'object') ? { ...compRow.data } : {};
+        const storedCompetences = await getCharacterCompetences(characterId);
+        const competences = (storedCompetences && typeof storedCompetences === 'object') ? { ...storedCompetences } : {};
         const pointsByCategory = competences.pointsByCategory && typeof competences.pointsByCategory === "object"
             ? { ...competences.pointsByCategory }
             : {};
@@ -1931,16 +1793,14 @@ async function applyCompetenceDelta(characterId, categoryId, delta) {
         competences.locksByCategory[safeCategoryId] = next <= 0;
         competences.customSkillsByCategory = competences.customSkillsByCategory || {};
 
-        const { error } = await supabase
-            .from('character_competences')
-            .upsert({ character_id: characterId, data: competences });
-        if (error) {
-            console.warn("[Quetes] Failed to apply competence delta:", error);
-        } else {
+        try {
+            await saveCharacterCompetences(characterId, competences);
             success = true;
             document.dispatchEvent(new CustomEvent("astoria:competences-updated", {
                 detail: { characterId, competences }
             }));
+        } catch (error) {
+            console.warn("[Quetes] Failed to apply competence delta:", error);
         }
     } finally {
         resolve(); // always unblock next queued delta for this character

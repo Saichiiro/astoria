@@ -1,6 +1,5 @@
 import { el } from "./panel-utils.js";
 import {
-  getSupabaseClient,
   getAllCharacters,
   setActiveCharacter,
   getActiveCharacter,
@@ -11,6 +10,7 @@ import {
   setUserRoleByUsername,
 } from "../auth.js";
 import { getRouteHref } from "../config/routes.js";
+import { fetchUserSummary, countUsers } from "../api/users-service.js";
 
 export const adminPanel = {
   id: "admin",
@@ -250,14 +250,7 @@ export const adminPanel = {
         return;
       }
       try {
-        if (!supabaseRef) {
-          supabaseRef = await getSupabaseClient();
-        }
-        const { data, error } = await supabaseRef
-          .from("users")
-          .select("id, username, role")
-          .eq("id", userId)
-          .single();
+        const { data, error } = await fetchUserSummary(userId);
         if (error) {
           if (!isAbortLikeError(error)) {
             console.error("Admin panel: unable to load user.", error);
@@ -419,7 +412,6 @@ export const adminPanel = {
 
 
     let characterSearchTimer = null;
-    let supabaseRef = null;
     let allCharacters = [];
 
     const deleteBackdrop = el("div", "panel-admin-modal");
@@ -488,12 +480,7 @@ export const adminPanel = {
     });
 
     async function updateCounts() {
-      if (!supabaseRef) {
-        supabaseRef = await getSupabaseClient();
-      }
-      const { count: userCount } = await supabaseRef
-        .from("users")
-        .select("id", { count: "exact", head: true });
+      const { count: userCount } = await countUsers();
 
       const characters = await getAllCharacters();
       allCharacters = Array.isArray(characters) ? characters : [];

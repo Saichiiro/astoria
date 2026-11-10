@@ -1,5 +1,4 @@
 (function () {
-    const TABLE_NAME = "skills_catalog";
     const state = {
         cache: null,
         loadPromise: null,
@@ -28,9 +27,9 @@
         return cloneCategories(window.skillsCategories);
     }
 
-    async function getSupabase() {
-        const auth = await import("../auth.js");
-        return auth.getSupabaseClient?.();
+    // Table access lives in the api layer (classic script, so a dynamic import).
+    function getCatalogApi() {
+        return import("../api/skills-catalog-service.js");
     }
 
     function mergeRowsIntoCategories(categories, rows) {
@@ -82,17 +81,12 @@
     }
 
     async function seedCatalogIfNeeded(categories) {
-        const supabase = await getSupabase();
-        const { count, error } = await supabase
-            .from(TABLE_NAME)
-            .select("id", { count: "exact", head: true });
-        if (error) throw error;
-        if ((Number(count) || 0) > 0) return false;
+        const api = await getCatalogApi();
+        if ((await api.countCatalogRows()) > 0) return false;
 
         const rows = serializeCategories(categories);
         if (!rows.length) return false;
-        const insert = await supabase.from(TABLE_NAME).insert(rows);
-        if (insert.error) throw insert.error;
+        await api.insertCatalogRows(rows);
         return true;
     }
 
@@ -110,12 +104,6 @@
             const seedSource = Array.isArray(seedCategories) && seedCategories.length
                 ? cloneCategories(seedCategories)
                 : staticCategories;
-            const supabase = await getSupabase();
-            if (!supabase) {
-                state.cache = staticCategories;
-                return staticCategories;
-            }
-
             if (seedIfEmpty) {
                 try {
                     await seedCatalogIfNeeded(seedSource);
@@ -124,13 +112,14 @@
                 }
             }
 
-            const { data, error } = await supabase
-                .from(TABLE_NAME)
-                .select("category_id, slug, name, icon, cap, sort_order, is_active")
-                .eq("is_active", true)
-                .order("category_id", { ascending: true })
-                .order("sort_order", { ascending: true })
-                .order("name", { ascending: true });
+            let data = null;
+            let error = null;
+            try {
+                const { fetchActiveCatalogRows } = await getCatalogApi();
+                ({ data, error } = await fetchActiveCatalogRows());
+            } catch (loadError) {
+                error = loadError;
+            }
 
             if (error) {
                 console.warn("[Skills Catalog] Load failed, fallback to static data:", error);
@@ -154,32 +143,21 @@
     }
 
     async function saveCategories(categories) {
-        const supabase = await getSupabase();
+        const api = await getCatalogApi();
         const rows = serializeCategories(categories);
-        const current = await supabase
-            .from(TABLE_NAME)
-            .select("category_id, slug");
-        if (current.error) throw current.error;
+        const current = await api.fetchCatalogKeys();
 
         const nextKeys = new Set(rows.map((row) => `${row.category_id}::${row.slug}`));
-        const stale = (current.data || []).filter((row) => !nextKeys.has(`${row.category_id}::${row.slug}`));
+        const stale = current.filter((row) => !nextKeys.has(`${row.category_id}::${row.slug}`));
 
         if (stale.length) {
             for (const row of stale) {
-                const remove = await supabase
-                    .from(TABLE_NAME)
-                    .delete()
-                    .eq("category_id", row.category_id)
-                    .eq("slug", row.slug);
-                if (remove.error) throw remove.error;
+                await api.deleteCatalogRow(row.category_id, row.slug);
             }
         }
 
         if (rows.length) {
-            const upsert = await supabase
-                .from(TABLE_NAME)
-                .upsert(rows, { onConflict: "category_id,slug" });
-            if (upsert.error) throw upsert.error;
+            await api.upsertCatalogRows(rows);
         }
 
         state.cache = cloneCategories(categories);
@@ -190,6 +168,5 @@
         loadCategories,
         saveCategories,
         cloneCategories,
-        tableName: TABLE_NAME,
     };
 })();

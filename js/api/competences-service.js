@@ -64,3 +64,15 @@ export async function getCharacterCompetencesSnapshot(characterId) {
         return { data: null, source: 'error', error };
     }
 }
+
+/**
+ * Saves the competences data of a character (insert or update).
+ * Throws on failure so callers can retry.
+ */
+export async function saveCharacterCompetences(characterId, data) {
+    const supabase = await getSupabaseClient();
+    const { error } = await supabase
+        .from('character_competences')
+        .upsert({ character_id: characterId, data });
+    if (error) throw error;
+}
