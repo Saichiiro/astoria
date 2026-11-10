@@ -1,18 +1,16 @@
 // Public hamburger menu (login and other public pages): home, kingdoms,
 // glossary and the way in. Links resolve through routes.js.
 import { initAccountLinks, isLoggedIn, getRouteHref } from './account-links.js';
+import { loadSiteLinks } from './site-links.js';
 
 export function initPublicNav() {
     if (document.getElementById('publicNav')) return;
     const loggedIn = isLoggedIn();
     initAccountLinks();
 
-    // Home, its viewer screens (#royaumes, #glossaire) and the way in, through routes.js.
-    const links = [
-        { href: getRouteHref('publicHome'), label: 'Accueil' },
-        { href: getRouteHref('publicHome', { hash: 'royaumes' }), label: 'Royaumes' },
-        { href: getRouteHref('publicHome', { hash: 'glossaire' }), label: 'Glossaire' }
-    ];
+    // Home first; the Astoria sites (data/glossaire.json > liens) are added below
+    // once loaded, so the menu shows exactly the same links as the home page.
+    const links = [{ href: getRouteHref('publicHome'), label: 'Accueil' }];
     const primary = loggedIn
         ? { href: getRouteHref('characterHub'), label: 'Mes personnages' }
         : { href: getRouteHref('login'), label: 'Se connecter' };
@@ -51,6 +49,21 @@ export function initPublicNav() {
         if (link.primary) a.className = 'public-nav-primary';
         nav.appendChild(a);
     });
+
+    loadSiteLinks().then((sites) => {
+        const anchor = nav.querySelector('.public-nav-primary');
+        sites.forEach((site) => {
+            const a = document.createElement('a');
+            a.href = site.href;
+            a.textContent = site.icone ? `${site.icone} ${site.titre}` : site.titre;
+            if (site.external) {
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.setAttribute('aria-label', `${site.titre} (nouvel onglet)`);
+            }
+            nav.insertBefore(a, anchor);
+        });
+    }).catch(() => { /* the menu still works without the site links */ });
 
     const setOpen = (open) => {
         nav.hidden = !open;

@@ -18,12 +18,33 @@
   },
   "liens": [
     {
+      "id": "alice-academia",
+      "titre": "Alice Academia",
+      "texte": "L'accueil d'Alice Academia.",
+      "icone": "🎓",
+      "url": "https://sites.google.com/view/aliceacademia/accueil"
+    },
+    {
       "id": "royaumes",
       "titre": "Royaumes",
       "texte": "Les royaumes d'Astoria et leur façon de vivre.",
       "icone": "🏰",
-      "url": "https://sites.google.com/view/astoria-royaumes-rp-fr/royaumes",
+      "url": "https://sites.google.com/view/astoria-royaumes-rp-fr/accueil",
       "vue": "royaumes"
+    },
+    {
+      "id": "academie",
+      "titre": "Académie",
+      "texte": "La partie école d'Astoria.",
+      "icone": "🏫",
+      "url": "https://sites.google.com/view/astoria-school-part-rp-fr/académie"
+    },
+    {
+      "id": "fiches",
+      "titre": "Fiches",
+      "texte": "Les fiches d'Astoria.",
+      "icone": "📜",
+      "url": "https://sites.google.com/view/astoria-fiches/accueil"
     },
     {
       "id": "glossaire",

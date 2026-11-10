@@ -2,14 +2,10 @@
 // opened in a new tab. Until a site has its link, Royaumes and Glossaire open a
 // built-in viewer instead. Everything is built with textContent.
 import { initAccountLinks, getRouteHref } from './account-links.js';
+import { loadSiteContent, resolveSiteLink, VIEW_KINGDOMS, VIEW_GLOSSARY } from './site-links.js';
 
-// Single place for the content file location (edited by the team, see _lisezMoi inside).
-const CONTENT_URL = 'data/glossaire.json';
 const GENERAL = 'general';
 // Viewer screens in the URL: #royaumes, #glossaire, #terme-<mot>
-const VIEW_KINGDOMS = 'royaumes';
-const VIEW_GLOSSARY = 'glossaire';
-const VIEWS = [VIEW_KINGDOMS, VIEW_GLOSSARY];
 const TERM_PREFIX = 'terme-';
 
 const normalize = (value) => String(value || '')
@@ -90,49 +86,35 @@ function renderPresentation(data) {
     set('homeTagline', p.accroche);
 }
 
-// Only absolute http(s) links from the content file become buttons.
-function safeUrl(value) {
-    try {
-        const url = new URL(String(value || '').trim());
-        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
-    } catch {
-        return null;
-    }
-}
-
 function renderLinks(data) {
     const container = document.getElementById('homeLinks');
     if (!container) return;
     container.innerHTML = '';
     (Array.isArray(data.liens) ? data.liens : []).forEach((item) => {
-        if (!item || !item.titre) return;
-        const url = safeUrl(item.url);
-        const view = VIEWS.includes(item.vue) ? item.vue : null;
+        // Items with nothing to open yet (no url, no built-in view) are not shown.
+        const site = resolveSiteLink(item);
+        if (!site) return;
         let tile;
         let hint;
-        if (url) {
-            tile = link('', 'home-link-tile', url);
+        if (site.external) {
+            tile = link('', 'home-link-tile', site.href);
             tile.target = '_blank';
             tile.rel = 'noopener noreferrer';
             hint = 'Nouvel onglet ↗';
-        } else if (view) {
+        } else {
             tile = el('button', 'home-link-tile');
             tile.type = 'button';
-            tile.dataset.openView = view;
+            tile.dataset.openView = site.view;
             hint = 'Ouvrir';
-        } else {
-            tile = el('div', 'home-link-tile is-soon');
-            tile.setAttribute('aria-disabled', 'true');
-            hint = 'Lien à venir';
         }
-        if (item.icone) {
-            const icon = el('span', 'home-link-icon', item.icone);
+        if (site.icone) {
+            const icon = el('span', 'home-link-icon', site.icone);
             icon.setAttribute('aria-hidden', 'true');
             tile.appendChild(icon);
         }
         const body = el('span', 'home-link-body');
-        body.appendChild(el('span', 'home-link-title', item.titre));
-        if (item.texte) body.appendChild(el('span', 'home-link-text', item.texte));
+        body.appendChild(el('span', 'home-link-title', site.titre));
+        if (site.texte) body.appendChild(el('span', 'home-link-text', site.texte));
         tile.appendChild(body);
         // Visible text, so everyone knows before clicking that a new tab opens.
         tile.appendChild(el('span', 'home-link-hint', hint));
@@ -418,9 +400,7 @@ function createViewer(data) {
 async function initHome() {
     initAccountLinks();
     try {
-        const response = await fetch(CONTENT_URL, { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = await loadSiteContent();
         renderPresentation(data);
         renderLinks(data);
         createViewer(data);

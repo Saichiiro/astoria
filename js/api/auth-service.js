@@ -306,7 +306,37 @@ export function isAdmin() {
     return Boolean(user && user.role === "admin");
 }
 
-export async function refreshSessionUser() {
+// A refresh costs 1-2 requests (and a write that links the anonymous auth user).
+// Pages call it at start and the characters service before each call, so a
+// successful result is shared with concurrent callers and reused for a short
+// time. Different user (login/logout) or { force: true } always refreshes.
+const REFRESH_TTL_MS = 30 * 1000;
+const refreshState = { userId: null, at: 0, result: null, promise: null };
+
+export async function refreshSessionUser({ force = false } = {}) {
+    const localUserId = readSession()?.user?.id || null;
+    if (!force && refreshState.userId === localUserId) {
+        if (refreshState.promise) return refreshState.promise;
+        if (refreshState.result?.success && Date.now() - refreshState.at < REFRESH_TTL_MS) {
+            return refreshState.result;
+        }
+    }
+    const promise = performSessionRefresh().then((result) => {
+        refreshState.promise = null;
+        refreshState.userId = readSession()?.user?.id || null;
+        refreshState.at = Date.now();
+        refreshState.result = result;
+        return result;
+    }, (error) => {
+        refreshState.promise = null;
+        throw error;
+    });
+    refreshState.userId = localUserId;
+    refreshState.promise = promise;
+    return promise;
+}
+
+async function performSessionRefresh() {
     try {
         const supabase = await getSupabaseClient();
         const localSession = readSession();

@@ -40,6 +40,19 @@
     margin-top: 28px;
 }
 
+/* Two columns: an odd last tile is centered instead of hanging on the left. */
+@media (min-width: 561px) {
+    .home-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .home-links > :last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+        justify-self: center;
+        width: calc(50% - 6px);
+    }
+}
+
 .home-link-tile {
     display: grid;
     grid-template-columns: auto 1fr;
