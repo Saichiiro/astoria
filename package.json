@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "check": "node scripts/check.mjs",
+    "prebuild": "node scripts/check.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },

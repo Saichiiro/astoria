@@ -1203,7 +1203,7 @@ import { adminItemsModal } from './admin-items-modal.js';
                     if (getActiveCharacter?.()?.id === charId) {
                         clearActiveCharacter?.();
                         renderCharactersTable(allCharacters);
-                        showToast('Cible admin retirÃ©e', 'success');
+                        showToast('Cible admin retirée', 'success');
                         break;
                     }
 
@@ -1798,10 +1798,10 @@ import { adminItemsModal } from './admin-items-modal.js';
     }
 
     function resetQuestForm() {
-        document.getElementById('questModalTitle').textContent = 'Nouvelle quÃªte';
+        document.getElementById('questModalTitle').textContent = 'Nouvelle quête';
         document.getElementById('questModalId').value = '';
         document.getElementById('questFormName').value = '';
-        document.getElementById('questFormType').value = 'ExpÃ©dition';
+        document.getElementById('questFormType').value = 'Expédition';
         document.getElementById('questFormRank').value = 'F';
         document.getElementById('questFormStatus').value = 'available';
         document.getElementById('questFormMaxPart').value = 5;

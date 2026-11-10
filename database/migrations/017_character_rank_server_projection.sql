@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Character Rank Server Projection
 -- Purpose:
 -- 1) Compute rank_score from profile_data.competences (combat + pouvoirs)

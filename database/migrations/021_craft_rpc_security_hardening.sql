@@ -1,4 +1,4 @@
-﻿-- ============================================================================
+-- ============================================================================
 -- Craft RPC Security Hardening
 -- Purpose:
 -- 1) Ensure only character owner or admin can execute craft RPC

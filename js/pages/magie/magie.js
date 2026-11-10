@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
     // Player-entered text (capacity names, notes, magic names...) inserted into
     // HTML templates. Same text as before (String(value)), but never parsed as HTML.
     function escapeHtml(value) {

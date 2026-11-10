@@ -8,7 +8,7 @@
     box-sizing: border-box;
     max-width: 640px;
     margin: 0 auto;
-    padding: 32px 20px;
+    padding: clamp(56px, 9vh, 72px) 20px 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -16,10 +16,20 @@
     text-align: center;
 }
 
+/* Le bouton de connexion reste toujours visible, en haut à droite : plus besoin
+   de faire défiler la page pour le trouver. */
+.home-welcome .home-account {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 20;
+    margin: 0;
+}
+
 .home-welcome-logo {
-    width: clamp(120px, 26vw, 180px);
+    width: clamp(96px, min(26vw, 19vh), 180px);
     height: auto;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     filter: drop-shadow(0 10px 24px rgba(136, 14, 79, 0.25));
 }
 
@@ -36,8 +46,8 @@
     width: 100%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
-    margin-top: 28px;
+    gap: 10px;
+    margin-top: clamp(14px, 3vh, 28px);
 }
 
 /* Two columns: an odd last tile is centered instead of hanging on the left. */
@@ -50,6 +60,28 @@
         grid-column: 1 / -1;
         justify-self: center;
         width: calc(50% - 6px);
+    }
+}
+
+/* Wide screens: three tiles per row, the last row centered, so every button
+   fits above the fold. */
+@media (min-width: 900px) {
+    .home-welcome {
+        max-width: 920px;
+    }
+
+    .home-links {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .home-links > .home-link-tile,
+    .home-links > :last-child:nth-child(odd) {
+        flex: 0 0 calc((100% - 20px) / 3);
+        width: auto;
+        min-width: 0;
+        grid-column: auto;
     }
 }
 

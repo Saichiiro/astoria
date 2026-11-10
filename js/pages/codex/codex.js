@@ -1,4 +1,4 @@
-﻿// On rÃ©cupÃ¨re les donnÃ©es depuis data.js (inventoryData)
+// On récupère les données depuis data.js (inventoryData)
 // Safe sanitizer wrapper with fallback
 // Plain text (names, labels, URLs) inserted into HTML templates: escape it,
 // including quotes for attribute values. Never returns raw input.
@@ -368,7 +368,7 @@ const rowCache = new Map();
 
 function replaceItems(nextItems) {
     allItems = Array.isArray(nextItems) ? nextItems.slice() : [];
-    // Trier par ordre alphabÃ©tique du nom
+    // Trier par ordre alphabétique du nom
     allItems.sort((a, b) => {
         const nameA = (a.name || a.nom || "").toLowerCase();
         const nameB = (b.name || b.nom || "").toLowerCase();
@@ -401,7 +401,7 @@ function getOrCreateItemMeta(item, fallbackIndex) {
 
 allItems.forEach((item, idx) => getOrCreateItemMeta(item, idx));
 
-// IMAGE FIX : choix du bon visuel + galerie si disponible (via helper partagÃ©)
+// IMAGE FIX : choix du bon visuel + galerie si disponible (via helper partagé)
 function resolveImages(item) {
     const helpers = window.astoriaImageHelpers || {};
 
@@ -412,7 +412,7 @@ function resolveImages(item) {
         }
     }
 
-    // Fallback local (au cas oÃ¹ le helper n'est pas disponible)
+    // Fallback local (au cas où le helper n'est pas disponible)
     const rawImage = (item && (item.image || item.img)) || placeholderImage;
     return {
         primary: rawImage || placeholderImage,
@@ -420,7 +420,7 @@ function resolveImages(item) {
     };
 }
 
-// // CAPE CAROUSEL : navigation image suivante/prÃ©cÃ©dente
+// // CAPE CAROUSEL : navigation image suivante/précédente
 function updateCarouselView(nameForAlt) {
     const altText = nameForAlt || currentCarouselTitle || "Illustration";
     if (!currentCarouselImages || !currentCarouselImages.length) {
@@ -541,7 +541,7 @@ function getEffectLabel(entries) {
     return (Array.isArray(entries) && entries.length > 1) ? "Effets" : "Effet";
 }
 
-// Extrait la premiÃ¨re phrase seulement (pour tooltips)
+// Extrait la première phrase seulement (pour tooltips)
 function getFirstSentence(text) {
     if (!text) return "";
     const plain = text.replace(/\s+/g, " ").trim();
@@ -550,7 +550,7 @@ function getFirstSentence(text) {
     if (dotIndex > 0) {
         return plain.slice(0, dotIndex + 1);
     }
-    // Si pas de point, limite Ã  80 caractÃ¨res
+    // Si pas de point, limite à 80 caractères
     return plain.slice(0, 80) + (plain.length > 80 ? "..." : "");
 }
 
@@ -660,7 +660,7 @@ function buildRow(item, globalIndex) {
     return rowHtml;
 }
 
-// DEPRECATED - Tooltip supprimÃ©, on utilise seulement le bouton "Plus"
+// DEPRECATED - Tooltip supprimé, on utilise seulement le bouton "Plus"
 // function setupTooltipHandlers() { ... }
 
 function getOrCreateRowElement(item, globalIndex) {
@@ -731,7 +731,7 @@ function loadTable(data, searchQuery) {
         fragment.appendChild(row);
     });
     tableBody.replaceChildren(fragment);
-    // setupTooltipHandlers(); // DEPRECATED - Tooltip supprimÃ©
+    // setupTooltipHandlers(); // DEPRECATED - Tooltip supprimé
 }
 
 // Modal : ouverture / fermeture
@@ -1004,7 +1004,7 @@ function copyToClipboard(text, button) {
             showCopyFeedback(button);
         });
     } else {
-        // Fallback trÃ¨s simple
+        // Fallback très simple
         const textarea = document.createElement("textarea");
         textarea.value = text;
         document.body.appendChild(textarea);
@@ -1015,7 +1015,7 @@ function copyToClipboard(text, button) {
     }
 }
 
-// Filtrage dynamique par catÃ©gorie
+// Filtrage dynamique par catégorie
 let currentCategory = '';
 let currentEquipmentSlot = '';
 let currentSortColumn = null;
@@ -1089,7 +1089,7 @@ function filterByCategory() {
         }
     }
 
-    // Mise Ã  jour du titre
+    // Mise à jour du titre
     const titles = {
         '': 'Codex d\'Astoria',
         'agricole': 'Agricole',
@@ -1194,7 +1194,7 @@ function updateCategoryCounts() {
     if (countQuete) countQuete.textContent = counts['quete'];
 }
 
-// Override: filter chips without "RÃ©initialiser filtres" action chip
+// Override: filter chips without "Réinitialiser filtres" action chip
 function updateFilterChips(searchQuery = '') {
     const chipsContainer = filterChips;
     if (!chipsContainer) return;
@@ -1232,7 +1232,7 @@ function updateFilterChips(searchQuery = '') {
     }
 }
 
-// Combine recherche + catÃ©gorie + tri
+// Combine recherche + catégorie + tri
 function applyFilters() {
     const searchQuery = (searchInput?.value || '').toLowerCase();
 
@@ -1465,7 +1465,7 @@ function updateSortIndicators() {
     }
 }
 
-// Initialisation depuis URL (paramÃ¨tre ?category prÃ©sent)
+// Initialisation depuis URL (paramètre ?category présent)
 function initFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const urlCategory = params.get('category');

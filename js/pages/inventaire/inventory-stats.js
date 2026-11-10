@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Inventory Stats Calculator
  * Calculates total stat bonuses from equipped items.
  */
