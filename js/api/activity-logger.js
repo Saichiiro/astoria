@@ -5,6 +5,7 @@
 
 import { getSupabaseClient } from './supabase-client.js';
 import { readSession } from './session-store.js';
+import { TABLES } from './tables.js';
 
 /**
  * Action types for categorization
@@ -114,7 +115,7 @@ async function insertActivityWithFallbacks(supabase, logEntry) {
     });
 
     const { error } = await supabase
-        .from('activity_logs')
+        .from(TABLES.activityLogs)
         .insert([payload]);
 
     if (!error) return { success: true };
@@ -191,7 +192,7 @@ export async function logActivitiesBatch(activities) {
         }));
 
         // Keep batch robust even if schema differs; fallback to one-by-one.
-        const { error } = await supabase.from('activity_logs').insert(logEntries);
+        const { error } = await supabase.from(TABLES.activityLogs).insert(logEntries);
         if (!error) {
             console.log('[ActivityLogger] Batch logged:', activities.length, 'activities');
             return true;
@@ -244,7 +245,7 @@ export async function queryActivityLogs(filters = {}) {
         const supabase = await getSupabaseClient();
 
         let query = supabase
-            .from('activity_logs')
+            .from(TABLES.activityLogs)
             .select(`
                 *,
                 user:users(id, username),
@@ -309,7 +310,7 @@ export async function getActivityStats(filters = {}) {
         const supabase = await getSupabaseClient();
 
         let query = supabase
-            .from('activity_logs')
+            .from(TABLES.activityLogs)
             .select('action_type, created_at');
 
         if (filters.startDate) {
@@ -428,7 +429,7 @@ export async function logCharacterCreate({ characterId, characterName, race, cha
 export async function fetchQuestCompletionLogs(characterId) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('activity_logs')
+        .from(TABLES.activityLogs)
         .select('action_data')
         .eq('action_type', ActionTypes.QUEST_COMPLETE)
         .eq('character_id', characterId)

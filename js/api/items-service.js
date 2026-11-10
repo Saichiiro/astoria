@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { isAdmin } from './auth-service.js';
+import { TABLES, BUCKETS } from './tables.js';
 
 function isAbortLikeError(error) {
     if (!error) return false;
@@ -17,7 +18,7 @@ export async function toggleItemState(itemId, enabled) {
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
-            .from('items')
+            .from(TABLES.items)
             .update({ enabled })
             .eq('id', itemId)
             .select();
@@ -70,7 +71,7 @@ async function fetchAllItems({ force = false } = {}) {
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
-            .from('items')
+            .from(TABLES.items)
             .select('*')
             .order('name', { ascending: true });
 
@@ -100,50 +101,49 @@ async function fetchAllItems({ force = false } = {}) {
 // ---- Admin (codex editor) -------------------------------------------------
 // Thin wrappers returning { data, error } so the editor keeps its own messages.
 
-const ITEMS_IMAGES_BUCKET = 'items';
 const CODEX_LIST_COLUMNS = 'id, name, description, effect, category, price_kaels, images, enabled, created_at, equipment_slot, rarity, rank, modifiers';
 
 export async function fetchItemRowById(itemId) {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').select('*').eq('id', itemId).single();
+    return supabase.from(TABLES.items).select('*').eq('id', itemId).single();
 }
 
 export async function insertItemRow(payload) {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').insert([payload]).select().single();
+    return supabase.from(TABLES.items).insert([payload]).select().single();
 }
 
 export async function updateItemRow(itemId, payload) {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').update(payload).eq('id', itemId).select().single();
+    return supabase.from(TABLES.items).update(payload).eq('id', itemId).select().single();
 }
 
 export async function deleteItemRow(itemId) {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').delete().eq('id', itemId);
+    return supabase.from(TABLES.items).delete().eq('id', itemId);
 }
 
 export async function deleteItemRows(itemIds) {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').delete().in('id', itemIds);
+    return supabase.from(TABLES.items).delete().in('id', itemIds);
 }
 
 export async function fetchCodexItemRows() {
     const supabase = await getSupabaseClient();
-    return supabase.from('items').select(CODEX_LIST_COLUMNS).order('created_at', { ascending: true });
+    return supabase.from(TABLES.items).select(CODEX_LIST_COLUMNS).order('created_at', { ascending: true });
 }
 
 // Uploads a PNG to the items bucket; returns { publicUrl, error }.
 export async function uploadItemImage(filePath, blob) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase.storage
-        .from(ITEMS_IMAGES_BUCKET)
+        .from(BUCKETS.items)
         .upload(filePath, blob, {
             cacheControl: '3600',
             upsert: false,
             contentType: 'image/png'
         });
     if (error) return { publicUrl: null, error };
-    const { data } = supabase.storage.from(ITEMS_IMAGES_BUCKET).getPublicUrl(filePath);
+    const { data } = supabase.storage.from(BUCKETS.items).getPublicUrl(filePath);
     return { publicUrl: data?.publicUrl || null, error: null };
 }

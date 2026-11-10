@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { clearActiveCharacter, getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
 import { isAdmin, refreshSessionUser } from './auth-service.js';
+import { TABLES } from './tables.js';
 
 let authRefreshPromise = null;
 const USER_CHARACTERS_CACHE_TTL_MS = 60000;
@@ -32,7 +33,7 @@ async function hydrateCharacterRows(supabase, rows) {
     }
 
     const { data, error } = await supabase
-        .from('characters')
+        .from(TABLES.characters)
         .select('id, profile_data, kaels, is_active')
         .in('id', missingIds);
 
@@ -194,7 +195,7 @@ export async function getUserCharacters(userId, options = {}) {
         const columns = resolveCharacterColumns(includeProfileData);
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select(columns)
             .eq('user_id', userId)
             .order('created_at', { ascending: true });
@@ -229,7 +230,7 @@ export async function getAllCharacters(options = {}) {
         const columns = resolveCharacterColumns(includeProfileData);
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select(columns)
             .order('created_at', { ascending: true });
 
@@ -310,7 +311,7 @@ export async function createCharacter(userId, characterData) {
         };
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .insert([{
                 user_id: userId,
                 name: characterData.name,
@@ -341,7 +342,7 @@ export async function getCharacterById(characterId, options = {}) {
         const columns = resolveCharacterColumns(options?.includeProfileData !== false);
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select(columns)
             .eq('id', characterId)
             .single();
@@ -364,7 +365,7 @@ export async function setActiveCharacter(characterId) {
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select(CHARACTER_SUMMARY_COLUMNS)
             .eq('id', characterId)
             .single();
@@ -400,7 +401,7 @@ export async function updateCharacter(characterId, updates) {
 
         if (!isAdmin() && touchesLockableFields) {
             const currentResult = await supabase
-                .from('characters')
+                .from(TABLES.characters)
                 .select(CHARACTER_FULL_COLUMNS)
                 .eq('id', characterId)
                 .single();
@@ -418,7 +419,7 @@ export async function updateCharacter(characterId, updates) {
             let storedProfile = currentCharacter ? (currentCharacter.profile_data || {}) : null;
             if (!storedProfile) {
                 const { data: stored, error: storedError } = await supabase
-                    .from('characters')
+                    .from(TABLES.characters)
                     .select('profile_data')
                     .eq('id', characterId)
                     .single();
@@ -443,14 +444,14 @@ export async function updateCharacter(characterId, updates) {
         }
 
         let { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .update(safeUpdates)
             .eq('id', characterId)
             .select();
 
         if (error && isPermissionLikeError(error)) {
             const fallback = await supabase
-                .from('characters')
+                .from(TABLES.characters)
                 .update(safeUpdates)
                 .eq('id', characterId);
 
@@ -505,7 +506,7 @@ export async function deleteCharacter(characterId) {
         const supabase = await getSupabaseClient();
 
         const { error: releaseBuyerRefsError } = await supabase
-            .from('market')
+            .from(TABLES.market)
             .update({ buyer_character_id: null })
             .eq('buyer_character_id', characterId);
 
@@ -515,7 +516,7 @@ export async function deleteCharacter(characterId) {
         }
 
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .delete()
             .eq('id', characterId)
             .select('id, user_id')

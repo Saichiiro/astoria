@@ -1,6 +1,7 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { getCurrentUser } from './auth-service.js';
 import { getActiveCharacter } from './session-store.js';
+import { TABLES, RPC } from './tables.js';
 
 function requireCharacter() {
     const user = getCurrentUser();
@@ -64,7 +65,7 @@ export async function searchListings(filters = {}, sort = 'price_asc', page = 1,
     const to = from + safePageSize - 1;
 
     let query = supabase
-        .from('market')
+        .from(TABLES.market)
         .select('*, items(id,name,description,category,rarity), seller_character:characters!market_seller_character_id_fkey(id,name)', { count: 'exact' })
         .eq('status', 'active');
 
@@ -157,7 +158,7 @@ export async function createListing({ itemId, item, quantity, unitPrice, scrollT
     };
 
     const { data, error } = await supabase
-        .from('market')
+        .from(TABLES.market)
         .insert([payload])
         .select('*')
         .single();
@@ -179,7 +180,7 @@ export async function buyListing(listingId, quantity = null) {
         params.p_quantity = Math.max(1, asInt(quantity) ?? 1);
     }
 
-    const { data, error } = await supabase.rpc('buy_listing', params);
+    const { data, error } = await supabase.rpc(RPC.buyListing, params);
 
     if (error) throw error;
     return data;
@@ -190,7 +191,7 @@ export async function getMyListings() {
     const supabase = await getSupabaseClient();
 
     const { data, error } = await supabase
-        .from('market')
+        .from(TABLES.market)
         .select('*, items(id,name,description,category,rarity)')
         .in('status', ['active'])
         .eq('seller_character_id', character.id)
@@ -208,7 +209,7 @@ export async function updateListingPrice(listingId, unitPrice) {
 
     // total_price is a generated column (quantity * unit_price): never write it.
     const { data, error } = await supabase
-        .from('market')
+        .from(TABLES.market)
         .update({ unit_price: safeUnitPrice })
         .eq('id', listingId)
         .eq('seller_id', user.id)
@@ -226,7 +227,7 @@ export async function cancelListing(listingId) {
     const supabase = await getSupabaseClient();
 
     const { data, error } = await supabase
-        .from('market')
+        .from(TABLES.market)
         .update({ status: 'cancelled' })
         .eq('id', listingId)
         .eq('seller_id', user.id)
@@ -243,7 +244,7 @@ export async function getMyHistory() {
     const supabase = await getSupabaseClient();
 
     const { data, error } = await supabase
-        .from('market')
+        .from(TABLES.market)
         .select('*, items(id,name,description,category,rarity), seller_character:characters!market_seller_character_id_fkey(id,name), buyer_character:characters!market_buyer_character_id_fkey(id,name)')
         .eq('status', 'sold')
         .or(`buyer_character_id.eq.${character.id},seller_character_id.eq.${character.id}`)

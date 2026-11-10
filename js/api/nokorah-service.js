@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES } from './tables.js';
 
 /**
  * Get the Nokorah for a specific character
@@ -9,7 +10,7 @@ export async function getNokorahByCharacterId(characterId) {
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
-            .from('nokorahs')
+            .from(TABLES.nokorahs)
             .select('*')
             .eq('character_id', characterId)
             .maybeSingle();
@@ -49,7 +50,7 @@ export async function upsertNokorah(characterId, nokorahData) {
         };
 
         const { data, error } = await supabase
-            .from('nokorahs')
+            .from(TABLES.nokorahs)
             .upsert(payload, {
                 onConflict: 'character_id',
                 returning: 'representation'
@@ -78,7 +79,7 @@ export async function updateNokorah(characterId, updates) {
         const supabase = await getSupabaseClient();
 
         const { data, error } = await supabase
-            .from('nokorahs')
+            .from(TABLES.nokorahs)
             .update(updates)
             .eq('character_id', characterId)
             .select()
@@ -105,7 +106,7 @@ export async function deleteNokorah(characterId) {
         const supabase = await getSupabaseClient();
 
         const { error } = await supabase
-            .from('nokorahs')
+            .from(TABLES.nokorahs)
             .delete()
             .eq('character_id', characterId);
 

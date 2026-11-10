@@ -3,10 +3,9 @@
  * Displays and filters player activity logs
  */
 
-import { getSupabaseClient } from '../../js/api/supabase-client.js';
+import { fetchActivityLogDetails } from '../../js/api/admin-service.js';
 import { queryActivityLogs, getActivityStats, ActionTypes } from '../../js/api/activity-logger.js';
 
-let supabase = null;
 let currentFilters = {
     userId: null,
     characterId: null,
@@ -45,7 +44,6 @@ export async function initActivityLogs() {
     console.log('[ActivityLogs] Initializing...');
 
     try {
-        supabase = await getSupabaseClient();
         initDom();
         initEventListeners();
         await loadLogs();
@@ -492,15 +490,7 @@ async function exportLogs() {
  */
 window.viewLogDetails = async function(logId) {
     try {
-        const { data, error } = await supabase
-            .from('activity_logs')
-            .select(`
-                *,
-                user:users(id, role),
-                character:characters(id, name)
-            `)
-            .eq('id', logId)
-            .single();
+        const { data, error } = await fetchActivityLogDetails(logId);
 
         if (error) {
             console.error('[ActivityLogs] Failed to load log details:', error);

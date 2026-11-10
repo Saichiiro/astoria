@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES, RPC } from './tables.js';
 
 export const CRAFT_CATEGORIES = ['Alchimie', 'Forge', 'Autre'];
 export const CRAFT_RANKS = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
@@ -31,7 +32,7 @@ export async function getCraftRecipes({ force = false } = {}) {
 
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('craft_recipes')
+        .from(TABLES.craftRecipes)
         .select(`
             id,
             title,
@@ -86,7 +87,7 @@ export async function createCraftRecipe(recipe) {
     }
 
     const { data: created, error: createError } = await supabase
-        .from('craft_recipes')
+        .from(TABLES.craftRecipes)
         .insert([payload])
         .select('id')
         .single();
@@ -109,7 +110,7 @@ export async function createCraftRecipe(recipe) {
     }
 
     const { error: ingredientsError } = await supabase
-        .from('craft_recipe_ingredients')
+        .from(TABLES.craftRecipeIngredients)
         .insert(ingredients);
 
     if (ingredientsError) throw ingredientsError;
@@ -136,14 +137,14 @@ export async function updateCraftRecipe(recipeId, recipe) {
     }
 
     const { error: updateError } = await supabase
-        .from('craft_recipes')
+        .from(TABLES.craftRecipes)
         .update(payload)
         .eq('id', recipeId);
 
     if (updateError) throw updateError;
 
     const { error: wipeIngredientsError } = await supabase
-        .from('craft_recipe_ingredients')
+        .from(TABLES.craftRecipeIngredients)
         .delete()
         .eq('recipe_id', recipeId);
 
@@ -165,7 +166,7 @@ export async function updateCraftRecipe(recipeId, recipe) {
     }
 
     const { error: ingredientsError } = await supabase
-        .from('craft_recipe_ingredients')
+        .from(TABLES.craftRecipeIngredients)
         .insert(ingredients);
 
     if (ingredientsError) throw ingredientsError;
@@ -177,7 +178,7 @@ export async function updateCraftRecipe(recipeId, recipe) {
 export async function deleteCraftRecipe(recipeId) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from('craft_recipes')
+        .from(TABLES.craftRecipes)
         .delete()
         .eq('id', recipeId);
 
@@ -200,7 +201,7 @@ export async function executeCraftRecipe(characterId, recipeId, times = 1) {
         role: sessionData?.session?.user?.role
     });
 
-    const { data, error } = await supabase.rpc('execute_craft_recipe', {
+    const { data, error } = await supabase.rpc(RPC.executeCraftRecipe, {
         p_character_id: characterId,
         p_recipe_id: recipeId,
         p_times: safeTimes

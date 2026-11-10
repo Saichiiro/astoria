@@ -1,5 +1,6 @@
 import { getSupabaseClient } from './supabase-client.js';
 import { getActiveCharacter, setActiveCharacterLocal } from './session-store.js';
+import { TABLES } from './tables.js';
 
 // profile_data is a shared JSON blob written by several pages (inventaire, HDV,
 // quêtes, magie, fiche). Writing a cached copy back overwrites whatever another
@@ -37,7 +38,7 @@ export async function patchCharacterProfile(characterId, mutate) {
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
         const { data: row, error: readError } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select('profile_data, updated_at')
             .eq('id', characterId)
             .single();
@@ -51,7 +52,7 @@ export async function patchCharacterProfile(characterId, mutate) {
         }
 
         let query = supabase
-            .from('characters')
+            .from(TABLES.characters)
             .update({ profile_data: next }, { count: 'exact' })
             .eq('id', characterId);
         query = row.updated_at ? query.eq('updated_at', row.updated_at) : query;

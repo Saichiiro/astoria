@@ -3,17 +3,17 @@
  * Built with Tabler UI Framework
  */
 
-import { getSupabaseClient, getAllCharacters, updateCharacter, setActiveCharacter, clearActiveCharacter, getActiveCharacter, getAllItems } from '../../js/auth.js';
+import { getAllCharacters, updateCharacter, setActiveCharacter, clearActiveCharacter, getActiveCharacter, getAllItems } from '../../js/auth.js';
 import { logActivity, ActionTypes } from '../../js/api/activity-logger.js';
 import { getInventoryRows, setInventoryItem, getEquippedSlots } from '../../js/api/inventory-service.js';
 import { getRouteHref } from '../../js/config/routes.js';
+import * as adminApi from '../../js/api/admin-service.js';
 import { adminItemsModal } from './admin-items-modal.js';
 
 (function() {
     'use strict';
 
     // Supabase reference
-    let supabase = null;
     let allCharacters = [];
     let allItems = [];
     let allUsers = [];
@@ -243,14 +243,8 @@ import { adminItemsModal } from './admin-items-modal.js';
      */
     async function loadDashboardStats() {
         try {
-            if (!supabase) {
-                supabase = await getSupabaseClient();
-            }
-
             // Get user count
-            const { count: userCount } = await supabase
-                .from('users')
-                .select('id', { count: 'exact', head: true });
+            const { count: userCount } = await adminApi.countUsers();
 
             // Get characters
             allCharacters = await getAllCharacters() || [];
@@ -264,19 +258,14 @@ import { adminItemsModal } from './admin-items-modal.js';
             // Get active quests count
             let activeQuestCount = 0;
             try {
-                const { count: questCount } = await supabase
-                    .from('quests')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('status', 'available');
+                const { count: questCount } = await adminApi.countQuests({ status: 'available' });
                 activeQuestCount = questCount || 0;
             } catch {}
 
             // Get total quests count for quetes page
             let totalQuestCount = 0;
             try {
-                const { count: questTotal } = await supabase
-                    .from('quests')
-                    .select('id', { count: 'exact', head: true });
+                const { count: questTotal } = await adminApi.countQuests();
                 totalQuestCount = questTotal || 0;
             } catch {}
 
@@ -423,23 +412,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             `;
 
             // Fetch users with character count and total kaels
-            const { data: users, error } = await supabase
-                .from('users')
-                .select(`
-                    id,
-                    username,
-                    role,
-                    created_at,
-                    last_login,
-                    is_active,
-                    characters (
-                        id,
-                        name,
-                        kaels,
-                        is_active
-                    )
-                `)
-                .order('last_login', { ascending: false, nullsLast: true });
+            const { data: users, error } = await adminApi.listUsersWithCharacters();
 
             if (error) {
                 console.error('[Admin] Error loading users:', error);
@@ -587,10 +560,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         if (!confirm) return;
 
         try {
-            const { error } = await supabase
-                .from('users')
-                .update({ role: newRole })
-                .eq('id', userId);
+            const { error } = await adminApi.updateUser(userId, { role: newRole });
 
             if (error) throw error;
 
@@ -1631,13 +1601,10 @@ import { adminItemsModal } from './admin-items-modal.js';
                 const modal = document.getElementById('deleteModal');
                 const charId = modal?.dataset.charId;
 
-                if (!charId || !supabase) return;
+                if (!charId) return;
 
                 try {
-                    const { error } = await supabase
-                        .from('characters')
-                        .delete()
-                        .eq('id', charId);
+                    const { error } = await adminApi.deleteCharacterRow(charId);
 
                     if (error) throw error;
 
@@ -1683,17 +1650,12 @@ import { adminItemsModal } from './admin-items-modal.js';
         if (!tbody) return;
         tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>`;
         try {
-            const { data, error } = await supabase
-                .from('quests')
-                .select('id, name, type, rank, status, repeatable, max_participants, description, rewards, images, completed_by')
-                .order('created_at', { ascending: false });
+            const { data, error } = await adminApi.listQuestsForAdmin();
             if (error) throw error;
             allQuests = data || [];
 
             // Get participant counts
-            const { data: parts } = await supabase
-                .from('quest_participants')
-                .select('quest_id');
+            const { data: parts } = await adminApi.listQuestParticipantQuestIds();
             const partCounts = {};
             (parts || []).forEach(p => { partCounts[p.quest_id] = (partCounts[p.quest_id] || 0) + 1; });
             allQuests.forEach(q => { q._partCount = partCounts[q.id] || 0; });
@@ -1948,10 +1910,10 @@ import { adminItemsModal } from './admin-items-modal.js';
         try {
             let error;
             if (id) {
-                ({ error } = await supabase.from('quests').update(payload).eq('id', id));
+                ({ error } = await adminApi.updateQuestRow(id, payload));
             } else {
                 payload.completed_by = [];
-                ({ error } = await supabase.from('quests').insert(payload));
+                ({ error } = await adminApi.insertQuestRow(payload));
             }
             if (error) throw error;
             questModalInstance?.hide();
@@ -1969,7 +1931,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         const quest = allQuests.find(q => q.id === id);
         if (!confirm(`Supprimer "${quest?.name || id}" ? Cette action est irréversible.`)) return;
         try {
-            const { error } = await supabase.from('quests').delete().eq('id', id);
+            const { error } = await adminApi.deleteQuestRow(id);
             if (error) throw error;
             showToast('Quête supprimée', 'success');
             await loadQuests();
@@ -1986,11 +1948,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         body.innerHTML = `<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>`;
         new bootstrap.Modal(document.getElementById('questParticipantsModal')).show();
         try {
-            const { data, error } = await supabase
-                .from('quest_participants')
-                .select('joined_at, characters(id, name)')
-                .eq('quest_id', questId)
-                .order('joined_at', { ascending: true });
+            const { data, error } = await adminApi.listParticipantsOfQuest(questId);
             if (error) throw error;
             if (!data?.length) {
                 body.innerHTML = `<p class="text-muted text-center py-3">Aucun participant.</p>`;
@@ -2044,7 +2002,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             if (!fjSelectedUser) return;
             const newRole = fjSelectedUser.role === 'admin' ? 'player' : 'admin';
             if (!confirm(`Passer ${fjSelectedUser.username} en "${newRole}" ?`)) return;
-            const { error } = await supabase.from('users').update({ role: newRole }).eq('id', fjSelectedUser.id);
+            const { error } = await adminApi.updateUser(fjSelectedUser.id, { role: newRole });
             if (error) { showToast('Erreur', 'error'); return; }
             fjSelectedUser.role = newRole;
             const idx = allUsers.findIndex(u => u.id === fjSelectedUser.id);
@@ -2059,7 +2017,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             const newActive = fjSelectedUser.is_active === false ? true : false;
             const label = newActive ? 'réactiver' : 'bannir';
             if (!confirm(`Voulez-vous ${label} ${fjSelectedUser.username} ?`)) return;
-            const { error } = await supabase.from('users').update({ is_active: newActive }).eq('id', fjSelectedUser.id);
+            const { error } = await adminApi.updateUser(fjSelectedUser.id, { is_active: newActive });
             if (error) { showToast('Erreur', 'error'); return; }
             fjSelectedUser.is_active = newActive;
             const idx = allUsers.findIndex(u => u.id === fjSelectedUser.id);
@@ -2116,10 +2074,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         profile?.classList.remove('d-none');
 
         // Load characters
-        const { data: chars } = await supabase
-            .from('characters')
-            .select('id, name, kaels, is_active, profile_data')
-            .eq('user_id', uid);
+        const { data: chars } = await adminApi.listCharactersOfUser(uid);
         fjSelectedChars = chars || [];
 
         renderFjHeader();
@@ -2270,7 +2225,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             btn.addEventListener('click', async () => {
                 const charId = btn.dataset.fjCharToggle;
                 const wasActive = btn.dataset.fjCharActive === 'true';
-                const { error } = await supabase.from('characters').update({ is_active: !wasActive }).eq('id', charId);
+                const { error } = await adminApi.updateCharacterRow(charId, { is_active: !wasActive });
                 if (error) { showToast('Erreur', 'error'); return; }
                 const c = fjSelectedChars.find(x => x.id === charId);
                 if (c) c.is_active = !wasActive;
@@ -2327,7 +2282,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             if (mode === 'add') newKaels = (char.kaels || 0) + amount;
             else if (mode === 'remove') newKaels = Math.max(0, (char.kaels || 0) - amount);
             else newKaels = amount;
-            const { error } = await supabase.from('characters').update({ kaels: newKaels }).eq('id', charId);
+            const { error } = await adminApi.updateCharacterRow(charId, { kaels: newKaels });
             if (error) { showToast('Erreur', 'error'); return; }
             char.kaels = newKaels;
             if (input) input.value = '';
@@ -2346,11 +2301,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         try {
             const charIds = fjSelectedChars.map(c => c.id);
             if (!charIds.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>'; return; }
-            const { data: rows } = await supabase
-                .from('character_inventory')
-                .select('id, character_id, item_key, qty, item_id')
-                .in('character_id', charIds)
-                .order('item_key');
+            const { data: rows } = await adminApi.listInventoryOfCharacters(charIds);
             const items = rows || [];
             if (!items.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-backpack"></i><div class="mt-2 text-muted">Inventaire vide</div></div></div>'; return; }
             const charMap = Object.fromEntries(fjSelectedChars.map(c => [c.id, c.name]));
@@ -2372,7 +2323,7 @@ import { adminItemsModal } from './admin-items-modal.js';
             container.querySelectorAll('[data-fj-inv-delete]').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (!confirm('Retirer cet objet ?')) return;
-                    const { error } = await supabase.from('character_inventory').delete().eq('id', btn.dataset.fjInvDelete);
+                    const { error } = await adminApi.deleteInventoryRow(btn.dataset.fjInvDelete);
                     if (error) { showToast('Erreur', 'error'); return; }
                     showToast('Objet retiré', 'success');
                     renderFjTabInventory(container);
@@ -2386,11 +2337,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         try {
             const charIds = fjSelectedChars.map(c => c.id);
             if (!charIds.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucun personnage</div></div></div>'; return; }
-            const { data: parts } = await supabase
-                .from('quest_participants')
-                .select('quest_id, joined_at, characters(name), quests(name, rank, status)')
-                .in('character_id', charIds)
-                .order('joined_at', { ascending: false });
+            const { data: parts } = await adminApi.listParticipationsOfCharacters(charIds);
             const list = parts || [];
             if (!list.length) { container.innerHTML = '<div class="card"><div class="empty-state"><i class="ti ti-map-2"></i><div class="mt-2 text-muted">Aucune participation</div></div></div>'; return; }
             container.innerHTML = `<div class="card"><div class="table-sheet"><table class="table table-vcenter">
@@ -2423,24 +2370,10 @@ import { adminItemsModal } from './admin-items-modal.js';
 
             const charNames = [...new Set(fjSelectedChars.map(c => String(c.name || '').trim()).filter(Boolean))];
             const [partsRes, historyByIdRes, historyByLabelRes] = await Promise.all([
-                supabase
-                    .from('quest_participants')
-                    .select('quest_id, joined_at, characters(name), quests(id, name, rank, status, type)')
-                    .in('character_id', charIds)
-                    .order('joined_at', { ascending: false }),
-                supabase
-                    .from('quest_history')
-                    .select('*')
-                    .in('character_id', charIds)
-                    .order('date', { ascending: false })
-                    .limit(80),
+                adminApi.listParticipationsWithQuestType(charIds),
+                adminApi.listQuestHistoryBy('character_id', charIds, 80),
                 charNames.length
-                    ? supabase
-                        .from('quest_history')
-                        .select('*')
-                        .in('character_label', charNames)
-                        .order('date', { ascending: false })
-                        .limit(80)
+                    ? adminApi.listQuestHistoryBy('character_label', charNames, 80)
                     : Promise.resolve({ data: [], error: null })
             ]);
 
@@ -2574,22 +2507,12 @@ import { adminItemsModal } from './admin-items-modal.js';
 
     async function syncCompetencesSources(characterId) {
         if (!characterId) return { ok: false, reason: 'missing-character' };
-        if (!supabase) supabase = await getSupabaseClient();
-
-        const { data: characterRow, error: characterError } = await supabase
-            .from('characters')
-            .select('id, name, profile_data')
-            .eq('id', characterId)
-            .maybeSingle();
+        const { data: characterRow, error: characterError } = await adminApi.fetchCharacterWithProfile(characterId);
         if (characterError || !characterRow) {
             throw characterError || new Error('Personnage introuvable');
         }
 
-        const { data: competencesRow, error: competencesError } = await supabase
-            .from('character_competences')
-            .select('data')
-            .eq('character_id', characterId)
-            .maybeSingle();
+        const { data: competencesRow, error: competencesError } = await adminApi.fetchCompetencesRow(characterId);
         if (competencesError) throw competencesError;
 
         const tableData = competencesRow?.data || null;
@@ -2605,15 +2528,10 @@ import { adminItemsModal } from './admin-items-modal.js';
             competences: snapshot
         };
 
-        const { error: upsertError } = await supabase
-            .from('character_competences')
-            .upsert({ character_id: characterId, data: snapshot });
+        const { error: upsertError } = await adminApi.upsertCompetencesRow(characterId, snapshot);
         if (upsertError) throw upsertError;
 
-        const { error: updateError } = await supabase
-            .from('characters')
-            .update({ profile_data: nextProfileData })
-            .eq('id', characterId);
+        const { error: updateError } = await adminApi.updateCharacterRow(characterId, { profile_data: nextProfileData });
         if (updateError) throw updateError;
 
         await logActivity(ActionTypes.CHARACTER_UPDATE, `Resynchronisation des competences pour ${characterRow.name}`, {
@@ -2630,11 +2548,7 @@ import { adminItemsModal } from './admin-items-modal.js';
         container.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border spinner-border-sm me-2"></div>Chargement...</div>';
 
         try {
-            if (!supabase) supabase = await getSupabaseClient();
-            const { data: characters, error } = await supabase
-                .from('characters')
-                .select('id, name, profile_data')
-                .order('name');
+            const { data: characters, error } = await adminApi.listCharactersWithProfile();
 
             if (error) throw error;
             if (!characters?.length) {
@@ -2648,10 +2562,7 @@ import { adminItemsModal } from './admin-items-modal.js';
 
             let competencesByCharacterId = new Map();
             if (characterIds.length) {
-                const { data: competencesRows, error: competencesError } = await supabase
-                    .from('character_competences')
-                    .select('character_id, data')
-                    .in('character_id', characterIds);
+                const { data: competencesRows, error: competencesError } = await adminApi.listCompetencesRows(characterIds);
 
                 if (competencesError) throw competencesError;
 
@@ -2803,9 +2714,6 @@ import { adminItemsModal } from './admin-items-modal.js';
         // Check authentication
         const isAuthorized = await checkAuth();
         if (!isAuthorized) return;
-
-        // Initialize Supabase early
-        supabase = await getSupabaseClient();
 
         // Initialize navigation
         initNavigation();

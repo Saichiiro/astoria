@@ -1,11 +1,12 @@
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES } from './tables.js';
 
 async function readCompetencesTable(characterId) {
     if (!characterId) return { data: null, error: null };
     try {
         const supabase = await getSupabaseClient();
         const { data, error } = await supabase
-            .from('character_competences')
+            .from(TABLES.characterCompetences)
             .select('data')
             .eq('character_id', characterId)
             .maybeSingle();
@@ -47,7 +48,7 @@ export async function getCharacterCompetencesSnapshot(characterId) {
     try {
         const supabase = await getSupabaseClient();
         const { data, error } = await supabase
-            .from('characters')
+            .from(TABLES.characters)
             .select('profile_data')
             .eq('id', characterId)
             .maybeSingle();
@@ -72,7 +73,7 @@ export async function getCharacterCompetencesSnapshot(characterId) {
 export async function saveCharacterCompetences(characterId, data) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from('character_competences')
+        .from(TABLES.characterCompetences)
         .upsert({ character_id: characterId, data });
     if (error) throw error;
 }

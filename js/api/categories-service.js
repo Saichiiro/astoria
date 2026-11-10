@@ -1,4 +1,5 @@
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES } from './tables.js';
 
 const FALLBACK_CATEGORIES = [
     { slug: 'agricole', name: 'Agricole', icon: '🌾', is_active: true, display_order: 1 },
@@ -66,7 +67,7 @@ async function fetchCategories() {
 
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('categories')
+        .from(TABLES.categories)
         .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
@@ -92,7 +93,7 @@ async function fetchCategories() {
 export async function getCategory(slug) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('categories')
+        .from(TABLES.categories)
         .select('*')
         .eq('slug', slug)
         .eq('is_active', true)
@@ -116,7 +117,7 @@ export async function getCategory(slug) {
 export async function upsertCategory(category) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('categories')
+        .from(TABLES.categories)
         .upsert(category, { onConflict: 'slug' })
         .select()
         .single();

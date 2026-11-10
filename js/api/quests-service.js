@@ -1,11 +1,8 @@
 // Quests data access: quests, participants, history, realtime channel.
 // Pages call these functions and never touch the Supabase client directly.
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES, CHANNELS } from './tables.js';
 
-const QUESTS_TABLE = 'quests';
-const QUESTS_LIST_VIEW = 'quests_list';
-const QUEST_HISTORY_TABLE = 'quest_history';
-const QUEST_PARTICIPANTS_TABLE = 'quest_participants';
 const QUESTS_SELECT_COLUMNS = 'id,name,type,rank,status,repeatable,description,locations,rewards,prerequisites,images,max_participants,completed_by,created_at';
 const QUESTS_POLL_COLUMNS = 'id,status,max_participants,completed_by';
 const QUEST_HISTORY_SELECT_COLUMNS = '*';
@@ -22,14 +19,14 @@ function shouldFallbackToListView(error, { includeMissingRelation }) {
 export async function fetchQuestsPage(from, to) {
     const supabase = await getSupabaseClient();
     let { data, error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .select(QUESTS_SELECT_COLUMNS)
         .order('created_at', { ascending: true })
         .range(from, to);
 
     if (error && shouldFallbackToListView(error, { includeMissingRelation: true })) {
         ({ data, error } = await supabase
-            .from(QUESTS_LIST_VIEW)
+            .from(TABLES.questsListView)
             .select('*')
             .order('created_at', { ascending: true })
             .range(from, to));
@@ -42,7 +39,7 @@ export async function fetchQuestsPage(from, to) {
 export async function fetchQuestsDeltaPoll() {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .select(QUESTS_POLL_COLUMNS)
         .order('created_at', { ascending: true });
     if (error) throw error;
@@ -53,13 +50,13 @@ export async function fetchQuestsDeltaPoll() {
 export async function fetchQuestRowById(questId) {
     const supabase = await getSupabaseClient();
     let { data, error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .select(QUESTS_SELECT_COLUMNS)
         .eq('id', questId)
         .single();
     if (error && shouldFallbackToListView(error, { includeMissingRelation: false })) {
         ({ data, error } = await supabase
-            .from(QUESTS_LIST_VIEW)
+            .from(TABLES.questsListView)
             .select('*')
             .eq('id', questId)
             .single());
@@ -71,7 +68,7 @@ export async function fetchQuestRowById(questId) {
 export async function fetchQuestParticipants(questIds = null) {
     const supabase = await getSupabaseClient();
     let query = supabase
-        .from(QUEST_PARTICIPANTS_TABLE)
+        .from(TABLES.questParticipants)
         .select(`
                 quest_id,
                 character_id,
@@ -93,12 +90,12 @@ export async function fetchQuestParticipants(questIds = null) {
 export async function replaceQuestParticipants(questId, rows) {
     const supabase = await getSupabaseClient();
     await supabase
-        .from(QUEST_PARTICIPANTS_TABLE)
+        .from(TABLES.questParticipants)
         .delete()
         .eq('quest_id', questId);
     if (!rows.length) return;
     const { error } = await supabase
-        .from(QUEST_PARTICIPANTS_TABLE)
+        .from(TABLES.questParticipants)
         .insert(rows);
     if (error) throw error;
 }
@@ -106,7 +103,7 @@ export async function replaceQuestParticipants(questId, rows) {
 export async function upsertQuestRow(payload) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .upsert([payload], { onConflict: 'id' });
     if (error) throw error;
 }
@@ -114,7 +111,7 @@ export async function upsertQuestRow(payload) {
 export async function deleteQuestRow(questId) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .delete()
         .eq('id', questId);
     if (error) throw error;
@@ -123,7 +120,7 @@ export async function deleteQuestRow(questId) {
 export async function fetchQuestHistoryRows(characterId, limit) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from(QUEST_HISTORY_TABLE)
+        .from(TABLES.questHistory)
         .select(QUEST_HISTORY_SELECT_COLUMNS)
         .order('date', { ascending: false })
         .limit(limit)
@@ -136,7 +133,7 @@ export async function fetchQuestHistoryRows(characterId, limit) {
 export async function upsertQuestHistoryRow(payload) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from(QUEST_HISTORY_TABLE)
+        .from(TABLES.questHistory)
         .upsert([payload], { onConflict: 'id' });
     return { error };
 }
@@ -148,14 +145,14 @@ export async function subscribeToQuestChanges({ onChange, onStatus }) {
     const supabase = await getSupabaseClient();
     if (!supabase?.channel) return null;
     const channel = supabase
-        .channel('astoria-quests-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: QUESTS_TABLE }, () => {
+        .channel(CHANNELS.quests)
+        .on('postgres_changes', { event: '*', schema: 'public', table: TABLES.quests }, () => {
             onChange({ refreshHistory: false });
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: QUEST_PARTICIPANTS_TABLE }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: TABLES.questParticipants }, () => {
             onChange({ refreshHistory: false });
         })
-        .on('postgres_changes', { event: '*', schema: 'public', table: QUEST_HISTORY_TABLE }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: TABLES.questHistory }, () => {
             onChange({ refreshHistory: true });
         })
         .subscribe(onStatus);
@@ -172,7 +169,7 @@ export async function subscribeToQuestChanges({ onChange, onStatus }) {
 export async function fetchQuestSummaries() {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from(QUESTS_TABLE)
+        .from(TABLES.quests)
         .select('id, name, type, rank, description')
         .order('name', { ascending: true });
     if (error) throw error;

@@ -447,12 +447,12 @@
             getCharacterById,
             setActiveCharacter,
             createCharacter,
-            getSupabaseClient,
             updateCharacter,
             logout,
             isAdmin
         } from './js/auth.js';
         import { initProfileTagSelector } from './js/pages/profil/profile-tags.js';
+        import { uploadCharacterAvatar } from './js/api/profiles-service.js';
         import { initCharacterSummary } from './js/ui/character-summary.js';
         const authControls = document.getElementById('authControls');
         const profileContent = document.getElementById('profileContent');
@@ -498,7 +498,6 @@
         let isQuillAvailable = false;
         let quill = null;
         const APP_DOCK_DISABLED = true;
-        const AVATAR_BUCKET = 'avatars';
         const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
         const PRESENTATION_LIMIT = 10;
         const PRESENTATION_MAX_SIZE = 50 * 1024;
@@ -1990,25 +1989,12 @@
             }
             avatarTrigger.classList.add('is-uploading');
             try {
-                const supabase = await getSupabaseClient();
-                const safeName = String(file.name || 'avatar')
-                    .toLowerCase()
-                    .replace(/[^a-z0-9_.-]/g, '_');
-                const filePath = `characters/${currentCharacter.id}/${Date.now()}_${safeName}`;
-                const { error: uploadError } = await supabase.storage
-                    .from(AVATAR_BUCKET)
-                    .upload(filePath, file, {
-                        cacheControl: '31536000',
-                        upsert: true,
-                        contentType: file.type
-                    });
+                const { publicUrl, error: uploadError } = await uploadCharacterAvatar(currentCharacter.id, file);
                 if (uploadError) {
                     console.error(uploadError);
                     toastManager.error('Upload impossible. Vérifiez le bucket avatars');
                     return;
                 }
-                const { data: publicData } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(filePath);
-                const publicUrl = publicData?.publicUrl;
                 if (!publicUrl) {
                     toastManager.error('URL avatar introuvable');
                     return;

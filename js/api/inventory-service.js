@@ -1,9 +1,10 @@
 import { getSupabaseClient } from './supabase-client.js';
+import { TABLES } from './tables.js';
 
 export async function getInventoryRows(characterId) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('character_inventory')
+        .from(TABLES.characterInventory)
         .select('id, item_id, item_key, item_index, qty')
         .eq('character_id', characterId)
         .order('item_index', { ascending: true });
@@ -28,7 +29,7 @@ export async function replaceInventoryRows(characterId, rows) {
     const desired = Array.isArray(rows) ? rows : [];
 
     const { data: existing, error: readError } = await supabase
-        .from('character_inventory')
+        .from(TABLES.characterInventory)
         .select('id, item_id, item_key, item_index, qty')
         .eq('character_id', characterId);
     if (readError) throw readError;
@@ -66,15 +67,15 @@ export async function replaceInventoryRows(characterId, rows) {
     // Delete first so updated keys cannot collide with leftover duplicates.
     const staleIds = Array.from(unmatched.keys());
     if (staleIds.length) {
-        const { error } = await supabase.from('character_inventory').delete().in('id', staleIds);
+        const { error } = await supabase.from(TABLES.characterInventory).delete().in('id', staleIds);
         if (error) throw error;
     }
     if (updates.length) {
-        const { error } = await supabase.from('character_inventory').upsert(updates, { onConflict: 'id' });
+        const { error } = await supabase.from(TABLES.characterInventory).upsert(updates, { onConflict: 'id' });
         if (error) throw error;
     }
     if (inserts.length) {
-        const { error } = await supabase.from('character_inventory').insert(inserts);
+        const { error } = await supabase.from(TABLES.characterInventory).insert(inserts);
         if (error) throw error;
     }
     return desired;
@@ -86,7 +87,7 @@ export async function upsertInventoryRows(rows) {
 
     const hasItemId = rows.every((row) => Boolean(row?.item_id));
     const { data, error } = await supabase
-        .from('character_inventory')
+        .from(TABLES.characterInventory)
         .upsert(rows, { onConflict: hasItemId ? 'character_id,item_id' : 'character_id,item_key' })
         .select('id, item_id, item_key, item_index, qty');
 
@@ -122,7 +123,7 @@ export async function setInventoryItem(characterId, itemKeyOrPayload, itemIndex,
 
     if (safeQty <= 0) {
         let query = supabase
-            .from('character_inventory')
+            .from(TABLES.characterInventory)
             .delete()
             .eq('character_id', characterId);
         query = safeItemId
@@ -142,7 +143,7 @@ export async function setInventoryItem(characterId, itemKeyOrPayload, itemIndex,
     };
 
     const { data, error } = await supabase
-        .from('character_inventory')
+        .from(TABLES.characterInventory)
         .upsert([payload], { onConflict: safeItemId ? 'character_id,item_id' : 'character_id,item_key' })
         .select('id, item_id, item_key, item_index, qty')
         .single();
@@ -156,7 +157,7 @@ export async function setInventoryItem(characterId, itemKeyOrPayload, itemIndex,
 export async function getEquippedSlots(characterId) {
     const supabase = await getSupabaseClient();
     const { data, error } = await supabase
-        .from('character_equipped')
+        .from(TABLES.characterEquipped)
         .select('id, slot_key, item_id, item_key, item_index')
         .eq('character_id', characterId);
     if (error) throw error;
@@ -175,7 +176,7 @@ export async function setEquippedSlot(characterId, slotKey, item) {
         updated_at: new Date().toISOString()
     };
     const { data, error } = await supabase
-        .from('character_equipped')
+        .from(TABLES.characterEquipped)
         .upsert([payload], { onConflict: 'character_id,slot_key' })
         .select('id, slot_key, item_id, item_key, item_index')
         .single();
@@ -186,7 +187,7 @@ export async function setEquippedSlot(characterId, slotKey, item) {
 export async function clearEquippedSlot(characterId, slotKey) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from('character_equipped')
+        .from(TABLES.characterEquipped)
         .delete()
         .eq('character_id', characterId)
         .eq('slot_key', slotKey);
@@ -196,7 +197,7 @@ export async function clearEquippedSlot(characterId, slotKey) {
 export async function clearAllEquippedSlots(characterId) {
     const supabase = await getSupabaseClient();
     const { error } = await supabase
-        .from('character_equipped')
+        .from(TABLES.characterEquipped)
         .delete()
         .eq('character_id', characterId);
     if (error) throw error;

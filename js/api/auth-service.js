@@ -7,6 +7,7 @@ import {
     writeSession
 } from "./session-store.js";
 import { ActionTypes, logActivity } from "./activity-logger.js";
+import { TABLES } from './tables.js';
 
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -29,7 +30,7 @@ async function simpleHash(str) {
 
 async function readPublicUserByUsername(supabase, username) {
     const { data, error } = await supabase
-        .from("users")
+        .from(TABLES.users)
         .select("id, username, role, is_active, password_hash, auth_user_id")
         .eq("username", username)
         .limit(1);
@@ -40,7 +41,7 @@ async function readPublicUserByUsername(supabase, username) {
 
 async function readPublicUserByAuthId(supabase, authUserId) {
     const { data, error } = await supabase
-        .from("users")
+        .from(TABLES.users)
         .select("id, username, role, is_active, password_hash, auth_user_id")
         .eq("auth_user_id", authUserId)
         .limit(1);
@@ -97,7 +98,7 @@ async function linkPublicUserToAuth(supabase, publicUserId, authUserId, authProv
     if (!publicUserId || !authUserId) return;
     const payload = { auth_user_id: authUserId, auth_provider: authProvider };
     if (stampLogin) payload.last_login = new Date().toISOString();
-    await supabase.from("users").update(payload).eq("id", publicUserId);
+    await supabase.from(TABLES.users).update(payload).eq("id", publicUserId);
 }
 
 async function syncAuthProfileMetadata(supabase, { displayName } = {}) {
@@ -222,7 +223,7 @@ export async function register(username, password) {
 
         const passwordHash = await simpleHash(password);
         const { data, error } = await supabase
-            .from("users")
+            .from(TABLES.users)
             .insert([
                 {
                     username: cleanUsername,
@@ -359,7 +360,7 @@ async function performSessionRefresh() {
         if (localUser?.id) {
             await linkPublicUserToAuth(supabase, localUser.id, anon.user.id, "anonymous");
             const { data, error } = await supabase
-                .from("users")
+                .from(TABLES.users)
                 .select("id, username, role, is_active, auth_user_id")
                 .eq("id", localUser.id)
                 .single();
@@ -404,7 +405,7 @@ export async function setUserRoleByUsername(username, role) {
     try {
         const supabase = await getSupabaseClient();
         const { data, error } = await supabase
-            .from("users")
+            .from(TABLES.users)
             .update({ role: nextRole })
             .eq("username", cleanUsername)
             .select("id, username, role, auth_user_id")
@@ -447,7 +448,7 @@ export async function resetUserPassword(username, newPassword) {
 
         const passwordHash = await simpleHash(cleanPassword);
         const update = await supabase
-            .from("users")
+            .from(TABLES.users)
             .update({ password_hash: passwordHash })
             .eq("id", user.id)
             .select("id, username")
@@ -502,7 +503,7 @@ export async function resetUserPasswordPublic(username, newPassword) {
 
         const passwordHash = await simpleHash(cleanPassword);
         const update = await supabase
-            .from("users")
+            .from(TABLES.users)
             .update({ password_hash: passwordHash })
             .eq("id", user.id)
             .select("id, username")
@@ -537,7 +538,7 @@ export async function createAdminUser(username, password) {
 
         if (existing) {
             const updated = await supabase
-                .from("users")
+                .from(TABLES.users)
                 .update({
                     role: "admin",
                     password_hash: passwordHash,
@@ -556,7 +557,7 @@ export async function createAdminUser(username, password) {
         }
 
         const created = await supabase
-            .from("users")
+            .from(TABLES.users)
             .insert([
                 {
                     username: cleanUsername,
