@@ -1,5 +1,8 @@
 body.quest-board {
     --quest-pink: #ff6aa2;
+    /* Fill behind white text (4.5:1 needed; the light pink gives 2.7:1). */
+    --quest-pink-strong: var(--color-primary);
+    --quest-coral: #ff8b7b;
     --quest-rose: #ff90bf;
     --quest-lilac: #cbb5ff;
     --quest-sky: #e7ddff;
@@ -285,8 +288,8 @@ body.quest-board {
 }
 
 .quest-my-quests-btn.is-active {
-    background: var(--quest-pink);
-    border-color: var(--quest-pink);
+    background: var(--quest-pink-strong);
+    border-color: var(--quest-pink-strong);
     color: #fff;
     box-shadow: 0 14px 24px rgba(255, 106, 162, 0.24);
 }
@@ -379,7 +382,7 @@ body.quest-board {
 }
 
 .quest-view-toggle-btn.is-active {
-    background: linear-gradient(135deg, #ff6aa2, #ff8b7b);
+    background: linear-gradient(135deg, var(--quest-pink-strong), color-mix(in srgb, var(--quest-pink-strong) 70%, var(--quest-coral)));
     color: #fff;
     box-shadow: 0 10px 22px rgba(255, 106, 162, 0.25);
 }
@@ -604,7 +607,7 @@ body.quest-board {
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     font-weight: 700;
     position: absolute;
@@ -764,9 +767,9 @@ body.quest-board {
 }
 
 .quest-history-tab.active {
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
-    border-color: var(--quest-pink);
+    border-color: var(--quest-pink-strong);
 }
 
 .quest-history-header h2 {
@@ -831,8 +834,8 @@ body.quest-board {
 }
 
 .quest-history-filter.active {
-    border-color: var(--quest-pink);
-    background: var(--quest-pink);
+    border-color: var(--quest-pink-strong);
+    background: var(--quest-pink-strong);
     color: #fff;
 }
 
@@ -1093,7 +1096,7 @@ body.quest-board {
     position: absolute;
     left: -18px;
     top: 6px;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     padding: 6px 14px;
     border-radius: 999px;
@@ -1367,7 +1370,7 @@ body.quest-board {
     padding: 10px 20px;
     border-radius: 16px;
     font-weight: 700;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     cursor: pointer;
     box-shadow: 0 12px 22px rgba(255, 106, 162, 0.35);
@@ -1685,7 +1688,7 @@ body.quest-board {
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     border: none;
     border-radius: 12px;
@@ -1998,7 +2001,7 @@ body.quest-board {
 }
 #questAddRewardBtn {
     border: none;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     border-radius: 12px;
     padding: 8px 12px;
@@ -2208,7 +2211,7 @@ body.quest-board {
     border: none;
     font-size: 1.4rem;
     cursor: pointer;
-    background: var(--quest-pink);
+    background: var(--quest-pink-strong);
     color: #fff;
     box-shadow: var(--quest-shadow);
     transition: transform 0.2s ease, box-shadow 0.2s ease;

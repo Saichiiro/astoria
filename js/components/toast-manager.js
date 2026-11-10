@@ -19,6 +19,18 @@ class ToastManager {
             dismissible: true,
             ripple: true,
         });
+        this.labelDismissButtons();
+    }
+
+    // Notyf renders its close button without any text: give it an accessible name
+    // (observing only Notyf's own container, so this costs nothing elsewhere).
+    labelDismissButtons() {
+        const container = this.notyf?.view?.container;
+        if (!container || typeof MutationObserver === 'undefined') return;
+        const label = () => container.querySelectorAll('.notyf__dismiss-btn:not([aria-label])')
+            .forEach((btn) => btn.setAttribute('aria-label', 'Fermer la notification'));
+        new MutationObserver(label).observe(container, { childList: true, subtree: true });
+        label();
     }
 
     /**

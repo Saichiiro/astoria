@@ -115,7 +115,7 @@
                             Je peux l'acheter
                         </label>
                     </section>
-                    <div class="filter-chips" id="hdvChips" aria-label="Filtres actifs"></div>
+                    <div class="filter-chips" id="hdvChips" role="group" aria-label="Filtres actifs"></div>
                     <div class="hdv-status" id="hdvSearchStatus" aria-live="polite"></div>
                     <div class="table-container tw-panel">
                         <table aria-label="Résultats Hôtel de vente">
@@ -132,7 +132,7 @@
                             <tbody id="hdvListingsBody"></tbody>
                         </table>
                     </div>
-                    <div class="hdv-pagination" id="hdvPagination" aria-label="Pagination"></div>
+                    <div class="hdv-pagination" id="hdvPagination" role="navigation" aria-label="Pagination"></div>
                 </div>
                 <div class="hdv-panel tw-surface tw-panel" id="hdvTabMine" role="tabpanel" aria-label="Mes offres">
                     <div class="hdv-status" id="hdvMineStatus" aria-live="polite"></div>
@@ -214,6 +214,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.6.1"></script>
     <script type="module" src="js/ui/app-shell.js"></script>
     <script type="module" src="js/hdv.js"></script>
+    <script src="js/ui/inert-hidden.js" defer></script>
     <script src="js/sidebar.js"></script>
     <script src="js/ui/headroom.js"></script>
     <script type="module" src="js/ui/mobile-filters.js"></script>
