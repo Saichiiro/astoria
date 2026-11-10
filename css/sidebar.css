@@ -112,6 +112,22 @@ body.sidebar-layout {
   padding: 4px 6px;
 }
 
+.sidebar-layout .menu-group-title {
+  padding: 10px 12px 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sidebar-accent-dark);
+  opacity: 0.8;
+}
+
+.sidebar-layout .menu-external {
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
 .sidebar-layout .menu-footer {
   margin-top: auto;
   padding-top: 8px;

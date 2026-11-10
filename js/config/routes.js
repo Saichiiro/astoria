@@ -17,11 +17,6 @@ const ROUTE_DEFINITIONS = Object.freeze({
   nokorah: { path: "html/nokorah.html", area: "app", label: "Nokorah" },
   codex: { path: "html/codex.html", area: "app", label: "Codex" },
   admin: { path: "admin/index.html", area: "admin", label: "Admin" },
-  publicUniverse: { path: "univers.html", area: "public", label: "Univers" },
-  publicKingdoms: { path: "royaumes.html", area: "public", label: "Royaumes" },
-  publicGameplay: { path: "gameplay.html", area: "public", label: "Gameplay" },
-  publicRoadmap: { path: "prochainement.html", area: "public", label: "Prochainement" },
-  publicJoin: { path: "rejoindre.html", area: "public", label: "Rejoindre" },
 });
 
 export const ROUTES = Object.freeze(
