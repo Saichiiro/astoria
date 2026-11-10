@@ -129,57 +129,6 @@
 
   body.insertAdjacentHTML("afterbegin", markup);
 
-  // "Astoria" group: home page and the Astoria sites (data/glossaire.json > liens),
-  // the same list as the public home page, so every link is one tap away in the game.
-  import(resolveModuleUrl("./public/site-links.js"))
-    .then(({ loadSiteLinks }) => loadSiteLinks())
-    .then((sites) => {
-      const list = document.querySelector("#sidebarMenu .sidebarMenuInner");
-      const footer = list?.querySelector(".menu-footer");
-      if (!list || !footer) return;
-
-      const makeItem = (href, label, icon, external) => {
-        const item = document.createElement("li");
-        item.className = "menu-item";
-        const row = document.createElement("div");
-        row.className = "sidebar-row";
-        const link = document.createElement("a");
-        link.className = "menu-link";
-        link.href = href;
-        const iconEl = document.createElement("span");
-        iconEl.className = "menu-icon";
-        iconEl.setAttribute("aria-hidden", "true");
-        iconEl.textContent = icon;
-        const text = document.createElement("span");
-        text.className = "menu-text";
-        text.textContent = label;
-        link.append(iconEl, text);
-        if (external) {
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.setAttribute("aria-label", `${label} (nouvel onglet)`);
-          const mark = document.createElement("span");
-          mark.className = "menu-external";
-          mark.setAttribute("aria-hidden", "true");
-          mark.textContent = "↗";
-          link.appendChild(mark);
-        }
-        row.appendChild(link);
-        item.appendChild(row);
-        return item;
-      };
-
-      const title = document.createElement("li");
-      title.className = "menu-item menu-group-title";
-      title.textContent = "Astoria";
-      list.insertBefore(title, footer);
-      list.insertBefore(makeItem(getRouteHref("publicHome"), "Accueil", "🏠", false), footer);
-      sites.forEach((site) => {
-        list.insertBefore(makeItem(site.href, site.titre, site.icone || "🔗", site.external), footer);
-      });
-    })
-    .catch((error) => console.warn("Sidebar site links unavailable:", error));
-
   const refreshHeadroom = () => {
     if (window.astoriaScrollUI && typeof window.astoriaScrollUI.init === "function") {
       window.astoriaScrollUI.init();
