@@ -53,3 +53,30 @@ export function showTableError(tbody, { columns, message, onRetry } = {}) {
     tr.appendChild(td);
     tbody.appendChild(tr);
 }
+
+const tableRequestIds = new WeakMap();
+
+function getTableColumnCount(body) {
+    return body?.closest('table')?.tHead?.rows?.[0]?.cells?.length || 1;
+}
+
+// Loads data into a table body: skeleton/dimmed rows while loading, an error
+// row with retry on failure, and only the latest request for a table renders.
+// Resolves { ok: true, data } | { ok: false } | { stale: true } (a newer request won).
+export async function loadTable(body, { load, render, errorMessage, onRetry }) {
+    const requestId = (tableRequestIds.get(body) || 0) + 1;
+    tableRequestIds.set(body, requestId);
+    setTableLoading(body, { columns: getTableColumnCount(body) });
+    try {
+        const data = await load();
+        if (tableRequestIds.get(body) !== requestId) return { stale: true };
+        clearTableLoading(body);
+        render(data);
+        return { ok: true, data };
+    } catch (err) {
+        if (tableRequestIds.get(body) !== requestId) return { stale: true };
+        console.error(err);
+        showTableError(body, { columns: getTableColumnCount(body), message: errorMessage, onRetry });
+        return { ok: false };
+    }
+}

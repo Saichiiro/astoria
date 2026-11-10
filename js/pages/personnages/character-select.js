@@ -8,8 +8,8 @@ import {
     createCharacter,
     logout,
     refreshSessionUser
-} from './auth.js';
-import { redirectToRoute } from './config/routes.js';
+} from '../../auth.js';
+import { redirectToRoute } from '../../config/routes.js';
 
 const MAX_SLOTS = 5;
 

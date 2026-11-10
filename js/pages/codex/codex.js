@@ -1567,8 +1567,8 @@ window.astoriaCodex = {
 bindPageEvents();
 void (async () => {
     try {
-        const auth = await import('./auth.js');
-        const routes = await import('./config/routes.js');
+        const auth = await import('../../auth.js');
+        const routes = await import('../../config/routes.js');
         const refreshed = await auth.refreshSessionUser?.();
         const isAdminUser = Boolean(auth.isAdmin?.());
         window.astoriaIsAdmin = isAdminUser;
@@ -1579,7 +1579,7 @@ void (async () => {
     } catch (error) {
         console.warn('[Codex] Admin gate failed:', error);
         try {
-            const routes = await import('./config/routes.js');
+            const routes = await import('../../config/routes.js');
             window.location.href = routes.getRouteHref('inventory');
         } catch {
             window.location.href = 'html/inventaire.html';

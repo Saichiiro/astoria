@@ -3,7 +3,7 @@
  * This demonstrates how the SAME component can be reused for different pages
  */
 
-import { ItemsModal } from './components/ui/index.js';
+import { ItemsModal } from '../../components/ui/index.js';
 
 /**
  * Initialize items modal for inventory

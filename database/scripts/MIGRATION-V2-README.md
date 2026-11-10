@@ -7,7 +7,7 @@ All backend refactoring has been completed. The database schema and frontend cod
 ## Files Modified
 
 ### Database Schema
-- **[supabase-schema.sql](../supabase-schema.sql)** - Integrated all V2 changes:
+- **[database/schema.sql](../database/schema.sql)** - Integrated all V2 changes:
   - Added `categories` table
   - Removed `items.badges` column
   - Changed `market.item_id` from TEXT to UUID with FK constraint
@@ -17,7 +17,7 @@ All backend refactoring has been completed. The database schema and frontend cod
   - Added FK constraint `items.category` → `categories.slug`
 
 ### Frontend JavaScript
-- **[js/quetes.js](../js/quetes.js)** - Updated for quest_participants table:
+- **[js/pages/quetes/quetes.js](../js/quetes.js)** - Updated for quest_participants table:
   - Loads participants via `loadParticipantsForQuests()` with JOIN
   - Saves participants via `upsertQuestParticipants()`
   - Removed JSONB participants handling
@@ -26,13 +26,13 @@ All backend refactoring has been completed. The database schema and frontend cod
   - Removed `item_name` from denormalized metadata
   - Added `items` JOIN to all queries (searchListings, getMyHistory, getMyListings)
 
-- **[js/hdv.js](../js/hdv.js)** - Updated for market changes:
+- **[js/pages/hdv/hdv.js](../js/hdv.js)** - Updated for market changes:
   - Uses `listing.items.name` instead of `listing.item_name`
   - Handles joined items data correctly
 
 ### Migration Scripts
-- **[scripts/migration-v2-cleanup.sql](migration-v2-cleanup.sql)** - Forward migration
-- **[scripts/migration-v2-rollback.sql](migration-v2-rollback.sql)** - Rollback migration
+- **[database/scripts/migration-v2-cleanup.sql](migration-v2-cleanup.sql)** - Forward migration
+- **[database/scripts/migration-v2-rollback.sql](migration-v2-rollback.sql)** - Rollback migration
 
 ## Deployment Steps
 
@@ -45,7 +45,7 @@ All backend refactoring has been completed. The database schema and frontend cod
 ### 2. Run Migration
 ```sql
 -- In Supabase SQL Editor
--- Copy/paste contents of scripts/migration-v2-cleanup.sql
+-- Copy/paste contents of database/scripts/migration-v2-cleanup.sql
 -- Review output for any errors
 ```
 
@@ -170,7 +170,7 @@ If critical issues occur:
 
 ```sql
 -- In Supabase SQL Editor
--- Copy/paste contents of scripts/migration-v2-rollback.sql
+-- Copy/paste contents of database/scripts/migration-v2-rollback.sql
 -- This will restore database to pre-V2 state
 ```
 

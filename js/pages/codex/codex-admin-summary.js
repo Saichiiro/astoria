@@ -1,5 +1,5 @@
-import { initCharacterSummary } from "./ui/character-summary.js";
-import { isAdmin, refreshSessionUser } from "./auth.js";
+import { initCharacterSummary } from "../../ui/character-summary.js";
+import { isAdmin, refreshSessionUser } from "../../auth.js";
 
 function initCodexAdminSummary() {
     return Promise.resolve(refreshSessionUser?.())

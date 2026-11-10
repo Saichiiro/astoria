@@ -34,9 +34,13 @@
         ]
     };
 
+    // encodeURIComponent leaves apostrophes untouched; they are encoded too so the
+    // data URL stays safe inside single-quoted JS strings (onerror="this.src='...'").
+    const encodeSvg = (svg) => encodeURIComponent(svg).replace(/'/g, "%27");
+
     const largePlaceholder =
         "data:image/svg+xml;utf8," +
-        encodeURIComponent(
+        encodeSvg(
             "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'>" +
                 "<rect width='200' height='200' fill='#fce4ec'/>" +
                 "<text x='50%' y='50%' text-anchor='middle' fill='#d81b60' font-family='Segoe UI, Arial' font-size='16'>Image</text>" +
@@ -45,7 +49,7 @@
 
     const smallPlaceholder =
         "data:image/svg+xml;utf8," +
-        encodeURIComponent(
+        encodeSvg(
             "<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'>" +
                 "<rect width='80' height='80' fill='#f0f0f0'/>" +
                 "<text x='50%' y='50%' text-anchor='middle' dy='0.3em' fill='#d81b60' font-family='Arial' font-size='14'>?</text>" +

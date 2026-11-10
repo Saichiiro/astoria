@@ -2,7 +2,7 @@
 // Modal de sélection des prérequis (quêtes) - Extension pour quetes.js
 // ============================================================================
 
-import { getSupabaseClient } from "./api/supabase-client.js";
+import { getSupabaseClient } from "../../api/supabase-client.js";
 
 // Cette fonction doit être appelée depuis quetes.js après l'initialisation du dom
 export function initPrerequisitesModal(questesModule) {

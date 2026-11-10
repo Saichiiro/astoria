@@ -42,7 +42,20 @@ export function invalidateItemsCache() {
     try { localStorage.removeItem(ITEMS_CACHE_KEY); } catch {}
 }
 
-export async function getAllItems({ force = false } = {}) {
+// Several scripts of one page ask for the catalogue at the same time: they share
+// one request instead of each hitting the database.
+let itemsRequest = null;
+
+export function getAllItems({ force = false } = {}) {
+    if (itemsRequest && !force) return itemsRequest;
+    const request = fetchAllItems({ force }).finally(() => {
+        if (itemsRequest === request) itemsRequest = null;
+    });
+    itemsRequest = request;
+    return request;
+}
+
+async function fetchAllItems({ force = false } = {}) {
     if (!force) {
         try {
             const raw = localStorage.getItem(ITEMS_CACHE_KEY);

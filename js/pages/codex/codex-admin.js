@@ -3,8 +3,8 @@ import {
     getCurrentUser,
     isAdmin,
     refreshSessionUser
-} from './auth.js';
-import { invalidateItemsCache } from './api/items-service.js';
+} from '../../auth.js';
+import { invalidateItemsCache } from '../../api/items-service.js';
 
 const ITEMS_BUCKET = 'items';
 const IMAGE_SIZE = 256;

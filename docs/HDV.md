@@ -3,7 +3,7 @@
 ## Prérequis
 
 - Un projet Supabase configuré dans `js/auth.js` (`SUPABASE_URL` + `SUPABASE_ANON_KEY`).
-- Exécuter le schéma `supabase-schema.sql` dans l’éditeur SQL Supabase (tables HDV), puis `database/migrations/026_market_buy_listing_v2.sql` (RPC `buy_listing` : achat partiel, achat entre persos d'un même compte).
+- Exécuter le schéma `database/schema.sql` dans l’éditeur SQL Supabase (tables HDV), puis `database/migrations/026_market_buy_listing_v2.sql` (RPC `buy_listing` : achat partiel, achat entre persos d'un même compte).
 
 ## Ouvrir la page
 

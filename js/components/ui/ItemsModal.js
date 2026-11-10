@@ -4,7 +4,7 @@
  */
 
 import { getSupabaseClient } from '../../api/supabase-client.js';
-import { showItemDetailsPopover } from '../../item-details-popover.js';
+import { showItemDetailsPopover } from '../../domain/item-details-popover.js';
 
 /**
  * Helper to safely parse JSON

@@ -1,14 +1,8 @@
-// Player-entered text (Nokorah name, picture URL, bonus names) inserted into
-// HTML templates. Labels of this file keep their HTML entities on purpose.
-function escapeHtml(value) {
-    if (window.sanitizer?.escapeHtml) return window.sanitizer.escapeHtml(String(value));
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+import { escapeHtml } from "../../utils/html.js";
+
+// Player-entered text (Nokorah name, picture URL, bonus names) goes through
+// escapeHtml in the templates below. Labels of this file keep their HTML
+// entities on purpose.
 
 const RARITY_ORDER = ["commun", "rare", "epique", "mythique", "legendaire"];
 const RARITY_LABELS = {
@@ -997,7 +991,7 @@ async function confirmFarewell() {
 
 async function buildNokorahAdapter() {
     try {
-        const auth = await import('./auth.js');
+        const auth = await import('../../auth.js');
         state.auth = auth;
         if (typeof auth.refreshSessionUser === 'function') {
             await auth.refreshSessionUser();
@@ -1005,14 +999,14 @@ async function buildNokorahAdapter() {
         const character = auth.getActiveCharacter?.();
         if (character?.id) {
             // Import Nokorah service
-            const nokorahService = await import('./api/nokorah-service.js');
+            const nokorahService = await import('../../api/nokorah-service.js');
             state.nokorahService = nokorahService;
             state.characterId = character.id;
             state.mode = 'supabase';
 
             // Load competences from dedicated table
             try {
-                const { getCharacterCompetences } = await import('./api/competences-service.js');
+                const { getCharacterCompetences } = await import('../../api/competences-service.js');
                 state.cachedCompetences = await getCharacterCompetences(character.id);
             } catch {
                 state.cachedCompetences = null;
@@ -1032,14 +1026,14 @@ async function buildInventoryAdapter() {
     let auth = null;
 
     try {
-        auth = await import("./auth.js");
+        auth = await import("../../auth.js");
         if (typeof auth.refreshSessionUser === "function") {
             await auth.refreshSessionUser();
         }
         const character = auth.getActiveCharacter?.();
         if (character?.id) {
             characterId = character.id;
-            inventoryApi = await import("./api/inventory-service.js");
+            inventoryApi = await import("../../api/inventory-service.js");
             mode = "character";
             console.log('[NOKORAH LS] Using Supabase inventory mode for character:', characterId);
         } else {

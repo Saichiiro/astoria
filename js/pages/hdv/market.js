@@ -1,4 +1,4 @@
-export { getMyProfile } from './api/profiles-service.js';
+export { getMyProfile } from '../../api/profiles-service.js';
 export {
     searchListings,
     createListing,
@@ -7,4 +7,4 @@ export {
     cancelListing,
     getMyHistory,
     updateListingPrice
-} from './api/market-service.js';
+} from '../../api/market-service.js';

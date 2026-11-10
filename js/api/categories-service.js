@@ -44,7 +44,19 @@ function isMissingCategoriesTable(error) {
  * Get all active categories, ordered by display_order
  * @returns {Promise<Array>} Array of category objects
  */
-export async function getCategories() {
+// Concurrent callers share one request (see also the cache above).
+let _categoriesRequest = null;
+
+export function getCategories() {
+    if (_categoriesRequest) return _categoriesRequest;
+    const request = fetchCategories().finally(() => {
+        if (_categoriesRequest === request) _categoriesRequest = null;
+    });
+    _categoriesRequest = request;
+    return request;
+}
+
+async function fetchCategories() {
     if (_categoriesCache && Date.now() < _categoriesCacheExpiry) {
         return _categoriesCache;
     }

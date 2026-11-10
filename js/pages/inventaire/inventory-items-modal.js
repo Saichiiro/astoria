@@ -3,7 +3,7 @@
  * Demonstrates reusing the SAME component with different configuration
  */
 
-import { ItemsModal } from './components/ui/index.js';
+import { ItemsModal } from '../../components/ui/index.js';
 
 /**
  * Wait for inventory API to be ready

@@ -1559,7 +1559,7 @@
         persistActiveCharacterSnapshot(currentCharacter);
 
         try {
-            const inventoryApi = await import("./api/inventory-service.js");
+            const inventoryApi = await import("../../api/inventory-service.js");
             const rows = await inventoryApi.getInventoryRows(currentCharacter.id);
             const sourceIndex = Number(baseItem.sourceIndex);
             const targetRow = rows.find((row) =>
@@ -1846,7 +1846,7 @@
 
     async function initSummary() {
         try {
-            summaryModule = await import("./ui/character-summary.js");
+            summaryModule = await import("../../ui/character-summary.js");
         } catch (error) {
             summaryModule = null;
         }
@@ -1861,7 +1861,7 @@
         // Loads competences from dedicated table + caches full profile for write helpers.
         if (!currentCharacter?.id) return;
         try {
-            const { getCharacterCompetences } = await import("./api/competences-service.js");
+            const { getCharacterCompetences } = await import("../../api/competences-service.js");
             cachedCompetences = await getCharacterCompetences(currentCharacter.id);
         } catch {}
         await getHydratedCharacter(currentCharacter.id, { logContext: "hydrateFullCharacter" });
@@ -3275,7 +3275,7 @@
         updateSaveStatus();
 
         try {
-            authApi = await import("./auth.js");
+            authApi = await import("../../auth.js");
         } catch (error) {
             authApi = null;
         }

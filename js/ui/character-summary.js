@@ -276,7 +276,7 @@ async function updateKaels() {
         }
 
         // Import dynamique du module market
-        const market = await import("../market.js");
+        const market = await import("../pages/hdv/market.js");
         if (!market || !market.getMyProfile) {
             console.warn("Character-summary: market.getMyProfile not available");
             kaelsBadge.hidden = true;

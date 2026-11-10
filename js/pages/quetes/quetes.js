@@ -1,13 +1,13 @@
-import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "./auth.js";
-import { initCharacterSummary } from "./ui/character-summary.js";
-import { getInventoryRows, setInventoryItem } from "./api/inventory-service.js";
-import { getCharacterById, updateCharacter } from "./api/characters-service.js";
-import { patchCharacterProfile } from "./api/profile-patch-service.js";
+import { getActiveCharacter, getAllItems, getSupabaseClient, isAdmin, refreshSessionUser } from "../../auth.js";
+import { initCharacterSummary } from "../../ui/character-summary.js";
+import { getInventoryRows, setInventoryItem } from "../../api/inventory-service.js";
+import { getCharacterById, updateCharacter } from "../../api/characters-service.js";
+import { patchCharacterProfile } from "../../api/profile-patch-service.js";
 import { initItemsModal } from "./quetes-items-modal.js";
 import { initSkillsRewardsModal } from "./quetes-skills-modal.js";
 import { initPrerequisitesModal } from "./quetes-prerequisites-modal.js";
-import { logQuestJoin, logActivity, ActionTypes } from "./api/activity-logger.js";
-import { createFilterBar, itemMatchesFilters, sortItemsBy, normalizeFilter } from "./components/ui/FilterBar.js";
+import { logQuestJoin, logActivity, ActionTypes } from "../../api/activity-logger.js";
+import { createFilterBar, itemMatchesFilters, sortItemsBy, normalizeFilter } from "../../components/ui/FilterBar.js";
 
 // Safe sanitizer wrapper with fallback when sanitizer not available
 // Plain text (names, labels, URLs) inserted into HTML templates: escape it,
@@ -2760,7 +2760,7 @@ async function loadAdminCharacters() {
     }
 
     try {
-        const authModule = await import("./auth.js");
+        const authModule = await import("../../auth.js");
         const characters = await authModule.getAllCharacters?.();
         state.adminCharacters = Array.isArray(characters) ? characters.filter((character) => Boolean(character?.id)) : [];
     } catch (error) {
@@ -4059,7 +4059,7 @@ function bindEvents() {
 
 async function initQuestPanelShortcuts() {
     try {
-        const panelShortcuts = await import("./ui/panel-shortcuts.js");
+        const panelShortcuts = await import("../../ui/panel-shortcuts.js");
         if (typeof panelShortcuts.initPanelShortcuts === "function") {
             panelShortcuts.initPanelShortcuts({
                 selector: ".quest-page [data-panel]"

@@ -26,7 +26,7 @@ Open your Supabase SQL Editor and run the migration:
 Or use the Supabase CLI:
 
 ```bash
-supabase db execute -f scripts/create-categories-table.sql
+supabase db execute -f database/scripts/create-categories-table.sql
 ```
 
 ### 2. Verify the Table
@@ -56,8 +56,8 @@ The categories are automatically loaded in HDV (and can be integrated into other
 ## Files Modified
 
 - **js/api/categories-service.js** - New service for fetching categories
-- **js/hdv.js** - Updated to use database categories instead of hardcoded
-- **scripts/create-categories-table.sql** - Database schema and initial data
+- **js/pages/hdv/hdv.js** - Updated to use database categories instead of hardcoded
+- **database/scripts/create-categories-table.sql** - Database schema and initial data
 
 ## Adding a New Category
 

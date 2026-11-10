@@ -3,7 +3,7 @@
  * This is the NEW way - no code duplication!
  */
 
-import { ItemsModal } from './components/ui/index.js';
+import { ItemsModal } from '../../components/ui/index.js';
 
 /**
  * Initialize the items modal for quests page

@@ -7,8 +7,8 @@ import {
     getAllItems,
     getSupabaseClient,
     patchCharacterProfile
-} from './auth.js';
-import { SESSION_VERSION } from './api/session-store.js';
+} from '../../auth.js';
+import { SESSION_VERSION } from '../../api/session-store.js';
 import {
     buyListing,
     cancelListing,
@@ -19,12 +19,13 @@ import {
     searchListings,
     updateListingPrice
 } from './market.js';
-import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from './api/inventory-service.js';
-import { getCategories } from './api/categories-service.js';
-import { initCharacterSummary } from './ui/character-summary.js';
-import { logItemPurchase, logActivity, ActionTypes } from './api/activity-logger.js';
-import { getRouteHref } from './config/routes.js';
-import { setTableLoading, clearTableLoading, showTableError } from './ui/table-loading.js';
+import { getInventoryRows, setInventoryItem, getEquippedSlots, clearEquippedSlot } from '../../api/inventory-service.js';
+import { getCategories } from '../../api/categories-service.js';
+import { initCharacterSummary } from '../../ui/character-summary.js';
+import { logItemPurchase, logActivity, ActionTypes } from '../../api/activity-logger.js';
+import { getRouteHref } from '../../config/routes.js';
+import { loadTable } from '../../ui/table-loading.js';
+import { escapeHtml } from '../../utils/html.js';
 
 const dom = {
     kaelsBadge: document.getElementById('characterKaelsBadge'),
@@ -434,16 +435,6 @@ function parsePriceInput(value) {
     const numberValue = Number(normalized);
     if (!Number.isFinite(numberValue)) return null;
     return Math.trunc(numberValue);
-}
-
-// Player-provided text (item and character names) must never be parsed as HTML.
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 // Rarity badge using the shared rarity definitions (js/item-display-meta.js).
@@ -1463,32 +1454,6 @@ function filterByVendor(characterId, name) {
     state.page = 1;
     renderChips();
     refreshSearch();
-}
-
-const tableRequestIds = new WeakMap();
-
-function getTableColumnCount(body) {
-    return body?.closest('table')?.tHead?.rows?.[0]?.cells?.length || 1;
-}
-
-// Loads data into a table body: skeleton/dimmed rows while loading, an error
-// row with retry on failure, and only the latest request for a table renders.
-async function loadTable(body, { load, render, errorMessage, onRetry }) {
-    const requestId = (tableRequestIds.get(body) || 0) + 1;
-    tableRequestIds.set(body, requestId);
-    setTableLoading(body, { columns: getTableColumnCount(body) });
-    try {
-        const data = await load();
-        if (tableRequestIds.get(body) !== requestId) return { stale: true };
-        clearTableLoading(body);
-        render(data);
-        return { ok: true, data };
-    } catch (err) {
-        if (tableRequestIds.get(body) !== requestId) return { stale: true };
-        console.error(err);
-        showTableError(body, { columns: getTableColumnCount(body), message: errorMessage, onRetry });
-        return { ok: false };
-    }
 }
 
 async function refreshSearch() {

@@ -3,7 +3,7 @@
  * This file replaces 400 lines of duplicated code with ~60 lines!
  */
 
-import { ItemsModal } from './components/ui/index.js';
+import { ItemsModal } from '../../components/ui/index.js';
 
 /**
  * Initialize the items modal for quests page

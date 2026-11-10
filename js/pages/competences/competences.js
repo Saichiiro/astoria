@@ -870,7 +870,7 @@
         if (character?.id) return { character, source: "session" };
 
         try {
-            const { resolveCharacterContext } = await import("./ui/character-summary.js?v=2026-04-04-competences-visibility-1");
+            const { resolveCharacterContext } = await import("../../ui/character-summary.js?v=2026-04-04-competences-visibility-1");
             const fallbackContext = resolveCharacterContext({ includeQueryParam: true });
             const fallbackId = fallbackContext?.character?.id
                 || (fallbackContext?.key && fallbackContext.key !== "default" ? fallbackContext.key : null);
@@ -918,7 +918,7 @@
         document.body.dataset.admin = "false";
 
         try {
-            persistState.auth = await import("./auth.js");
+            persistState.auth = await import("../../auth.js");
             if (typeof persistState.auth.refreshSessionUser === "function") {
                 await persistState.auth.refreshSessionUser();
             }
@@ -932,11 +932,11 @@
                 skillsState.isAdmin = document.body.dataset.admin === "true";
 
                 // Load Supabase client for direct table access
-                const { getSupabaseClient } = await import("./api/supabase-client.js");
+                const { getSupabaseClient } = await import("../../api/supabase-client.js");
                 persistState.supabase = getSupabaseClient;
 
                 // Warm up equipped-slots cache from DB (fire-and-forget, best effort)
-                import("./api/inventory-service.js").then(({ getEquippedSlots }) =>
+                import("../../api/inventory-service.js").then(({ getEquippedSlots }) =>
                     getEquippedSlots(character.id)
                 ).then((rows) => {
                     persistState.equippedSlots = Object.fromEntries(
@@ -951,7 +951,7 @@
                 let persistedSource = "missing";
                 let fetchedFromServer = false;
                 try {
-                    const { getCharacterCompetencesSnapshot } = await import("./api/competences-service.js");
+                    const { getCharacterCompetencesSnapshot } = await import("../../api/competences-service.js");
                     const snapshot = await getCharacterCompetencesSnapshot(character.id);
                     persisted = snapshot?.data || null;
                     persistedSource = snapshot?.source || "missing";
@@ -1767,7 +1767,7 @@
         });
 
         try {
-            const itemsApi = await import("./api/items-service.js");
+            const itemsApi = await import("../../api/items-service.js");
             const rows = await itemsApi.getAllItems?.();
             if (!Array.isArray(rows)) return;
             rows.forEach((row) => {

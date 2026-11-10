@@ -387,7 +387,7 @@ export const nokorahPanel = {
 
     void (async () => {
       try {
-        const module = await import("../nokorah.js");
+        const module = await import("../pages/nokorah/nokorah.js");
         if (typeof module.initNokorah === "function") {
           await module.initNokorah();
         } else if (typeof window.initNokorah === "function") {

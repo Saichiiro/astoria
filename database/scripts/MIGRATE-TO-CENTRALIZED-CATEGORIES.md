@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 </select>
 ```
 
-Dans `js/codex.js`, ajouter:
+Dans `js/pages/codex/codex.js`, ajouter:
 
 ```javascript
 import { initCategoriesOnPage } from './ui/categories-manager.js';
@@ -175,7 +175,7 @@ await initCategoriesOnPage();
 </div>
 ```
 
-Dans `js/quetes-items-modal.js`:
+Dans `js/pages/quetes/quetes-items-modal.js`:
 
 ```javascript
 import { renderCategoryButtons } from './ui/categories-manager.js';
@@ -206,7 +206,7 @@ async function openModal() {
 1. **Exécuter la migration SQL** (si pas déjà fait):
    ```sql
    -- Dans Supabase SQL Editor
-   -- Copier/coller scripts/create-categories-table.sql
+   -- Copier/coller database/scripts/create-categories-table.sql
    ```
 
 2. **Tester chaque page**:
@@ -249,4 +249,4 @@ Une fois toutes les pages migrées:
 
 Si vous avez des questions sur la migration:
 - Consultez `js/ui/categories-manager.js` pour la documentation complète
-- Regardez `js/hdv.js` pour un exemple de migration réussie
+- Regardez `js/pages/hdv/hdv.js` pour un exemple de migration réussie

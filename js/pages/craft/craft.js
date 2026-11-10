@@ -4,10 +4,10 @@
     getActiveCharacter,
     isAdmin,
     refreshSessionUser
-} from './auth.js';
-import { initCharacterSummary } from './ui/character-summary.js';
-import { getInventoryRows, getEquippedSlots } from './api/inventory-service.js';
-import { getAllCharacters } from './api/characters-service.js';
+} from '../../auth.js';
+import { initCharacterSummary } from '../../ui/character-summary.js';
+import { getInventoryRows, getEquippedSlots } from '../../api/inventory-service.js';
+import { getAllCharacters } from '../../api/characters-service.js';
 import {
     createCraftRecipe,
     updateCraftRecipe,
@@ -17,7 +17,7 @@ import {
     buildInventoryIndex,
     canCraftRecipe,
     getInventoryQty
-} from './api/craft-service.js';
+} from '../../api/craft-service.js';
 
 const RANK_ORDER = ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'S+', 'SS', 'SSS'];
 const ADMIN_ITEMS_REFRESH_TTL_MS = 15000;

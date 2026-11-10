@@ -2,7 +2,7 @@ const inventoryData = [
     {
         name: "Kaels",
         category: "monnaie",
-        image: "assets/images/kaels_emblem.png",
+        image: "assets/images/objets/kaels_emblem.png",
         description: "Monnaie principale du royaume d'Astoria. Utilisée pour les échanges commerciaux et les transactions.",
         buyPrice: "",
         sellPrice: "",

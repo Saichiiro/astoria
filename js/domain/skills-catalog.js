@@ -29,7 +29,7 @@
     }
 
     async function getSupabase() {
-        const auth = await import("./auth.js");
+        const auth = await import("../auth.js");
         return auth.getSupabaseClient?.();
     }
 
