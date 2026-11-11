@@ -564,7 +564,8 @@
         const normalized = normalizeText(value || "").replace(/\s+/g, "");
         if (!normalized) return "";
         if (normalized.includes("sorcellerie")) return "sorcellerie";
-        if (normalized.includes("alice")) return "alice";
+        // Profile tag Double Alice: the Alice card leads to the page that has both Alice 1 and Alice 2.
+        if (normalized.includes("alice")) return getAliceStatus() === "double" ? "alice-double" : "alice";
         if (normalized.includes("arme")) return "arme";
         if (normalized.includes("meister")) return "meister";
         if (normalized.includes("eater")) return "eater";
@@ -1967,9 +1968,17 @@
                 field.value = mergedValues[field.id];
             }
         });
+        syncAliceTypeField();
         updateAffinityDisplay(mergedValues);
         renderScrollMeter();
         updateNewCapCostPreview();
+    }
+
+    function syncAliceTypeField() {
+        const specializationSelect = document.getElementById("magicSpecialization");
+        const field = document.getElementById("aliceTypeField");
+        if (!specializationSelect || !field) return;
+        field.style.display = specializationSelect.value === "alice-double" ? "" : "none";
     }
 
     function buildPayload() {
@@ -3182,8 +3191,7 @@
 
     if (magicSpecializationSelect && aliceTypeField) {
         magicSpecializationSelect.addEventListener("change", () => {
-            const isAliceDouble = magicSpecializationSelect.value === "alice-double";
-            aliceTypeField.style.display = isAliceDouble ? "" : "none";
+            syncAliceTypeField();
             renderScrollMeter();
         });
     }

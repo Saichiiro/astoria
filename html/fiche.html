@@ -1301,6 +1301,9 @@
                     if (element.classList.contains('save-tab-button')) return;
                     if (element.matches('input[type="text"], input[type="url"], input[type="number"], textarea')) {
                         element.readOnly = locked;
+                    } else if (element.classList.contains('magie-scroll-btn')) {
+                        // Scroll buttons keep their own "not enough scrolls" state when the tab is open.
+                        element.disabled = locked || element.classList.contains('is-disabled');
                     } else if ('disabled' in element) {
                         element.disabled = locked;
                     }
@@ -1731,8 +1734,13 @@
                     magieScrollStatus.innerHTML = '<p class="fiche-hint">Sélectionnez une affinité pour voir les coûts.</p>';
                     return;
                 }
+                // The local copy of the character is stripped (no inventory): prefer the profile
+                // fetched/written by the last scroll operation so counts never show as 0.
                 const active = getActiveCharacter();
-                const profileData = active?.profile_data || {};
+                const fresh = window.astoriaActiveCharacter;
+                const profileData = (fresh?.id === active?.id && fresh?.profile_data?.inventory)
+                    ? fresh.profile_data
+                    : (active?.profile_data || {});
                 const eveilCounts = getScrollCounts(profileData, 'eveil');
                 const ascensionCounts = getScrollCounts(profileData, 'ascension');
                 const rows = progress.enabledAffinities.map((key) => {
