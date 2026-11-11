@@ -1052,11 +1052,12 @@
         // Keep the in-memory character in step right away: the next read (counters, next
         // spend) must see this progress without waiting for the async save below.
         if (currentCharacter?.profile_data && typeof currentCharacter.profile_data === "object") {
-            currentCharacter = {
+            // cacheHydratedCharacter keeps the "full profile" marker, so later writes reuse this
+            // copy instead of re-reading a database row that may predate the save in flight.
+            currentCharacter = cacheHydratedCharacter({
                 ...currentCharacter,
                 profile_data: { ...currentCharacter.profile_data, magic_progress: progress }
-            };
-            try { window.astoriaActiveCharacter = currentCharacter; } catch {}
+            }) || currentCharacter;
         }
         if (!persistProfile || !currentCharacter?.id || !authApi?.updateCharacter) return;
         // Async IIFE: fetch full profile_data before DB write (session-store strips it).
