@@ -8,6 +8,7 @@
     margin: 0 auto;
     padding: var(--space-8);
     min-height: 100vh;
+    min-height: 100dvh;
     --inv-card: rgba(255, 255, 255, 0.92);
     --inv-card-strong: rgba(255, 248, 252, 0.98);
     --inv-border: rgba(238, 162, 201, 0.75);

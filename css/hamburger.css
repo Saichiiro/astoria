@@ -59,6 +59,7 @@
 /* Demo layout (optional) */
 .hamburger-demo {
   min-height: 100vh;
+  min-height: 100dvh;
   background: #0e0e12;
   display: flex;
   flex-wrap: wrap;

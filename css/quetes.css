@@ -13,6 +13,7 @@ body.quest-board {
     --quest-font-body: "Quicksand", "Trebuchet MS", sans-serif;
     font-family: var(--quest-font-body);
     min-height: 100vh;
+    min-height: 100dvh;
     background-color: #fff;
     background-image: url("../assets/images/general_background.jpg");
     background-size: cover;

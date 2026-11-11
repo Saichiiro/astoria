@@ -3768,3 +3768,18 @@ select {
     text-align: center;
     font-weight: 600;
 }
+
+/* Touch screens: fields at 16px+ so iOS Safari does not zoom the page on focus;
+   text links styled as buttons get a comfortable tap height. */
+@media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+    select,
+    select.character-rank-select,
+    textarea {
+        font-size: 16px;
+    }
+
+    button.auth-link {
+        min-height: 44px;
+    }
+}
