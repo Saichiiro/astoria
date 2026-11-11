@@ -319,22 +319,14 @@
     const WEAPON_EMOJI = String.fromCodePoint(0x1F480); // 💀
     const EATER_EMOJI = WEAPON_EMOJI; // Legacy alias
 
-    const MAGIC_ASCENSION_COSTS = {
-        primary: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-        secondary: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
-        hidden: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
-        none: [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
-    };
-
-    // Weapon: souls of progression needed for each new minor / ultimate fragment.
-    const WEAPON_SOULS_MINOR_THRESHOLDS = [40, 80, 120, 200, 250, 375, 425];
-    const WEAPON_SOULS_ULTIMATE_THRESHOLDS = [150, 325, 475];
-    // Meister: one minor fragment (or upgrade) per this many points of "Maîtrise de la capacité unique".
-    const MEISTER_MAITRISE_STEP = 5;
-    // Weapon: one minor fragment (or upgrade) per this many points of "Maîtrise de la capacité unique".
-    const WEAPON_MAITRISE_STEP = 10;
-
-    const getUltimeAscensionCost = (level) => 100 + Math.max(0, Number(level) - 1) * 50;
+    // Progression rules (costs, thresholds, point steps) live in js/domain/magic-rules.js.
+    const {
+        WEAPON_SOULS_MINOR_THRESHOLDS,
+        WEAPON_SOULS_ULTIMATE_THRESHOLDS,
+        STEPS: RULE_STEPS,
+        getAscensionCost,
+        getUltimeAscensionCost
+    } = window.astoriaMagicRules;
 
     const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || "")
         .normalize("NFD")
@@ -1232,11 +1224,6 @@
         saveToStorage();
     }
 
-    function getAscensionCost(type, level) {
-        const list = MAGIC_ASCENSION_COSTS[type] || MAGIC_ASCENSION_COSTS.none;
-        return list[level - 1] ?? null;
-    }
-
     function getScrollBaseItem(category) {
         const items = Array.isArray(window.inventoryData) ? window.inventoryData : [];
         const targets = category === "eveil"
@@ -1297,10 +1284,12 @@
             controleUltimateUsed: 0
         };
 
-        const puissanceMinorTotal = Math.floor(puissance / 5);
-        const puissanceUltimateTotal = Math.floor(puissance / 10);
-        const controleMinorTotal = Math.floor(controle / 5);
-        const controleUltimateTotal = Math.floor(controle / 10);
+        const {
+            puissanceMinor: puissanceMinorTotal,
+            puissanceUltimate: puissanceUltimateTotal,
+            controleMinor: controleMinorTotal,
+            controleUltimate: controleUltimateTotal
+        } = window.astoriaMagicRules.aliceTotals(puissance, controle);
 
         const puissanceMinor = Math.max(0, puissanceMinorTotal - used.puissanceMinorUsed);
         const puissanceUltimate = Math.max(0, puissanceUltimateTotal - used.puissanceUltimateUsed);
@@ -1339,20 +1328,19 @@
             soulsUltimateUsed: 0
         };
 
-        // Compétences: Puissance (tous les 5pts → améliorer mineur)
-        const puissanceTotal = Math.floor(puissanceCapacite / 5);
-        const puissanceAvailable = Math.max(0, puissanceTotal - used.puissanceUsed);
+        const totals = window.astoriaMagicRules.weaponTotals({
+            puissance: puissanceCapacite,
+            maitrise: maitriseCapacite,
+            souls: progSouls
+        });
 
-        // Compétences: Maîtrise (tous les WEAPON_MAITRISE_STEP pts → ajouter OU améliorer mineur)
-        const maitriseTotal = Math.floor(maitriseCapacite / WEAPON_MAITRISE_STEP);
-        const maitriseAvailable = Math.max(0, maitriseTotal - used.maitriseUsed);
+        // Compétences: Puissance (améliorer mineur) et Maîtrise (ajouter OU améliorer mineur)
+        const puissanceAvailable = Math.max(0, totals.puissance - used.puissanceUsed);
+        const maitriseAvailable = Math.max(0, totals.maitrise - used.maitriseUsed);
 
-        // Âmes: mineurs aux seuils WEAPON_SOULS_MINOR_THRESHOLDS
-        const soulsMinorTotal = WEAPON_SOULS_MINOR_THRESHOLDS.filter(threshold => progSouls >= threshold).length;
-        const soulsMinorAvailable = Math.max(0, soulsMinorTotal - used.soulsMinorUsed);
-
-        // Âmes: ultimes aux seuils WEAPON_SOULS_ULTIMATE_THRESHOLDS
-        const soulsUltimateTotal = WEAPON_SOULS_ULTIMATE_THRESHOLDS.filter(threshold => progSouls >= threshold).length;
+        // Âmes: mineurs et ultimes aux seuils définis dans magic-rules.js
+        const soulsMinorAvailable = Math.max(0, totals.soulsMinor - used.soulsMinorUsed);
+        const soulsUltimateTotal = totals.soulsUltimate;
         const soulsUltimateAvailable = Math.max(0, soulsUltimateTotal - used.soulsUltimateUsed);
 
         return {
@@ -1382,17 +1370,15 @@
             maitriseUsed: 0
         };
 
-        // Résonnance des Âmes: tous les 10 pts = 1 amélioration ultime
-        const resonanceTotal = Math.floor(resonanceAmes / 10);
-        const resonanceAvailable = Math.max(0, resonanceTotal - used.resonanceUsed);
-
-        // Puissance de la capacité unique: tous les 5 pts = 1 amélioration mineur
-        const puissanceTotal = Math.floor(puissanceCapacite / 5);
-        const puissanceAvailable = Math.max(0, puissanceTotal - used.puissanceUsed);
-
-        // Maîtrise de la capacité unique: tous les MEISTER_MAITRISE_STEP pts = 1 ajout OU amélioration mineur
-        const maitriseTotal = Math.floor(maitriseCapacite / MEISTER_MAITRISE_STEP);
-        const maitriseAvailable = Math.max(0, maitriseTotal - used.maitriseUsed);
+        const totals = window.astoriaMagicRules.meisterTotals({
+            resonance: resonanceAmes,
+            puissance: puissanceCapacite,
+            maitrise: maitriseCapacite
+        });
+        // Résonnance: amélioration ultime; Puissance: amélioration mineure; Maîtrise: ajout OU amélioration mineure
+        const resonanceAvailable = Math.max(0, totals.resonance - used.resonanceUsed);
+        const puissanceAvailable = Math.max(0, totals.puissance - used.puissanceUsed);
+        const maitriseAvailable = Math.max(0, totals.maitrise - used.maitriseUsed);
 
         return {
             resonanceAmes,
@@ -1486,16 +1472,16 @@
 
         if (specialization === "alice") {
             if (rank === "ultime") {
-                const requiredStat = nextLevel * 10;
+                const requiredStat = nextLevel * RULE_STEPS.aliceUltimate;
                 return `Requis: ${requiredStat} pts (Puissance ou Contrôle)`;
             }
-            const requiredStat = nextLevel * 5;
+            const requiredStat = nextLevel * RULE_STEPS.aliceMinor;
             return `Requis: ${requiredStat} pts (Puissance ou Contrôle)`;
         }
 
         if (specialization === "meister") {
             if (rank === "ultime") return "Requis: Résonnance des Âmes (10 pts par amélioration)";
-            return `Requis: ${nextLevel * MEISTER_MAITRISE_STEP} pts de Maîtrise de la capacité unique`;
+            return `Requis: ${nextLevel * RULE_STEPS.meisterMaitrise} pts de Maîtrise de la capacité unique`;
         }
 
         if (specialization === "arme") {
@@ -1503,7 +1489,7 @@
             const required = thresholds[Math.min(nextLevel - 1, thresholds.length - 1)];
             return rank === "ultime"
                 ? `Requis: ${required} âmes de progression`
-                : `Requis: ${required} âmes de progression ou ${nextLevel * WEAPON_MAITRISE_STEP} pts de Maîtrise`;
+                : `Requis: ${required} âmes de progression ou ${nextLevel * RULE_STEPS.weaponMaitrise} pts de Maîtrise`;
         }
 
         if (specialization && specialization !== "sorcellerie") return "Indisponible";

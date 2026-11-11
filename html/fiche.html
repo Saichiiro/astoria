@@ -688,6 +688,7 @@
     </main>
     <script src="js/domain/data.js"></script>
     <script src="js/domain/scroll-store.js"></script>
+    <script src="js/domain/magic-rules.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/notyf@3.10.0/notyf.min.js"></script>
     <script src="js/components/toast-manager.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@floating-ui/core@1.6.0"></script>
@@ -1506,20 +1507,6 @@
                 }
             }
 
-            const MAGIC_EVEIL_COSTS = {
-                primary: 5,
-                secondary: 10,
-                hidden: 20,
-                none: 40
-            };
-
-            const MAGIC_ASCENSION_COSTS = {
-                primary: [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-                secondary: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55],
-                hidden: [15, 20, 25, 30, 35, 40, 45, 50, 55, 60],
-                none: [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
-            };
-
             function getActiveCharacter() {
                 return summaryModule?.getActiveCharacterFromStorage
                     ? summaryModule.getActiveCharacterFromStorage()
@@ -1725,12 +1712,11 @@
             }
 
             function getEveilCost(type) {
-                return MAGIC_EVEIL_COSTS[type] ?? MAGIC_EVEIL_COSTS.none;
+                return window.astoriaMagicRules.getEveilCost(type);
             }
 
             function getAscensionCost(type, level) {
-                const list = MAGIC_ASCENSION_COSTS[type] || MAGIC_ASCENSION_COSTS.none;
-                return list[level - 1] ?? null;
+                return window.astoriaMagicRules.getAscensionCost(type, level);
             }
 
             function formatAffinityLabel(key) {
