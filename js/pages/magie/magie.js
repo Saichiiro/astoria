@@ -319,6 +319,9 @@
     const WEAPON_EMOJI = String.fromCodePoint(0x1F480); // 💀
     const EATER_EMOJI = WEAPON_EMOJI; // Legacy alias
 
+    // Page types whose capacities can be upgraded (sorcellerie pages have no specialization).
+    const UPGRADABLE_SPECIALIZATIONS = ["alice", "alice-double", "meister", "arme", "eater"];
+
     // Progression rules (costs, thresholds, point steps) live in js/domain/magic-rules.js.
     const {
         WEAPON_SOULS_MINOR_THRESHOLDS,
@@ -1009,52 +1012,36 @@
         return currentCharacterKey ? `magic-progress-${currentCharacterKey}` : "magic-progress-default";
     }
 
+    // Copies a stored progress object keeping EVERY block (Alice 1/2 stats, Meister skills,
+    // Weapon fragments, affinities...) and filling the ones the code always expects.
+    function normalizeMagicProgress(raw) {
+        const source = raw && typeof raw === "object" ? raw : {};
+        const copy = JSON.parse(JSON.stringify(source));
+        copy.affinities = copy.affinities && typeof copy.affinities === "object" ? copy.affinities : {};
+        copy.enabledAffinities = Array.isArray(copy.enabledAffinities) ? copy.enabledAffinities : [];
+        const stats = copy.aliceStats && typeof copy.aliceStats === "object" ? copy.aliceStats : {};
+        copy.aliceStats = {
+            puissanceMinorUsed: Number(stats.puissanceMinorUsed) || 0,
+            puissanceUltimateUsed: Number(stats.puissanceUltimateUsed) || 0,
+            controleMinorUsed: Number(stats.controleMinorUsed) || 0,
+            controleUltimateUsed: Number(stats.controleUltimateUsed) || 0
+        };
+        return copy;
+    }
+
     function loadMagicProgress() {
         const profileProgress = currentCharacter?.profile_data?.magic_progress;
         if (profileProgress && typeof profileProgress === "object") {
-            return {
-                affinities: { ...(profileProgress.affinities || {}) },
-                enabledAffinities: Array.isArray(profileProgress.enabledAffinities)
-                    ? [...profileProgress.enabledAffinities]
-                    : [],
-                aliceStats: {
-                    puissanceMinorUsed: Number(profileProgress.aliceStats?.puissanceMinorUsed) || 0,
-                    puissanceUltimateUsed: Number(profileProgress.aliceStats?.puissanceUltimateUsed) || 0,
-                    controleMinorUsed: Number(profileProgress.aliceStats?.controleMinorUsed) || 0,
-                    controleUltimateUsed: Number(profileProgress.aliceStats?.controleUltimateUsed) || 0
-                }
-            };
+            return normalizeMagicProgress(profileProgress);
         }
         try {
             const raw = localStorage.getItem(getMagicProgressKey());
             if (raw) {
                 const parsed = JSON.parse(raw);
-                if (parsed && typeof parsed === "object") {
-                    return {
-                        affinities: { ...(parsed.affinities || {}) },
-                        enabledAffinities: Array.isArray(parsed.enabledAffinities)
-                            ? [...parsed.enabledAffinities]
-                            : [],
-                        aliceStats: {
-                            puissanceMinorUsed: Number(parsed.aliceStats?.puissanceMinorUsed) || 0,
-                            puissanceUltimateUsed: Number(parsed.aliceStats?.puissanceUltimateUsed) || 0,
-                            controleMinorUsed: Number(parsed.aliceStats?.controleMinorUsed) || 0,
-                            controleUltimateUsed: Number(parsed.aliceStats?.controleUltimateUsed) || 0
-                        }
-                    };
-                }
+                if (parsed && typeof parsed === "object") return normalizeMagicProgress(parsed);
             }
         } catch {}
-        return {
-            affinities: {},
-            enabledAffinities: [],
-            aliceStats: {
-                puissanceMinorUsed: 0,
-                puissanceUltimateUsed: 0,
-                controleMinorUsed: 0,
-                controleUltimateUsed: 0
-            }
-        };
+        return normalizeMagicProgress(null);
     }
 
     function persistMagicProgress(progress, { persistProfile = false } = {}) {
@@ -1062,6 +1049,15 @@
         try {
             localStorage.setItem(getMagicProgressKey(), JSON.stringify(progress));
         } catch {}
+        // Keep the in-memory character in step right away: the next read (counters, next
+        // spend) must see this progress without waiting for the async save below.
+        if (currentCharacter?.profile_data && typeof currentCharacter.profile_data === "object") {
+            currentCharacter = {
+                ...currentCharacter,
+                profile_data: { ...currentCharacter.profile_data, magic_progress: progress }
+            };
+            try { window.astoriaActiveCharacter = currentCharacter; } catch {}
+        }
         if (!persistProfile || !currentCharacter?.id || !authApi?.updateCharacter) return;
         // Async IIFE: fetch full profile_data before DB write (session-store strips it).
         const charId = currentCharacter.id;
@@ -2343,10 +2339,8 @@
                 ultime: "Sorts Ultimes"
             };
 
-            const showUpgrades = isSorcelleriePage ||
-                currentPage?.fields?.magicSpecialization === "alice" ||
-                currentPage?.fields?.magicSpecialization === "meister" ||
-                currentPage?.fields?.magicSpecialization === "eater";
+            const showUpgrades = isSorcelleriePage
+                || UPGRADABLE_SPECIALIZATIONS.includes(currentPage?.fields?.magicSpecialization);
 
             // Render each section
             ["signature", "mineur", "ultime"].forEach(rank => {
@@ -2544,14 +2538,13 @@
                         : ascensionCost === 0
                             ? "Gratuit"
                             : `${ascensionCost} parchemins`;
-                const canEditCapacity = isAdmin;
+                // Players upgrade their own capacities (spending points/scrolls); admins skip the costs.
+                const canUpgradeCapacity = true;
                 const showUpgrades = isSorcelleriePage
-                    || currentPage?.fields?.magicSpecialization === "alice"
-                    || currentPage?.fields?.magicSpecialization === "meister"
-                    || currentPage?.fields?.magicSpecialization === "eater";
+                    || UPGRADABLE_SPECIALIZATIONS.includes(currentPage?.fields?.magicSpecialization);
                 const upgradesSection = showUpgrades ? `
                         <div class="magic-capacity-actions">
-                            <button type="button" class="magic-btn magic-btn-outline tw-press${escapeHtml(canEditCapacity ? "" : " is-disabled")}" data-upgrade="${escapeHtml(cap.id)}" ${escapeHtml(canEditCapacity ? "" : "disabled")}>Améliorer</button>
+                            <button type="button" class="magic-btn magic-btn-outline tw-press" data-upgrade="${escapeHtml(cap.id)}">Améliorer</button>
                         </div>
                         <div class="magic-capacity-upgrade-form" data-upgrade-form="${escapeHtml(cap.id)}" hidden>
                             <details class="magic-accordion" open>
@@ -2829,7 +2822,7 @@
                     if (upgradeButton) {
                         upgradeButton.addEventListener("click", (event) => {
                             event.stopPropagation();
-                            if (!canEditCapacity) return;
+                            if (!canUpgradeCapacity) return;
                             toggleUpgradeForm(upgradeForm?.hidden ?? true);
                             if (upgradeForm?.hidden === false) {
                                 syncZoneControls(upgradeTarget, upgradeZone, upgradeZoneDetail);
@@ -2845,7 +2838,7 @@
                     if (upgradeSave) {
                         upgradeSave.addEventListener("click", async (event) => {
                             event.stopPropagation();
-                            if (!canEditCapacity) return;
+                            if (!canUpgradeCapacity || upgradeSave.disabled) return;
                             const nextName = upgradeName?.value.trim() || cap.name;
                             const nextSummary = upgradeSummary?.value.trim() || "";
                             const nextRp = upgradeRp?.value.trim() || "";
@@ -2855,6 +2848,20 @@
                                 return;
                             }
                             const previousLevel = Math.max(1, Number(cap.level) || normalizedUpgrades.length + 1);
+
+                            // Pay for the upgrade before changing anything. Minor sorcellerie upgrades are
+                            // free: scrolls unlock new techniques (creation), not upgrades of existing ones.
+                            const targetRank = upgradeRank?.value || cap.rank;
+                            if (!isSorcelleriePage || targetRank === "ultime") {
+                                upgradeSave.disabled = true;
+                                let paid = false;
+                                try {
+                                    paid = await consumeAscensionForRank(currentPage, targetRank, previousLevel + 1);
+                                } finally {
+                                    upgradeSave.disabled = false;
+                                }
+                                if (!paid) return;
+                            }
                             const snapshot = {
                                 name: cap.name,
                                 type: cap.type,
@@ -3037,14 +3044,13 @@
         }
         addCapacityButtons.forEach((button) => {
             if (!button) return;
-            button.hidden = !isAdmin;
+            button.hidden = false;
         });
     }
 
     applyAdminContext();
 
     const openCapacityCreation = () => {
-        if (!isAdmin) return;
         goToPageInternal(SCREEN_PAGE.NAVIGATION, null, { persist: false });
         showMagicSectionInternal("magic-capacities", { persist: false });
         if (!capacityForm) return;
@@ -3226,13 +3232,22 @@
 
     if (capSaveBtn) {
         capSaveBtn.addEventListener("click", async () => {
-            if (!isAdmin) return;
+            if (capSaveBtn.disabled) return;
             const newCap = buildCapacityFromForm();
             if (!newCap) {
                 window.toastManager?.warning("Ajoutez un nom pour le fragment.");
                 return;
             }
             if (!pages[activePageIndex]) return;
+            // Players pay for a new capacity with their points/scrolls; admins are exempt.
+            capSaveBtn.disabled = true;
+            let paid = false;
+            try {
+                paid = await consumeAscensionForRank(pages[activePageIndex], newCap.rank, 1);
+            } finally {
+                capSaveBtn.disabled = false;
+            }
+            if (!paid) return;
             pages[activePageIndex].capacities = pages[activePageIndex].capacities || [];
             pages[activePageIndex].capacities.push(newCap);
             renderCapacities(capacityFilter ? capacityFilter.value : "");
