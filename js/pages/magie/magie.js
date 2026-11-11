@@ -326,6 +326,14 @@
         none: [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]
     };
 
+    // Weapon: souls of progression needed for each new minor / ultimate fragment.
+    const WEAPON_SOULS_MINOR_THRESHOLDS = [40, 80, 120, 200, 250, 375, 425];
+    const WEAPON_SOULS_ULTIMATE_THRESHOLDS = [150, 325, 475];
+    // Meister: one minor fragment (or upgrade) per this many points of "Maîtrise de la capacité unique".
+    const MEISTER_MAITRISE_STEP = 5;
+    // Weapon: one minor fragment (or upgrade) per this many points of "Maîtrise de la capacité unique".
+    const WEAPON_MAITRISE_STEP = 10;
+
     const getUltimeAscensionCost = (level) => 100 + Math.max(0, Number(level) - 1) * 50;
 
     const normalizeText = window.astoriaListHelpers?.normalizeText || ((value) => String(value || "")
@@ -1335,16 +1343,16 @@
         const puissanceTotal = Math.floor(puissanceCapacite / 5);
         const puissanceAvailable = Math.max(0, puissanceTotal - used.puissanceUsed);
 
-        // Compétences: Maîtrise (tous les 10pts → ajouter OU améliorer mineur)
-        const maitriseTotal = Math.floor(maitriseCapacite / 10);
+        // Compétences: Maîtrise (tous les WEAPON_MAITRISE_STEP pts → ajouter OU améliorer mineur)
+        const maitriseTotal = Math.floor(maitriseCapacite / WEAPON_MAITRISE_STEP);
         const maitriseAvailable = Math.max(0, maitriseTotal - used.maitriseUsed);
 
-        // Âmes: mineurs aux seuils 40,80,120,150,200,325,475
-        const soulsMinorTotal = [40, 80, 120, 150, 200, 325, 475].filter(threshold => progSouls >= threshold).length;
+        // Âmes: mineurs aux seuils WEAPON_SOULS_MINOR_THRESHOLDS
+        const soulsMinorTotal = WEAPON_SOULS_MINOR_THRESHOLDS.filter(threshold => progSouls >= threshold).length;
         const soulsMinorAvailable = Math.max(0, soulsMinorTotal - used.soulsMinorUsed);
 
-        // Âmes: ultimes aux seuils 100,250,400
-        const soulsUltimateTotal = [100, 250, 400].filter(threshold => progSouls >= threshold).length;
+        // Âmes: ultimes aux seuils WEAPON_SOULS_ULTIMATE_THRESHOLDS
+        const soulsUltimateTotal = WEAPON_SOULS_ULTIMATE_THRESHOLDS.filter(threshold => progSouls >= threshold).length;
         const soulsUltimateAvailable = Math.max(0, soulsUltimateTotal - used.soulsUltimateUsed);
 
         return {
@@ -1382,8 +1390,8 @@
         const puissanceTotal = Math.floor(puissanceCapacite / 5);
         const puissanceAvailable = Math.max(0, puissanceTotal - used.puissanceUsed);
 
-        // Maîtrise de la capacité unique: tous les 5 pts = 1 ajout OU amélioration mineur
-        const maitriseTotal = Math.floor(maitriseCapacite / 5);
+        // Maîtrise de la capacité unique: tous les MEISTER_MAITRISE_STEP pts = 1 ajout OU amélioration mineur
+        const maitriseTotal = Math.floor(maitriseCapacite / MEISTER_MAITRISE_STEP);
         const maitriseAvailable = Math.max(0, maitriseTotal - used.maitriseUsed);
 
         return {
@@ -1486,14 +1494,16 @@
         }
 
         if (specialization === "meister") {
-            if (rank === "ultime") {
-                const thresholds = [150, 325, 475];
-                const required = thresholds[Math.min(nextLevel - 1, 2)] || 150;
-                return `Requis: ${required}% âmes de progression`;
-            }
-            const thresholds = [40, 80, 120, 200, 250, 375, 425];
-            const required = thresholds[Math.min(nextLevel - 1, 6)] || 40;
-            return `Requis: ${required}% âmes de progression`;
+            if (rank === "ultime") return "Requis: Résonnance des Âmes (10 pts par amélioration)";
+            return `Requis: ${nextLevel * MEISTER_MAITRISE_STEP} pts de Maîtrise de la capacité unique`;
+        }
+
+        if (specialization === "arme") {
+            const thresholds = rank === "ultime" ? WEAPON_SOULS_ULTIMATE_THRESHOLDS : WEAPON_SOULS_MINOR_THRESHOLDS;
+            const required = thresholds[Math.min(nextLevel - 1, thresholds.length - 1)];
+            return rank === "ultime"
+                ? `Requis: ${required} âmes de progression`
+                : `Requis: ${required} âmes de progression ou ${nextLevel * WEAPON_MAITRISE_STEP} pts de Maîtrise`;
         }
 
         if (specialization && specialization !== "sorcellerie") return "Indisponible";
@@ -1807,14 +1817,14 @@
                 // Fragment ultime: uniquement via âmes
                 if (isNewFragment) {
                     if (weapon.soulsUltimateAvailable <= 0) {
-                        window.toastManager?.error("Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: 100, 250, 400).");
+                        window.toastManager?.error(`Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: ${WEAPON_SOULS_ULTIMATE_THRESHOLDS.join(", ")}).`);
                         return false;
                     }
                     progress.weaponFragments.soulsUltimateUsed += 1;
                 } else {
                     // Améliorer ultime
                     if (weapon.soulsUltimateAvailable <= 0) {
-                        window.toastManager?.error("Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: 100, 250, 400).");
+                        window.toastManager?.error(`Pas de fragments ultimes disponibles. Consommez des âmes de progression (seuils: ${WEAPON_SOULS_ULTIMATE_THRESHOLDS.join(", ")}).`);
                         return false;
                     }
                     progress.weaponFragments.soulsUltimateUsed += 1;
