@@ -1671,7 +1671,7 @@
                 // Creating new spell - consume Contrôle (rank must match)
                 const availableSpells = isMinor ? stats.controleMinor : stats.controleUltimate;
                 if (availableSpells <= 0) {
-                    const rankLabel = isMinor ? "mineur" : "ultime";
+                    const rankLabel = isMinor ? "mineurs" : "ultimes";
                     const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
                     window.toastManager?.error(`Pas de sorts ${rankLabel} disponibles${aliceLabel}. Augmentez votre Contrôle Alice ${aliceNumber} dans les compétences.`);
                     return false;
@@ -1686,7 +1686,7 @@
                 // Upgrading existing spell - consume Puissance (rank must match)
                 const availableUpgrades = isMinor ? stats.puissanceMinor : stats.puissanceUltimate;
                 if (availableUpgrades <= 0) {
-                    const rankLabel = isMinor ? "mineure" : "ultime";
+                    const rankLabel = isMinor ? "mineures" : "ultimes";
                     const aliceLabel = specialization === "alice-double" ? ` (Alice ${aliceNumber})` : "";
                     window.toastManager?.error(`Pas d'améliorations ${rankLabel} disponibles${aliceLabel}. Augmentez votre Puissance Alice ${aliceNumber} dans les compétences.`);
                     return false;
@@ -2678,7 +2678,7 @@
                                 ${cap.stats.map((s) => `<span class="magic-tag">${escapeHtml(s)}</span>`).join("")}
                                 ${capTags.map((tag) => `<span class="magic-tag">${escapeHtml(tag)}</span>`).join("")}
                                 <span class="magic-tag magic-tag--rank">${escapeHtml(cap.rank)}</span>
-                                ${escapeHtml(levelTag)}
+                                ${levelTag}
                             </div>
                         </div>
                         <span class="magic-capacity-toggle">▾</span>
@@ -2739,7 +2739,7 @@
                                 <div class="magic-capacity-field-value magic-capacity-field-value--dim">${escapeHtml(cap.adminNote || "Aucune note.")}</div>
                             </div>
                         ` : ""}
-                        ${escapeHtml(upgradesSection)}
+                        ${upgradesSection}
                     </div>
                 `;
 
