@@ -1500,12 +1500,83 @@
         return `${ascensionCost} parchemins`;
     }
 
+    // What the player can still spend for a new capacity (isNew) or an upgrade, by page type.
+    // Mirrors consumeAscensionForRank. { unlimited } for admins, { available: null } when the
+    // cost is in scrolls (sorcellerie) and { available: n, unit } for points/souls.
+    function getSpendInfo(page, rank, isNew) {
+        if (isAdmin) return { unlimited: true, available: null, unit: "" };
+        const specialization = page?.fields?.magicSpecialization;
+        const isMinor = rank !== "ultime";
+        const plural = (n, one, many) => (n > 1 ? many : one);
+        if (specialization === "alice" || specialization === "alice-double") {
+            const aliceNumber = (specialization === "alice-double" && Number(page?.fields?.magicAliceType) === 2) ? 2 : 1;
+            const stats = getAliceStats(aliceNumber);
+            const n = isNew
+                ? (isMinor ? stats.controleMinor : stats.controleUltimate)
+                : (isMinor ? stats.puissanceMinor : stats.puissanceUltimate);
+            const unit = isNew
+                ? plural(n, `sort ${isMinor ? "mineur" : "ultime"}`, `sorts ${isMinor ? "mineurs" : "ultimes"}`)
+                : plural(n, `amélioration ${isMinor ? "mineure" : "ultime"}`, `améliorations ${isMinor ? "mineures" : "ultimes"}`);
+            return { unlimited: false, available: n, unit };
+        }
+        if (specialization === "meister") {
+            const skills = getMeisterSkills();
+            let n;
+            if (isMinor) n = isNew ? skills.maitriseAvailable : skills.puissanceAvailable + skills.maitriseAvailable;
+            else n = isNew ? 0 : skills.resonanceAvailable;
+            return { unlimited: false, available: n, unit: plural(n, "point de fragment", "points de fragment") };
+        }
+        if (specialization === "arme") {
+            const weapon = getWeaponFragments();
+            let n;
+            if (isMinor) {
+                n = isNew
+                    ? weapon.maitriseAvailable + weapon.soulsMinorAvailable
+                    : weapon.puissanceAvailable + weapon.maitriseAvailable + weapon.soulsMinorAvailable;
+            } else {
+                n = weapon.soulsUltimateAvailable;
+            }
+            return { unlimited: false, available: n, unit: plural(n, "fragment", "fragments") };
+        }
+        return { unlimited: false, available: null, unit: "" };
+    }
+
+    function describeSpendInfo(info) {
+        if (info.unlimited) return "Illimité (admin)";
+        if (info.available == null) return "";
+        if (info.available <= 0) return "Aucun disponible : augmentez vos compétences ou gagnez des âmes.";
+        return `Disponible : ${info.available} ${info.unit}`;
+    }
+
+    // Players confirm before spending (it cannot be undone); admins are never asked.
+    function confirmSpend(page, rank, isNew, name) {
+        if (isAdmin) return true;
+        const info = getSpendInfo(page, rank, isNew);
+        if (info.available != null) {
+            if (info.available <= 0) return true; // the refusal message explains why
+            const remaining = info.available - 1;
+            return window.confirm(`Valider « ${name} » ?\nCela dépense 1 point (il en restera ${remaining}). Action définitive.`);
+        }
+        const cost = isNew ? getAscensionCostForPage(page) : null;
+        if (cost) {
+            return window.confirm(`Valider « ${name} » ?\nCela dépense ${cost} parchemin(s) d'ascension. Action définitive.`);
+        }
+        return true;
+    }
+
     function updateNewCapCostPreview() {
         if (!capCostPreview) return;
         const page = pages[activePageIndex];
         const rank = capRankInput?.value || "mineur";
         const label = getAscensionCostLabel(page, rank, 1);
-        capCostPreview.textContent = `Cout d'ascension : ${label}`;
+        const info = getSpendInfo(page, rank, true);
+        const detail = describeSpendInfo(info);
+        capCostPreview.textContent = `Cout d'ascension : ${label}${detail ? ` — ${detail}` : ""}`;
+        if (capSaveBtn) {
+            const blocked = !info.unlimited && info.available != null && info.available <= 0;
+            capSaveBtn.disabled = blocked;
+            capSaveBtn.title = blocked ? "Rien à dépenser pour ce rang pour le moment." : "";
+        }
     }
 
     function syncZoneControls(targetSelect, zoneSelect, zoneDetailInput) {
@@ -2390,7 +2461,19 @@
                         </div>
                         <div class="spell-card-summary">${escapeHtml(cap.summary || "Aucune description")}</div>
                         ${tags.length ? `<div class="spell-card-tags">${tags.join('')}</div>` : ''}
+                        ${showUpgrades ? `<div class="spell-card-actions"><button type="button" class="magic-btn magic-btn-outline tw-press" data-card-upgrade="${escapeHtml(cap.id)}">Améliorer</button></div>` : ''}
                     `;
+
+                    card.querySelector("[data-card-upgrade]")?.addEventListener("click", (event) => {
+                        event.stopPropagation();
+                        currentView = "list";
+                        viewToggleButtons.forEach(b => b.classList.remove("magic-view-btn--active"));
+                        viewToggleButtons.find(b => b.dataset.view === "list")?.classList.add("magic-view-btn--active");
+                        renderCapacities(filterType);
+                        const upgradeButton = capacityList.querySelector(`[data-upgrade="${escapeSelectorValue(cap.id)}"]`);
+                        upgradeButton?.click();
+                        upgradeButton?.scrollIntoView({ block: "center", behavior: "smooth" });
+                    });
 
                     // Make card clickable to expand details
                     card.style.cursor = "pointer";
@@ -2854,6 +2937,7 @@
                             // free: scrolls unlock new techniques (creation), not upgrades of existing ones.
                             const targetRank = upgradeRank?.value || cap.rank;
                             if (!isSorcelleriePage || targetRank === "ultime") {
+                                if (!confirmSpend(currentPage, targetRank, false, nextName)) return;
                                 upgradeSave.disabled = true;
                                 let paid = false;
                                 try {
@@ -3241,12 +3325,14 @@
             }
             if (!pages[activePageIndex]) return;
             // Players pay for a new capacity with their points/scrolls; admins are exempt.
+            if (!confirmSpend(pages[activePageIndex], newCap.rank, true, newCap.name)) return;
             capSaveBtn.disabled = true;
             let paid = false;
             try {
                 paid = await consumeAscensionForRank(pages[activePageIndex], newCap.rank, 1);
             } finally {
                 capSaveBtn.disabled = false;
+                updateNewCapCostPreview();
             }
             if (!paid) return;
             pages[activePageIndex].capacities = pages[activePageIndex].capacities || [];
