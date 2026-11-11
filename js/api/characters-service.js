@@ -10,6 +10,8 @@ const userCharactersCache = new Map();
 // Include it in summary so avatar_url and fiche_summary are always available.
 const CHARACTER_SUMMARY_COLUMNS = 'id,user_id,name,race,class,profile_data,kaels,is_active,created_at';
 const CHARACTER_FULL_COLUMNS = 'id,user_id,name,race,class,profile_data,kaels,is_active,created_at';
+// Pickers and counters only need who/what to show: skip the heavy profile_data blob.
+const CHARACTER_LEAN_COLUMNS = 'id,user_id,name,kaels,is_active,created_at';
 
 function resolveCharacterColumns(includeProfileData = false) {
     return includeProfileData ? CHARACTER_FULL_COLUMNS : CHARACTER_SUMMARY_COLUMNS;
@@ -223,11 +225,12 @@ export async function getUserCharacters(userId, options = {}) {
 export async function getAllCharacters(options = {}) {
     if (!isAdmin()) return [];
     const includeProfileData = options?.includeProfileData === true;
+    const lean = options?.lean === true && !includeProfileData;
 
     try {
         await ensureAuthContext();
         const supabase = await getSupabaseClient();
-        const columns = resolveCharacterColumns(includeProfileData);
+        const columns = lean ? CHARACTER_LEAN_COLUMNS : resolveCharacterColumns(includeProfileData);
 
         const { data, error } = await supabase
             .from(TABLES.characters)

@@ -6,6 +6,9 @@
     <title>Astoria - Accueil</title>
     <meta name="description" content="Astoria : univers de jeu de rôle d'Alice Academia.">
     <link rel="icon" type="image/x-icon" href="assets/images/ALICE_ACADEMIA.ico">
+    <!-- First paint: the logo and the page background start downloading with the HTML. -->
+    <link rel="preload" as="image" href="assets/images/alice_academia_logo.png" fetchpriority="high">
+    <link rel="preload" as="image" href="assets/images/general_background.jpg">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/home.css">
     <link rel="stylesheet" href="css/home-viewer.css">
@@ -17,7 +20,7 @@
 <body class="home-body">
     <noscript><p class="noscript-notice" role="alert">Ce site a besoin de JavaScript pour fonctionner. Activez-le dans votre navigateur, puis rechargez la page.</p></noscript>
     <main class="home-welcome" id="haut">
-        <img class="home-welcome-logo" src="assets/images/alice_academia_logo.png" alt="Logo Alice Academia" width="180" height="180">
+        <img class="home-welcome-logo" src="assets/images/alice_academia_logo.png" alt="Logo Alice Academia" width="180" height="180" fetchpriority="high" decoding="async">
         <p class="home-kicker" id="homeKicker">Alice Academia</p>
         <h1 class="home-title" id="homeTitle">Astoria</h1>
         <p class="home-tagline" id="homeTagline"></p>

@@ -142,7 +142,7 @@ async function run() {
 
     try {
       if (typeof getAllCharacters === "function") {
-        const allCharacters = await getAllCharacters();
+        const allCharacters = await getAllCharacters({ lean: true });
         allCharacters.forEach((character) => {
           const option = document.createElement("option");
           option.value = character.id;
