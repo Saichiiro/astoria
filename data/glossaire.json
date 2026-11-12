@@ -2,6 +2,7 @@
   "_lisezMoi": [
     "Contenu de la page d'accueil (index.html) : modifie ce fichier, pas le code.",
     "liens : boutons de l'accueil, dans l'ordre. titre, texte (une ligne), icone (un emoji), url (lien https du site, ouvert dans un nouvel onglet).",
+    "masque: true = cache le lien ET son écran intégré (adresse #glossaire comprise) sans rien supprimer ; retire la ligne pour le remettre.",
     "Sans url : vue = royaumes ou glossaire ouvre la fiche intégrée en attendant le site ; sinon le bouton affiche « Lien à venir ».",
     "royaumes : id unique (minuscules, sans espace), couleur (facultative), nom, position, accroche, description, tags.",
     "categories : id + libelle, utilisées pour filtrer les termes du glossaire.",
@@ -52,7 +53,8 @@
       "texte": "Les mots de l'univers, expliqués simplement.",
       "icone": "📖",
       "url": "",
-      "vue": "glossaire"
+      "vue": "glossaire",
+      "masque": true
     },
     {
       "id": "informations",

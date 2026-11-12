@@ -2,7 +2,7 @@
 // opened in a new tab. Until a site has its link, Royaumes and Glossaire open a
 // built-in viewer instead. Everything is built with textContent.
 import { initAccountLinks, getRouteHref } from './account-links.js';
-import { loadSiteContent, resolveSiteLink, VIEW_KINGDOMS, VIEW_GLOSSARY } from './site-links.js';
+import { loadSiteContent, resolveSiteLink, getEnabledViews, VIEW_KINGDOMS, VIEW_GLOSSARY } from './site-links.js';
 
 const GENERAL = 'general';
 // Viewer screens in the URL: #royaumes, #glossaire, #terme-<mot>
@@ -123,6 +123,8 @@ function renderLinks(data) {
 }
 
 function createViewer(data) {
+    // Screens whose link is hidden in the content file (masque: true) are unreachable.
+    const enabledViews = getEnabledViews(data);
     const viewer = document.getElementById('homeViewer');
     const panelBody = document.getElementById('viewerBody');
     const labelEl = document.getElementById('viewerLabel');
@@ -150,7 +152,9 @@ function createViewer(data) {
         });
         content.appendChild(list);
         foot.append(
-            button('Voir le glossaire', 'home-btn home-btn--ghost', () => show(VIEW_GLOSSARY)),
+            ...(enabledViews.has(VIEW_GLOSSARY)
+                ? [button('Voir le glossaire', 'home-btn home-btn--ghost', () => show(VIEW_GLOSSARY))]
+                : []),
             button('Revenir à l\'accueil', 'home-btn', close)
         );
     }
@@ -304,9 +308,9 @@ function createViewer(data) {
     // ---------- Ouverture / fermeture (liée à l'adresse) ----------
     function parseHash() {
         const hash = decodeURIComponent(window.location.hash.slice(1));
-        if (hash === VIEW_GLOSSARY) return { view: VIEW_GLOSSARY };
-        if (hash.startsWith(TERM_PREFIX)) return { view: VIEW_GLOSSARY, term: hash };
-        if (hash === VIEW_KINGDOMS) return { view: VIEW_KINGDOMS };
+        if (hash === VIEW_GLOSSARY && enabledViews.has(VIEW_GLOSSARY)) return { view: VIEW_GLOSSARY };
+        if (hash.startsWith(TERM_PREFIX) && enabledViews.has(VIEW_GLOSSARY)) return { view: VIEW_GLOSSARY, term: hash };
+        if (hash === VIEW_KINGDOMS && enabledViews.has(VIEW_KINGDOMS)) return { view: VIEW_KINGDOMS };
         return null;
     }
 
@@ -381,6 +385,7 @@ function createViewer(data) {
         }
         // "/" opens the glossary search, like most sites with a search box.
         if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
+        if (!enabledViews.has(VIEW_GLOSSARY)) return;
         const target = event.target;
         if (target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
         event.preventDefault();

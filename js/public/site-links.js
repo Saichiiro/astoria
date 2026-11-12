@@ -44,7 +44,7 @@ export function loadSiteContent() {
 //  - view:     opens a built-in screen of the home page (vue), shareable as index.html#<vue>
 // Items with neither are not shown anywhere: never a dead end.
 export function resolveSiteLink(item) {
-    if (!item || !item.titre) return null;
+    if (!item || !item.titre || item.masque === true) return null;
     const external = safeUrl(item.url);
     const view = VIEWS.includes(item.vue) ? item.vue : null;
     if (!external && !view) return null;
@@ -57,6 +57,13 @@ export function resolveSiteLink(item) {
         view: external ? null : view,
         href: external || getRouteHref('publicHome', { hash: view })
     };
+}
+
+// Built-in screens that are switched on: a screen is off when its link is hidden (masque: true).
+export function getEnabledViews(data) {
+    const links = Array.isArray(data?.liens) ? data.liens : [];
+    const hidden = new Set(links.filter((item) => item?.masque === true && item.vue).map((item) => item.vue));
+    return new Set(VIEWS.filter((view) => !hidden.has(view)));
 }
 
 export async function loadSiteLinks() {
