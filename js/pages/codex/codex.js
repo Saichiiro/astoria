@@ -891,6 +891,28 @@ function selectRow(index) {
     selectedRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+function resetRowSelection() {
+    clearRowHighlights();
+    selectedRowIndex = -1;
+}
+
+// Keyboard navigation belongs to the list only while the player is "in" it: a click on a row
+// selects it; a click anywhere else (or Escape) gives the arrow keys back to the page.
+document.addEventListener('pointerdown', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const row = target?.closest('.item-row');
+    if (row) {
+        const index = Array.from(getItemRows()).indexOf(row);
+        if (index >= 0 && !target.closest('button, a, input, select, textarea')) {
+            clearRowHighlights();
+            selectedRowIndex = index;
+            row.classList.add('keyboard-selected');
+        }
+        return;
+    }
+    if (selectedRowIndex >= 0) resetRowSelection();
+});
+
 function navigateRows(direction) {
     const rows = getItemRows();
     if (!rows.length) return;
@@ -912,7 +934,8 @@ function isAdminModalOpen() {
     );
 }
 
-// Keyboard shortcuts & focus management: ESC to close modal or clear search, Enter to focus search, arrows for carousel, Tab trap in modal
+// Keyboard: Esc closes the modal / clears the search and the row selection, arrows move the selected row
+// (click a row first) or the image carousel, Enter opens the selected row, "/" focuses the search, Tab is trapped in the modal.
 document.addEventListener("keydown", (e) => {
     if (modal.classList.contains("open")) {
         const focusableSelectors = [
@@ -961,24 +984,17 @@ document.addEventListener("keydown", (e) => {
                 searchInput.blur();
                 applyFilters();
             }
-            clearRowHighlights();
-            selectedRowIndex = -1;
+            resetRowSelection();
         } else if (e.key === "Enter" && !isSearchFocused) {
             // Open selected row with Enter
             if (selectedRowIndex >= 0) {
                 e.preventDefault();
                 openSelectedRow();
             }
-        } else if (e.key === " " && !isSearchFocused) {
-            // Focus search with Space
-            e.preventDefault();
-            if (searchInput) {
-                searchInput.focus();
-            }
-        } else if (e.key === "ArrowDown" && !isSearchFocused) {
+        } else if (e.key === "ArrowDown" && !isSearchFocused && selectedRowIndex >= 0) {
             e.preventDefault();
             navigateRows(1);
-        } else if (e.key === "ArrowUp" && !isSearchFocused) {
+        } else if (e.key === "ArrowUp" && !isSearchFocused && selectedRowIndex >= 0) {
             e.preventDefault();
             navigateRows(-1);
         }

@@ -16,7 +16,24 @@
 
         const input = options.input || root.querySelector('input');
         const toggle = options.toggle || root.querySelector('[data-search-toggle]');
-        const clearButton = options.clearButton || root.querySelector('[data-search-clear]');
+        let clearButton = options.clearButton || root.querySelector('[data-search-clear]');
+
+        // Same behaviour and same look on every page, whatever the page markup provides:
+        // no autofill/keyboard noise, a "Search" key on phones, one clear button.
+        if (input) {
+            if (!input.hasAttribute('autocomplete')) input.setAttribute('autocomplete', 'off');
+            if (!input.hasAttribute('enterkeyhint')) input.setAttribute('enterkeyhint', 'search');
+            if (!input.hasAttribute('aria-label') && input.placeholder) input.setAttribute('aria-label', input.placeholder.replace(/\.{3}$/, ''));
+            if (!clearButton) {
+                clearButton = document.createElement('button');
+                clearButton.type = 'button';
+                clearButton.className = 'inventory-search-clear tw-press';
+                clearButton.setAttribute('aria-label', 'Effacer la recherche');
+                clearButton.textContent = 'x';
+                clearButton.hidden = true;
+                input.insertAdjacentElement('afterend', clearButton);
+            }
+        }
         const dropdown = options.dropdown || root.querySelector('[data-search-history]');
         const history = options.history || null;
         const onSearch = typeof options.onSearch === 'function' ? options.onSearch : null;
@@ -25,7 +42,10 @@
         const closeDelay = Number.isFinite(options.closeDelay) ? options.closeDelay : 150;
         const collapseWhenEmpty = options.collapseWhenEmpty !== false;
         const openOnFocus = options.openOnFocus !== false;
-        const hotkey = options.hotkey || null;
+        // "/" focuses the main search of a page (like the home page); modal/panel searches opt in explicitly.
+        const hotkey = options.hotkey === false
+            ? null
+            : (options.hotkey || (root.dataset.searchPriority === 'page' ? '/' : null));
 
         let isOpen = root.classList.contains(openClass);
 

@@ -614,6 +614,16 @@ textarea {
     background: var(--color-primary-lighter);
 }
 
+.inventory-search-clear[hidden] {
+    display: none;
+}
+
+/* One clear button (ours) on every search field, not the browser's extra one. */
+.inventory-search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
 .inventory-search-history {
     z-index: 20;
 }
