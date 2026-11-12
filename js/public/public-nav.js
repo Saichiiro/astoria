@@ -3,6 +3,19 @@
 import { initAccountLinks, isLoggedIn, getRouteHref } from './account-links.js';
 import { loadSiteLinks } from './site-links.js';
 
+// One link of the Astoria sites (data/glossaire.json > liens), shared by the menu and the top bar.
+function buildSiteAnchor(site) {
+    const a = document.createElement('a');
+    a.href = site.href;
+    a.textContent = site.icone ? `${site.icone} ${site.titre}` : site.titre;
+    if (site.external) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.setAttribute('aria-label', `${site.titre} (nouvel onglet)`);
+    }
+    return a;
+}
+
 export function initPublicNav() {
     if (document.getElementById('publicNav')) return;
     const loggedIn = isLoggedIn();
@@ -52,17 +65,10 @@ export function initPublicNav() {
 
     loadSiteLinks().then((sites) => {
         const anchor = nav.querySelector('.public-nav-primary');
-        sites.forEach((site) => {
-            const a = document.createElement('a');
-            a.href = site.href;
-            a.textContent = site.icone ? `${site.icone} ${site.titre}` : site.titre;
-            if (site.external) {
-                a.target = '_blank';
-                a.rel = 'noopener noreferrer';
-                a.setAttribute('aria-label', `${site.titre} (nouvel onglet)`);
-            }
-            nav.insertBefore(a, anchor);
-        });
+        sites.forEach((site) => nav.insertBefore(buildSiteAnchor(site), anchor));
+        // Same links in the page's top bar when it has one (login page).
+        const topNav = document.getElementById('homeTopNav');
+        if (topNav) sites.forEach((site) => topNav.appendChild(buildSiteAnchor(site)));
     }).catch(() => { /* the menu still works without the site links */ });
 
     const setOpen = (open) => {
