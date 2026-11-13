@@ -230,6 +230,7 @@
     let currentCharacter = null;
     let storageKey = STORAGE_KEY_BASE;
     let cachedCompetences = null; // loaded from character_competences table on init
+    let cachedSouls = null; // { conso, prog } owned souls, derived from the inventory
     let authApi = null;
     let hasPendingChanges = false;
     let summaryModule = null;
@@ -1344,8 +1345,8 @@
         const puissanceCapacite = Number(competencesData?.weaponPuissanceCapacite) || 0;
         const maitriseCapacite = Number(competencesData?.weaponMaitriseCapacite) || 0;
 
-        // Âmes de progression
-        const progSouls = Number(eaterData?.eaterAmesProgression) || 0;
+        // Âmes de progression: owned "Âme Damnée – Format Progression" (inventory), else the fiche value
+        const progSouls = cachedSouls ? cachedSouls.prog : (Number(eaterData?.eaterAmesProgression) || 0);
 
         const progress = loadMagicProgress();
         const used = progress.weaponFragments || {
@@ -1957,6 +1958,10 @@
         try {
             const { getCharacterCompetences } = await import("../../api/competences-service.js");
             cachedCompetences = await getCharacterCompetences(currentCharacter.id);
+        } catch {}
+        try {
+            const { loadSoulCounts } = await import("../../api/souls-service.js");
+            cachedSouls = await loadSoulCounts(currentCharacter.id);
         } catch {}
         await getHydratedCharacter(currentCharacter.id, { logContext: "hydrateFullCharacter" });
     }

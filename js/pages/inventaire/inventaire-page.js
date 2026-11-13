@@ -2942,6 +2942,8 @@
                 return;
             }
             if (authApi.getActiveCharacter?.()?.id !== character.id) return; // switched meanwhile
+            // Keep the soul counters (fiche, header) in step with the Âme Damnée items owned.
+            import('../../api/souls-service.js').then((m) => m.cacheSoulCounts(character.id, rows)).catch(() => {});
 
             inventoryMigrated = payload?.migrated === true;
             scrollTypeStore = payload?.scrollTypes && typeof payload.scrollTypes === 'object'

@@ -458,7 +458,7 @@
                             <!-- Soul Counter Panel -->
                             <div class="eater-counter">
                                 <h3 class="eater-counter-title">Compteur d'âmes</h3>
-                                <p class="fiche-hint">Lien automatique avec l'inventaire (ames) : stub.</p>
+                                <p class="fiche-hint" id="eaterSoulsHint">Calculé automatiquement depuis l'inventaire (Âme Damnée : Format Consommation / Format Progression).</p>
                                 <div class="field-group field-group--inline">
                                     <div class="field-group">
                                         <label class="field-label" for="eaterAmesConso">&Acirc;mes de Consommation</label>
@@ -2471,6 +2471,23 @@
                 summaryModule.applySummaryToElements(summaryElements, summaryModule.buildSummary(initialContext));
             }
             loadAllTabs();
+            // Soul counters come from the inventory (Âme Damnée items), not from typing.
+            (async () => {
+                const active = authApi?.getActiveCharacter?.();
+                if (!active?.id) return;
+                try {
+                    const { loadSoulCounts } = await import('./js/api/souls-service.js');
+                    const counts = await loadSoulCounts(active.id);
+                    [['eaterAmesConso', counts.conso], ['eaterAmesProgression', counts.prog]].forEach(([id, value]) => {
+                        const input = document.getElementById(id);
+                        if (!input) return;
+                        input.value = String(value);
+                        input.readOnly = true;
+                    });
+                } catch (error) {
+                    console.warn('Soul counters not loaded from inventory:', error);
+                }
+            })();
             setInterval(() => {
                 if (!summaryModule?.resolveCharacterContext || !summaryModule?.buildSummary) return;
                 const nextContext = summaryModule.resolveCharacterContext({ includeQueryParam: true });
