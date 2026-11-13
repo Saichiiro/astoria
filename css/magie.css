@@ -2419,6 +2419,33 @@ html {
     margin-top: 0.5rem;
 }
 
+.magic-element-card--locked {
+    cursor: default;
+    border-style: dashed;
+}
+
+.magic-element-card--locked .magic-element-emoji,
+.magic-element-card--locked .magic-element-name {
+    opacity: 0.6;
+}
+
+.magic-element-unlock {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.5rem;
+    justify-items: center;
+}
+
+.magic-element-unlock-ratio {
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+.magic-element-unlock .magic-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .magic-empty-state {
     text-align: center;
     padding: 3rem 1rem;

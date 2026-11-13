@@ -327,6 +327,7 @@
         WEAPON_SOULS_MINOR_THRESHOLDS,
         WEAPON_SOULS_ULTIMATE_THRESHOLDS,
         STEPS: RULE_STEPS,
+        getEveilCost,
         getAscensionCost,
         getUltimeAscensionCost
     } = window.astoriaMagicRules;
@@ -364,33 +365,59 @@
         return /^magie\d+$/.test(condensed);
     }
 
+    // A magic is open once its awakening was paid.
+    function isAffinityUnlocked(key, progress = loadMagicProgress()) {
+        return Boolean(progress.affinities?.[key]?.unlocked);
+    }
+
+    // Magics that already hold capacities (made before awakenings were enforced) are
+    // marked unlocked once, so existing content never disappears behind the new gate.
+    function grandfatherExistingMagics(progress) {
+        let changed = false;
+        pages.forEach((page) => {
+            const key = page?.fields?.magicAffinityKey;
+            if (!key || page?.fields?.magicSpecialization !== "sorcellerie") return;
+            if (!Array.isArray(page.capacities) || !page.capacities.length) return;
+            if (isAffinityUnlocked(key, progress)) return;
+            const entry = progress.affinities[key] || {};
+            progress.affinities[key] = {
+                affinityType: entry.affinityType || "none",
+                unlocked: true,
+                ascensionLevel: Number(entry.ascensionLevel) || 0,
+                techniquesCount: Number(entry.techniquesCount) || 0
+            };
+            if (!progress.enabledAffinities.includes(key)) progress.enabledAffinities.push(key);
+            changed = true;
+        });
+        if (changed) persistMagicProgress(progress, { persistProfile: true });
+    }
+
     function getSorcellerieSelectionsFromFiche() {
         const sorcellerieData = getFicheTabData("sorcellerie") || {};
         const progress = loadMagicProgress();
-        const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
-        const hasProgressState = enabled.length > 0 || Object.keys(progress.affinities || {}).length > 0;
         const entries = [];
 
-        const pushEntry = (key, sourceLabel) => {
+        // Every pick of the fiche is listed; `unlocked` tells whether the awakening was paid.
+        const pushEntry = (key, sourceLabel, defaultType) => {
             const affinity = getAffinityEntry(key);
             if (!affinity) return;
             const progressEntry = progress.affinities?.[affinity.key];
-            const unlockedInProgress = Boolean(progressEntry?.unlocked) || enabled.includes(affinity.key);
-            if (hasProgressState && !unlockedInProgress) return;
             entries.push({
                 key: affinity.key,
                 label: affinity.label,
                 emoji: affinity.emoji,
-                sourceLabel
+                sourceLabel,
+                affinityType: progressEntry?.affinityType || defaultType,
+                unlocked: isAffinityUnlocked(affinity.key, progress)
             });
         };
 
-        pushEntry(sorcellerieData?.sorcelleriePrincipale, "Principale");
-        pushEntry(sorcellerieData?.sorcellerieSecondaire, "Secondaire");
-        pushEntry(sorcellerieData?.sorcellerieCachee, "Cachee");
+        pushEntry(sorcellerieData?.sorcelleriePrincipale, "Principale", "primary");
+        pushEntry(sorcellerieData?.sorcellerieSecondaire, "Secondaire", "secondary");
+        pushEntry(sorcellerieData?.sorcellerieCachee, "Cachee", "hidden");
         if (Array.isArray(sorcellerieData?.magieSupplementaire)) {
             sorcellerieData.magieSupplementaire.forEach((key, index) => {
-                pushEntry(key, `Supplementaire ${index + 1}`);
+                pushEntry(key, `Supplementaire ${index + 1}`, "none");
             });
         }
 
@@ -410,23 +437,27 @@
         if (tabName === "competences") {
             if (!cachedCompetences) return null;
             const competences = cachedCompetences;
-            const pouvoirs = competences.allocationsByCategory?.pouvoirs || {};
+            // "Valider" on the competences page moves allocations into base values and
+            // clears the allocations, so a skill's points are base + pending allocation.
+            const allocated = competences.allocationsByCategory?.pouvoirs || {};
+            const confirmed = competences.baseValuesByCategory?.pouvoirs || {};
+            const points = (name) => (Number(confirmed[name]) || 0) + (Number(allocated[name]) || 0);
 
             // Mapper les noms de compétences vers les clés utilisées dans magie.js
             const mapped = {
                 // Alice 1
-                alicePuissance: pouvoirs["Puissance Alice 1"] || 0,
-                aliceControle: pouvoirs["Contrôle Alice 1"] || 0,
+                alicePuissance: points("Puissance Alice 1"),
+                aliceControle: points("Contrôle Alice 1"),
                 // Alice 2
-                alicePuissance2: pouvoirs["Puissance Alice 2"] || 0,
-                aliceControle2: pouvoirs["Contrôle Alice 2"] || 0,
+                alicePuissance2: points("Puissance Alice 2"),
+                aliceControle2: points("Contrôle Alice 2"),
                 // Meister
-                meisterResonanceAmes: pouvoirs["Résonnance des Âmes"] || 0,
-                meisterPuissanceCapacite: pouvoirs["Puissance de la capacité unique"] || 0,
-                meisterMaitriseCapacite: pouvoirs["Maîtrise de la capacité unique"] || 0,
+                meisterResonanceAmes: points("Résonnance des Âmes"),
+                meisterPuissanceCapacite: points("Puissance de la capacité unique"),
+                meisterMaitriseCapacite: points("Maîtrise de la capacité unique"),
                 // Weapon (Arme)
-                weaponPuissanceCapacite: pouvoirs["Puissance de la capacité unique"] || 0,
-                weaponMaitriseCapacite: pouvoirs["Maîtrise de la capacité unique"] || 0,
+                weaponPuissanceCapacite: points("Puissance de la capacité unique"),
+                weaponMaitriseCapacite: points("Maîtrise de la capacité unique"),
             };
 
             return mapped;
@@ -1096,6 +1127,7 @@
 
     function syncPagesWithProgress() {
         const progress = loadMagicProgress();
+        grandfatherExistingMagics(progress);
         const enabled = Array.isArray(progress.enabledAffinities) ? progress.enabledAffinities : [];
         const hasProgressState = enabled.length > 0 || Object.keys(progress.affinities || {}).length > 0;
         const affinities = getMagicAffinities();
@@ -1150,9 +1182,8 @@
 
         // Legacy migration removed - keep meister and arme as separate types
 
-        const keysToEnsure = hasProgressState
-            ? enabled.filter((key) => Boolean(progress.affinities[key]?.unlocked))
-            : Array.from(selectedSorcellerieKeys);
+        const keysToEnsure = (hasProgressState ? enabled : Array.from(selectedSorcellerieKeys))
+            .filter((key) => Boolean(progress.affinities[key]?.unlocked));
 
         keysToEnsure.forEach((key) => {
             if (selectedSorcellerieKeys.size > 0 && !selectedSorcellerieKeys.has(key)) return;
@@ -1177,10 +1208,8 @@
                 return;
             }
             seenAffinity.add(key);
-            const entry = progress.affinities[key] || {};
-            const enabledKey = enabled.includes(key);
             const selectedByFiche = selectedSorcellerieKeys.size === 0 || selectedSorcellerieKeys.has(key);
-            const unlockedByProgress = !hasProgressState || (enabledKey && entry.unlocked);
+            const unlockedByProgress = isAffinityUnlocked(key, progress);
             page.hidden = !(selectedByFiche && unlockedByProgress);
         });
 
@@ -3165,35 +3194,87 @@
         goToPageInternal(SCREEN_PAGE.CATEGORIES);
     };
 
+    // Awakening: spends the eveil scrolls of that affinity once, then the magic stays open.
+    async function unlockMagic(magic) {
+        if (!magic || isAffinityUnlocked(magic.key)) return;
+        const cost = getEveilCost(magic.affinityType);
+        const result = await applyScrollCost({ category: "eveil", affinityKey: magic.key, cost });
+        if (!result.ok) {
+            const message = result.reason === "insufficient"
+                ? `Parchemins d'éveil insuffisants (${Number(result.current) || 0}/${cost} de cette affinité).`
+                : result.reason === "save-failed"
+                    ? "Sauvegarde impossible, réessaie dans un instant."
+                    : "Parchemin d'éveil indisponible.";
+            window.toastManager?.error?.(message);
+            return;
+        }
+        const progress = loadMagicProgress();
+        const entry = progress.affinities[magic.key] || {};
+        progress.affinities[magic.key] = {
+            affinityType: entry.affinityType || magic.affinityType,
+            unlocked: true,
+            ascensionLevel: Number(entry.ascensionLevel) || 0,
+            techniquesCount: Number(entry.techniquesCount) || 0
+        };
+        if (!progress.enabledAffinities.includes(magic.key)) progress.enabledAffinities.push(magic.key);
+        persistMagicProgress(progress, { persistProfile: true });
+        syncPagesWithProgress();
+        window.toastManager?.success?.(`${magic.label} débloquée.`);
+        window.showMagicSelection();
+    }
+
     window.showMagicSelection = () => {
         const magicSelectionContainer = document.getElementById('magicElementSelection');
         if (!magicSelectionContainer) return;
         lastCategorySelectionMode = "sorcellerie";
         navigationEntryMode = "sorcellerie-selection";
         const magics = getSorcellerieSelectionsFromFiche();
+        const eveilCounts = getScrollCounts(currentCharacter?.profile_data || {}, "eveil");
 
         magicSelectionContainer.innerHTML = "";
         if (!magics.length) {
-            magicSelectionContainer.innerHTML = '<p class="magic-empty-state">Aucune magie sorcellerie debloquee. Configurez la fiche personnage puis debloquez les affinites.</p>';
+            magicSelectionContainer.innerHTML = '<p class="magic-empty-state">Aucune magie sorcellerie choisie. Configurez la fiche personnage (onglet Sorcellerie) pour choisir vos affinités.</p>';
         } else {
             magics.forEach((magic) => {
                 const card = document.createElement("div");
-                card.className = "magic-element-card";
+                card.className = "magic-element-card" + (magic.unlocked ? "" : " magic-element-card--locked");
                 card.dataset.magicKey = magic.key;
                 card.setAttribute("role", "button");
                 card.setAttribute("tabindex", "0");
+                const cost = getEveilCost(magic.affinityType);
+                const owned = getScrollCountForAffinity(eveilCounts, magic.key);
+                const canUnlock = isAdmin || owned >= cost;
                 card.innerHTML = `
                     <div class="magic-element-emoji">${escapeHtml(magic.emoji)}</div>
                     <div class="magic-element-name">${escapeHtml(magic.label)}</div>
                     <div class="magic-element-type">${escapeHtml(magic.sourceLabel)}</div>
+                    ${magic.unlocked ? "" : `
+                    <div class="magic-element-unlock">
+                        <div class="magic-element-unlock-ratio" title="Parchemins d'éveil de cette affinité">Éveil : <strong>${owned} / ${cost}</strong>${isAdmin ? " (admin : gratuit)" : ""}</div>
+                        <button type="button" class="magic-btn magic-btn-primary tw-press" data-unlock-magic ${canUnlock ? "" : "disabled"}>Débloquer</button>
+                    </div>`}
                 `;
-                card.addEventListener("click", () => {
+                const open = () => {
+                    if (!magic.unlocked) {
+                        window.toastManager?.info?.(`Débloque d'abord ${magic.label} avec ${cost} parchemins d'éveil.`);
+                        return;
+                    }
                     window.selectMagicElement(magic.key, magic.label);
+                };
+                card.addEventListener("click", (event) => {
+                    if (event.target.closest("[data-unlock-magic]")) return;
+                    open();
                 });
                 card.addEventListener("keydown", (event) => {
+                    if (event.target.closest("[data-unlock-magic]")) return;
                     if (event.key !== "Enter" && event.key !== " ") return;
                     event.preventDefault();
-                    window.selectMagicElement(magic.key, magic.label);
+                    open();
+                });
+                card.querySelector("[data-unlock-magic]")?.addEventListener("click", (event) => {
+                    const button = event.currentTarget;
+                    button.disabled = true;
+                    unlockMagic(magic).finally(() => { button.disabled = false; });
                 });
                 magicSelectionContainer.appendChild(card);
             });
@@ -3213,6 +3294,10 @@
     };
 
     window.selectMagicElement = (magicKey, magicLabel) => {
+        if (!isAffinityUnlocked(magicKey)) {
+            window.toastManager?.info?.("Cette magie n'est pas encore débloquée.");
+            return;
+        }
         console.log('[Magie] Selected magic element:', { magicKey, magicLabel });
         goToPageInternal(SCREEN_PAGE.NAVIGATION, {
             mode: "affinity",
