@@ -458,7 +458,7 @@
                             <!-- Soul Counter Panel -->
                             <div class="eater-counter">
                                 <h3 class="eater-counter-title">Compteur d'âmes</h3>
-                                <p class="fiche-hint" id="eaterSoulsHint">Calculé automatiquement depuis l'inventaire (Âme Damnée : Format Consommation / Format Progression).</p>
+                                <p class="fiche-hint" id="eaterSoulsHint">Liés à l'inventaire (Âme Damnée). Consommation : quantité possédée, elle varie. Progression : cumulée, elle ne diminue jamais (pour la remettre à zéro, un admin retire aussi les objets Âme Damnée Progression).</p>
                                 <div class="field-group field-group--inline">
                                     <div class="field-group">
                                         <label class="field-label" for="eaterAmesConso">&Acirc;mes de Consommation</label>
@@ -2477,12 +2477,15 @@
                 if (!active?.id) return;
                 try {
                     const { loadSoulCounts } = await import('./js/api/souls-service.js');
-                    const counts = await loadSoulCounts(active.id);
-                    [['eaterAmesConso', counts.conso], ['eaterAmesProgression', counts.prog]].forEach(([id, value]) => {
+                    const counts = await loadSoulCounts(active.id, {
+                        storedProg: active.profile_data?.eater?.eaterAmesProgression
+                    });
+                    const adminMode = Boolean(authApi?.isAdmin?.());
+                    [['eaterAmesConso', counts.conso, true], ['eaterAmesProgression', counts.prog, !adminMode]].forEach(([id, value, locked]) => {
                         const input = document.getElementById(id);
                         if (!input) return;
                         input.value = String(value);
-                        input.readOnly = true;
+                        input.readOnly = locked;
                     });
                 } catch (error) {
                     console.warn('Soul counters not loaded from inventory:', error);

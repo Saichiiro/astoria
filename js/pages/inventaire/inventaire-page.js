@@ -2921,6 +2921,7 @@
             // database: the cached character may be stale or stripped by session-store.
             let payload = null;
             let rows = null;
+            let storedEaterProg = 0;
             try {
                 const [freshChar, inventoryRows] = await Promise.all([
                     authApi.getCharacterById?.(character.id),
@@ -2928,6 +2929,7 @@
                 ]);
                 if (!freshChar) throw new Error('Character profile unavailable');
                 payload = freshChar.profile_data?.inventory || null;
+                storedEaterProg = Number(freshChar.profile_data?.eater?.eaterAmesProgression) || 0;
                 rows = Array.isArray(inventoryRows) ? inventoryRows : [];
             } catch (error) {
                 const msg = String(error?.message || '').toLowerCase();
@@ -2943,7 +2945,7 @@
             }
             if (authApi.getActiveCharacter?.()?.id !== character.id) return; // switched meanwhile
             // Keep the soul counters (fiche, header) in step with the Âme Damnée items owned.
-            import('../../api/souls-service.js').then((m) => m.cacheSoulCounts(character.id, rows)).catch(() => {});
+            import('../../api/souls-service.js').then((m) => m.cacheSoulCounts(character.id, rows, storedEaterProg)).catch(() => {});
 
             inventoryMigrated = payload?.migrated === true;
             scrollTypeStore = payload?.scrollTypes && typeof payload.scrollTypes === 'object'

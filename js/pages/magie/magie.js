@@ -1959,11 +1959,13 @@
             const { getCharacterCompetences } = await import("../../api/competences-service.js");
             cachedCompetences = await getCharacterCompetences(currentCharacter.id);
         } catch {}
+        await getHydratedCharacter(currentCharacter.id, { logContext: "hydrateFullCharacter" });
         try {
             const { loadSoulCounts } = await import("../../api/souls-service.js");
-            cachedSouls = await loadSoulCounts(currentCharacter.id);
+            cachedSouls = await loadSoulCounts(currentCharacter.id, {
+                storedProg: currentCharacter?.profile_data?.eater?.eaterAmesProgression
+            });
         } catch {}
-        await getHydratedCharacter(currentCharacter.id, { logContext: "hydrateFullCharacter" });
     }
 
     function updateSaveStatus() {
